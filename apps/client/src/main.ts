@@ -34,6 +34,7 @@ import type { ArenaIsola } from './game/arena.ts';
 import type { DifesaIsola } from './game/difesa.ts';
 import { createAdrenalina } from './game/adrenalina.ts';
 import { createEroe } from './ui/eroe.ts';
+import { createBorsa } from './ui/borsa.ts';
 import { createPorto } from './game/porto.ts';
 import { createPortoAmici } from './game/porto_amici.ts';
 import { createImpostazioni } from './ui/impostazioni.ts';
@@ -131,6 +132,7 @@ async function boot(): Promise<void> {
   const stanza = createStanza({ world, renderer, velo, lotDi });
   const libri = createLibri({ world, api: net, me, hud, root, camera: renderer.camera, canvas, isole, onFirma: (e) => emotes.play(e) });
   const eroe = net ? createEroe({ api: net, hud, root, ...lotto }) : null;
+  const borsa = me && net ? createBorsa({ api: net, me, root, hud, ...lotto, setLook: (l) => { world.setLook(l); allegro?.setLook(l); } }) : null; // vestiti, cappelli, strumenti, insetti, mobili
   // negozio dei mobili, botteghe, ARREDA in casa tua e modifica dell'isola: chunk a parte, arrivano un attimo dopo il mondo
   let negozio: Negozio | null = null, botteghe: Botteghe | null = null, arreda: Arreda | null = null;
   void import('./game/negozio.ts').then((m) => { negozio = m.createNegozio({ world, renderer, loader, root, hud, velo, api: net, ...lotto }); }).catch(() => { /* senza negozio si gioca lo stesso */ });
@@ -183,6 +185,7 @@ async function boot(): Promise<void> {
     { id: 'editor', gruppo: 'personale', aperto: () => !!editor?.isOpen(), chiudi: () => editor?.close() },
     { id: 'feed', gruppo: 'personale', aperto: () => !!feed?.isOpen(), chiudi: () => feed?.close() },
     { id: 'eroe', gruppo: 'personale', aperto: () => !!eroe?.isOpen(), chiudi: () => eroe?.close() },
+    { id: 'borsa', gruppo: 'personale', aperto: () => !!borsa?.isOpen(), chiudi: () => borsa?.close() },
     { id: 'regata', gruppo: 'gioco', aperto: () => regata.active },
     { id: 'minigiochi', gruppo: 'gioco', aperto: () => giochi.isBusy() },
     { id: 'sotto', gruppo: 'gioco', aperto: sotto },

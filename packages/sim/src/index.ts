@@ -31,6 +31,7 @@ export * from './economy/rientro.ts'; // Mentre eri via e libro degli ospiti (#8
 // Meteo (#361): non si esporta da qui. Lo usa solo la resa delle impostazioni (render/aspetto.ts, chunk caricato dopo) da '@marea/sim/meteo.ts':
 // esportato qui finirebbe nel JS iniziale (le cache a livello di modulo non si possono togliere col tree-shaking).
 export * from './economy/barca.ts'; // La tua barca (#107)
+export * from './economy/mercante.ts'; // Il Mercante in piazza: cappelli e vestiti del giorno
 export * from './economy/casa.ts'; // La casa arredabile (#265)
 export * from './economy/decorazioni.ts'; // Le decorazioni del Mercante, in casa come i mobili
 export * from './economy/stanze.ts'; // Le stanze della casa e gli ampliamenti (#386)

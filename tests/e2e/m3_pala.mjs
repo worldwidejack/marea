@@ -1,5 +1,5 @@
-// La pala a Borgo Marea (#438): si compra al negozio dei mobili per 500 monete; va nello zaino del personaggio nella categoria
-// «Strumenti» con peso 0; permette di scavare buche aperte nel terreno di Borgo Marea, chiuderle (il terreno torna normale) o
+// La pala a Borgo Marea (#438): si compra al negozio dei mobili per 500 monete; la si ritrova nella Borsa (menù AVATAR) tra gli
+// «Strumenti» (nello zaino del personaggio pesa 0); permette di scavare buche aperte nel terreno di Borgo Marea, chiuderle (il terreno torna normale) o
 // seppellirci oggetti dello zaino, mobili non piazzati nella casa e quantità a scelta di monete (rimane una croce stile Animal Crossing
 // a tempo indeterminato finché un giocatore non la scava fuori per passare oggetti da un player all'altro).
 // Ogni giorno in un punto casuale di Borgo Marea spawna un «bottino» seppellito (10–200 monete) che sparisce solo per l'utente che lo scava.
@@ -69,7 +69,7 @@ export default async function (ctx) {
     };
     const cammina = async (page, tasti, fatto, ms = 15000) => { for (const k of tasti) await page.keyboard.down(k); try { await ctx.waitState(page, fatto, ms); } finally { for (const k of tasti) await page.keyboard.up(k); } };
 
-    await ctx.test('1. Al negozio dei mobili: la Pala costa 500 monete; acquistata, va nello zaino in «Strumenti» con peso 0 kg', async () => {
+    await ctx.test('1. Al negozio dei mobili: la Pala costa 500 monete; acquistata, si vede nella Borsa tra gli «Strumenti»', async () => {
       const L = await open(ctx.B.DESKTOP, 'tokL');
       globalThis.__luca = L;
       await L.hook('negozio', false);
@@ -92,20 +92,18 @@ export default async function (ctx) {
       assert(lotDopo.monete === monetePrima - 500, `monete dopo acquisto pala: ${lotDopo.monete} vs ${monetePrima - 500}`);
       assert(lotDopo.hero.inv.pala === 1, 'pala nello zaino');
 
-      // Usciamo dal negozio passando per il corridoio e apriamo lo zaino per verificare la categoria «Strumenti» e il peso 0 kg
+      // Usciamo dal negozio passando per il corridoio e apriamo la Borsa (menù AVATAR): la pala sta tra gli Strumenti, non nello zaino
       const { uscita } = (await L.st()).negozio;
       await L.hook('teleport', uscita.x, uscita.z);
       await cammina(L.page, ['ArrowDown'], (s) => !s.negozio.dentro && s.arch.place === 'porto', 20000);
       await L.page.waitForFunction(() => !window.__game.state().velo.attivo, null, { timeout: 5000 });
 
-      await L.page.keyboard.press('KeyI');
-      await L.page.locator('#mzEroe [data-tab="zaino"]').waitFor({ state: 'visible', timeout: 8000 });
-      await L.page.locator('#mzEroe [data-tab="zaino"]').click();
-      await L.page.locator('#mzEroe [data-item="pala"]').waitFor({ state: 'visible', timeout: 5000 });
-      await L.page.locator('#mzEroe [data-item="pala"]').click();
-      const testoZaino = (await L.page.locator('#mzEroe').textContent()) ?? '';
-      assert(/strumenti/i.test(testoZaino) && testoZaino.includes('Pala') && testoZaino.includes('0 kg'), 'zaino Strumenti + 0 kg: ' + testoZaino);
-      await ctx.shot(L.page, 'pc_pala_zaino');
+      await L.page.evaluate(() => document.getElementById('mzBorsaBtn')?.click());
+      await L.page.locator('#mzBorsa.on [data-tab="strumenti"]').waitFor({ state: 'visible', timeout: 8000 });
+      await L.page.locator('#mzBorsa [data-tab="strumenti"]').click();
+      const testoBorsa = (await L.page.locator('#mzBorsa').textContent()) ?? '';
+      assert(testoBorsa.includes('Pala'), 'Borsa, Strumenti: ' + testoBorsa);
+      await ctx.shot(L.page, 'pc_pala_borsa');
       await L.page.keyboard.press('Escape');
     });
 

@@ -101,6 +101,12 @@ const ROTTE: readonly Rotta[] = [
       const lot = r.ok ? ((await r.json()) as { posseduti?: string[] }) : null;
       if (!lot?.posseduti?.includes(hat.id)) return json({ error: `${hat.nome}: non è tuo, compralo prima (${hat.monete} monete)` }, 400);
     }
+    const abito = AVATAR.abiti[look.abito ?? 0];
+    if (abito && abito.monete > 0) {
+      const r = await c.lotto('state');
+      const lot = r.ok ? ((await r.json()) as { posseduti?: string[] }) : null;
+      if (!lot?.posseduti?.includes(`abito:${abito.id}`)) return json({ error: `${abito.nome}: non è tuo, compralo prima (${abito.monete} monete)` }, 400);
+    }
     const salvato = conSalvato(look, c.p.look);
     await salvaLook(c.env, c.p.id, salvato);
     await avvisaZona(c.env, c.p.id, salvato);
@@ -117,6 +123,10 @@ const ROTTE: readonly Rotta[] = [
   { m: 'POST', via: '/api/look/hat', fa: (c, b) => {
     const id = hatId(b['cappello']);
     return id ? c.lotto('hat', { hat: id }) : json({ error: 'Cappello sconosciuto' }, 400);
+  } },
+  { m: 'POST', via: '/api/look/abito', fa: (c, b) => {
+    const id = b['abito'];
+    return typeof id === 'string' && AVATAR.abiti.some((a) => a.id === id) ? c.lotto('abito', { abito: id }) : json({ error: 'Vestito sconosciuto' }, 400);
   } },
   // la tua barca: colori e nome nel look in D1 (così la Zone la manda agli amici); i colori esclusivi si comprano dal Mercante
   { m: 'POST', via: '/api/barca', fa: async (c, b) => {

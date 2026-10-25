@@ -3,6 +3,7 @@
 import { AVATAR, BALANCE } from '@marea/content';
 import { advance } from './advance.ts';
 import { conBaule } from './casa.ts';
+import { vetrinaMercante } from './mercante.ts';
 import { spendi } from './monete.ts';
 import { EconomyError } from './types.ts';
 import type { LotState } from './types.ts';
@@ -19,13 +20,14 @@ export function ownsHat(lot: LotState, hatId: string): boolean {
   return !!h && (h.monete <= 0 || (lot.posseduti ?? []).includes(hatId));
 }
 
-/** Compra un cappello a pagamento, una volta sola (GDD §4): le monete sono spese, il cappello va in `posseduti`. */
+/** Compra un cappello a pagamento, una volta sola (GDD §4), dal Mercante il giorno che è in vetrina: le monete sono spese, il cappello va in `posseduti`. */
 export function buyHat(lot0: LotState, hatId: string, nowMs: number): LotState {
   let lot = advance(lot0, nowMs);
   const h = AVATAR.cappelli.find((x) => x.id === hatId);
   if (!h) throw new EconomyError('sconosciuto', 'Cappello sconosciuto');
   if (h.monete <= 0) throw new EconomyError('cappello', `${h.nome}: è gratis, non serve comprarlo`);
   if (ownsHat(lot, hatId)) throw new EconomyError('unico', `Hai già: ${h.nome}`);
+  if (!vetrinaMercante(nowMs).cappelli.includes(hatId)) throw new EconomyError('requisito', `${h.nome}: oggi il Mercante non ce l’ha`);
   lot = spendi(lot, h.monete);
   return { ...lot, version: lot.version + 1, posseduti: [...(lot.posseduti ?? []), hatId] };
 }

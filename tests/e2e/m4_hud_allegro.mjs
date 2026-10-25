@@ -59,11 +59,11 @@ export default async function (ctx) {
       await ctx.shot(L.page, 'iphone_hud');
       ctx.noErrors(L, 'iphone');
     });
-    await ctx.test('iphone: AVATAR apre il menù a tutto schermo (Aspetto, Personaggio, Diario, Foto); Aspetto apre l\'editor', async () => {
+    await ctx.test('iphone: AVATAR apre il menù a tutto schermo (Aspetto, Borsa, Personaggio, Diario, Foto); Aspetto apre l\'editor', async () => {
       await L.page.locator('#mzAvatarBtn').tap();
       await ctx.waitState(L.page, (s) => s.hudAllegro.menu === true, 3000);
       const voci = (await ctx.getState(L.page)).hudAllegro.voci;
-      assert(voci.join() === 'aspetto,personaggio,diario,foto', 'voci del menù: ' + voci.join()); // il Diario (pesci, insetti…) sta anche nel menù
+      assert(voci.join() === 'aspetto,borsa,personaggio,diario,foto', 'voci del menù: ' + voci.join()); // il Diario (pesci, insetti…) sta anche nel menù
       await sleep(300);
       await ctx.shot(L.page, 'iphone_menu');
       await L.page.locator('#mzAvatarMenu [data-voce="aspetto"]').tap();

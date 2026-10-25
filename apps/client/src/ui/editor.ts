@@ -1,8 +1,7 @@
-// Editor dell'avatar (F3-avatar, CONTRACTS §13): pelle, taglio, colore dei capelli, vestito, cappello. Anteprima DAL VIVO sul proprio avatar
-// (o.avatar.setLook a ogni cambio, nessuna chiamata al server); Salva → POST /api/look; Esc, C, × o Annulla ripristinano il look salvato.
-// Cappelli a pagamento (monete, #414): prezzo, «Compra» (POST /api/look/hat), Salva spento finché il cappello scelto non è tuo. Tutto da AVATAR (@marea/content).
-// Senza monete abbastanza «Compra» non chiama il server: sotto la riga un avviso gentile (#4). Gli esclusivi del Mercante (#63) si vedono
-// e si provano, ma si comprano solo da lui al Porto. Colori dei capelli con nomi da capelli (#3, `nomiColoriCapelli`).
+// Editor dell'avatar («Aspetto», F3-avatar, CONTRACTS §13): pelle, taglio e colore dei capelli, nome, barca. Anteprima DAL VIVO sul proprio
+// avatar (o.avatar.setLook a ogni cambio, nessuna chiamata al server); Salva → POST /api/look; Esc, C, × o Annulla ripristinano il look salvato.
+// Cappelli e vestiti non stanno più qui: si comprano dal Mercante in piazza e si indossano dalla Borsa (ui/borsa.ts); il look salvato li tiene.
+// Colori dei capelli con nomi da capelli (#3, `nomiColoriCapelli`).
 // PC prima: frecce su/giù = riga (poi i bottoni), sinistra/destra = valore, Invio attiva il bottone, Tab funziona. Tasti in capture su
 // window solo a pannello aperto, con stopPropagation (mai keyup, altrimenti restano incollati in input.ts).
 // In fondo «Altro dispositivo»: COPIA / MANDA il proprio link col token (il token sta solo nel browser che ha aperto il link). Il link non
@@ -39,27 +38,24 @@ export type EditorOpts = {
   link?: string;
 };
 
-type RowId = keyof Look;
+type RowId = 'pelle' | 'capelli' | 'coloreCapelli';
 type Row = { id: RowId; nome: string; n: number; kind: 'colori' | 'nomi'; colore?(i: number): string; nomeDi(i: number): string };
-/** `hat`: l'avviso sta sotto la riga del cappello, vicino a «Compra»; altrimenti in fondo, sopra Annulla/Salva. */
-type Note = { text: string; bad: boolean; hat?: boolean } | null;
+type Note = { text: string; bad: boolean } | null;
 
 /** Nome della palette (ART_BIBLE §2) di un colore, «sabbia chiara» da `sabbiaChiara`; '' se non è in palette. */
 const palName = (hex: string): string => {
   const k = Object.entries(PAL).find(([, v]) => v.toUpperCase() === hex.toUpperCase())?.[0];
   return k ? k.replace(/[A-Z]/g, (c) => ' ' + c.toLowerCase()) : '';
 };
-const HATS = AVATAR.cappelli;
 const ROWS: readonly Row[] = [
   { id: 'pelle', nome: 'Pelle', n: AVATAR.pelle.length, kind: 'colori', colore: (i) => AVATAR.pelle[i] ?? PAL.sabbia, nomeDi: (i) => `tono ${i + 1}` },
   { id: 'capelli', nome: 'Capelli', n: AVATAR.capelli.length, kind: 'nomi', nomeDi: (i) => AVATAR.capelli[i] ?? '' },
   { id: 'coloreCapelli', nome: 'Colore capelli', n: AVATAR.coloriCapelli.length, kind: 'colori', colore: (i) => AVATAR.coloriCapelli[i] ?? PAL.legno, nomeDi: (i) => AVATAR.nomiColoriCapelli?.[i] ?? (palName(AVATAR.coloriCapelli[i] ?? '') || `colore ${i + 1}`) },
-  { id: 'vestito', nome: 'Vestito', n: AVATAR.vestiti.length, kind: 'colori', colore: (i) => AVATAR.vestiti[i] ?? PAL.acqua, nomeDi: (i) => palName(AVATAR.vestiti[i] ?? '') || `colore ${i + 1}` },
-  { id: 'cappello', nome: 'Cappello', n: HATS.length, kind: 'nomi', nomeDi: (i) => HATS[i]?.nome ?? '' },
 ];
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 const clampLook = (l: Look | null | undefined): Look => {
-  const o: Look = { pelle: 0, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 0 };
+  // cappello, vestito e abito restano quelli salvati (si cambiano dalla Borsa)
+  const o: Look = { pelle: 0, capelli: 0, coloreCapelli: 0, vestito: l?.vestito ?? 0, cappello: l?.cappello ?? 0, ...(l?.abito !== undefined ? { abito: l.abito } : {}) };
   for (const r of ROWS) { const v = Number(l?.[r.id]); o[r.id] = Number.isInteger(v) && v >= 0 && v < r.n ? v : 0; }
   return o;
 };
@@ -114,18 +110,15 @@ export function createEditor(o: EditorOpts): Editor {
     draftNome = nomeInput.value;
     note = null;
     const salvaBtn = sheet.querySelector<HTMLButtonElement>('[data-nav="salva"]');
-    if (salvaBtn) salvaBtn.disabled = busy || !hatOk() || (!!sez && !sez.ok()) || !nomeOk();
+    if (salvaBtn) salvaBtn.disabled = busy || (!!sez && !sez.ok()) || !nomeOk();
   });
   nomeRow.append(nomeLbl, nomeInput);
 
   const monete = (): number | null => (lot ? lot.monete : null);
-  /** Quello che il foglio mostra del lotto: monete e cose possedute (cappelli, colori della barca). */
+  /** Quello che il foglio mostra del lotto: monete e cose possedute (colori della barca). */
   const firma = (): string => `${monete()}|${(lot?.posseduti ?? []).join(',')}`;
   const sez = o.barca ? createSezioneBarca({ api, me: o.me, world: o.barca, getLot: () => lot, onChange: () => { note = null; render(); } }) : null;
   const isBarcaRow = (r: string | undefined): r is RigaBarca => r === 'scafo' || r === 'vela';
-  const owned = (): string[] => HATS.filter((h) => h.monete <= 0 || (lot?.posseduti ?? []).includes(h.id)).map((h) => h.id);
-  /** Il cappello scelto si può salvare: gratis, comprato, o già nel look salvato (il server l'aveva accettato). */
-  const hatOk = (): boolean => { const h = HATS[draft.cappello]; return !h || owned().includes(h.id) || draft.cappello === clampLook(o.me.look).cappello; };
   const errText = (e: unknown): string => {
     const x = e as { message?: string; manca?: Mancanza };
     if ((x?.manca?.monete ?? 0) > 0) return moneteText(x.manca?.monete ?? 0);
@@ -144,23 +137,8 @@ export function createEditor(o: EditorOpts): Editor {
     o.avatar.setLook({ ...draft }); // anteprima dal vivo, nessuna chiamata al server
     render();
   }
-  async function compra(): Promise<void> {
-    const h = HATS[draft.cappello];
-    if (!h || busy || h.mercante) return;
-    const p = monete();
-    if (p !== null && p < h.monete) { note = { text: moneteText(h.monete - p), bad: true, hat: true }; render(); return; } // niente 409: lo diciamo prima
-    const g = gen;
-    busy = true; note = null; render();
-    try {
-      const l = await api.buyHat(h.id);
-      lot = l; o.onLot?.(l);
-      if (g === gen) note = { text: `${h.nome}: è tuo`, bad: false, hat: true };
-    } catch (e) { if (g === gen) note = { text: errText(e), bad: true, hat: true }; }
-    busy = false;
-    if (g === gen) render();
-  }
   async function salva(): Promise<void> {
-    if (busy || !hatOk() || (sez && !sez.ok())) return;
+    if (busy || (sez && !sez.ok())) return;
     const pulito = pulitoNome(draftNome);
     if (!nomeOk()) {
       note = { text: 'Scrivi un nome da 2 a 16 lettere', bad: true };
@@ -231,7 +209,7 @@ export function createEditor(o: EditorOpts): Editor {
     }
     const rowOf = inside && active ? active.closest<HTMLElement>('[data-row]') : null;
     const cur = inside && active ? (items.includes(active) ? active : rowOf ?? active) : null;
-    const rowId = cur === rowOf ? (rowOf?.dataset['row'] as RowId | undefined) : undefined; // su «Compra» le frecce laterali non cambiano cappello
+    const rowId = cur === rowOf ? (rowOf?.dataset['row'] as RowId | undefined) : undefined;
     if (e.key === 'Escape' || e.code === 'KeyC') { e.preventDefault(); if (!e.repeat && !busy) close(); return; }
     switch (e.key) {
       case 'ArrowDown': case 'ArrowUp': {
@@ -250,7 +228,7 @@ export function createEditor(o: EditorOpts): Editor {
       }
       case 'Enter': {
         if (!inside) { e.preventDefault(); items[0]?.focus(); return; }
-        if (rowId) { e.preventDefault(); sheet.querySelector<HTMLElement>('[data-nav="compra"]:not(:disabled), [data-nav="salva"]:not(:disabled)')?.focus(); }
+        if (rowId) { e.preventDefault(); sheet.querySelector<HTMLElement>('[data-nav="salva"]:not(:disabled)')?.focus(); }
         return; // su un bottone l'Invio lo clicca il browser
       }
       case 'Tab': if (!inside && items[0]) { e.preventDefault(); items[0].focus(); } return;
@@ -272,7 +250,6 @@ export function createEditor(o: EditorOpts): Editor {
     b.addEventListener('click', () => { if (!b.disabled && !busy) onClick(); });
     return b;
   }
-  const prezzoTag = (n: number): HTMLElement => { const s = el('span', 'mz-cost'); s.append(resIcon('monete', 16), `${n} monete`); return s; };
 
   function rowEl(r: Row): HTMLElement {
     const v = draft[r.id];
@@ -281,20 +258,7 @@ export function createEditor(o: EditorOpts): Editor {
     w.setAttribute('role', 'spinbutton'); w.setAttribute('aria-label', r.nome);
     w.setAttribute('aria-valuenow', String(v)); w.setAttribute('aria-valuetext', r.nomeDi(v));
     const lbl = el('div', 'mz-ed-lbl'); lbl.appendChild(el('span', '', r.nome));
-    const hat = r.id === 'cappello' ? HATS[v] : undefined;
-    if (hat && hat.monete > 0) {
-      const mine = owned().includes(hat.id);
-      const t = el('span', 'v' + (mine ? '' : ' lock'));
-      if (mine) t.textContent = 'tuo'; else t.appendChild(prezzoTag(hat.monete));
-      if (!hatOk() && hat.mercante) t.appendChild(el('span', 'mz-ed-merc', 'dal Mercante'));
-      else if (!hatOk()) { // prezzo + «Compra» sulla riga del cappello: Annulla/Salva restano in vista in fondo
-        const b = el('button', 'mz-ed-buy', 'Compra'); b.type = 'button'; b.dataset['nav'] = 'compra'; b.dataset['act'] = 'compra';
-        b.disabled = busy; b.title = `Compra ${hat.nome} per ${hat.monete} monete`;
-        b.addEventListener('click', () => { if (!busy) void compra(); });
-        t.appendChild(b);
-      }
-      lbl.appendChild(t);
-    } else lbl.appendChild(el('span', 'v', r.kind === 'colori' ? r.nomeDi(v) : `${v + 1}/${r.n}`));
+    lbl.appendChild(el('span', 'v', r.kind === 'colori' ? r.nomeDi(v) : `${v + 1}/${r.n}`));
     w.appendChild(lbl);
     if (r.kind === 'colori') {
       const sw = el('div', 'mz-ed-sw');
@@ -318,8 +282,6 @@ export function createEditor(o: EditorOpts): Editor {
       };
       st.append(mk(-1, '‹'), el('span', 'n', cap(r.nomeDi(v))), mk(1, '›'));
       w.appendChild(st);
-      if (hat?.mercante && !owned().includes(hat.id)) w.appendChild(el('div', 'mz-note mz-ed-miss', 'Esclusiva del Mercante del Porto: si compra da lui, in piazza'));
-      else if (r.id === 'cappello' && note?.hat) w.appendChild(el('div', 'mz-note mz-ed-miss ' + (note.bad ? 'bad' : 'ok'), note.text));
     }
     return w;
   }
@@ -363,12 +325,11 @@ export function createEditor(o: EditorOpts): Editor {
     if (sez) body.appendChild(sez.node);
     if (o.link) body.appendChild(linkEl(o.link));
     const act = el('div', 'mz-ed-act');
-    if (!note && !hatOk()) act.appendChild(el('div', 'mz-note', HATS[draft.cappello]?.mercante ? 'Cappello del Mercante: si compra al Porto' : 'Cappello non tuo: compralo per salvare'));
-    else if (!note && sez && !sez.ok()) act.appendChild(el('div', 'mz-note', 'Colore della barca del Mercante: si compra al Porto'));
+    if (!note && sez && !sez.ok()) act.appendChild(el('div', 'mz-note', 'Colore della barca del Mercante: si compra al Porto'));
     else if (!note && !nomeOk()) act.appendChild(el('div', 'mz-note bad', 'Scrivi un nome da 2 a 16 lettere'));
-    if (note && !note.hat) act.appendChild(el('div', 'mz-note ' + (note.bad ? 'bad' : 'ok'), note.text));
+    if (note) act.appendChild(el('div', 'mz-note ' + (note.bad ? 'bad' : 'ok'), note.text));
     const row = el('div', 'mz-row');
-    row.append(button('ghost', 'annulla', 'Annulla', [], false, () => close()), button('green', 'salva', 'Salva', [], !hatOk() || (!!sez && !sez.ok()) || !nomeOk(), () => void salva()));
+    row.append(button('ghost', 'annulla', 'Annulla', [], false, () => close()), button('green', 'salva', 'Salva', [], (!!sez && !sez.ok()) || !nomeOk(), () => void salva()));
     act.appendChild(row);
     body.appendChild(act);
     sheet.replaceChildren(head, body);
@@ -416,6 +377,6 @@ export function createEditor(o: EditorOpts): Editor {
   }
   function toggle(): void { if (open) close(); else show(); }
 
-  registerStateProvider('editor', () => ({ open, draft: { ...draft }, draftNome, saved: { ...clampLook(o.me.look) }, savedNome: o.me.nome, owned: owned(), monete: monete(), busy, note: note?.text ?? null, linkVisibile, lotFresco, barca: sez?.state() ?? null }));
+  registerStateProvider('editor', () => ({ open, draft: { ...draft }, draftNome, saved: { ...clampLook(o.me.look) }, savedNome: o.me.nome, monete: monete(), busy, note: note?.text ?? null, linkVisibile, lotFresco, barca: sez?.state() ?? null }));
   return { open: show, close, toggle, isOpen: () => open };
 }

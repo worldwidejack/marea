@@ -76,13 +76,14 @@ export default async function (ctx) {
       const snap = await waitFor(() => wb.msgs.find((m) => m.t === 'snap' && m.peers.some((p) => p.id === 'anna')), 1000);
       const ms = Date.now() - t0;
       assert(snap, 'Bruno non ha ricevuto lo snap entro 1 s: ' + JSON.stringify(wb.msgs).slice(0, 300));
-      assert(JSON.stringify(snap.peers.find((p) => p.id === 'anna').look) === JSON.stringify(nuovo), 'look nello snap: ' + JSON.stringify(snap));
+      const atteso = { ...nuovo, abito: 0 }; // chi gioca senza vestito del Mercante ha quello di base (Zone.asLook)
+      assert(JSON.stringify(snap.peers.find((p) => p.id === 'anna').look) === JSON.stringify(atteso), 'look nello snap: ' + JSON.stringify(snap));
       ctx.log(`look → snap di Bruno in ${ms} ms`);
       await sleep(250);
       assert(!wa.msgs.some((m) => m.t === 'snap' && m.peers.some((p) => p.id === 'anna')), 'Anna ha ricevuto il proprio look: ' + JSON.stringify(wa.msgs));
       const wc = await openWs('tokC');
       const wel = await waitFor(() => wc.msgs.find((m) => m.t === 'welcome'), 2000);
-      assert(JSON.stringify(wel?.peers.find((p) => p.id === 'anna')?.look) === JSON.stringify(nuovo), 'welcome della terza connessione: ' + JSON.stringify(wel).slice(0, 300));
+      assert(JSON.stringify(wel?.peers.find((p) => p.id === 'anna')?.look) === JSON.stringify(atteso), 'welcome della terza connessione: ' + JSON.stringify(wel).slice(0, 300));
       wc.close(); await sleep(200);
     });
 

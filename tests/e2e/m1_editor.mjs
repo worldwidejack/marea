@@ -1,8 +1,7 @@
 // M1 · Fetta 3, editor dell'avatar (F3-avatar, CONTRACTS §13) sul server locale (wrangler dev, TEST_CLOCK:1).
 // (1) C apre #mzEditor, le frecce cambiano riga e valore, l'avatar cambia subito, nessuna POST /api/look; (2) Esc ripristina e chiude;
-// (3) vestito + Salva → POST 200, dopo il reload /api/me e l'avatar hanno il look nuovo; (4) cappello a monete: prezzo, «Compra» senza monete
-// → avviso gentile sotto la riga del cappello (#4, arancio, nessuna chiamata al server), Salva spento; un esclusivo del Mercante (#63) non
-// ha «Compra» ma l'avviso «dal Mercante»; poi monete vinte con due Regate da solo (API) → Compra e Salva;
+// (3) colore dei capelli + Salva → POST 200, dopo il reload /api/me e l'avatar hanno il look nuovo; (4) niente righe Vestito e Cappello
+// (si comprano dal Mercante e si indossano dalla Borsa): un cappello comprato e messo (API) resta nel look quando si salva dall'Aspetto;
 // (5) «Altro dispositivo»: COPIA LINK / MANDA danno `/?t=token` (mai scritto a schermo), copia rifiutata → campo col link;
 // (6) telefono 390×844: il bottone apre il foglio, che lascia libero il centro.
 import fs from 'node:fs';
@@ -29,8 +28,8 @@ export default async function (ctx) {
   const { regata, lazyAutopilot } = await sim('minigames/regata/regata.ts');
   const { packInputs, quantize } = await sim('replay.ts');
   const { createRng } = await sim('rng.ts');
+  const { vetrinaMercante } = await sim('economy/mercante.ts');
   const avatar = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/avatar.json'), 'utf8'));
-  const HAT = avatar.cappelli.findIndex((h) => h.id === 'pescatore');
 
   let dev = null, log = '', OFF = 0;
   const pages = [];
@@ -92,18 +91,17 @@ export default async function (ctx) {
       await anna.page.keyboard.press('ArrowDown');
       assert((await focusedRow(anna)) === 'capelli', 'freccia giù non va alla riga Capelli: ' + (await focusedRow(anna)));
       await anna.page.keyboard.press('ArrowRight'); await anna.page.keyboard.press('ArrowRight');
-      await anna.page.keyboard.press('ArrowDown'); await anna.page.keyboard.press('ArrowDown');
-      assert((await focusedRow(anna)) === 'vestito', 'riga attesa Vestito: ' + (await focusedRow(anna)));
-      await anna.page.keyboard.press('ArrowLeft'); // vestito 0 → ultimo (giro)
-      await anna.page.keyboard.press('ArrowUp');
+      await anna.page.keyboard.press('ArrowDown');
+      assert((await focusedRow(anna)) === 'coloreCapelli', 'riga attesa Colore capelli: ' + (await focusedRow(anna)));
       await anna.page.keyboard.press('ArrowRight'); // colore capelli +1
       s = await st(anna);
-      const want = { ...saved0, pelle: (saved0.pelle + 1) % 6, capelli: (saved0.capelli + 2) % 8, coloreCapelli: (saved0.coloreCapelli + 1) % 6, vestito: (saved0.vestito + 5) % 6 };
+      const want = { ...saved0, pelle: (saved0.pelle + 1) % 6, capelli: (saved0.capelli + 2) % 8, coloreCapelli: (saved0.coloreCapelli + 1) % 6 };
       assert(sameLook(s.editor.draft, want), `bozza ${S(s.editor.draft)} ≠ attesa ${S(want)}`);
       assert(sameLook(s.wp2_avatar.look, want), 'avatar ≠ bozza: ' + S(s.wp2_avatar.look));
       assert(s.editor.open && sameLook(s.editor.saved, saved0), 'salvato cambiato senza Salva');
       const txt = await anna.page.locator('#mzEditor').innerText();
-      assert(txt.includes(avatar.capelli[want.capelli].charAt(0).toUpperCase()) && /Nessuno|Cappello/i.test(txt), 'nomi dai dati mancanti: ' + txt.slice(0, 200));
+      assert(txt.includes(avatar.capelli[want.capelli].charAt(0).toUpperCase()), 'nomi dai dati mancanti: ' + txt.slice(0, 200));
+      assert((await anna.page.locator('#mzEditor [data-row="vestito"], #mzEditor [data-row="cappello"]').count()) === 0, 'righe Vestito/Cappello ancora nell’Aspetto');
       // il pannello sta a destra (340 px), il centro dello schermo resta libero per l'avatar
       const box = await anna.page.locator('#mzEditor').boundingBox();
       assert(box && box.x > 640 && box.width <= 342, 'pannello non a destra da 340 px: ' + S(box));
@@ -126,12 +124,12 @@ export default async function (ctx) {
       assert(sameLook((await st(anna)).wp2_avatar.look, saved0), 'C non annulla');
     });
 
-    const V = (saved0.vestito + 2) % avatar.vestiti.length;
-    await ctx.test('vestito + Salva → POST 200; dopo il reload /api/me e l’avatar hanno il look nuovo', async () => {
+    const V = (saved0.coloreCapelli + 2) % avatar.coloriCapelli.length;
+    await ctx.test('colore dei capelli + Salva → POST 200; dopo il reload /api/me e l’avatar hanno il look nuovo', async () => {
       await anna.page.evaluate(() => window.__game.test.openEditor());
       await waitOpen(anna, true);
-      await nav(anna, `vestito:${V}`).click();
-      assert((await st(anna)).wp2_avatar.look.vestito === V, 'clic sul campione: avatar non aggiornato');
+      await nav(anna, `coloreCapelli:${V}`).click();
+      assert((await st(anna)).wp2_avatar.look.coloreCapelli === V, 'clic sul campione: avatar non aggiornato');
       assert(posts.look.length === 0, 'POST prima di Salva');
       const [resp] = await Promise.all([
         anna.page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/api/look', { timeout: 10000 }),
@@ -140,50 +138,21 @@ export default async function (ctx) {
       assert(resp.status() === 200, 'POST /api/look: ' + resp.status());
       await waitOpen(anna, false);
       const s = await st(anna);
-      assert(s.editor.saved.vestito === V && s.wp2_avatar.look.vestito === V, 'dopo Salva: ' + S(s.editor.saved));
+      assert(s.editor.saved.coloreCapelli === V && s.wp2_avatar.look.coloreCapelli === V, 'dopo Salva: ' + S(s.editor.saved));
       await anna.page.reload({ waitUntil: 'load' });
       await ctx.waitReady(anna.page, 30000);
       await ctx.waitState(anna.page, (x) => x.editor && x.wp2_avatar && x.wp2_avatar.look, 15000);
       const me = (await get('/api/me', 'tokA')).body.look, s2 = await st(anna);
-      assert(me.vestito === V && sameLook(me, { ...saved0, vestito: V }), '/api/me: ' + S(me));
+      assert(me.coloreCapelli === V && sameLook(me, { ...saved0, coloreCapelli: V }), '/api/me: ' + S(me));
       assert(sameLook(s2.wp2_avatar.look, me), 'avatar dopo il reload: ' + S(s2.wp2_avatar.look));
       assert(posts.look.length === 1, 'POST /api/look attese 1: ' + posts.look.length);
     });
 
-    await ctx.test('cappello a monete: prezzo, «Compra» senza monete → avviso gentile vicino al bottone, Salva spento; con le monete vinte compra e salva', async () => {
-      await anna.page.evaluate(() => window.__game.test.openEditor());
-      await waitOpen(anna, true);
-      await ctx.waitState(anna.page, (s) => s.editor.monete !== null, 5000);
-      const p0 = (await st(anna)).editor.monete, prezzo = avatar.cappelli[HAT].monete;
-      for (let i = 0; i < HAT; i++) await nav(anna, 'cappello:piu').click();
-      let s = await st(anna);
-      assert(s.editor.draft.cappello === HAT && s.wp2_avatar.look.cappello === HAT, 'cappello pescatore non in anteprima: ' + S(s.editor.draft));
-      assert(!s.editor.owned.includes('pescatore'), 'pescatore già posseduto?');
-      const row = await anna.page.locator('#mzEditor [data-row="cappello"]').innerText();
-      assert(new RegExp(`${prezzo} monete`).test(row) && /pescatore/i.test(row), 'prezzo non visibile: ' + row);
-      assert(await nav(anna, 'salva').isDisabled(), 'Salva acceso con un cappello non tuo');
-      const hats0 = posts.hat.length;
-      await nav(anna, 'compra').click();
-      const bad = anna.page.locator('#mzEditor [data-row="cappello"] .mz-ed-miss.bad');
-      await bad.waitFor({ timeout: 5000 });
-      const errTxt = await bad.innerText(), col = await bad.evaluate((e) => getComputedStyle(e).color);
-      ctx.log(`monete ${p0} · avviso: «${errTxt}» (${col})`);
-      assert(new RegExp(`Ti mancano ${prezzo - p0} monete`).test(errTxt) && /minigiochi/.test(errTxt), 'avviso non gentile: ' + errTxt);
-      assert(col === 'rgb(242, 163, 58)', 'avviso non arancio (#4: niente rosso da errore): ' + col);
-      assert(posts.hat.length === hats0, 'senza monete «Compra» non deve chiamare il server');
-      assert(await nav(anna, 'salva').isDisabled(), 'Salva acceso dopo l’errore');
-      await ctx.shot(anna.page, 'cappello_senza_perle_errore');
-      // esclusivo del Mercante (#63): si prova, ma niente «Compra»: si compra al Porto
-      const EX = avatar.cappelli.findIndex((h) => h.mercante);
-      for (let i = HAT; i < EX; i++) await nav(anna, 'cappello:piu').click();
-      const rowEx = await anna.page.locator('#mzEditor [data-row="cappello"]').innerText();
-      assert(/Mercante/.test(rowEx) && (await nav(anna, 'compra').count()) === 0, 'esclusivo con «Compra» o senza avviso: ' + rowEx);
-      assert((await st(anna)).wp2_avatar.look.cappello === EX, 'esclusivo non in anteprima');
-      await anna.page.keyboard.press('Escape'); await waitOpen(anna, false);
-      assert(posts.look.length === 1, 'POST /api/look con cappello non tuo');
-
-      // monete vere: Regate da solo via API con l'autopilot
+    await ctx.test('cappello comprato dal Mercante (API) e messo: salvando dall’Aspetto resta nel look', async () => {
+      // monete vere: Regate da solo via API con l'autopilot, poi il cappello del giorno più economico
       OFF = 10 * MIN;
+      const oggi = vetrinaMercante(Date.now() + OFF).cappelli.map((id) => avatar.cappelli.findIndex((h) => h.id === id)).sort((x, y) => avatar.cappelli[x].monete - avatar.cappelli[y].monete);
+      const HAT = oggi[0], prezzo = avatar.cappelli[HAT].monete;
       const race = (seed, difficulty, pigro) => {
         const x = regata.create({ seed, difficulty }), rng = createRng(seed), frames = [];
         while (!x.done) { const f = quantize(pigro ? lazyAutopilot(x) : regata.autopilot(x, rng)); frames.push(f); regata.step(x, f); }
@@ -195,30 +164,25 @@ export default async function (ctx) {
         assert((await post('/api/solo/play', 'tokA', { inputs: race(g.seed, g.difficulty, false) })).status === 200, 'solo play');
       }
       const perle = (await get('/api/lot', 'tokA')).body.monete;
-      ctx.log(`monete di Anna dopo le Regate: ${perle}`);
+      ctx.log(`monete di Anna dopo le Regate: ${perle}, cappello ${avatar.cappelli[HAT].id} (${prezzo})`);
       assert(perle >= prezzo, 'monete insufficienti anche dopo le Regate: ' + perle);
-
+      assert((await post('/api/look/hat', 'tokA', { cappello: avatar.cappelli[HAT].id })).status === 200, 'acquisto dal Mercante');
+      const conCappello = { ...(await get('/api/me', 'tokA')).body.look, cappello: HAT };
+      assert((await post('/api/look', 'tokA', conCappello)).status === 200, 'look col cappello comprato');
+      await anna.page.reload({ waitUntil: 'load' });
+      await ctx.waitReady(anna.page, 30000);
+      await ctx.waitState(anna.page, (x, h) => x.editor && x.wp2_avatar?.look?.cappello === h, 15000, HAT);
       await anna.page.evaluate(() => window.__game.test.openEditor());
       await waitOpen(anna, true);
-      await ctx.waitState(anna.page, (x, n) => x.editor.monete === n, 5000, perle);
-      for (let i = 0; i < HAT; i++) await nav(anna, 'cappello:piu').click();
-      const [r2] = await Promise.all([
-        anna.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/look/hat', { timeout: 10000 }),
-        nav(anna, 'compra').click(),
-      ]);
-      assert(r2.status() === 200, 'compra con le monete: ' + r2.status());
-      await ctx.waitState(anna.page, (x) => x.editor.owned.includes('pescatore') && !x.editor.busy, 5000);
-      s = await st(anna);
-      assert(s.editor.monete === perle - prezzo, 'monete non scalate nel pannello: ' + s.editor.monete);
-      assert(!(await nav(anna, 'salva').isDisabled()), 'Salva spento con il cappello comprato');
-      await ctx.shot(anna.page, 'cappello_comprato');
+      await nav(anna, `pelle:${(conCappello.pelle + 1) % avatar.pelle.length}`).click();
       const [r3] = await Promise.all([
         anna.page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/api/look', { timeout: 10000 }),
         nav(anna, 'salva').click(),
       ]);
-      assert(r3.status() === 200, 'salva col cappello: ' + r3.status());
+      assert(r3.status() === 200, 'salva: ' + r3.status());
       await waitOpen(anna, false);
-      assert((await get('/api/me', 'tokA')).body.look.cappello === HAT, 'cappello non salvato sul server');
+      const me = (await get('/api/me', 'tokA')).body.look;
+      assert(me.cappello === HAT && me.pelle === (conCappello.pelle + 1) % avatar.pelle.length, 'il cappello si è perso salvando: ' + S(me));
       assert((await st(anna)).wp2_avatar.look.cappello === HAT, 'avatar senza cappello dopo Salva');
     });
 
@@ -264,10 +228,10 @@ export default async function (ctx) {
       const box = await bruno.page.locator('#mzEditor').boundingBox();
       ctx.log('foglio: ' + S(box));
       assert(box && box.y > 844 / 2 + 10, 'il foglio copre il centro del canvas: ' + S(box));
-      const sw = await nav(bruno, 'vestito:3').boundingBox();
+      const sw = await nav(bruno, 'coloreCapelli:3').boundingBox();
       assert(sw && sw.width >= 44 && sw.height >= 44, 'campione < 44 px: ' + S(sw));
-      await nav(bruno, 'vestito:3').tap();
-      assert((await st(bruno)).wp2_avatar.look.vestito === 3, 'tocco sul campione: avatar non aggiornato');
+      await nav(bruno, 'coloreCapelli:3').tap();
+      assert((await st(bruno)).wp2_avatar.look.coloreCapelli === 3, 'tocco sul campione: avatar non aggiornato');
       const salva = await nav(bruno, 'salva').boundingBox();
       assert(salva && salva.y + salva.height <= 844, 'Salva fuori schermo: ' + S(salva));
       await ctx.shot(bruno.page, 'telefono_foglio');

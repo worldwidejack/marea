@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { AVATAR, BALANCE } from '@marea/content';
 import { buyHat, newLot, ownsHat } from '../src/economy/actions.ts';
+import { vetrinaMercante } from '../src/economy/mercante.ts';
 import { checkMonete } from '../src/economy/monete.ts';
 import { conMonete, senzaMonete } from './monete_util.ts';
 import type { EconomyError } from '../src/economy/types.ts';
@@ -16,9 +17,11 @@ test('lotto nuovo: monete di partenza nel libro mastro, il baule di serie in cas
   assert.equal(checkMonete([lot]), null);
 });
 
-test('cappelli: i gratuiti sono di tutti, quelli a pagamento si comprano una volta (monete)', () => {
+test('cappelli: i gratuiti sono di tutti, quelli a pagamento si comprano una volta (monete), dal Mercante il giorno che li ha', () => {
   const free = AVATAR.cappelli.find((h) => h.monete === 0)!;
-  const paid = AVATAR.cappelli.find((h) => h.monete > 0)!;
+  const oggi = vetrinaMercante(1000).cappelli;
+  const paid = AVATAR.cappelli.find((h) => h.id === oggi[0])!, altro = AVATAR.cappelli.find((h) => h.id === oggi[1])!;
+  const assente = AVATAR.cappelli.find((h) => h.monete > 0 && !oggi.includes(h.id))!;
   let lot = senzaMonete(newLot('a', 0));
   assert.ok(ownsHat(lot, free.id));
   assert.ok(!ownsHat(lot, paid.id));
@@ -30,10 +33,9 @@ test('cappelli: i gratuiti sono di tutti, quelli a pagamento si comprano una vol
   assert.equal(lot.monete, 3);
   assert.ok(ownsHat(lot, paid.id));
   assert.throws(() => buyHat(lot, paid.id, 2000), isErr('unico'));
-  // gli esclusivi del Mercante si comprano allo stesso modo, una volta
-  const ex = AVATAR.cappelli.find((h) => h.mercante)!;
-  lot = conMonete(lot, ex.monete);
-  lot = buyHat(lot, ex.id, 3000);
-  assert.ok(ownsHat(lot, ex.id) && lot.monete === 3);
+  lot = conMonete(lot, altro.monete + assente.monete);
+  assert.throws(() => buyHat(lot, assente.id, 3000), isErr('requisito'), 'oggi il Mercante non ce l’ha');
+  lot = buyHat(lot, altro.id, 3000);
+  assert.ok(ownsHat(lot, altro.id) && lot.monete === 3 + assente.monete);
   assert.equal(checkMonete([lot]), null);
 });

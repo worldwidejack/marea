@@ -13,6 +13,7 @@ import type { Animator } from '../render/anim.ts';
 import { registerStateProvider } from '../test/testapi.ts';
 import { creaGestoreAzioni } from './avatar_azioni.ts';
 import { creaRipristino } from './avatar_override.ts';
+import { HATS, MAGLIA_EROI, SOLO_EROI } from './avatar_cappelli.ts';
 import type { AvatarAzione } from './avatar_azioni.ts';
 export type { AvatarAzione } from './avatar_azioni.ts';
 
@@ -87,37 +88,6 @@ const HAIR: number[][][] = [
   /* 6 lunghi    */ [[0.23, 0.08, 0.25, 0, 0.125, 0], [0.24, 0.44, 0.06, 0, -0.1, 0.115], [0.03, 0.22, 0.1, -0.115, 0.0, 0.06], [0.03, 0.22, 0.1, 0.115, 0.0, 0.06]],
   /* 7 chignon   */ [[0.22, 0.08, 0.24, 0, 0.125, 0], [0.22, 0.2, 0.05, 0, 0.03, 0.115], [0.09, 0.09, 0.09, 0, 0.2, 0.05]],
 ];
-// cappelli per id (avatar.json): [w,h,d, x,y,z, colore]
-const HATS: Record<string, (string | number)[][]> = {
-  paglia: [[0.44, 0.02, 0.44, 0, 0.13, 0, '#E2B97F'], [0.23, 0.1, 0.25, 0, 0.19, 0, '#E2B97F'], [0.235, 0.025, 0.255, 0, 0.16, 0, '#E8433F']],
-  berretto: [[0.23, 0.09, 0.25, 0, 0.17, 0, '#2478A8'], [0.19, 0.015, 0.11, 0, 0.13, -0.17, '#2478A8']],
-  pescatore: [[0.24, 0.1, 0.26, 0, 0.18, 0, '#B9AFA3'], [0.34, 0.015, 0.34, 0, 0.13, 0, '#B9AFA3']],
-  lanterna: [[0.05, 0.1, 0.05, 0, 0.18, 0, '#5A3A1E'], [0.13, 0.15, 0.13, 0, 0.3, 0, '#E8433F'], [0.09, 0.09, 0.09, 0, 0.3, 0, '#FFB03D']],
-  neon: [[0.23, 0.03, 0.24, 0, 0.11, 0, '#8A5CFF'], [0.22, 0.06, 0.04, 0, 0.07, -0.135, '#FF3DA6']],
-  // esclusivi del Mercante (#63): niente nodo in chr_base, li monta loadModel sull'osso della testa (hatOnHead)
-  kasa: [[0.5, 0.025, 0.5, 0, 0.13, 0, '#E2B97F'], [0.38, 0.04, 0.38, 0, 0.16, 0, '#E2B97F'], [0.26, 0.045, 0.26, 0, 0.2, 0, '#C98A4B'], [0.14, 0.04, 0.14, 0, 0.24, 0, '#E2B97F'], [0.05, 0.03, 0.05, 0, 0.275, 0, '#8E5A2B']],
-  capitano: [[0.25, 0.09, 0.27, 0, 0.17, 0, '#E8E1D6'], [0.29, 0.035, 0.31, 0, 0.225, 0, '#E8E1D6'], [0.255, 0.025, 0.275, 0, 0.14, 0, '#23201F'], [0.2, 0.015, 0.1, 0, 0.13, -0.17, '#23201F'], [0.06, 0.04, 0.012, 0, 0.17, -0.137, '#F5D547']],
-  pirata: [[0.25, 0.1, 0.26, 0, 0.17, 0, '#23201F'], [0.42, 0.08, 0.07, 0, 0.2, -0.13, '#23201F'], [0.07, 0.08, 0.34, -0.17, 0.2, 0.03, '#23201F'], [0.07, 0.08, 0.34, 0.17, 0.2, 0.03, '#23201F'], [0.06, 0.06, 0.012, 0, 0.2, -0.168, '#E8E1D6'], [0.43, 0.012, 0.075, 0, 0.245, -0.13, '#F5D547']],
-  polpo: [[0.24, 0.17, 0.24, 0, 0.22, 0, '#E8433F'], [0.2, 0.06, 0.2, 0, 0.32, 0, '#E8433F'], [0.04, 0.045, 0.012, -0.055, 0.22, -0.124, '#F4E3C1'], [0.04, 0.045, 0.012, 0.055, 0.22, -0.124, '#F4E3C1'], [0.02, 0.025, 0.012, -0.05, 0.215, -0.131, '#23201F'], [0.02, 0.025, 0.012, 0.06, 0.215, -0.131, '#23201F'],
-    [0.045, 0.16, 0.045, -0.13, 0.1, -0.09, '#E8433F'], [0.045, 0.16, 0.045, 0.13, 0.1, -0.09, '#E8433F'], [0.045, 0.18, 0.045, -0.13, 0.09, 0.1, '#E8433F'], [0.045, 0.18, 0.045, 0.13, 0.09, 0.1, '#E8433F'], [0.045, 0.2, 0.045, 0, 0.08, 0.135, '#E8433F']],
-  corona: [[0.24, 0.06, 0.02, 0, 0.16, -0.12, '#F5D547'], [0.24, 0.06, 0.02, 0, 0.16, 0.12, '#F5D547'], [0.02, 0.06, 0.24, -0.11, 0.16, 0, '#F5D547'], [0.02, 0.06, 0.24, 0.11, 0.16, 0, '#F5D547'],
-    [0.04, 0.06, 0.02, -0.08, 0.215, -0.12, '#F5D547'], [0.04, 0.08, 0.02, 0, 0.225, -0.12, '#F5D547'], [0.04, 0.06, 0.02, 0.08, 0.215, -0.12, '#F5D547'], [0.04, 0.06, 0.02, 0, 0.215, 0.12, '#F5D547'],
-    [0.04, 0.04, 0.04, 0, 0.275, -0.12, '#E8E1D6'], [0.035, 0.035, 0.035, -0.08, 0.255, -0.12, '#E8E1D6'], [0.035, 0.035, 0.035, 0.08, 0.255, -0.12, '#E8E1D6']],
-  palombaro: [[0.32, 0.34, 0.32, 0, 0.03, 0, '#F2A33A'], [0.2, 0.06, 0.2, 0, 0.225, 0, '#F2A33A'], [0.17, 0.15, 0.012, 0, 0.02, -0.164, '#7FE3E0'], [0.2, 0.025, 0.02, 0, 0.105, -0.165, '#C98A4B'], [0.2, 0.025, 0.02, 0, -0.065, -0.165, '#C98A4B'],
-    [0.025, 0.12, 0.12, -0.17, 0.03, 0, '#7FE3E0'], [0.025, 0.12, 0.12, 0.17, 0.03, 0, '#7FE3E0'], [0.36, 0.05, 0.36, 0, -0.16, 0, '#C98A4B']],
-  // Isola dell'Adrenalina (docs/ADRENALINA.md §2): casco arancione con la striscia bianca e la visiera scura, si compra a Perle dall'editor
-  // solo per gli eroi dei Templari (rpg/vestito_templari.ts), non nell'editor: l'elmo chiuso del Crociato e il cappuccio dell'Arciere
-  elmo_templare: [[0.27, 0.3, 0.29, 0, 0.03, 0, '#B9AFA3'], [0.24, 0.03, 0.26, 0, 0.195, 0, '#7F7568'], [0.2, 0.028, 0.012, 0, 0.06, -0.149, '#23201F'],
-    [0.035, 0.15, 0.012, 0, -0.03, -0.149, '#7F7568'], [0.012, 0.012, 0.012, -0.05, -0.06, -0.149, '#23201F'], [0.012, 0.012, 0.012, 0.05, -0.06, -0.149, '#23201F'],
-    [0.012, 0.012, 0.012, -0.05, -0.03, -0.149, '#23201F'], [0.012, 0.012, 0.012, 0.05, -0.03, -0.149, '#23201F'], [0.29, 0.035, 0.3, 0, -0.105, 0, '#7F7568'], [0.03, 0.06, 0.012, 0, 0.14, -0.149, '#E8433F'], [0.08, 0.025, 0.012, 0, 0.145, -0.149, '#E8433F']],
-  cappuccio_arciere: [[0.27, 0.09, 0.29, 0, 0.155, 0.01, '#2C6B3F'], [0.03, 0.24, 0.27, -0.135, 0.03, 0.02, '#2C6B3F'], [0.03, 0.24, 0.27, 0.135, 0.03, 0.02, '#2C6B3F'],
-    [0.27, 0.3, 0.04, 0, 0.0, 0.14, '#2C6B3F'], [0.27, 0.035, 0.03, 0, 0.12, -0.13, '#4E9A46'], [0.09, 0.08, 0.12, 0, 0.17, 0.17, '#2C6B3F'], [0.05, 0.06, 0.08, 0, 0.13, 0.25, '#2C6B3F'], [0.03, 0.09, 0.012, 0.09, 0.2, 0.06, '#F2A33A']],
-  casco: [[0.25, 0.1, 0.27, 0, 0.17, 0, '#F2A33A'], [0.19, 0.05, 0.21, 0, 0.24, 0, '#F2A33A'], [0.04, 0.15, 0.28, 0, 0.19, 0, '#E8E1D6'], [0.23, 0.04, 0.03, 0, 0.13, -0.14, '#23201F'], [0.26, 0.07, 0.14, 0, 0.1, 0.05, '#F2A33A']],
-};
-/** Copricapi solo per gli eroi dei Templari (setCappello), non nella lista dell'editor. */
-const SOLO_EROI = ['elmo_templare', 'cappuccio_arciere'];
-/** La maglietta sotto il vestito di ogni eroe (rpg/vestito_templari.ts): maglia di ferro, camicia chiara, tunica verde. */
-const MAGLIA_EROI: Record<string, string> = { elmo_templare: '#7F7568', pirata: '#F4E3C1', cappuccio_arciere: '#4E9A46' };
 /** Cappelli senza nodo nel modello: si costruiscono a box e si appendono all'osso della testa (centro testa = origine, come headBoxes). */
 function hatOnHead(id: string): THREE.Mesh | null {
   const h = HATS[id];
@@ -186,7 +156,7 @@ function buildRig(look: Look): Rig {
 }
 
 // ---------- modello glTF ----------
-type ModelRig = { root: THREE.Object3D; anim: Animator; setLook(look: Look): void; setCappello(id: string | null): void; rest: Map<string, THREE.Matrix4> };
+type ModelRig = { root: THREE.Object3D; anim: Animator; setLook(look: Look): void; setCappello(id: string | null): void; rest: Map<string, THREE.Matrix4>; vesti: { visibile(on: boolean): void; stato(): unknown } | null };
 /** Il loader clona con Object3D.clone: gli SkinnedMesh restano legati alle ossa dell'originale. Le ricolleghiamo per nome (idempotente). */
 function rebindSkins(root: THREE.Object3D): void {
   root.traverse((n) => {
@@ -202,6 +172,10 @@ async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
   scene.updateMatrixWorld(true);
   const rest = new Map<string, THREE.Matrix4>();
   scene.traverse((n) => { if ((n as THREE.Bone).isBone) rest.set(n.name, n.matrixWorld.clone()); });
+  // vestiti e cappelli del Mercante (game/abiti.ts): solo sul chr_base, i paesani hanno i loro vestiti nel modello
+  let caricaVesti: Promise<import('./abiti.ts').Vesti> | null = null, vistoVesti = true, statoVesti: (() => unknown) | null = null, capGlb: string | null = null;
+  const conVesti = (f: (v: import('./abiti.ts').Vesti) => void) => void (caricaVesti ??= import('./abiti.ts').then((m) => { const v = m.creaVesti({ loader, root: scene, rest, dopo: (c) => { capGlb = c; if (ultimo) setLook(ultimo); } }); statoVesti = v.stato; return v; })).then(f);
+  const vesti = nome === 'chr_base' ? { visibile(on: boolean) { vistoVesti = on; if (caricaVesti) conVesti((v) => v.visibile(on)); }, stato: () => statoVesti?.() ?? null } : null;
   const groups: Record<'pelle' | 'capelli' | 'vestito' | 'cappello', THREE.MeshLambertMaterial[]> = { pelle: [], capelli: [], vestito: [], cappello: [] };
   const conv = (old: THREE.Material): THREE.Material => {
     const o = old as THREE.MeshStandardMaterial;
@@ -237,18 +211,20 @@ async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
     ultimo = look;
     // gli eroi dei Templari (setCappello): sotto il vestito la maglietta prende il colore del vestito, così non spunta dalle spalle
     const k = { ...lookColors(look), ...(forzato ? { hat: forzato, shirt: MAGLIA_EROI[forzato] ?? lookColors(look).shirt } : {}) };
-    for (const [id, m] of extra) m.visible = id === k.hat;
+    const ab = look.abito === undefined || forzato ? undefined : AVATAR.abiti[look.abito], glb = vesti ? AVATAR.cappelli.find((h) => h.id === k.hat)?.modello ?? null : null;
+    for (const [id, m] of extra) m.visible = id === k.hat && !(glb && capGlb === glb); // quando il glb del cappello è addosso (game/abiti.ts) le scatole e i nodi di chr_base si spengono
+    if (vesti && (ab || glb || caricaVesti)) conVesti((v) => { v.visibile(vistoVesti); v.set(ab ? 'abt_' + ab.id : null, glb); }); // chunk a parte, solo per chi indossa qualcosa
     for (const m of groups.pelle) m.color.set(k.skin);
     for (const m of groups.capelli) m.color.set(k.hair);
     for (const m of groups.vestito) m.color.set(k.shirt);
     for (const m of groups.cappello) m.color.set(({ paglia: '#E2B97F', berretto: '#2478A8', pescatore: '#B9AFA3', lanterna: '#E8433F', neon: '#FF3DA6' } as Record<string, string>)[k.hat] ?? '#E2B97F');
     scene.traverse((n) => {
       if (n.name.startsWith('capelli_')) n.visible = n.name === `capelli_${look.capelli}` && !SOLO_EROI.includes(k.hat); // elmo e cappuccio coprono i capelli
-      if (n.name.startsWith('cappello_')) n.visible = n.name === `cappello_${k.hat}`;
+      if (n.name.startsWith('cappello_')) n.visible = n.name === `cappello_${k.hat}` && !(glb && capGlb === glb);
     });
   };
   const setCappello = (id: string | null) => { forzato = id; if (ultimo) setLook(ultimo); };
-  return { root: scene, anim: createAnimator(scene, clips), setLook, setCappello, rest };
+  return { root: scene, anim: createAnimator(scene, clips), setLook, setCappello, rest, vesti };
 }
 
 /** Dove guarda davvero l'oggetto in assi mondo [x, z] (per i test). */
@@ -359,9 +335,11 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
       indossa = vuoto(i) ? undefined : i;
       if (!indossa && !vestito) return;
       const schiena = opt?.schiena !== false, fatto = indossa;
+      // fuori dal dungeon si vede il vestito del Mercante (l'armatura resta per il dungeon, dove il vestito si toglie)
+      model.vesti?.visibile(schiena || !(indossa === 'partenza' || indossa?.corpo));
       vestito ??= new Promise<void>((r) => (!schiena || typeof requestIdleCallback !== 'function' ? setTimeout(r, schiena ? 500 : 0) : requestIdleCallback(() => r(), { timeout: 3000 })))
         .then(() => import('../rpg/vestito.ts')).then((m) => (vestitoOra = m.creaVestito({ loader: o.loader, root: model!.root, rest: model!.rest })));
-      void vestito.then((v) => v.set(fatto, schiena)).catch((e) => console.warn('[marea] equipaggiamento non vestito', e));
+      void vestito.then((v) => v.set(fatto, schiena, schiena && !!model?.vesti)).catch((e) => console.warn('[marea] equipaggiamento non vestito', e));
     },
     indossaMats: () => vestitoOra?.materiali() ?? [],
     indossaStato: () => vestitoOra?.stato() ?? null,
@@ -386,7 +364,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
   };
   if (!registered) {
     registered = true;
-    registerStateProvider('wp2_avatar', () => ({ ticks, facing: facing(object), model: !!model, shown, clip: model?.anim.current ?? null, attached, y: object.position.y, mv, runB, sitB, rowB, look, indossa: indossa ?? null, vestito: api.indossaStato() }));
+    registerStateProvider('wp2_avatar', () => ({ abiti: model?.vesti?.stato() ?? null, ticks, facing: facing(object), model: !!model, shown, clip: model?.anim.current ?? null, attached, y: object.position.y, mv, runB, sitB, rowB, look, indossa: indossa ?? null, vestito: api.indossaStato() }));
   }
   return api;
 }

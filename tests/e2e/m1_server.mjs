@@ -120,7 +120,8 @@ export default async function (ctx) {
       assert(r6.status === 400, 'decorazione sconosciuta accettata');
     });
 
-    const paid = avatar.cappelli.findIndex((h) => h.monete > 0);
+    const { vetrinaMercante } = await sim('economy/mercante.ts');
+    const paid = avatar.cappelli.findIndex((h) => h.id === vetrinaMercante(Date.now()).cappelli[0]); // il Mercante vende solo i cappelli del giorno
     const baseLook = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0 };
     await ctx.test('cappelli: non posseduto → 400, senza monete non si compra (409), i gratuiti vanno sempre', async () => {
       assert((await post('/api/look', 'tokA', { ...baseLook, cappello: paid })).status === 400, 'cappello non posseduto accettato');

@@ -23,8 +23,9 @@ import { SX, avamb, lato } from './vestito_pezzi.ts';
 import type { Hue, Osso, Pz, V3 } from './vestito_pezzi.ts';
 
 export type Vestito = {
-  /** Cambia quello che si vede. `schiena`: l'arma sta sulla schiena (overworld); falso = è in mano (dungeon) e resta solo la faretra. L'ultima chiamata vince. */
-  set(i: Indossa | 'partenza' | undefined, schiena: boolean): Promise<void>;
+  /** Cambia quello che si vede. `schiena`: l'arma sta sulla schiena (overworld); falso = è in mano (dungeon) e resta solo la faretra. `senzaCorpo`:
+   *  niente armatura (addosso c'è un vestito del Mercante, game/abiti.ts). L'ultima chiamata vince. */
+  set(i: Indossa | 'partenza' | undefined, schiena: boolean, senzaCorpo?: boolean): Promise<void>;
   /** Materiali dell'equipaggiamento (lampo quando l'eroe è colpito). */
   materiali(): THREE.MeshLambertMaterial[];
   /** Cosa si vede adesso (per i test). */
@@ -353,10 +354,10 @@ export function creaVestito(o: { loader: Loader; root: THREE.Object3D; rest: Rea
   }
 
   return {
-    async set(equip, schiena) {
+    async set(equip, schiena, senzaCorpo) {
       const my = ++n, i = equip === 'partenza' ? indossaDa(RPG.partenza.equip as Record<string, string>) : equip;
       const conFaretra = !!i?.frecce && !!i.arma && hasItem(i.arma) && itemDef(i.arma).kind === 'arco';
-      vestiCorpo(i?.corpo, conFaretra);
+      vestiCorpo(senzaCorpo ? undefined : i?.corpo, conFaretra);
       if (my === n) await vestiArma(i, schiena, my);
     },
     materiali: () => lista,

@@ -365,7 +365,6 @@
   "apps/client/src/templari/index.ts": 735,
   "apps/client/src/templari/scena.ts": 655,
   "apps/client/src/ui/diario_ui.ts": 402,
-  "apps/client/src/ui/editor.ts": 422,
   "apps/client/src/ui/pinguini.ts": 404,
   "apps/server/src/worker.ts": 555,
   "packages/sim/src/dungeon/enemies.ts": 527,

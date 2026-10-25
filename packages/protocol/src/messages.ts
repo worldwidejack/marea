@@ -4,7 +4,9 @@ export type { Indossa };
 export const PROTOCOL_VERSION = 1 as const;
 
 export type Mode = 'walk' | 'boat';
-export type Look = { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number };
+/** `abito`: indice in avatar.json `abiti` (il vestito intero del Mercante); assente = chi gioca ha la T-shirt di base (0), gli altri avatar
+ *  (paesani, eroi dei minigiochi) il chr_base col vestito tinto. */
+export type Look = { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number; abito?: number };
 /** La tua barca (#107): id dei colori di avatar.json `barca` per scafo e vela ('nessuna' = senza vela), nome già ripulito dal server. */
 export type BarcaLook = { scafo: string; vela: string; nome: string };
 /** `barca` (#107, facoltativo): assente = la barca di serie. `indossa` (#190, facoltativo): armatura, arma e frecce che si vedono addosso (id del catalogo); assente = niente. */

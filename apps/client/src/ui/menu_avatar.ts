@@ -1,5 +1,5 @@
 // Menù AVATAR a tutto schermo (#417): le voci di prima, ognuna apre il suo pannello toccando il bottone nascosto di sempre
-// (Aspetto = #mzEditorBtn, Personaggio = #mzHeroBtn, Diario = #mzDiarioBtn, #457, Foto = #mzFotoBtn). Chunk a parte: lo scarica ui/hud_allegro.ts al primo tocco.
+// (Aspetto = #mzEditorBtn, Borsa = #mzBorsaBtn, Personaggio = #mzHeroBtn, Diario = #mzDiarioBtn, #457, Foto = #mzFotoBtn). Chunk a parte: lo scarica ui/hud_allegro.ts al primo tocco.
 import { ALLEGRO as A, CONTORNO_ALLEGRO, FONT_ALLEGRO, TESTA_DI_RISERVA } from './stile_allegro.ts';
 import { el } from './style.ts';
 
@@ -8,7 +8,8 @@ export type MenuAvatar = { apri(): void; chiudi(): void; isOpen(): boolean; voci
 type Voce = { id: string; bottone: string; titolo: string; sotto: string; colore: string; scuro: string; icona: string };
 /** Le voci del menù AVATAR, nell'ordine; una voce c'è solo se il suo bottone nascosto esiste (Personaggio vuole il login). */
 const VOCI: readonly Voce[] = [
-  { id: 'aspetto', bottone: 'mzEditorBtn', titolo: 'Aspetto', sotto: 'Viso, capelli, vestiti, nome e la tua barca', colore: A.blu, scuro: A.bluScuro, icona: 'maglia' },
+  { id: 'aspetto', bottone: 'mzEditorBtn', titolo: 'Aspetto', sotto: 'Viso, capelli, nome e la tua barca', colore: A.blu, scuro: A.bluScuro, icona: 'maglia' },
+  { id: 'borsa', bottone: 'mzBorsaBtn', titolo: 'Borsa', sotto: 'Vestiti, cappelli, strumenti, insetti e mobili', colore: A.oro, scuro: A.oroScuro, icona: 'borsa' },
   { id: 'personaggio', bottone: 'mzHeroBtn', titolo: 'Personaggio', sotto: 'Zaino, armi, armature e abilità', colore: A.rosso, scuro: A.rossoScuro, icona: 'spada' },
   { id: 'diario', bottone: 'mzDiarioBtn', titolo: 'Diario', sotto: 'Pesci, insetti, perle, animali e isole trovati', colore: A.notteBlu, scuro: A.notte, icona: 'libro' },
   { id: 'foto', bottone: 'mzFotoBtn', titolo: 'Foto', sotto: 'Scatta una foto al tuo personaggio', colore: A.oro, scuro: A.oroScuro, icona: 'foto' },
@@ -17,6 +18,7 @@ const ICONE: Record<string, string> = {
   maglia: `<path d='M8 3 3 6l2.2 4.2L7 9.3V21h10V9.3l1.8.9L21 6l-5-3c-.6 1.5-2.2 2.4-4 2.4S8.6 4.5 8 3z' fill='#fff' stroke='${A.notte}' stroke-width='1.5' stroke-linejoin='round'/>`,
   spada: `<path d='M19.5 3 21 4.5l-9.6 9.6-1.5-1.5z' fill='#fff' stroke='${A.notte}' stroke-width='1.4' stroke-linejoin='round'/><path d='m7.4 11.6 5 5-1.4 1.4-1.8-1.8-3.4 3.4a1.4 1.4 0 0 1-2-2l3.4-3.4-1.8-1.8z' fill='${A.oro}' stroke='${A.notte}' stroke-width='1.4' stroke-linejoin='round'/>`,
   libro: `<path d='M4 4.5h6.5a2 2 0 0 1 2 2V20a2 2 0 0 0-2-1.6H4z' fill='#fff' stroke='${A.notte}' stroke-width='1.5' stroke-linejoin='round'/><path d='M20 4.5h-6.5a2 2 0 0 0-2 2V20a2 2 0 0 1 2-1.6H20z' fill='${A.celeste}' stroke='${A.notte}' stroke-width='1.5' stroke-linejoin='round'/><path d='M6.5 8.5h3.5M6.5 11.5h3.5' stroke='${A.notte}' stroke-width='1.3' stroke-linecap='round'/>`,
+  borsa: `<path d='M8 8V6.5a4 4 0 0 1 8 0V8' fill='none' stroke='${A.notte}' stroke-width='1.6'/><path d='M4.5 8h15l-1.2 11.5a1.5 1.5 0 0 1-1.5 1.3H7.2a1.5 1.5 0 0 1-1.5-1.3z' fill='#fff' stroke='${A.notte}' stroke-width='1.5' stroke-linejoin='round'/><path d='M9 12.5h6' stroke='${A.oro}' stroke-width='2' stroke-linecap='round'/>`,
   foto: `<path d='M4 7.5h3.2L9 5h6l1.8 2.5H20a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8.5a1 1 0 0 1 1-1z' fill='#fff' stroke='${A.notte}' stroke-width='1.5' stroke-linejoin='round'/><circle cx='12' cy='13.3' r='3.6' fill='${A.blu}' stroke='${A.notte}' stroke-width='1.5'/>`,
 };
 const icona = (n: string) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>${ICONE[n] ?? ''}</svg>`)}")`;
