@@ -88,4 +88,13 @@ export default async function (ctx) {
     const b = createAnimator(root, cl.filter((c) => !c.name.endsWith('run'))); ctx.assert(b.play('run') && b.current === 'run', 'alias run→walk');
     const c2 = createAnimator(root, cl); let done = false; c2.play('sit', 0.01, { once: true, onDone: () => (done = true) }); c2.update(1.5); ctx.assert(done, 'onDone di once');
   });
+  await ctx.test('azioni: scuoti albero orienta le braccia in avanti', async () => {
+    const noModelLoader = { manifest: { models: {} }, has: () => false, load: async () => { throw new Error(); }, texture: async () => new THREE.Texture() };
+    const procedurale = await createAvatar({ loader: noModelLoader, look, x: 0, z: 0 });
+    const dur = procedurale.avviaAzione('scuoti', 0.85);
+    ctx.assert(dur === 0.85 && procedurale.azioneInCorso === 'scuoti', 'azione non avviata');
+    procedurale.update(1, 0.425);
+    const armR = procedurale.object.getObjectByName('armR');
+    ctx.assert(armR && armR.rotation.x > 0.5, 'braccio procedurale in avanti (rotation.x > 0.5): ' + armR?.rotation.x);
+  });
 }
