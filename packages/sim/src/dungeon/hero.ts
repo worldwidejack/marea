@@ -182,10 +182,11 @@ function shoot(s: DungeonState, dir: Mira): void {
 function cast(s: DungeonState, dir: Mira): void {
   const h = s.hero;
   const sp = magiaPronta(s);
-  if (!sp || h.cdMagia > 0) return;
+  const cd = h.cdMagia <= 0 ? 0 : ((h.cdMagie ??= {})[sp?.id ?? ''] ?? h.cdMagia);
+  if (!sp || cd > 0) return;
   if (h.magicka < sp.costo) { ev(s, { t: 'senzaMagicka' }); return; }
   h.magicka -= sp.costo;
-  h.cdMagia = secToTicks(sp.ricarica);
+  h.cdMagia = (h.cdMagie ??= {})[sp.id] = secToTicks(sp.ricarica);
   h.act = 'lancia'; h.actT = 0; h.actDur = LANCIA_TICKS;
   ev(s, { t: 'magia', id: sp.id });
   faceDir(s, dir); // col mouse l'alleato nasce e la magia parte dove punta il cursore
@@ -270,7 +271,9 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   const h = s.hero, rh = s.runHero, a = h.arma;
   if (h.hurt > 0) h.hurt--;
   if (h.protetto > 0) h.protetto--;
-  if (h.cdMagia > 0) h.cdMagia--;
+  if (h.cdMagie) for (const k in h.cdMagie) { const v = h.cdMagie[k]; if (v !== undefined && v > 0) h.cdMagie[k] = v - 1; else delete h.cdMagie[k]; }
+  const curSp = magiaPronta(s);
+  h.cdMagia = curSp ? (h.cdMagie?.[curSp.id] ?? 0) : 0;
   if (h.cdScarica > 0) h.cdScarica--;
   if (h.canale > 0 && h.act !== 'punta') h.canale = 0; // il raggio vive solo mentre si punta
   if (h.buffs.length) h.buffs = h.buffs.filter((b) => b.fine > s.tick);

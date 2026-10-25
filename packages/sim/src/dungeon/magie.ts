@@ -80,7 +80,8 @@ const colpoMagia = (_s: DungeonState, sp: RunSpell, danno: number, ox: number, o
  *  `gittata`, largo `larghezza` per lato, fermo al primo muro). false = Magicka finita (il raggio si spegne). La direzione è già girata. */
 export function canale(s: DungeonState, sp: RunSpell): boolean {
   const h = s.hero;
-  if (h.cdMagia > 0) { h.canale = 0; return true; } // il breve riposo dopo un raggio: ancora non riparte
+  const cd = h.cdMagia <= 0 ? 0 : ((h.cdMagie ??= {})[sp.id] ?? h.cdMagia);
+  if (cd > 0) { h.canale = 0; return true; } // il breve riposo dopo un raggio: ancora non riparte
   const per = sp.costo * DT;
   if (h.magicka < (h.canale === 0 ? per * CANALE_OGNI : per)) { ev(s, { t: 'senzaMagicka' }); return false; }
   h.magicka -= per;
@@ -164,7 +165,10 @@ function colpiRaggio(s: DungeonState, sp: RunSpell, effetti: boolean): void {
 /** A rilasciata (o Magicka finita, o la magia è cambiata): il raggio si spegne e parte il breve riposo della magia. */
 export function fermaCanale(s: DungeonState, sp?: RunSpell): void {
   const h = s.hero;
-  if (h.canale > 0 && sp) h.cdMagia = Math.max(h.cdMagia, secToTicks(sp.ricarica));
+  if (h.canale > 0 && sp) {
+    const cd = secToTicks(sp.ricarica);
+    h.cdMagia = (h.cdMagie ??= {})[sp.id] = Math.max((h.cdMagie ??= {})[sp.id] ?? 0, cd);
+  }
   h.canale = 0;
 }
 

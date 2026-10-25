@@ -298,3 +298,40 @@ test('replay: la partita con mira e magia in mano si rigioca uguale (da solo e i
   const live = q.eroi.map((_, i) => conEroe(q, i, () => dungeon.result(q)));
   assert.deepEqual(replayParty(5, 'grotta', eroi, { inputs: logs.map((l) => packDungeon(l)), azioni: [[], []] }), live);
 });
+
+test('magie: ricarica separata per magia (evocazione ⇄ fiammata)', () => {
+  const h = newHero();
+  h.magie = ['fiammata', 'lupo_spettrale'];
+  h.equip.magia = 'lupo_spettrale';
+  h.equip.mano = 'magia';
+  const s = dungeon.create({ seed: 10, dungeon: 'grotta', hero: buildRunHero(h), stato: h });
+  // Evoca il lupo (preme e rilascia A)
+  run(s, 2, inp({ a: true }));
+  const ev1 = run(s, 1);
+  assert.ok(ev1.some((e) => e.t === 'evocato'), 'lupo evocato');
+  assert.ok(s.hero.cdMagia > 0, 'il lupo entra in ricarica (3 s)');
+  assert.ok((s.hero.cdMagie['lupo_spettrale'] ?? 0) > 0);
+  assert.ok(dungeon.view(s).hero.ricaricaMagie?.['lupo_spettrale']! > 0, 'la vista riporta la ricarica del lupo');
+
+  // Cambia subito a fiammata
+  assert.ok(dungeon.act(s, { t: 'equip', slot: 'magia', item: 'fiammata' }));
+  assert.equal(s.hero.cdMagia, 0, 'fiammata non eredita la ricarica del lupo');
+  assert.equal(dungeon.view(s).hero.ricaricaMagia, 0);
+
+  // Lancia fiammata subito senza aspettare i 3 s del lupo
+  run(s, 15); // aspetta la fine della posa lancia (LANCIA_TICKS = 11 tick)
+  run(s, 2, inp({ a: true }));
+  const ev2 = run(s, 1);
+  assert.ok(ev2.some((e) => e.t === 'magia' && e.id === 'fiammata'), 'fiammata parte subito al primo colpo');
+
+  // Il lupo ha ancora ricarica residua
+  assert.ok((s.hero.cdMagie['lupo_spettrale'] ?? 0) > 0);
+  assert.ok(dungeon.act(s, { t: 'equip', slot: 'magia', item: 'lupo_spettrale' }));
+  assert.ok(s.hero.cdMagia > 0, 'tornando al lupo la sua ricarica è ancora attiva');
+
+  // Tentando di lanciare il lupo mentre è in ricarica non parte
+  run(s, 15);
+  run(s, 2, inp({ a: true }));
+  const ev3 = run(s, 1);
+  assert.ok(!ev3.some((e) => e.t === 'evocato'), 'il lupo in ricarica non viene rievocato');
+});

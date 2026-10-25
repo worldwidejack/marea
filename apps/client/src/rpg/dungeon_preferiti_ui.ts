@@ -1,6 +1,7 @@
 // I preferiti del dungeon, a schermo (logica in dungeon_preferiti.ts): tre bottoni accanto ad A e B, sulla tastiera i tasti 1-2-3. Un tocco
 // (o il tasto) mette in mano quello che c'è; tenuto premuto (o Maiusc + tasto) si sceglie tra le armi dello zaino e le magie che conosci;
 // vuoto, il primo tocco apre subito la scelta. Quello in mano è cerchiato di giallo; se è una magia, il bottone si riempie mentre ricarica.
+import { spellDef } from '@marea/content/rpg.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
 import type { HeroState } from '@marea/sim/rpg/types.ts';
 import { PAL, el } from '../ui/style.ts';
@@ -35,8 +36,8 @@ ${Array.from({ length: N_PREFERITI }, (_, n) => `.mz-dng-btn.f${n} { right: calc
 export type PreferitiUi = {
   /** Quello che va nella pagina: i tre bottoni e il selettore. */
   els: HTMLElement[];
-  /** A ogni frame: com'è l'eroe adesso. `ricarica` = la magia in mano, 0..1 (1 = pronta). */
-  aggiorna(s: { hero: HeroState | null; mano: InMano; ricarica: number }): void;
+  /** A ogni frame: com'è l'eroe adesso. `ricarica` = la magia in mano, 0..1 (1 = pronta); `ricariche` = ricarica rimasta (s) per magia. */
+  aggiorna(s: { hero: HeroState | null; mano: InMano; ricarica: number; ricariche?: Record<string, number> }): void;
   /** Tasto 1-3 (con Maiusc: cambia cosa c'è). true se l'ha preso. */
   tasto(e: KeyboardEvent): boolean;
   /** Il selettore è aperto (da solo la partita si ferma). */
@@ -119,9 +120,18 @@ export function createPreferiti(o: { attivo(): boolean; hero(): HeroState | null
           b.title = p ? `${nomeDi(p)} (tasto ${n + 1}) · tieni premuto per cambiarlo` : `Vuoto (tasto ${n + 1}): tocca per sceglierci un’arma o una magia`;
         }
       }
-      // la magia in mano si riempie mentre ricarica, a gradini del 10 %
-      const pct = Math.round((1 - Math.max(0, Math.min(1, s.ricarica))) * 10) * 10;
-      const alti = slot.map(({ b }) => (mano.magia && b.classList.contains('mano') ? pct : 0)), k = alti.join();
+      // le magie si riempiono mentre ricaricano, a gradini del 10 %
+      const alti = slot.map(({ n }) => {
+        const p = q[n];
+        if (!p || !('magia' in p)) return 0;
+        let r = 1;
+        if (inMano(p, mano)) r = s.ricarica;
+        else if (s.ricariche && (s.ricariche[p.magia] ?? 0) > 0) {
+          try { r = Math.max(0, 1 - (s.ricariche[p.magia] ?? 0) / Math.max(0.01, spellDef(p.magia).ricarica)); } catch { r = 0; }
+        }
+        return Math.round((1 - Math.max(0, Math.min(1, r))) * 10) * 10;
+      });
+      const k = alti.join();
       if (k !== cdPrima) { cdPrima = k; slot.forEach(({ cd }, i) => { cd.style.height = `${alti[i]}%`; }); }
     },
     tasto(e) {

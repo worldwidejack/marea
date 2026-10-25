@@ -56,15 +56,18 @@ export function rebuild(s: DungeonState): void {
   s.runHero = { ...rh, carico: old.carico, pesi: old.pesi };
   h.vita = Math.min(h.vita, rh.max.vita); h.magicka = Math.min(h.magicka, rh.max.magicka); h.stamina = Math.min(h.stamina, rh.max.stamina);
   const cambia = h.arma.id !== rh.arma.id || h.arma.kind !== rh.arma.kind, manoPrima = h.incanta;
+  const cambiaMagia = old.magia !== rh.magia || manoPrima !== !!rh.manoMagia;
   h.arma = { ...rh.arma, traits: { ...rh.arma.traits } };
   h.incanta = !!rh.manoMagia;
+  const curSp = rh.magia !== null ? rh.magie[rh.magia] : undefined;
+  h.cdMagia = curSp ? ((h.cdMagie ??= {})[curSp.id] ?? 0) : 0;
   if (cambia) {
     h.colpiFragile = rh.arma.usura ?? 0;
     // unici del Mausoleo: l'arma nuova parte carica (pressione, molle) e senza ritmo
     h.pressione = rh.arma.traits.lame?.cariche ?? 0; h.molla = rh.arma.traits.carillon?.colpi ?? 0; h.mollaT = 0; h.ritmo = 0; h.tic = -1; h.rintocco = false;
   }
-  // arma nuova o mani cambiate (arma ⇄ magia): il colpo, la carica o l'arco teso in corso si interrompono
-  if ((cambia || manoPrima !== h.incanta) && (h.act === 'press' || h.act === 'carica' || h.act === 'swing' || h.act === 'tende' || h.act === 'punta')) {
+  // arma nuova o mani cambiate (arma ⇄ magia o magia diversa): il colpo, la carica, l'arco teso o il lancio in corso si interrompono
+  if ((cambia || cambiaMagia) && (h.act === 'press' || h.act === 'carica' || h.act === 'swing' || h.act === 'tende' || h.act === 'punta' || h.act === 'lancia')) {
     h.act = 'idle'; h.actT = 0; h.actDur = 0; h.carica = 0; h.caricato = false; h.colpiti = []; h.colpito = false;
   }
   h.frecce = rh.frecce ? rh.frecce.n : 0;
