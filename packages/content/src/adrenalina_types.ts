@@ -30,7 +30,7 @@ export type SnowboardCfg = {
     frenoCurva: number;
     /** Neve fresca fuori dal bordo: la velocità scende verso `vNeve` con questa forza (1/s). */
     vNeve: number; frenoNeve: number;
-    /** Nel fuoripista la neve alta tiene la velocità sotto `vFuoripista` (stessa forza della neve fresca). */
+    /** Nel fuoripista la neve alta tiene la velocità sotto `vFuoripista` (stessa forza della neve fresca), se la pista non dice la sua. */
     vFuoripista: number;
     /** Sul dosso ci si stacca quando restare attaccati vorrebbe più di `stacco` × la gravità. */
     stacco: number;
@@ -91,7 +91,8 @@ export type SPistaDef = {
   gole: { da: number; a: number }[];
   /** Fuoripista (birbasan, 12 ott 2026): da `da` ad `a` il nastro gira nel bosco su un sentiero stretto di neve fresca (`neve` = fascia
    *  oltre il bordo prima degli alberi); la pista battuta va dritta (`chiusa`: centro, mezza carreggiata, l'abete caduto a `tronco` m dal
-   *  bivio) ed è sbarrata. Solo resa: per la sim andare dritti al bivio è finire contro il tronco. */
-  fuoripista?: { da: number; a: number; neve: number; chiusa: { punti: [number, number, number][]; l: number; tronco: number } };
+   *  bivio) ed è sbarrata. Solo resa: per la sim andare dritti al bivio è finire contro il tronco. `v`: la velocità che la neve alta lascia
+   *  nel sentiero (di serie `fisica.vFuoripista`; più alta sulle piste difficili). */
+  fuoripista?: { da: number; a: number; neve: number; v?: number; chiusa: { punti: [number, number, number][]; l: number; tronco: number } };
   zone: SZonaDef[];
 };

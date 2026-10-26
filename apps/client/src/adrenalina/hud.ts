@@ -58,7 +58,7 @@ export function creaHud(root: HTMLElement, dito: boolean, soglie: readonly [numb
   const ora = el('div', '', '0:00.0'); ora.id = 'mzSbTempo';
   const barra = el('div'); barra.id = 'mzSbBarra';
   const pieno = el('i'), gradino = el('b', '', '×1');
-  barra.append(pieno, ...soglie.filter((v) => v < 1).map((v) => { const x = el('s'); x.style.left = `${v * 100}%`; return x; }), gradino, el('em', '', 'ADRENALINA'));
+  barra.append(pieno, ...soglie.filter((v) => v < 1).map((v) => { const x = el('s'); x.style.left = `${v * 100}%`; return x; }), gradino, el('em', '', 'Adrenalina'));
   const testa = el('div'); testa.id = 'mzSbTesta'; testa.append(punti, ora, barra);
   const pop = el('div'); pop.id = 'mzSbPop';
   const via = el('div'); via.id = 'mzSbVia';

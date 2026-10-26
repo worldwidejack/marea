@@ -21,8 +21,12 @@ const CSS = `
 .mz-sb-cartello .bt button { flex: 1; min-width: 90px; min-height: 46px; border: 2px solid ${PAL.neroCaldo}; font: bold 14px ui-monospace, Menlo, monospace; cursor: pointer; }
 .mz-sb-cartello .esci { width: 100%; margin-top: 12px; min-height: 40px; background: ${PAL.pietra}; border: 2px solid ${PAL.neroCaldo}; font: bold 13px ui-monospace, Menlo, monospace; color: ${PAL.neroCaldo}; cursor: pointer; }
 `;
-const COLORE_PISTA = { verde: PAL.erba, blu: PAL.acquaProfonda, rossa: PAL.rosso, nera: PAL.neroCaldo } as const;
-const MEDAGLIA = { oro: ['🥇 ORO', PAL.giallo], argento: ['🥈 ARGENTO', PAL.pietraChiara], bronzo: ['🥉 BRONZO', PAL.arancio] } as const;
+const COLORE_PISTA = { blu: PAL.acquaProfonda, rossa: PAL.rosso, nera: PAL.neroCaldo } as const;
+/** Le piste in ordine di difficoltà, col nome che si legge sui cartelli. */
+const PISTE = ['blu', 'rossa', 'nera'] as const;
+const nomePista = (id: string): string => id.replace('snowboard_', '') || 'blu';
+const maiuscola = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+const MEDAGLIA = { oro: ['🥇 Oro', PAL.giallo], argento: ['🥈 Argento', PAL.pietraChiara], bronzo: ['🥉 Bronzo', PAL.arancio] } as const;
 
 function pannello(root: HTMLElement, id: string): HTMLElement {
   if (!document.getElementById('mz-sb-cartelli-style')) { const st = document.createElement('style'); st.id = 'mz-sb-cartelli-style'; st.textContent = CSS; document.head.appendChild(st); }
@@ -33,7 +37,8 @@ function pannello(root: HTMLElement, id: string): HTMLElement {
   return d;
 }
 
-export type InfoPista = { record: { nome: string; ms: number } | null; mio: number | null };
+/** Il record di ogni pista (id → chi e tempo, null = nessuno è ancora sceso; manca = non si sa, senza server). */
+export type InfoPista = { record: Record<string, { nome: string; ms: number } | null> };
 
 /** Il cartello delle piste in vetta: risolve con l'id della pista scelta, o null per tornare giù in funivia. */
 export function cartelloPiste(root: HTMLElement, info: InfoPista): Promise<string | null> {
@@ -42,27 +47,33 @@ export function cartelloPiste(root: HTMLElement, info: InfoPista): Promise<strin
     const chiudi = (v: string | null) => { d.remove(); ok(v); };
     const fila = (titolo: string, aperta: boolean) => {
       const g = el('div', 'piste');
-      for (const c of ['verde', 'blu', 'rossa', 'nera'] as const) {
+      for (const c of PISTE) {
         const b = el('button', 'pista') as HTMLButtonElement; b.type = 'button'; b.style.background = COLORE_PISTA[c]; if (c === 'nera') b.style.color = PAL.sabbiaChiara;
-        const apri = aperta && c === 'verde';
-        b.append(el('span', '', c.toUpperCase()), el('small', '', apri ? (info.record ? `record ${tempo(info.record.ms)}` : 'nessun record') : '🔒'));
-        if (apri) { b.dataset['pista'] = 'snowboard_verde'; b.addEventListener('click', () => chiudi('snowboard_verde')); } else b.disabled = true;
+        const id = `snowboard_${c}`, rec = info.record[id];
+        b.append(el('span', '', maiuscola(c)), el('small', '', !aperta ? '🔒' : rec ? `record ${tempo(rec.ms)}` : rec === null ? 'nessun record' : ''));
+        if (aperta) { b.dataset['pista'] = id; b.addEventListener('click', () => chiudi(id)); } else b.disabled = true;
         g.append(b);
       }
       return [el('div', 'gioco', titolo), g];
     };
     const esci = el('button', 'esci', '🚡 Torna giù in funivia') as HTMLButtonElement; esci.type = 'button'; esci.id = 'mzSbPisteEsci';
     esci.addEventListener('click', () => chiudi(null));
-    d.append(el('h2', '', 'LE PISTE'), el('div', 'sub', 'La vetta · le blu si apriranno con le medaglie'),
+    d.append(el('h2', '', 'Le piste'), el('div', 'sub', 'La vetta · dalla blu alla nera, sempre più difficili'),
       ...fila('🏂 Snowboard', true), ...fila('🚵 Bici downhill · presto', false), ...fila('🪂 Lancio dalla vetta · presto', false),
-      ...(info.mio !== null ? [el('div', 'riga', `Il tuo tempo migliore sulla verde: ${tempo(info.mio)}`)] : []), esci);
+      esci);
   });
 }
 
+/** Il record di una pista arrivato dal server dopo: si scrive sul suo bottone, se il cartello è ancora aperto. */
+export function aggiornaRecord(id: string, rec: { nome: string; ms: number } | null): void {
+  const s = document.querySelector(`#mzSbPiste [data-pista="${id}"] small`);
+  if (s) s.textContent = rec ? `record ${tempo(rec.ms)}` : 'nessun record';
+}
+
 /** Il cartello delle regole (sparisce da solo dopo `ms`). */
-export function cartelloRegole(root: HTMLElement, fantasma: { nome: string; ms: number } | null, conPremio: boolean, ms = 3200): Promise<void> {
+export function cartelloRegole(root: HTMLElement, pista: string, fantasma: { nome: string; ms: number } | null, conPremio: boolean, ms = 3200): Promise<void> {
   const d = pannello(root, 'mzSbRegole');
-  d.append(el('h2', '', 'SNOWBOARD · VERDE'),
+  d.append(el('h2', '', `Snowboard · pista ${nomePista(pista)}`),
     el('div', 'riga', fantasma ? `Batti il fantasma di ${fantasma.nome}: ${tempo(fantasma.ms)}` : 'Nessuno è ancora sceso: arrivi in fondo e l’oro è tuo'),
     el('div', 'riga', 'Porte, salti e trick tolgono secondi · porta mancata +2 s'),
     el('div', 'riga', '1° oro · 2° argento · 3° bronzo'),
@@ -83,17 +94,17 @@ export function schedaArrivo(root: HTMLElement, a: Arrivo): Promise<'ancora' | '
     const tasti = (e: KeyboardEvent) => { if (!e.repeat && (e.code === 'Enter' || e.code === 'Space')) chiudi('ancora'); };
     addEventListener('keydown', tasti);
     const m = a.medal ? MEDAGLIA[a.medal] : null;
-    const titolo = el('h2', '', m ? m[0] : a.arrivato ? 'ARRIVATO' : 'TEMPO SCADUTO'); if (m) titolo.style.color = m[1];
+    const titolo = el('h2', '', m ? m[0] : a.arrivato ? 'Arrivato' : 'Tempo scaduto'); if (m) titolo.style.color = m[1];
     const righe: HTMLElement[] = [];
     if (a.arrivato) {
       righe.push(el('div', 'big', tempo(a.finale)));
       righe.push(el('div', 'riga', `discesa ${tempo(a.ms)} · abbuoni −${(a.abbuono / 1000).toFixed(1)} s${a.penalita ? ` · porte mancate +${(a.penalita / 1000).toFixed(0)} s` : ''}`));
-      if (a.posizione) righe.push(el('div', 'riga', a.nuovoRecord ? `🏆 NUOVO RECORD della pista!` : `${a.posizione}° su ${Math.max(a.posizione, (a.classificati ?? 0) + 1)}${a.record ? ` · record di ${a.record.nome} ${tempo(a.record.ms)}` : ''}`));
+      if (a.posizione) righe.push(el('div', 'riga', a.nuovoRecord ? '🏆 Nuovo record della pista!' : `${a.posizione}° su ${Math.max(a.posizione, (a.classificati ?? 0) + 1)}${a.record ? ` · record di ${a.record.nome} ${tempo(a.record.ms)}` : ''}`));
     }
     if (a.premio) righe.push(el('div', 'riga', a.premio));
     if (a.nota) righe.push(el('div', 'riga', a.nota));
     const bt = el('div', 'bt');
-    for (const [k, t, c] of [['ancora', 'ANCORA', PAL.arancio], ['vetta', 'IN VETTA', PAL.erbaChiara], ['molo', 'AL MOLO', PAL.pietra]] as const) {
+    for (const [k, t, c] of [['ancora', 'Ancora', PAL.arancio], ['vetta', 'In vetta', PAL.erbaChiara], ['molo', 'Al molo', PAL.pietra]] as const) {
       const b = el('button', '', t) as HTMLButtonElement; b.type = 'button'; b.style.background = c; b.style.color = PAL.neroCaldo; b.dataset['act'] = k;
       b.addEventListener('click', () => chiudi(k)); bt.append(b);
     }

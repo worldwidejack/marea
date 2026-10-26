@@ -41,10 +41,11 @@ export default async function (ctx) {
     await ctx.shot(page, 'funivia');
     await misura(page, 'funivia');
     await ctx.waitState(page, (st) => st.snowboard.fase === 'cartello', 20000);
-    await page.waitForSelector('#mzSbPiste [data-pista="snowboard_verde"]', { timeout: 5000 });
-    assert(await page.locator('#mzSbPiste .pista[disabled]').count() === 11, 'blu, rossa, nera e i giochi dopo non hanno il lucchetto');
+    await page.waitForSelector('#mzSbPiste [data-pista="snowboard_blu"]', { timeout: 5000 });
+    assert(await page.locator('#mzSbPiste .pista[disabled]').count() === 6, 'blu, rossa e nera aperte, bici e lancio col lucchetto');
+    assert(await page.locator('#mzSbPiste .pista:not([disabled])').count() === 3, 'le tre piste dello snowboard aperte');
     await ctx.shot(page, 'cartello');
-    await page.click('#mzSbPiste [data-pista="snowboard_verde"]');
+    await page.click('#mzSbPiste [data-pista="snowboard_blu"]');
     await ctx.waitState(page, (st) => st.snowboard.fase === 'regole', 5000);
     await page.waitForSelector('#mzSbRegole', { timeout: 5000 });
     assert(/Nessuno è ancora sceso|link personale/.test(await page.textContent('#mzSbRegole')), 'regole senza il fantasma da battere');
@@ -72,10 +73,10 @@ export default async function (ctx) {
   });
 
   // i punti delle foto, dalle zone della pista: [nome, s, ticks col pilota automatico prima dello scatto, aspetta il volo (m sopra la neve)]
-  const PISTA = JSON.parse(fs.readFileSync(new URL('../../packages/content/src/adrenalina/piste/snowboard_verde.json', import.meta.url), 'utf8'));
+  const PISTA = JSON.parse(fs.readFileSync(new URL('../../packages/content/src/adrenalina/piste/snowboard_blu.json', import.meta.url), 'utf8'));
   const Z = (id) => PISTA.zone.find((z) => z.id === id).da;
   const PUNTI = [['vetta', 8, 20], ['cresta', Z('cresta') + 60, 40], ['slalom', Z('slalom') + 80, 40], ['cornice', Z('muro') - 15, 0, 2], ['canalino', Z('canalino') + 8, 30],
-    ['salto_neve', PISTA.rampe[1].s - 25, 0, 1], ['abeti', Z('abeti') + 10, 40], ['trampolino', PISTA.rampe[3].s - 30, 0, 4],
+    ['salto_neve', PISTA.rampe[1].s - 25, 0, 1], ['abeti', Z('abeti') + 10, 40], ['trampolino', PISTA.rampe.find((r) => r.grande).s - 30, 0, 4],
     ['tronco', PISTA.fuoripista.da - 22, 70], ['sentiero', PISTA.fuoripista.da + 125, 40], ['arrivo', PISTA.arrivo - 40, 40]];
   await ctx.test('telefono: la camera che ti segue lungo tutta la montagna (foto per birbasan)', async () => {
     for (const [nome, s, ticks, volo] of PUNTI) {
@@ -91,7 +92,7 @@ export default async function (ctx) {
 
   await ctx.test('telefono: il fantasma del record scende con te, col nome sopra e il distacco in alto', async () => {
     const f = await hook(page, 'snowboardFantasmaProva');
-    assert(f && f.ms > 60000, 'fantasma di prova: ' + JSON.stringify(f));
+    assert(f && f.ms > 40000, 'fantasma di prova: ' + JSON.stringify(f));
     await hook(page, 'snowboardMetti', { s: 8, lat: 2, v: 6 });
     await hook(page, 'snowboardAuto', 1);
     await ctx.waitState(page, (st) => st.snowboard.frames > 400, 30000);
@@ -102,14 +103,14 @@ export default async function (ctx) {
     await ctx.shot(page, 'fantasma');
   });
 
-  await ctx.test('telefono: la discesa intera col pilota automatico arriva, la scheda d’arrivo (tempo, abbuoni), IN VETTA, giù in funivia', async () => {
+  await ctx.test('telefono: la discesa intera col pilota automatico arriva, la scheda d’arrivo (tempo, abbuoni), «In vetta», giù in funivia', async () => {
     await hook(page, 'snowboardEsci');
     await ctx.waitState(page, (st) => !st.snowboard.active && !st.adrenalina.snowboard, 5000);
     assert(await hook(page, 'snowboardVia') === true, 'non riparte');
     await ctx.waitState(page, (st) => st.snowboard.active, 15000);
     await hook(page, 'snowboardSalta');
     await ctx.waitState(page, (st) => st.snowboard.fase === 'cartello', 5000);
-    assert(await hook(page, 'snowboardPista', 'snowboard_verde') === true, 'pista non scelta');
+    assert(await hook(page, 'snowboardPista', 'snowboard_blu') === true, 'pista non scelta');
     await ctx.waitState(page, (st) => st.snowboard.fase === 'gara', 20000);
     await hook(page, 'snowboardAuto', 6);
     const t0 = Date.now();
@@ -121,7 +122,8 @@ export default async function (ctx) {
     }
     const s = await sb(page);
     assert(s.fase === 'fine' && s.arrivato && s.risultato, `non arriva: ${JSON.stringify(s).slice(0, 300)}`);
-    assert(s.porte >= PISTA.porte.length - 1 && s.cadute === 0 && s.trick >= 4 && s.punti > 3000, `discesa: porte ${s.porte}, cadute ${s.cadute}, trick ${s.trick}, punti ${s.punti}`);
+    // sulla blu i salti sono bassi: il pilota fa 3 trick (i 4 in combo li prova il test della sim sulla rossa)
+    assert(s.porte >= PISTA.porte.length - 1 && s.cadute === 0 && s.trick >= 3 && s.punti > 3000, `discesa: porte ${s.porte}, cadute ${s.cadute}, trick ${s.trick}, punti ${s.punti}`);
     assert(s.eventi.includes('arrivo'), 'niente arrivo');
     await page.waitForSelector('#mzSbFine', { timeout: 5000 });
     const testo = await page.textContent('#mzSbFine');
@@ -145,7 +147,7 @@ export default async function (ctx) {
     await d.page.waitForTimeout(500);
     await d.page.keyboard.down('KeyE'); await d.page.waitForTimeout(80); await d.page.keyboard.up('KeyE');
     await ctx.waitState(d.page, (st) => st.snowboard && st.snowboard.fase === 'cartello', 25000); // dopo il viaggio in funivia
-    await d.page.click('#mzSbPiste [data-pista="snowboard_verde"]');
+    await d.page.click('#mzSbPiste [data-pista="snowboard_blu"]');
     await ctx.waitState(d.page, (st) => st.snowboard && st.snowboard.fase === 'gara' && st.snowboard.frames > 20, 25000);
     const l0 = (await sb(d.page)).lat;
     // si aspettano i passi della sim, non il tempo: su GitHub (SwiftShader) a 1280×720 la pista si disegna a meno di un fotogramma al

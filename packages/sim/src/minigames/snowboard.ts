@@ -10,7 +10,7 @@
 // - Caduta (albero, roccia, bosco oltre la neve fresca, atterraggio storto o troppo duro): 2 s fermi, barra a zero, si riparte da lì.
 // Coordinate di pista: s (m lungo il centro), lat (m, + = destra); in aria la quota `y` è quella del mondo (la neve sotto scende).
 // Solo + − × ÷ e Math.sqrt (tools/check_static.mjs): il server rigioca gli input (passo 3b).
-import { BARRA, SNOWBOARD } from '@marea/content/adrenalina.ts';
+import { BARRA, PISTA_SNOWBOARD, SNOWBOARD, SNOWBOARD_PISTE } from '@marea/content/adrenalina.ts';
 import type { SnowboardTrickId } from '@marea/content/adrenalina.ts';
 import { DT } from '../constants.ts';
 import type { InputFrame } from '../types.ts';
@@ -85,7 +85,7 @@ function riparti(s: SnowState, p: PistaNeve): void {
 }
 
 function nuova(o: { opzioni?: MinigameOpzioni }): SnowState {
-  const id = o.opzioni?.['pista'] ?? 'snowboard_verde';
+  const id = o.opzioni?.['pista'] ?? PISTA_SNOWBOARD;
   const p = pistaSnowboard(id), s0 = p.def.partenza;
   return {
     tick: 0, pista: id, s: s0, lat: 0, v: F.vPartenza, vl: 0, y: quotaA(p, s0, 0), vy: 0, h: 0, aria: false,
@@ -134,7 +134,7 @@ function step(s: SnowState, f: InputFrame): void {
     s.vl += (voluto - s.vl) * (F.presaCurva * DT < 1 ? F.presaCurva * DT : 1);
     v -= F.frenoCurva * mx * mx * v * DT;
     if (abs(s.lat) > bordoA(p, s.s) && v > F.vNeve) v -= (v - F.vNeve) * F.frenoNeve * DT;
-    else if (fuoripistaA(p, s.s) && v > F.vFuoripista) v -= (v - F.vFuoripista) * F.frenoNeve * DT;
+    else if (fuoripistaA(p, s.s) && v > (d.fuoripista!.v ?? F.vFuoripista)) v -= (v - (d.fuoripista!.v ?? F.vFuoripista)) * F.frenoNeve * DT;
     s.v = clamp(v, 0, F.vmax);
     // ---- il salto: tieni = carica, lasci = salti (sul trampolino si aspetta il bordo) ----
     const rampa = rampaA(p, s.s, s.lat);
@@ -285,7 +285,7 @@ export const snowboard: MinigameModule<SnowState> = {
   create: (o) => nuova(o),
   opzioni: (v) => {
     const o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>, id = String(o['pista'] ?? '');
-    return { pista: id === 'snowboard_verde' ? id : 'snowboard_verde' };
+    return { pista: Object.hasOwn(SNOWBOARD_PISTE, id) ? id : PISTA_SNOWBOARD };
   },
   step,
   // la medaglia viene dalla classifica a tempo del gruppo (il fantasma del record): la decide il server (adrenalina/classifica.ts)
