@@ -23,8 +23,9 @@ export default async function (ctx) {
   const { assert } = ctx;
   const SERVER = path.join(ctx.ROOT, 'apps/server');
   const persist = path.join(ctx.OUT, `m4corse-${process.pid}`);
+  const WIN = process.platform === 'win32';
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
-  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
+  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000, shell: WIN }).toString();
   const balance = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/balance.json'), 'utf8'));
   const CFG = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/minigames/corse.json'), 'utf8'));
   const MOTORE = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/corse/motore.json'), 'utf8'));
@@ -33,11 +34,12 @@ export default async function (ctx) {
   try {
     fs.rmSync(persist, { recursive: true, force: true });
     wr('d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist);
-    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--command',
-      "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0), ('mia', 'Mia', 'tokM', 1), ('ugo', 'Ugo', 'tokU', 2);");
+    const sql = path.join(persist, 'persone.sql');
+    fs.writeFileSync(sql, "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0), ('mia', 'Mia', 'tokM', 1), ('ugo', 'Ugo', 'tokU', 2);\n");
+    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--file', sql);
     const port = await freePort(), inspector = await freePort();
     dev = spawn('npx', ['--no-install', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
-      '--assets', ctx.distDir, '--persist-to', persist, '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      '--assets', ctx.distDir, '--persist-to', persist, '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: !WIN, shell: WIN, stdio: ['ignore', 'pipe', 'pipe'] });
     dev.stdout.on('data', (d) => (log += d)); dev.stderr.on('data', (d) => (log += d));
     const base = `http://127.0.0.1:${port}`;
     let up = false;
@@ -279,7 +281,7 @@ export default async function (ctx) {
     ctx.noErrors(D, 'PC');
   } finally {
     for (const p of pages) await p.close().catch(() => {});
-    if (dev) { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
-    fs.rmSync(persist, { recursive: true, force: true });
+    if (dev) { try { if (WIN) dev.kill(); else process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { if (WIN) dev.kill(); else process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
+    try { fs.rmSync(persist, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 }); } catch { /* Windows lock */ }
   }
 }
