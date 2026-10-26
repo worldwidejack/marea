@@ -39,7 +39,7 @@ export function createMiaBarca(o: { world: GameWorld; camera: Camera; canvas: HT
     .map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0).map((r) => new DOMRect(r.left - rr.left, r.top - rr.top, r.width, r.height));
   const visibile = (ob: THREE.Object3D | null): boolean => { for (; ob; ob = ob.parent) if (!ob.visible) return false; return true; };
 
-  registerStateProvider('miaBarca', () => ({ on, scritta, alzato, box: on ? box.getBoundingClientRect().toJSON() : null }));
+  registerStateProvider('miaBarca', () => ({ on, scritta, alzato }));
   return {
     update(t) {
       const w = o.world, b = w.boat.object.position, a = w.avatar.state;
