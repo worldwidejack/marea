@@ -41,7 +41,7 @@ const injectStyle = (): void => {
 };
 const VELE = ['nessuna', ...BARCA_COLORI.map((k) => k.id)], SCAFI = BARCA_COLORI.map((k) => k.id);
 /** Dove si compra un colore che non hai: le esclusive dal Mercante, le vernici al Cantiere navale (#414). */
-const MISS_MERCANTE = 'Esclusiva del Mercante del Porto: si compra da lui, in piazza', MISS_CANTIERE = 'Vernice del Cantiere navale del Borgo: si compra da Bepi il giorno che è in vetrina';
+const MISS_MERCANTE = 'Esclusiva del Mercante: si compra da lui, in piazza al Porto', MISS_CANTIERE = 'Vernice del Cantiere navale del Borgo: si compra da Bepi il giorno che è in vetrina';
 const listaDi = (r: RigaBarca): string[] => (r === 'scafo' ? SCAFI : VELE);
 
 export function createSezioneBarca(o: { api: Api; me: Me; world: { setBarca(b: BarcaLook): void }; getLot(): LotState | null; onChange(): void }): SezioneBarca {

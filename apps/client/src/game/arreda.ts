@@ -147,7 +147,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
         corpo.push(fila);
       } else {
         const ids = Object.keys(mag).filter((k) => mag[k]! > 0 && def(k));
-        if (!ids.length && !inStanzaMob.length) corpo.push(el('div', 'mk-nota', 'Vuoto: i mobili si comprano al negozio dei mobili del Borgo, le decorazioni dal Mercante del Porto.'));
+        if (!ids.length && !inStanzaMob.length) corpo.push(el('div', 'mk-nota', 'Vuoto: i mobili si comprano al negozio dei mobili del Borgo, le decorazioni dal Mercante, al Porto.'));
         for (const id of ids) {
           const d = def(id)!, b = azione('Posa', () => inizia({ kind: 'posa', mobile: d, rot: 0 })); b.dataset['mobile'] = id;
           corpo.push(rigaKit({ icona: campioneKit(d.colori), nome: d.nome, sotto: [mag[id]! > 1 ? `Ne hai ${mag[id]}` : decorDi(id) ? 'Decorazione, va per terra' : d.posto === 'parete' ? 'Va sul muro' : 'Va per terra'], azione: b }));
