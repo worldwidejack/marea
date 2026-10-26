@@ -147,7 +147,7 @@ export default async function (ctx) {
       const p0 = (await st()).lot.monete;
       await page.locator('#mzPortoPanel [data-item="ancora"] [data-act="compra"]').click();
       await ctx.waitState(page, (s, want) => s.lot.monete === want && s.arreda?.magazzino?.['decor:ancora'] === 1, 8000, p0 - ancora.monete);
-      assert(/ARREDA/.test(await page.locator('#mzPortoPanel').innerText()), 'la nota non dice di posarla con ARREDA');
+      assert(/arreda/i.test(await page.locator('#mzPortoPanel').innerText()), 'la nota non dice di posarla con ARREDA');
       await ctx.shot(page, 'desktop_mercante_decor');
       // un cappello che costa troppo: avviso gentile, niente richiesta
       await page.locator('#mzPortoPanel [data-tab="cappelli"]').click();
