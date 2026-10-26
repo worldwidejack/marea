@@ -13,6 +13,8 @@ import { registerStateProvider } from '../test/testapi.ts';
 export type MiaBarca = { update(t: number): void };
 // DIST m: oltre non si mostra; SOPRA_Y m: la punta tocca lo scafo (più in alto, vista dall'alto, cadrebbe su un'altra barca); MARGINE px dal bordo
 const DIST = 45, SOPRA_Y = 1.2, MARGINE = 8;
+/** I comandi a schermo (joystick, A, B e la scritta sotto la A): il cartellino non ci va sopra. All'avvio la tua barca sta sotto il joystick. */
+const COMANDI = ['joystick', 'btnA', 'btnB', 'btnAzione'];
 const STYLE = `
 #mzMiaBarca { position: absolute; left: 0; top: 0; z-index: 5; pointer-events: none; visibility: hidden; will-change: transform; }
 #ui.mz-racing #mzMiaBarca, body.mz-sotto #mzMiaBarca { display: none; }
@@ -30,10 +32,14 @@ export function createMiaBarca(o: { world: GameWorld; camera: Camera; canvas: HT
   const testo = el('span', 't'); box.appendChild(testo); o.root.prepend(box); // sotto pannelli, barra e fumetti
   const touch = matchMedia('(pointer: coarse)').matches;
   const v = new THREE.Vector3();
-  let scritta = '', on = false, mezzo = 0;
+  let scritta = '', on = false, mezzo = 0, alto = 0, alzato = false;
+  let comandi: DOMRect[] = [], comandiT = -1;
+  /** Dove stanno i comandi a schermo (relativi a root), riletti ogni ¼ s: con «una mano» il joystick nasce dove tocchi. */
+  const leggiComandi = (rr: DOMRect): DOMRect[] => COMANDI.map((id) => document.getElementById(id)).filter((e): e is HTMLElement => !!e && e.offsetParent !== null)
+    .map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0).map((r) => new DOMRect(r.left - rr.left, r.top - rr.top, r.width, r.height));
   const visibile = (ob: THREE.Object3D | null): boolean => { for (; ob; ob = ob.parent) if (!ob.visible) return false; return true; };
 
-  registerStateProvider('miaBarca', () => ({ on, scritta }));
+  registerStateProvider('miaBarca', () => ({ on, scritta, alzato, box: on ? box.getBoundingClientRect().toJSON() : null }));
   return {
     update(t) {
       const w = o.world, b = w.boat.object.position, a = w.avatar.state;
@@ -45,11 +51,20 @@ export function createMiaBarca(o: { world: GameWorld; camera: Camera; canvas: HT
       box.style.visibility = on ? 'visible' : 'hidden';
       if (!on) return;
       const sali = canBoard(a, w.boat.state, w.map), s = sali ? (touch ? 'Tocca A per salire' : 'Premi E per salire') : 'La tua barca';
-      if (s !== scritta) { scritta = s; testo.textContent = s; box.classList.toggle('sali', sali); mezzo = box.offsetWidth / 2; }
+      if (s !== scritta) { scritta = s; testo.textContent = s; box.classList.toggle('sali', sali); mezzo = box.offsetWidth / 2; alto = box.offsetHeight; }
       const r = o.canvas.getBoundingClientRect(), rr = o.root.getBoundingClientRect();
-      const x = r.left - rr.left + ((v.x + 1) / 2) * r.width, y = Math.round(r.top - rr.top + ((1 - v.y) / 2) * r.height - Math.abs(Math.sin(t * 3)) * 6);
+      const x = r.left - rr.left + ((v.x + 1) / 2) * r.width, salto = Math.abs(Math.sin(t * 3)) * 6;
+      let y = Math.round(r.top - rr.top + ((1 - v.y) / 2) * r.height - salto);
       // sul bordo dello schermo il cartellino resta dentro e la punta si sposta verso la barca
       const cx = Math.min(Math.max(x, mezzo + MARGINE), rr.width - mezzo - MARGINE), coda = Math.max(-mezzo + 14, Math.min(mezzo - 14, x - cx));
+      // sopra un comando (barca sotto il joystick o sotto la A) sale appena sopra, con la punta in giù verso la barca
+      if (t - comandiT > 0.25 || t < comandiT) { comandi = leggiComandi(rr); comandiT = t; }
+      alzato = false;
+      for (let giro = 0; giro < comandi.length; giro++) { // alzato sopra la scritta sotto la A può finire sulla A: si riguarda
+        const c = comandi.find((k) => cx + mezzo > k.left - 4 && cx - mezzo < k.right + 4 && y + 10 > k.top && y - alto < k.bottom);
+        if (!c) break;
+        y = Math.round(c.top - 12 - salto); alzato = true;
+      }
       box.style.setProperty('--coda', `${Math.round(coda)}px`);
       box.style.transform = `translate(${Math.round(cx - mezzo)}px, ${y}px) translateY(-100%)`;
     },
