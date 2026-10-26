@@ -135,6 +135,26 @@ export default async function (ctx) {
         for (let dz = -8; dz <= 8; dz++) for (let dx = -8; dx <= 8; dx++) if (!asciutta(cx + dx, cz + dz)) d = Math.min(d, Math.hypot(dx, dz));
         return d * T;
       };
+      /** Dove mettersi per un colpo a vuoto a 1,8 m da un insetto senza mandarlo in acqua: scappa lontano da te, e se scappando mette
+       *  piede in acqua ci cade. Per ogni insetto e 16 direzioni del colpo: tu all'asciutto (a una cella dall'acqua), e lui con più terra
+       *  possibile davanti a sé sulla via della fuga (dritto e ±0,3 rad, lo zig-zag; fino a 10 m). */
+      const colpoAVuoto = (lista, ox, oz) => {
+        const terra = (x, z) => asciutta(Math.floor((x - c0.x) / T + 0.5), Math.floor((z - c0.z) / T + 0.5));
+        let meglio = null;
+        for (const v of lista) for (let i = 0; i < 16; i++) {
+          const a = (i / 16) * Math.PI * 2, px = Math.cos(a) * 1.8 - ox, pz = Math.sin(a) * 1.8 - oz, d = Math.hypot(px, pz);
+          if (d < 0.5 || riva(v.x + px, v.z + pz) < 2) continue;
+          let corsa = 10;
+          for (const s of [-0.3, 0, 0.3]) {
+            const fx = (-px * Math.cos(s) + pz * Math.sin(s)) / d, fz = (-px * Math.sin(s) - pz * Math.cos(s)) / d;
+            let l = 0;
+            while (l < 10 && terra(v.x + fx * (l + 0.5), v.z + fz * (l + 0.5))) l += 0.5;
+            corsa = Math.min(corsa, l);
+          }
+          if (!meglio || corsa > meglio.corsa) meglio = { v, x: v.x + px, z: v.z + pz, corsa };
+        }
+        return meglio;
+      };
       // chi per natura schiva il retino (si alza fuori portata, scarta, sparisce, salta via) non serve a provare la rete
       const ELUSIVI = new Set(['quota', 'planata', 'librata', 'squittio', 'orchidea', 'schiva', 'cicindela', 'lascia', 'stella', 'furca']);
       const tranquillo = (id) => !ELUSIVI.has(INSETTI.find((i) => i.id === id)?.comportamento);
@@ -170,9 +190,12 @@ export default async function (ctx) {
       // 3b. un colpo che atterra a ~1,8 m dall'insetto: non lo prende (ma chi sta lì vicino scappa, senza sparire)
       const m0 = (await st()), ox = m0.insetti.rete.mira.x - m0.avatar.x, oz = m0.insetti.rete.mira.z - m0.avatar.z;
       assert(Math.hypot(ox, oz) > 1.2 && Math.hypot(ox, oz) < 1.8, `la rete atterra a 1,2-1,8 m davanti: ${Math.hypot(ox, oz)}`);
-      const v = (await inGiro()).find((x) => x.riva >= 6); // lontano dall'acqua, se no ci cade scappando
-      assert(v, 'nessun insetto a 6 m dall’acqua: ' + JSON.stringify(await inGiro()));
-      await hook('teleport', v.x - ox + 1.8, v.z - oz);
+      // prima si voleva un insetto ad almeno 6 m dall'acqua, col colpo sempre dallo stesso lato: in certi turni da 4 minuti non ce n'era
+      // nessuno e il test cadeva. Ora si sceglie insetto e lato del colpo che gli lasciano più terra davanti quando scappa
+      const c = colpoAVuoto((await inGiro()).slice(0, 8), ox, oz);
+      assert(c && c.corsa >= 6, 'nessun insetto con 6 m di terra davanti per scappare: ' + JSON.stringify(c && { id: c.v.id, riva: c.v.riva, corsa: c.corsa }));
+      const v = c.v;
+      await hook('teleport', c.x, c.z);
       await hook('insettiRetino');
       await ctx.waitState(page, (s) => s.insetti.colpo === 0, 8000);
       const fuga = (await st()).insetti.attori.find((x) => x.k === v.k);
