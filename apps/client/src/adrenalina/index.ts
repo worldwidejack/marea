@@ -59,7 +59,7 @@ type Fase = 'funivia' | 'cartello' | 'regole' | 'via' | 'gara' | 'invio' | 'fine
 const VIA_S = 2.4, AIUTO_S = 7;
 /** Oltre questa distanza (m) gli abeti si spengono (il terreno resta: da lassù si vede fino in valle). */
 const LONTANO = 420;
-const NOMI_CADUTA: Record<string, string> = { abete: 'CONTRO L’ABETE!', roccia: 'CONTRO LA ROCCIA!', bosco: 'NEL BOSCO!', storto: 'ATTERRAGGIO STORTO!', presa: 'ANCORA IN PRESA!', tronco: 'CONTRO IL TRONCO!', botta: 'ATTERRAGGIO TROPPO DURO!' };
+const NOMI_CADUTA: Record<string, string> = { abete: 'Contro l’abete!', roccia: 'Contro la roccia!', bosco: 'Nel bosco!', storto: 'Atterraggio storto!', presa: 'Ancora in presa!', tronco: 'Contro il tronco!', botta: 'Atterraggio troppo duro!' };
 const CASCO = AVATAR.cappelli.findIndex((h) => h.id === 'casco');
 const PANNELLI = ['mzSbPiste', 'mzSbRegole', 'mzSbFine'];
 /** Per i test: la discesa aperta adesso. */
@@ -241,16 +241,16 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
   const leggiEventi = () => {
     for (const e of s.eventi) {
       if (e.t <= visto) continue;
-      if (e.k === 'porta') hud.pop(`PORTA −${(e.n / SNOWBOARD.tempo.puntiAlSecondo).toFixed(1)} s`, PAL.erbaChiara);
-      else if (e.k === 'mancata') hud.pop(`PORTA MANCATA +${SNOWBOARD.tempo.portaMancata} s`, PAL.rosso);
-      else if (e.k === 'trick') hud.pop(`${e.x!.toUpperCase()}`, PAL.giallo);
-      else if (e.k === 'presa') hud.pop('PRESA', PAL.giallo);
-      else if (e.k === 'atterra') { nuvolaA = true; hud.pop(`ATTERRATO −${(e.n / SNOWBOARD.tempo.puntiAlSecondo).toFixed(1)} s${e.x ? ' ' + e.x : ''}`, PAL.arancio); }
-      else if (e.k === 'grande') hud.pop('SALTO GRANDE!', PAL.arancio);
-      else if (e.k === 'rasente') hud.pop('RASENTE!', PAL.arancio);
-      else if (e.k === 'caduta') { hud.pop(NOMI_CADUTA[e.x ?? ''] ?? 'CADUTO!', PAL.rosso); cadutoA = s.tick; nuvolaA = true; }
-      else if (e.k === 'fuoripista') hud.pop('← FUORIPISTA!', PAL.arancio);
-      else if (e.k === 'rientro') hud.pop('DI NUOVO IN PISTA', PAL.erbaChiara);
+      if (e.k === 'porta') hud.pop(`Porta −${(e.n / SNOWBOARD.tempo.puntiAlSecondo).toFixed(1)} s`, PAL.erbaChiara);
+      else if (e.k === 'mancata') hud.pop(`Porta mancata +${SNOWBOARD.tempo.portaMancata} s`, PAL.rosso);
+      else if (e.k === 'trick') hud.pop(e.x!, PAL.giallo);
+      else if (e.k === 'presa') hud.pop('Presa', PAL.giallo);
+      else if (e.k === 'atterra') { nuvolaA = true; hud.pop(`Atterrato −${(e.n / SNOWBOARD.tempo.puntiAlSecondo).toFixed(1)} s${e.x ? ' ' + e.x : ''}`, PAL.arancio); }
+      else if (e.k === 'grande') hud.pop('Salto grande!', PAL.arancio);
+      else if (e.k === 'rasente') hud.pop('Rasente!', PAL.arancio);
+      else if (e.k === 'caduta') { hud.pop(NOMI_CADUTA[e.x ?? ''] ?? 'Caduto!', PAL.rosso); cadutoA = s.tick; nuvolaA = true; }
+      else if (e.k === 'fuoripista') hud.pop('← Fuoripista!', PAL.arancio);
+      else if (e.k === 'rientro') hud.pop('Di nuovo in pista', PAL.erbaChiara);
     }
     visto = s.tick;
   };
@@ -262,7 +262,7 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
     leggiEventi();
     // la deviazione del fuoripista si annuncia ~60 m prima del bivio (poi i cartelloni con le frecce)
     const fp = p.def.fuoripista;
-    if (fp && prima.s < fp.da - 60 && s.s >= fp.da - 60) hud.pop('↰ DEVIAZIONE A SINISTRA', PAL.arancio);
+    if (fp && prima.s < fp.da - 60 && s.s >= fp.da - 60) hud.pop('↰ Deviazione a sinistra', PAL.arancio);
     if (s.done) void arrivo();
   };
 
@@ -315,7 +315,7 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
       if (fase === 'funivia' && faseT >= VIAGGIO_S) inVetta();
       if (fase === 'via') {
         const n = Math.ceil((VIA_S - faseT) / (VIA_S / 3));
-        hud.via(faseT < VIA_S ? String(Math.max(1, n)) : 'VIA!');
+        hud.via(faseT < VIA_S ? String(Math.max(1, n)) : 'Via!');
         if (faseT >= VIA_S) { fase = 'gara'; faseT = 0; }
       } else if (fase === 'gara' && faseT > 0.6) hud.via(null);
       if (fase === 'gara' && gara / 60 > AIUTO_S) hud.aiuto(false);

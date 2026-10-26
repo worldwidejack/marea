@@ -105,14 +105,14 @@ export function createFunivia(o: AdrenalinaOpts, place: ArchPlace, spot: { id: s
   const bFirma = el('button', '', 'Firma') as HTMLButtonElement; bFirma.type = 'button'; bFirma.dataset['act'] = 'firma';
   const bNo = el('button', '', 'Non ora') as HTMLButtonElement; bNo.type = 'button'; bNo.dataset['act'] = 'no';
   const bt = el('div', 'bt'); bt.append(bFirma, bNo);
-  carta.append(el('b', '', '🚡 LIBERATORIA · FUNIVIA DELLA VETTA'), ...TESTO.map((r) => el('p', '', r)), firmaRiga, bt);
+  carta.append(el('b', '', '🚡 Liberatoria · funivia della vetta'), ...TESTO.map((r) => el('p', '', r)), firmaRiga, bt);
   for (const ev of ['pointerdown', 'touchstart']) carta.addEventListener(ev, (x) => x.stopPropagation());
   bNo.addEventListener('click', () => { chiudi(); });
   bFirma.addEventListener('click', () => { void firma(); });
   o.root.append(carta);
   const btn = el('button', 'mz mz-play'); btn.id = 'mzFunivia'; btn.type = 'button';
   btn.style.background = PAL.rosso; btn.style.color = PAL.sabbiaChiara;
-  btn.replaceChildren(el('span', '', '🚡 FUNIVIA'), el('small', '', 'A'));
+  btn.replaceChildren(el('span', '', '🚡 Funivia'), el('small', '', 'A'));
   for (const ev of ['pointerdown', 'touchstart']) btn.addEventListener(ev, (x) => x.stopPropagation());
   btn.addEventListener('click', () => { usa(); });
   o.root.append(btn);
