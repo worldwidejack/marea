@@ -86,7 +86,7 @@ export default async function (ctx) {
       assert(s.emotes.shown.some((x) => x.who === 'me' && x.on), 'fumetto proprio non visibile: ' + JSON.stringify(s.emotes.shown));
     });
 
-    let seenAt = 0;
+    let seenAt = 0, bornAt = 0;
     await ctx.test('Bruno vede il fumetto sopra Anna entro 1,5 s, sulla sua testa', async () => {
       // la scheda di Bruno va davanti prima di cercare: da dietro Chrome rallenta il polling (~1 s) e su GitHub, dopo lo screenshot di Anna,
       // il fumetto (2,5 s) si trovava a ~2,3 s e spariva prima di misurarlo. Il ritardo vero lo dice comunque l'età del fumetto.
@@ -98,12 +98,15 @@ export default async function (ctx) {
         if (!e) return null;
         const r = e.getBoundingClientRect(), c = document.getElementById('gl').getBoundingClientRect();
         if (!r.width) return null;
+        // l'istante in cui il fumetto se ne va, preso nella pagina: il test dopo non lo misura in ritardo
+        if (!window.__viaSaluto) { const v = { at: 0 }; window.__viaSaluto = v; const o = new MutationObserver(() => { if (!e.isConnected) { v.at = Date.now(); o.disconnect(); } }); o.observe(e.parentNode, { childList: true }); }
         const s = window.__game.state().emotes.shown.find((x) => x.who === 'anna');
         return { bx: r.left + r.width / 2, bottom: r.bottom, w: r.width, h: r.height, vis: getComputedStyle(e).visibility, c: { l: c.left, t: c.top, w: c.width, h: c.height }, s };
       }, null, { timeout: LAT + 1000, polling: 30 });
       seenAt = Date.now();
       const g = await preso.jsonValue();
       const born = await bruno.page.evaluate(() => Date.now() - 1000 * (window.__game.state().emotes.shown.find((x) => x.who === 'anna')?.age ?? 0));
+      bornAt = born;
       ctx.log(`Bruno lo trova dopo ${seenAt - pressAt} ms (fumetto nato ${born - pressAt} ms dopo la pressione)`);
       // il requisito è sull'arrivo (età del fumetto, orologio di Bruno); margine di 1 s sul ritrovamento (con la grafica software il fumetto si disegna tardi)
       assert(born - pressAt < LAT && seenAt - pressAt < LAT + 1000, `Bruno lo vede dopo ${seenAt - pressAt} ms (nato dopo ${Math.round(born - pressAt)} ms)`);
@@ -127,10 +130,13 @@ export default async function (ctx) {
     await ctx.shot(bruno.page, 'bruno_vede_anna_1280');
 
     await ctx.test('il fumetto su Bruno sparisce dopo ~2,5 s', async () => {
-      await bruno.page.waitForSelector('.mz-emote[data-who="anna"]', { state: 'detached', timeout: 4000 });
-      const life = Date.now() - pressAt;
-      ctx.log(`fumetto di Anna su Bruno durato ~${life} ms dalla pressione`);
-      assert(life > 2100 && life < 5000, 'durata del fumetto: ' + life); // su GitHub (2-4 fps) il fumetto si toglie al fotogramma dopo: fino a ~3,9 s
+      // si conta da quando il fumetto nasce su Bruno, non dalla pressione di Anna: su GitHub arriva anche ~3,5 s dopo (dalla pressione
+      // veniva 4,7-6,1 s e il test cadeva); l'uscita è l'istante segnato nella pagina, non quando il test arriva a guardare
+      await bruno.page.bringToFront(); // da dietro la scheda non ha frame e il fumetto non si toglie
+      await bruno.page.waitForFunction(() => window.__viaSaluto?.at > 0, null, { timeout: 5000, polling: 50 });
+      const life = (await bruno.page.evaluate(() => window.__viaSaluto.at)) - bornAt;
+      ctx.log(`fumetto di Anna su Bruno durato ~${life} ms da quando è nato (${bornAt - pressAt} ms dopo la pressione)`);
+      assert(life > 2100 && life < 5000, 'durata del fumetto: ' + life); // su GitHub (2-4 fps) il fumetto si toglie al fotogramma dopo
     });
 
     await ctx.test('10 pressioni in 1 s → un solo frame emote', async () => {
@@ -143,9 +149,11 @@ export default async function (ctx) {
       assert(anna.sent.length === 1 && anna.sent[0].id === 'ride', 'frame inviati: ' + anna.sent.length);
       // la foto di Anna col fumetto si fa qui e non dopo il primo saluto: lì teneva la scheda di Bruno dietro e il saluto gli arrivava tardi
       await ctx.shot(anna.page, 'anna_ride_1280');
-      // Bruno ne vede uno solo
-      await bruno.page.waitForSelector('.mz-emote[data-who="anna"][data-emote="ride"]', { state: 'attached', timeout: 1500 });
-      assert((await bruno.page.$$('.mz-emote[data-who="anna"]')).length === 1, 'più fumetti di Anna su Bruno');
+      // Bruno ne vede uno solo: la sua scheda davanti e lo stesso margine del primo fumetto (con 1,5 s fissi su GitHub non arrivava in tempo)
+      await bruno.page.bringToFront();
+      await bruno.page.waitForSelector('.mz-emote[data-who="anna"][data-emote="ride"]', { state: 'attached', timeout: LAT + 1000 });
+      const fumetti = await bruno.page.$$eval('.mz-emote[data-who="anna"]', (l) => l.map((e) => e.dataset.emote));
+      assert(fumetti.length === 1, 'più fumetti di Anna su Bruno: ' + JSON.stringify(fumetti));
     });
 
     await ctx.test('pannello aperto (feed): niente fumetto né frame', async () => {
