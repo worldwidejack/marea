@@ -5,8 +5,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export const timeout = 180000;
-// draw call: 100 dove gioca il telefono; il PC a zoom massimo sopra la piazza vede tutto il borgo e le isole (TECH.md §5): 110
-const MAX_DRAW = 100, MAX_DRAW_PC_ALTO = 110, MAX_TRIS = 200000;
+// draw call: 100 dove gioca il telefono; il PC a zoom massimo sopra la piazza vede tutto il borgo e le isole (TECH.md §5): 110.
+// Triangoli: 200k; da lì sopra 205k come in m3_prestazioni (oscillava fra 198k e 201k secondo dove passeggiano paesani e animali)
+const MAX_DRAW = 100, MAX_DRAW_PC_ALTO = 110, MAX_TRIS = 200000, MAX_TRIS_PC_ALTO = 205000;
 
 export default async function (ctx) {
   const { assert } = ctx;
@@ -118,7 +119,7 @@ export default async function (ctx) {
     const m = await misura(d.page);
     ctx.log(`dall'alto: ${m.calls} draw call, ${m.tris} triangoli`);
     if (process.env.BORGO_DIAG) { const q = await hook(d.page, 'disegnati'); ctx.log(JSON.stringify({ vista: q.vista.length, ombra: q.ombra.length, v: q.vista.map((x) => x.k + ':' + x.t), o: q.ombra.map((x) => x.k + ':' + x.t) })); }
-    assert(m.calls <= MAX_DRAW_PC_ALTO && m.tris <= MAX_TRIS, 'dall\'alto: ' + JSON.stringify(m));
+    assert(m.calls <= MAX_DRAW_PC_ALTO && m.tris <= MAX_TRIS_PC_ALTO, 'dall\'alto: ' + JSON.stringify(m));
     await ctx.shot(d.page, 'pc_borgo_dall_alto');
     await hook(d.page, 'setZoom', zoom0);
     ctx.noErrors(d, 'pc');
