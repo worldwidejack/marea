@@ -151,7 +151,7 @@ for (const suite of suites) {
 }
 if (browser) await browser.close().catch(() => {});
 if (server) await server.close();
-if (distDir && distDir.includes('dist-') && !opts.has('--keep')) fs.rmSync(distDir, { recursive: true, force: true });
+if (distDir && distDir.includes('dist-') && !opts.has('--keep')) { try { fs.rmSync(distDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 }); } catch { /* Windows file lock */ } }
 const failed = results.filter((r) => !r.ok);
 const total = Date.now() - t0;
 fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify({ when: new Date().toISOString(), suites, only: ONLY, viewport: VIEWPORT_NAME, ms: total, passed: results.length - failed.length, failed: failed.length, suiteInfo, results }, null, 1));
