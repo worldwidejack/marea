@@ -67,7 +67,7 @@ export function createPostoPerle(o: { world: GameWorld; root: HTMLElement; hud: 
     get ok() { return ok; },
     tick() {
       if (++n % OGNI === 0 || ok) controlla();
-      if (ok && !okWas && performance.now() - avvisoAt > AVVISO_MS) { avvisoAt = performance.now(); o.hud.toast(`Acqua bassa: qui ci sono perle · ${matchMedia('(pointer: coarse)').matches ? 'tocca TUFFATI' : 'T'}`, 2500); }
+      if (ok && !okWas && performance.now() - avvisoAt > AVVISO_MS) { avvisoAt = performance.now(); o.hud.toast(`Acqua bassa: qui ci sono perle · ${matchMedia('(pointer: coarse)').matches ? 'tocca «Tuffati»' : 'T'}`, 2500); }
       okWas = ok;
     },
     update() { btn.classList.toggle('on', ok && o.libero()); },

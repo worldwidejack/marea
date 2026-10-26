@@ -443,7 +443,7 @@ export function createPescaBorgo(o: {
         if (q.ok && (!barcaC || Math.hypot(b.x - barcaC.x, b.z - barcaC.z) > SPOSTA)) spargiBarca(b.x, b.z, now);
         if (q.ok && !okWas && performance.now() - avvisoAt > AVVISO_MS) {
           avvisoAt = performance.now();
-          if (possiedeCanna(o.getLot())) o.hud.toast(`Qui si pesca · ${coarse() ? 'tocca PESCA' : 'P'}`, 2500);
+          if (possiedeCanna(o.getLot())) o.hud.toast(`Qui si pesca · ${coarse() ? 'tocca «Pesca»' : 'P'}`, 2500);
           else if (!cannaAvviso) { cannaAvviso = true; o.hud.toast('Con una canna da pesca (al negozio dei mobili) qui potresti pescare', 2800); }
         }
         okWas = q.ok;

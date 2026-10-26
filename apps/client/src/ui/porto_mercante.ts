@@ -74,10 +74,10 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
     const card = el('div', 'mz-mc-pz' + (st.prova === chiave ? ' sel' : '')); card.dataset['item'] = chiave;
     const fig = el('button', 'fig'); fig.type = 'button'; fig.dataset['act'] = 'prova'; fig.title = 'Provalo addosso';
     const im = document.createElement('img'); im.src = disegno; im.alt = nome; fig.appendChild(im);
-    fig.appendChild(el('span', 'prova', st.prova === chiave ? 'ADDOSSO' : 'PROVA'));
+    fig.appendChild(el('span', 'prova', st.prova === chiave ? 'Addosso' : 'Prova'));
     fig.addEventListener('click', () => { st.prova = st.prova === chiave ? null : chiave; ctx.setLook(st.prova ? { ...salvato(), ...conPezzo } : salvato()); redraw(); });
     card.append(fig, el('b', '', nome));
-    if (mio) card.appendChild(act(addosso ? 'ADDOSSO' : 'INDOSSA', 'indossa', 'green', addosso || !online, () => void busyRun(chiave, async () => {
+    if (mio) card.appendChild(act(addosso ? 'Addosso' : 'Indossa', 'indossa', 'green', addosso || !online, () => void busyRun(chiave, async () => {
       const l: Look = { ...salvato(), ...conPezzo };
       await ctx.api!.look(l);
       if (ctx.me) ctx.me.look = { ...ctx.me.look, ...l };
@@ -88,7 +88,7 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
       card.appendChild(price(prezzo));
       card.appendChild(act('Compra', 'compra', '', !online, () => {
         if (monete !== null && monete < prezzo) { st.note = { id: chiave, text: moneteText(prezzo - monete), bad: true }; redraw(); return; }
-        void busyRun(chiave, async () => { await compra(); return `${nome}: è tuo! Premi INDOSSA`; });
+        void busyRun(chiave, async () => { await compra(); return `${nome}: è tuo! Premi «Indossa»`; });
       }));
     }
     const n = noteFor(chiave); if (n) card.appendChild(n);
@@ -123,15 +123,15 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
       const nm = el('button', 'nm'); nm.type = 'button'; nm.dataset['act'] = 'prova'; nm.title = 'Provalo sulla tua barca';
       const chip = el('span', 'mz-pt-chip'); chip.style.background = k.hex;
       const b = el('b'); b.append(chip, k.nome);
-      nm.append(b, el('small', mine ? 'tag dim' : 'tag', mine ? 'tuo: per scafo e vela' : 'ESCLUSIVA · scafo o vela'));
+      nm.append(b, el('small', mine ? 'tag dim' : 'tag', mine ? 'tuo: per scafo e vela' : 'Esclusiva · scafo o vela'));
       nm.addEventListener('click', () => { st.provaBarca = st.provaBarca === k.id ? null : k.id; ctx.world.setBarca(st.provaBarca ? { ...mia, scafo: k.id } : mia); redraw(); });
       row.appendChild(nm);
       if (mine) {
-        row.append(act('SCAFO', 'scafo', 'green mini', !online || mia.scafo === k.id, () => usa(k, 'scafo')), act('VELA', 'vela', 'green mini', !online || mia.vela === k.id, () => usa(k, 'vela')));
+        row.append(act('Scafo', 'scafo', 'green mini', !online || mia.scafo === k.id, () => usa(k, 'scafo')), act('Vela', 'vela', 'green mini', !online || mia.vela === k.id, () => usa(k, 'vela')));
       } else {
         row.append(price(k.monete), act('Compra', 'compra', '', !online, () => {
           if (monete !== null && monete < k.monete) { st.note = { id: k.id, text: moneteText(k.monete - monete), bad: true }; redraw(); return; }
-          void busyRun(k.id, async () => { const l = await ctx.api!.buyColore(k.id); ctx.setLot(l); return `${k.nome}: è tuo! Premi SCAFO o VELA`; });
+          void busyRun(k.id, async () => { const l = await ctx.api!.buyColore(k.id); ctx.setLot(l); return `${k.nome}: è tuo! Premi «Scafo» o «Vela»`; });
         }));
       }
       body.appendChild(row);
@@ -147,7 +147,7 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
         if (monete !== null && monete < d.monete) { st.note = { id: d.id, text: moneteText(d.monete - monete), bad: true }; redraw(); return; }
         void busyRun(d.id, async () => {
           const l = await ctx.api!.decor(d.id); ctx.setLot(l);
-          return `${d.nome}: è nel magazzino di casa. Posala con ARREDA`;
+          return `${d.nome}: è nel magazzino di casa. Posala con «Arreda»`;
         });
       }));
       body.appendChild(row);

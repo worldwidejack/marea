@@ -122,7 +122,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
 
   const btn = el('button', 'mz mz-play'); btn.id = 'mzTemplariEntra'; btn.type = 'button';
   btn.style.background = PAL.rosso; btn.style.color = PAL.sabbiaChiara;
-  btn.replaceChildren(el('span', '', '✠ ENTRA NELLA CHIESA'), el('small', '', 'A'));
+  btn.replaceChildren(el('span', '', '✠ Entra nella chiesa'), el('small', '', 'A'));
   for (const ev of ['pointerdown', 'touchstart']) btn.addEventListener(ev, (x) => x.stopPropagation());
   btn.addEventListener('click', () => { void entra(true); });
   o.root.append(btn);
@@ -387,7 +387,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
       near = o.world.mode === 'walk' && !o.world.race.on && aperta() && Math.hypot(f.x - spot.x, f.z - spot.z) < NEAR_M;
       if (sala && !sala.rete && !FLAGS.test && (o.world.mode !== 'walk' || Math.hypot(f.x - spot.x, f.z - spot.z) > LONTANO_M)) { chiudiSala(); o.hud.toast('Troppo lontano dalla porta: fuori dalla sala', 2500); }
       if (sala) { nearWas = near; return; }
-      if (near && !nearWas) o.hud.toast('La chiesa dei Templari: premi A o tocca ENTRA', 2500);
+      if (near && !nearWas) o.hud.toast('La chiesa dei Templari: premi A o tocca «Entra nella chiesa»', 2500);
       nearWas = near;
       if (near && pressA) void entra(true);
     },
@@ -399,7 +399,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
       btnIns.classList.toggle('on', near && !busy && !sala && !!o.api && !!FLAGS.token && !FLAGS.banco);
       const mio = haCalice();
       btnR.classList.toggle('on', nearR && !busyR);
-      const testo = mio ? '📜 LEGGI IL BIGLIETTO' : '✠ PRENDI IL CALICE';
+      const testo = mio ? '📜 Leggi il biglietto' : '✠ Prendi il calice';
       if (btnR.firstChild?.textContent !== testo) btnR.replaceChildren(el('span', '', testo), el('small', '', 'A'));
       // il calice gira piano e sale e scende a scatti (6 al secondo) finché non è tuo
       calice.visible = !!relitto && !mio;

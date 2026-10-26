@@ -393,7 +393,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
           const r = richiesto(near.id);
           o.hud.toast(r === 'unico_anello_onda' ? `${near.nome}: cancello sbarrato. Serve l'Anello dell'Onda (Mausoleo Cinetico)` : `${near.nome}: sigillato. Prima completa ${nomeDi(r)}`, 2500);
         } else {
-          o.hud.toast(vicini ? `${near.nome}: ENTRA da solo o AFFRONTA INSIEME` : `${near.nome}: premi A o tocca ENTRA`, 2500);
+          o.hud.toast(vicini ? `${near.nome}: «Entra» da solo o «Affronta insieme»` : `${near.nome}: premi A o tocca «Entra»`, 2500);
         }
       }
       nearWas = near;
@@ -424,7 +424,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
           if (c !== m.chiuso) {
             m.chiuso = c; m.sig.visible = c;
             if (!c && m.s.id === 'vuoto') { try { localStorage.setItem('marea:cancello_vuoto_aperto', '1'); } catch {} }
-            const r = richiesto(m.s.id), tag = c ? (r === 'unico_anello_onda' ? ' · CANCELLO CHIUSO' : ' · SIGILLATO') : '';
+            const r = richiesto(m.s.id), tag = c ? (r === 'unico_anello_onda' ? ' · cancello chiuso' : ' · sigillato') : '';
             m.label.set('bubble', [pixIcon(m.s.icon, 16), el('span', '', `${m.s.nome}${tag}`)], c ? 'dng-sig' : 'dng');
             m.label.el.classList.add('dng'); m.label.el.classList.toggle('sig', c); // set() rifà le classi
           }

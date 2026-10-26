@@ -27,7 +27,7 @@ const CSS = `
 `;
 const testo = (id: string): TestoBiglietto => {
   const d = TEMPLARI.indizi.scheletri[id];
-  return { titolo: '✠ IL BIGLIETTO DELLO SCHELETRO', righe: d?.righe ?? [], firma: d ? '— ' + d.chi : undefined };
+  return { titolo: '✠ Il biglietto dello scheletro', righe: d?.righe ?? [], firma: d ? '— ' + d.chi : undefined };
 };
 const nome = (id: string): string => (TEMPLARI.indizi.scheletri[id]?.chi ?? id).split(',')[0]!;
 
@@ -43,7 +43,7 @@ export function createBiglietti(root: HTMLElement): Biglietti {
   addEventListener('keydown', esc, true);
   const rifaiLista = () => {
     lista.classList.toggle('on', letti.length > 0);
-    lista.replaceChildren(el('small', '', `📜 BIGLIETTI TROVATI ${letti.length}/${Object.keys(TEMPLARI.indizi.scheletri).length}`), ...letti.map((id) => {
+    lista.replaceChildren(el('small', '', `📜 Biglietti trovati ${letti.length}/${Object.keys(TEMPLARI.indizi.scheletri).length}`), ...letti.map((id) => {
       const b = el('button', '', nome(id)) as HTMLButtonElement; b.type = 'button'; b.dataset['biglietto'] = id;
       b.addEventListener('click', () => api.apri(id, true));
       return b;

@@ -99,7 +99,7 @@ export function createArena(o: { world: GameWorld; renderer: Renderer; loader: L
       if (!spot || col?.active || col?.aperto) { near = false; return; }
       const f = o.world.avatar.state;
       near = o.world.mode === 'walk' && !o.world.race.on && Math.hypot(f.x - spot.x, f.z - spot.z) < NEAR_M;
-      if (near && !nearWas) o.hud.toast('Il Colosseo dell’Arena: premi A o tocca ENTRA', 2500);
+      if (near && !nearWas) o.hud.toast('Il Colosseo dell’Arena: premi A o tocca «Entra nel Colosseo»', 2500);
       nearWas = near;
       if (near && pressA) void entra();
     },

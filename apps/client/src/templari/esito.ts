@@ -18,7 +18,7 @@ const CSS = `
 .mz-tpl-esito .rec { margin: 10px 0 2px; padding: 8px; border: 2px solid ${PAL.giallo}; color: ${PAL.giallo}; font-weight: bold; font-size: 15px; background: ${PAL.ombraCalda}; }
 .mz-tpl-esito .mz-btn { justify-content: center; margin-top: 12px; }
 `;
-const TITOLO: Record<string, [string, string]> = { morto: ['SEI CADUTO', PAL.rosso], alba: ['È L’ALBA', PAL.giallo], uscito: ['SEI USCITO', PAL.sabbiaChiara] };
+const TITOLO: Record<string, [string, string]> = { morto: ['Sei caduto', PAL.rosso], alba: ['È l’alba', PAL.giallo], uscito: ['Sei uscito', PAL.sabbiaChiara] };
 let ultimo: Record<string, unknown> | null = null, chiudi: (() => void) | null = null, registrato = false;
 
 export function mostraEsito(root: HTMLElement, v: EsitoVista): Promise<void> {
@@ -31,7 +31,7 @@ export function mostraEsito(root: HTMLElement, v: EsitoVista): Promise<void> {
   const h = el('h2', '', titolo); h.style.color = colore;
   const secs = Math.round(r.ticks / 60);
   box.append(h, el('div', 'ond', String(Math.max(1, r.ondata))), el('div', 'sub', `ondata raggiunta · ${r.uccisioni} templari abbattuti · ${r.punti} punti · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`));
-  box.append(el('div', 'sec', `PREMIO · ${r.superate} ${r.superate === 1 ? 'ondata superata' : 'ondate superate'}`));
+  box.append(el('div', 'sec', `Premio · ${r.superate} ${r.superate === 1 ? 'ondata superata' : 'ondate superate'}`));
   if (v.premio === null) box.append(el('div', 'nota', 'Senza il tuo link personale non c’è premio'));
   else if (v.premio === 0) box.append(el('div', 'nota', v.tetto ? 'Per oggi hai preso tutto il premio dell’isola: domani si ricomincia' : r.superate ? 'Niente stavolta' : 'Supera almeno un’ondata per portare a casa qualcosa'));
   else {
@@ -41,7 +41,7 @@ export function mostraEsito(root: HTMLElement, v: EsitoVista): Promise<void> {
     if (v.tetto) box.append(el('div', 'nota', 'Hai raggiunto il tetto di oggi: il resto domani'));
   }
   if (v.record) box.append(el('div', 'rec', `Nuovo record: ondata ${r.ondata}!`));
-  const ok = el('button', 'mz-btn', 'TORNA SULL’ISOLA'); ok.type = 'button'; ok.dataset['act'] = 'ok';
+  const ok = el('button', 'mz-btn', 'Torna sull’isola'); ok.type = 'button'; ok.dataset['act'] = 'ok';
   box.append(ok);
   root.append(box);
   ultimo = { esito: r.esito, ondata: r.ondata, superate: r.superate, uccisioni: r.uccisioni, punti: r.punti, premio: v.premio, tetto: !!v.tetto, record: !!v.record, aperto: true };

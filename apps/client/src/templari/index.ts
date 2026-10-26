@@ -289,7 +289,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       case 'esplosione': suona('tuono'); break;
       case 'parato': suona('schivato'); break;
       case 'scudoSpaccato': zombi.colpito(e.id); suona('colpo_critico', vicino(e.x, e.z)); hud.grande('', PAL.sabbiaChiara, 'Scudo spaccato: adesso è scoperto', 1200); break;
-      case 'scudo': suona('raccolto'); hud.grande('SCUDO', PAL.sabbiaChiara, 'Sulle spalle para da dietro · SCAMBIA per impugnarlo', 2400); break;
+      case 'scudo': suona('raccolto'); hud.grande('SCUDO', PAL.sabbiaChiara, 'Sulle spalle para da dietro · «Scambia» per impugnarlo', 2400); break;
       case 'scudoRotto': suona('colpo_critico'); hud.grande('', PAL.rosso, 'Lo scudo si è spaccato', 1600); break;
       case 'compra': suona('moneta'); break;
       case 'potenziata': suona('medaglia_oro'); suona('tpl_potere_preso', 1); hud.grande('✦', PAL.giallo, `Il Mercante ha potenziato l’arma: ${e.nome}`, 2600); break;
@@ -316,7 +316,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       case 'risata': suona('tpl_risata', 1); hud.grande('', PAL.arancio, 'De Molay ride e scappa: non è ancora il suo momento', 3000); break;
       case 'scompare': hud.grande('', PAL.giallo, 'De Molay è sparito nella notte', 2200); break;
       case 'bomba': suona('lancio'); break;
-      case 'superPronto': suona('medaglia_oro'); hud.grande('SUPER PRONTO', PAL.giallo, 'Tocca SUPER (o R) quando sono tanti', 2200); break;
+      case 'superPronto': suona('medaglia_oro'); hud.grande('SUPER PRONTO', PAL.giallo, 'Tocca «Super» (o R) quando sono tanti', 2200); break;
       case 'super': { const [nome, sub] = SUPER_TESTO[e.tipo] ?? ['SUPER', '']; suona(e.tipo === 'pioggia' ? 'tpl_freccia' : e.tipo === 'bordata' ? 'tpl_moschetto' : 'colpo_critico', 1); if (e.tipo === 'giudizio') suona('tuono', 0.8); hud.grande(nome, PAL.giallo, sub, 1800); break; }
       case 'cannonata': suona('tuono', vicino(e.x, e.z)); break;
       case 'lavoro': suona(e.cosa === 'monta' ? 'martello' : e.cosa.startsWith('teschio:') ? 'goccia' : 'sfrigola', 0.6); break;
