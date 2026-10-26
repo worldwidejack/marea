@@ -93,7 +93,7 @@ export default async function (ctx) {
     await prova({ pulisci: true, vita: 1e6, armi: ['spada'], dove: { x: 39.5, z: 39.5 } });
     await ctx.waitState(page, (s) => s.templari.prompt === 'compra', 10000);
     // il bottone si ridisegna al fotogramma dopo: si aspetta il suo testo, non lo si legge subito
-    await page.waitForFunction(() => /PRENDI: ARCO/.test(document.querySelector('#mzTplAzione.on')?.textContent ?? ''), null, { timeout: 10000 })
+    await page.waitForFunction(() => /prendi: arco/i.test(document.querySelector('#mzTplAzione.on')?.textContent ?? ''), null, { timeout: 10000 })
       .catch(async () => { throw new Error(`il bottone non dice di prendere l’arco: «${await page.textContent('#mzTplAzione')}»`); });
     await page.tap('#mzTplAzione');
     await ctx.waitState(page, (s) => s.templari.eroe.arma === 'arco' && s.templari.armi.some((a) => a?.id === 'spada'), 10000);
@@ -215,7 +215,7 @@ export default async function (ctx) {
     assert(r && typeof r.x === 'number', 'scheletro non trovato sulla Tempesta');
     await ctx.waitState(page, (st) => st.templariRelitto?.near === true && st.templariRelitto.visibile === true, 10000);
     await page.waitForSelector('#mzTemplariCalice.on', { timeout: 10000 });
-    assert((await page.textContent('#mzTemplariCalice')).includes('CALICE'), 'bottone del calice senza testo');
+    assert(/calice/i.test(await page.textContent('#mzTemplariCalice')), 'bottone del calice senza testo');
     await ctx.shot(page, 'scheletro_calice');
     await page.click('#mzTemplariCalice');
     await ctx.waitState(page, (st) => st.templariRelitto.calice === true && st.templariRelitto.biglietto === true, 8000);
@@ -224,7 +224,7 @@ export default async function (ctx) {
     await page.click('#mzBiglietto [data-act=chiudi]');
     await ctx.waitState(page, (st) => st.templariRelitto.biglietto === false && st.templariRelitto.visibile === false, 5000);
     await page.waitForSelector('#mzTemplariCalice.on', { timeout: 8000 });
-    assert((await page.textContent('#mzTemplariCalice')).includes('BIGLIETTO'), 'dopo: il bottone non rilegge il biglietto');
+    assert(/biglietto/i.test(await page.textContent('#mzTemplariCalice')), 'dopo: il bottone non rilegge il biglietto');
     ctx.noErrors(p, 'telefono');
   });
 
@@ -336,7 +336,7 @@ export default async function (ctx) {
     // il rogo è spento finché non si accende il fuoco del coro (§9b): la leva lo dice; F tenuto 1,5 s sul braciere lo accende
     await prova({ dove: { x: 63.5, z: 45.5 }, punti: 3000 });
     await ctx.waitState(pc, (st) => st.templari.prompt === 'trappola', 5000);
-    await pc.waitForFunction(() => /SPENTO/.test(document.querySelector('#mzTplAzione.on')?.textContent ?? ''), null, { timeout: 5000 })
+    await pc.waitForFunction(() => /spento/i.test(document.querySelector('#mzTplAzione.on')?.textContent ?? ''), null, { timeout: 5000 })
       .catch(async () => { throw new Error('la leva del rogo non dice che il fuoco è spento: ' + await pc.textContent('#mzTplAzione')); });
     await prova({ fuoco: 'coro' });
     await ctx.waitState(pc, (st) => st.templari.prompt === 'fuoco', 5000);

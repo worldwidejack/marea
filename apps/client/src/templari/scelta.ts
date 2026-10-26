@@ -42,8 +42,8 @@ const ICONA: Record<TClasse, string> = {
   arciere: '<svg viewBox="0 0 24 24"><path d="M6 2c8 3 12 9 10 20" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M6 2L16 22" stroke="currentColor" stroke-width="1.2"/><path d="M2 14L20 6M20 6l-4-.5M20 6l-2 3.5M2 14l2.5-2.5M2 14l3 .5" stroke="currentColor" stroke-width="2" fill="none"/></svg>',
 };
 const BARRE: { k: keyof TEroeDef['barre']; nome: string; colore: string }[] = [
-  { k: 'vita', nome: 'VITA', colore: '#E8433F' }, { k: 'forza', nome: 'FORZA', colore: '#F2A33A' },
-  { k: 'velocita', nome: 'VELOCITÀ', colore: '#3FB9C9' }, { k: 'mira', nome: 'MIRA', colore: '#8FC35B' },
+  { k: 'vita', nome: 'Vita', colore: '#E8433F' }, { k: 'forza', nome: 'Forza', colore: '#F2A33A' },
+  { k: 'velocita', nome: 'Velocità', colore: '#3FB9C9' }, { k: 'mira', nome: 'Mira', colore: '#8FC35B' },
 ];
 
 const CSS = `
@@ -228,7 +228,7 @@ export function apriScelta(ctx: TemplariCtx, o: { look: Look; insieme?: boolean 
 
   // ---- i pannelli ----
   const box = el('div', 'mz-tpl-eroi on'); box.id = 'mzTplScelta';
-  const titolo = el('div', 'titolo'); titolo.append(el('h2', 'ombra', '✠ SCEGLI L’EROE'), el('small', '', o.insieme ? 'insieme agli amici' : 'Isola dei Templari'));
+  const titolo = el('div', 'titolo'); titolo.append(el('h2', 'ombra', '✠ Scegli l’eroe'), el('small', '', o.insieme ? 'insieme agli amici' : 'Isola dei Templari'));
   const chiudi = el('button', 'chiudi', '✕') as HTMLButtonElement; chiudi.type = 'button'; chiudi.dataset['act'] = 'esci'; chiudi.title = 'Torna fuori (Esc)';
   const carte = el('div', 'carte');
   const btnCarte = eroi.map((e, k) => {
@@ -242,7 +242,7 @@ export function apriScelta(ctx: TemplariCtx, o: { look: Look; insieme?: boolean 
   const pannello = el('div', 'pannello'), nome = el('div', 'nome ombra'), descr = el('p', 'descr'), barre = el('div', 'barre'), sup = el('div', 'super'), armi = el('div', 'armi');
   pannello.append(nome, descr, barre, sup, armi);
   const via = el('button', 'via') as HTMLButtonElement; via.type = 'button'; via.dataset['act'] = 'via';
-  via.append(el('span', '', o.insieme ? '✠ IN SALA' : '✠ DEUS VULT'), el('small', '', 'Invio'));
+  via.append(el('span', '', o.insieme ? '✠ In sala' : '✠ Deus vult'), el('small', '', 'Invio'));
   box.append(titolo, chiudi, carte, pannello, via);
   for (const ev of ['pointerdown', 'touchstart']) box.addEventListener(ev, (x) => x.stopPropagation());
   ctx.root.append(box);
@@ -251,7 +251,7 @@ export function apriScelta(ctx: TemplariCtx, o: { look: Look; insieme?: boolean 
   function disegna(): void {
     const e = eroi[i]!;
     btnCarte.forEach((c, k) => c.classList.toggle('on', k === i));
-    nome.textContent = e.nome.toUpperCase();
+    nome.textContent = e.nome;
     descr.textContent = e.descr;
     barre.replaceChildren(...BARRE.map((b) => {
       const r = el('div', 'riga'), tc = el('div', 'tacche');
@@ -259,7 +259,7 @@ export function apriScelta(ctx: TemplariCtx, o: { look: Look; insieme?: boolean 
       r.append(el('span', 'ombra', b.nome), tc);
       return r;
     }));
-    sup.replaceChildren(el('b', '', `SUPER · ${e.super.nome.toUpperCase()}`), el('p', '', e.super.descr), el('small', '', `Si carica con ${e.super.uccisioni} uccisioni · bottone SUPER o tasto R`));
+    sup.replaceChildren(el('b', '', `Super · ${e.super.nome}`), el('p', '', e.super.descr), el('small', '', `Si carica con ${e.super.uccisioni} uccisioni · bottone «Super» o tasto R`));
     const conCosa = [...e.armi.filter((a): a is string => !!a).map((a) => armaDef(a).nome), ...(e.scudo ? ['Scudo templare'] : [])];
     armi.textContent = `Parte con: ${conCosa.join(' · ')}`;
   }

@@ -112,7 +112,7 @@ export function createDifesa(o: { world: GameWorld; renderer: Renderer; hud: Hud
       if (!spot || velo) { near = false; return; }
       const f = o.world.avatar.state;
       near = o.world.mode === 'walk' && !o.world.race.on && Math.hypot(f.x - spot.x, f.z - spot.z) < NEAR_M;
-      if (near && !nearWas) o.hud.toast('L’orto da difendere: premi A o tocca DIFENDI L’ORTO', 2500);
+      if (near && !nearWas) o.hud.toast('L’orto da difendere: premi A o tocca «Difendi l’orto»', 2500);
       nearWas = near;
       if (near && pressA) apri();
     },

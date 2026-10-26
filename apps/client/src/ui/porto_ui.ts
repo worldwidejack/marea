@@ -273,7 +273,7 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
       }
       ft.appendChild(sc);
     } else {
-      const b = el('button', 'mz-btn' + (last ? ' green' : ''), last ? 'CIAO' : 'AVANTI ›'); b.type = 'button'; b.dataset['act'] = last ? 'ciao' : 'avanti';
+      const b = el('button', 'mz-btn' + (last ? ' green' : ''), last ? 'Ciao' : 'Avanti ›'); b.type = 'button'; b.dataset['act'] = last ? 'ciao' : 'avanti';
       b.addEventListener('click', () => avanti());
       ft.appendChild(b);
     }

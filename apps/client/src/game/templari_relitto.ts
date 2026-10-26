@@ -26,7 +26,7 @@ const CSS_BIGLIETTO = `
 
 /** Un biglietto: il titolo in rosso, le righe, la firma in corsivo a destra. */
 export type TestoBiglietto = { titolo: string; righe: string[]; firma?: string };
-const GUILLAUME: TestoBiglietto = { titolo: '✠ IL BIGLIETTO DELLO SCHELETRO', righe: BIGLIETTO.slice(0, -1), firma: BIGLIETTO.at(-1)! };
+const GUILLAUME: TestoBiglietto = { titolo: '✠ Il biglietto dello scheletro', righe: BIGLIETTO.slice(0, -1), firma: BIGLIETTO.at(-1)! };
 /** Riscrive il foglio (il bottone Chiudi resta). */
 export function scriviBiglietto(b: HTMLElement, t: TestoBiglietto): void {
   const chiudi = b.querySelector('button[data-act="chiudi"]')!;

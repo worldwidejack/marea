@@ -15,8 +15,8 @@ export type BottegaUi = {
 };
 
 const TESTI = {
-  mercante: { titolo: 'IL MERCANTE', sotto: 'Merci da Venezia. Si paga coi punti delle ondate.', colore: PAL.giallo },
-  strega: { titolo: 'LA STREGA', sotto: 'Zuppe e pozioni. Al massimo quattro, cuore mio.', colore: PAL.viola },
+  mercante: { titolo: 'Il Mercante', sotto: 'Merci da Venezia. Si paga coi punti delle ondate.', colore: PAL.giallo },
+  strega: { titolo: 'La Strega', sotto: 'Zuppe e pozioni. Al massimo quattro, cuore mio.', colore: PAL.viola },
 } as const;
 
 const CSS = `

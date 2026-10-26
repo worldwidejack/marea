@@ -81,7 +81,7 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
     percheT = setTimeout(() => { perche.classList.remove('on'); percheT = null; }, 1600);
   };
   const azDito = tieniPremuto(az, { premi: () => (dLatch = true), cambia: (g) => { if (g) nega(); }, classe: 'giu', ferma: true, ancheTouch: true });
-  const sc = el('div', 'mz mz-tpl-sc', 'SCAMBIA'); sc.id = 'mzTplScambia'; sc.setAttribute('role', 'button');
+  const sc = el('div', 'mz mz-tpl-sc', 'Scambia'); sc.id = 'mzTplScambia'; sc.setAttribute('role', 'button');
   // SUPER: un tocco (latch, come SCAMBIA)
   let eLatch = false;
   const su = el('div', 'mz mz-tpl-su'); su.id = 'mzTplSuper'; su.setAttribute('role', 'button'); su.title = 'Super (R)';
@@ -97,9 +97,9 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   top.append(pBtn);
   const menu = el('div', 'mz mz-tpl-menu'); menu.id = 'mzTplPausa';
   const PAUSA = o.insieme ? 'Gli altri combattono: il tuo eroe sta fermo.' : 'Le ondate aspettano.';
-  const titolo = el('b', '', 'PAUSA'), sub = el('div', 'sub', PAUSA);
-  const riprendi = el('button', 'mz-btn green', 'RIPRENDI'); riprendi.type = 'button'; riprendi.dataset['act'] = 'riprendi';
-  const esci = el('button', 'mz-btn ghost', 'ESCI DALLA PARTITA'); esci.type = 'button'; esci.dataset['act'] = 'esci';
+  const titolo = el('b', '', 'Pausa'), sub = el('div', 'sub', PAUSA);
+  const riprendi = el('button', 'mz-btn green', 'Riprendi'); riprendi.type = 'button'; riprendi.dataset['act'] = 'riprendi';
+  const esci = el('button', 'mz-btn ghost', 'Esci dalla partita'); esci.type = 'button'; esci.dataset['act'] = 'esci';
   menu.append(titolo, sub, riprendi, ...(o.extra ? [o.extra] : []), esci);
   let pausa = false, chiedi = false;
   const stick = createMiraStick({ id: 'mzTplMira', yaw: o.yaw, blocked: () => pausa });
@@ -107,12 +107,12 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   o.root.append(az, perche, sc, su, stick.el, top, menu);
   const setPausa = (on: boolean) => {
     pausa = on; chiedi = false; menu.classList.toggle('on', on); if (on) stick.cancel();
-    titolo.textContent = 'PAUSA'; sub.textContent = PAUSA; esci.textContent = 'ESCI DALLA PARTITA'; riprendi.style.display = '';
+    titolo.textContent = 'Pausa'; sub.textContent = PAUSA; esci.textContent = 'Esci dalla partita'; riprendi.style.display = '';
   };
   pBtn.addEventListener('click', () => setPausa(!pausa));
   riprendi.addEventListener('click', () => setPausa(false));
   esci.addEventListener('click', () => {
-    if (!chiedi) { chiedi = true; titolo.textContent = 'USCIRE?'; sub.textContent = o.insieme ? 'Gli altri restano. Contano le ondate superate fin qui.' : 'Contano le ondate superate fin qui.'; esci.textContent = 'SÌ, ESCI'; return; }
+    if (!chiedi) { chiedi = true; titolo.textContent = 'Uscire?'; sub.textContent = o.insieme ? 'Gli altri restano. Contano le ondate superate fin qui.' : 'Contano le ondate superate fin qui.'; esci.textContent = 'Sì, esci'; return; }
     setPausa(false); o.onEsci();
   });
   const keys = new Set<string>();
@@ -145,7 +145,7 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
       su.dataset['k'] = chiave;
       su.style.setProperty('--k', String(q));
       su.classList.toggle('pronto', k >= 1);
-      suIn.replaceChildren(el('b', '', icona ?? '✠'), el('small', '', k >= 1 ? 'SUPER' : `${Math.floor(k * 100)}%`));
+      suIn.replaceChildren(el('b', '', icona ?? '✠'), el('small', '', k >= 1 ? 'Super' : `${Math.floor(k * 100)}%`));
     },
     get paused() { return pausa; },
     setMira(on) { o.root.classList.toggle('mz-tpl-aimon', stick.setOn(on)); },
@@ -161,7 +161,7 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
       // AZIONE da tenere premuto (accendere un fuoco, montare la campana): la barra si riempie
       const bar = el('i', 'lav'); bar.style.width = `${Math.round((p.k ?? 0) * 100)}%`;
       const lav = p.k ? [bar] : [];
-      az.replaceChildren(el('span', '', p.testo.toUpperCase()), ...(p.prezzo > 0 ? [el('small', '', String(p.prezzo))] : []), ...(dito ? [] : [el('small', 'tasto', p.cosa === 'fuoco' || p.cosa === 'monta' || p.cosa === 'teschio' ? 'tieni F' : 'F')]), ...lav);
+      az.replaceChildren(el('span', '', p.testo), ...(p.prezzo > 0 ? [el('small', '', String(p.prezzo))] : []), ...(dito ? [] : [el('small', 'tasto', p.cosa === 'fuoco' || p.cosa === 'monta' || p.cosa === 'teschio' ? 'tieni F' : 'F')]), ...lav);
     },
     setScambia(on) { sc.classList.toggle('on', on); },
     hide() { az.classList.remove('on'); perche.classList.remove('on'); sc.classList.remove('on'); su.classList.remove('on'); stick.setOn(false); o.root.classList.remove('mz-tpl-aimon'); top.style.display = 'none'; setPausa(false); },

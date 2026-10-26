@@ -75,7 +75,7 @@ export function chiacchierata(o: ChiacchierataOpts): Pagina[] {
   const da = (f: Favore) => chiamato(f.da), cosa = (f: { cosa: 'pesce' | 'insetto'; id: string }) => cosaSpecie(f.cosa, f.id);
   const resto = (f: Favore) => durataTesto(Math.max(15 * 60_000, f.scade - now));
   const premioTesto = (pr: Premio) => ('monete' in pr ? riempi(unaDi(V.monete, rng), { monete: pr.monete }) : riempi(unaDi(V.mobile, rng), { mobile: nomeMobile(pr.mobile) }));
-  const premioNota = (pr: Premio) => ('monete' in pr ? undefined : 'Il mobile è nel magazzino di casa: ARREDA per sistemarlo');
+  const premioNota = (pr: Premio) => ('monete' in pr ? undefined : 'Il mobile è nel magazzino di casa: «Arreda» per sistemarlo');
   const pagine: Pagina[] = [];
 
   // il server: primo incontro, messaggio portato, favore riscosso o scaduto
