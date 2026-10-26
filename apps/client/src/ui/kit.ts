@@ -18,9 +18,9 @@ const L = LIBRO;
 const k = (n: number) => `calc(var(--mzk, 1) * ${n}px)`;
 const svg = (dentro: string) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>${dentro}</svg>`)}")`;
 /** Il rametto accanto ai titoli. */
-const RAMETTO = svg(`<path d='M2 15C12 15 22 12 34 4' fill='none' stroke='${L.acquaScura}' stroke-width='1.6' stroke-linecap='round'/><path d='M14 13.5c-1-4 1-7 5-8-1 4-2 7-5 8zM22 10.5c0-4 3-6 7-6-2 3-3 5-7 6zM12 14c-4 1-7-1-8-4 4 0 6 1 8 4zM21 11c-3 2-7 2-9 0 3-2 6-2 9 0z' fill='${L.foglia}' stroke='${L.acquaScura}' stroke-width='.8'/>`);
+export const RAMETTO = svg(`<path d='M2 15C12 15 22 12 34 4' fill='none' stroke='${L.acquaScura}' stroke-width='1.6' stroke-linecap='round'/><path d='M14 13.5c-1-4 1-7 5-8-1 4-2 7-5 8zM22 10.5c0-4 3-6 7-6-2 3-3 5-7 6zM12 14c-4 1-7-1-8-4 4 0 6 1 8 4zM21 11c-3 2-7 2-9 0 3-2 6-2 9 0z' fill='${L.foglia}' stroke='${L.acquaScura}' stroke-width='.8'/>`);
 /** Cornice del libro: bordo d'oro, filo d'inchiostro fuori, filo d'oro scuro dentro. */
-const CORNICE_LIBRO = (b = 2) => `border: ${b}px solid ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px ${L.carta}, inset 0 0 0 2.5px ${L.oroScuro}, 0 3px 0 1.5px rgba(46,33,24,.35);`;
+export const CORNICE_LIBRO = (b = 2) => `border: ${b}px solid ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px ${L.carta}, inset 0 0 0 2.5px ${L.oroScuro}, 0 3px 0 1.5px rgba(46,33,24,.35);`;
 
 const CSS = `
 @font-face { font-family: 'MzAlegreya'; src: url('/assets/fonts/alegreya-latin.woff2') format('woff2'); font-weight: 400 900; font-style: normal; font-display: swap; }
