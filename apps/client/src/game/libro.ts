@@ -180,7 +180,7 @@ export function createLibri(o: LibriOpts): Libri {
       const pressA = a && !aWas; aWas = a;
       if (ui?.isOpen()) { near = null; return true; }
       near = findNear();
-      if (near && near !== nearWas) o.hud.toast(near.is.mine ? 'Il tuo libro degli ospiti: premi A' : firmato(near) ? `Hai già firmato oggi il libro di ${near.is.ownerName}` : `Libro di ${near.is.ownerName}: premi A per firmare`, 2200);
+      if (near && near !== nearWas && !near.is.mine && firmato(near)) o.hud.toast(`Hai già firmato oggi il libro di ${near.is.ownerName}`, 2200);
       nearWas = near;
       if (near && pressA) void open(near);
       return !!near || (!!loading && !ui);

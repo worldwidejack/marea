@@ -56,7 +56,7 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
   const at = (c: readonly [number, number]) => ({ x: (ox + c[0] + 0.5) * T, z: (oz + c[1] + 0.5) * T });
   const group = new THREE.Group(); group.name = 'botteghe'; o.world.scene.add(group);
   const layer = createLabelLayer(o.root);
-  let ui: BottegaUi | null = null, loading: Promise<BottegaUi | null> | null = null, near: BottegaId | null = null, nearWas: BottegaId | null = null, aWas = false, closedAt = 0;
+  let ui: BottegaUi | null = null, loading: Promise<BottegaUi | null> | null = null, near: BottegaId | null = null, aWas = false, closedAt = 0;
 
   // ---- le casette (e il fuoco, la pozione) in un mesh a colori per vertice, le insegne in un altro ----
   const corpi: THREE.BufferGeometry[] = [], insegne: THREE.BufferGeometry[] = [];
@@ -160,8 +160,6 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
       const pressA = a && !aWas; aWas = a;
       if (ui?.isOpen()) { near = null; return true; }
       near = findNear();
-      if (near && near !== nearWas) o.hud.toast(`${BOTTEGHE[near].nome}: premi A`, 2200);
-      nearWas = near;
       if (near && pressA) void apri(near);
       return !!near || (!!loading && !ui);
     },

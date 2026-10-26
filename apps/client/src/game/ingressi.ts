@@ -393,7 +393,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
           const r = richiesto(near.id);
           o.hud.toast(r === 'unico_anello_onda' ? `${near.nome}: cancello sbarrato. Serve l'Anello dell'Onda (Mausoleo Cinetico)` : `${near.nome}: sigillato. Prima completa ${nomeDi(r)}`, 2500);
         } else {
-          o.hud.toast(vicini ? `${near.nome}: «Entra» da solo o «Affronta insieme»` : `${near.nome}: premi A o tocca «Entra»`, 2500);
+          if (vicini) o.hud.toast(`${near.nome}: «Entra» da solo o «Affronta insieme»`, 2500);
         }
       }
       nearWas = near;

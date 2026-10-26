@@ -285,7 +285,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
     o.hud.toast('L’Isola dei Templari: la porta della chiesa è qui davanti (A per entrare)', 3200);
   }
 
-  let near = false, nearWas = false, aWas = false, busy = false, run: TemplariRun | null = null, menu: Scelta | null = null;
+  let near = false, aWas = false, busy = false, run: TemplariRun | null = null, menu: Scelta | null = null;
   /** SCEGLI L'EROE (chunk delle ondate): l'eroe, o null se torni fuori. Nella stanza di prova niente menù: l'ultimo scelto. */
   async function scegliEroe(insieme: boolean, salta?: TClasse): Promise<TClasse | null> {
     const mod = await import('../templari/index.ts');
@@ -343,7 +343,6 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
     o.renderer.diorama.setZoom(zoom);
     o.renderer.diorama.follow(a.state.x, o.world.groundY(a.state.x, a.state.z), a.state.z);
     o.renderer.diorama.snap?.();
-    nearWas = true; // niente «premi A» sopra la scheda dell'esito
   }
 
   registerStateProvider('templari', () => (run && templariLink.state
@@ -386,9 +385,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
       const f = o.world.avatar.state;
       near = o.world.mode === 'walk' && !o.world.race.on && aperta() && Math.hypot(f.x - spot.x, f.z - spot.z) < NEAR_M;
       if (sala && !sala.rete && !FLAGS.test && (o.world.mode !== 'walk' || Math.hypot(f.x - spot.x, f.z - spot.z) > LONTANO_M)) { chiudiSala(); o.hud.toast('Troppo lontano dalla porta: fuori dalla sala', 2500); }
-      if (sala) { nearWas = near; return; }
-      if (near && !nearWas) o.hud.toast('La chiesa dei Templari: premi A o tocca «Entra nella chiesa»', 2500);
-      nearWas = near;
+      if (sala) return;
       if (near && pressA) void entra(true);
     },
     step(f) { if (menu) menu.step(f); else run?.step(f); },

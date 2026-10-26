@@ -49,7 +49,7 @@ export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; 
   }
   // entra: dalla città nella stanza · esci: dalla stanza in città
   type Vicino = { porta: Porta; esci: boolean; dove: Dove };
-  let near: Vicino | null = null, nearWas = '', aWas = false;
+  let near: Vicino | null = null, aWas = false;
   const libero = () => w.mode === 'walk' && !w.frozen && !w.race.on && !o.velo.attivo;
   const trova = (): Vicino | null => {
     if (!libero() || o.cede?.()) return null;
@@ -104,9 +104,6 @@ export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; 
     tick(a) {
       const pressA = a && !aWas; aWas = a;
       near = trova();
-      const k = near ? `${near.porta.slot}:${near.dove}` : '';
-      if (near && k !== nearWas) o.hud.toast(`${testo(near)}: premi A`, 2000);
-      nearWas = k;
       if (near && pressA) { vai(near); return true; }
       const x = attraversa();
       if (x && (x.esci || x.dove !== 'entra' || x.porta.nome)) { passato = `${x.porta.slot}:${x.dove}`; vai(x); }
