@@ -85,6 +85,17 @@ export default async function (ctx) {
     assert(strada.size >= 8 && mossi >= 5, `passeggiano ${strada.size}, si sono mossi ${mossi}`);
   });
 
+  await ctx.test('telefono: davanti a botteghe e banchi del Porto nessun cartellino col nome esce dallo schermo', async () => {
+    await ctx.waitState(t.page, (s) => s.botteghe && s.porto && s.porto.posti, 10000);
+    const s = await ctx.getState(t.page);
+    for (const p of [...s.botteghe.posti, ...s.porto.posti]) {
+      await vai(t.page, p.fronte.x, p.fronte.z + 1.2);
+      const tagliati = await t.page.evaluate(() => [...document.querySelectorAll('.mz-lbl')].map((e) => ({ t: e.textContent.trim(), b: e.getBoundingClientRect() }))
+        .filter((x) => x.b.width > 0 && x.b.right > -500 && x.b.left < innerWidth + 500 && (x.b.left < -0.5 || x.b.right > innerWidth + 0.5)).map((x) => x.t));
+      assert(!tagliati.length, `davanti a ${p.id} cartellini tagliati sul bordo: ${tagliati.join(', ')}`);
+    }
+  });
+
   await ctx.test('telefono: uno slargo con la fontana, nel budget', async () => {
     const f = fontane[0]; assert(f, 'nessuna fontana nel template porto');
     const w = mondo(f.at[0], f.at[1] + 2.2);
