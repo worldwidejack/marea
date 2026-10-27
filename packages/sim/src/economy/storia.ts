@@ -37,6 +37,8 @@ export type StoriaState = {
   dungeon?: string[];
   /** Partite della Difesa segnate dal client (la Difesa non passa dal server). */
   difesa?: number;
+  /** Partite dell'Arena segnate dal client (l'allenamento coi bot non passa dal server). */
+  arena?: number;
 };
 export type StoriaFase = 'tutorial' | 'barca' | 'isole' | 'libero';
 
@@ -82,7 +84,7 @@ function contatorePasso(lot: LotState, p: StoriaPasso): number {
 function contatoreGioco(lot: LotState, g: StoriaGioco): number {
   if (g.tipo === 'minigioco') return lot.diario?.giocati[g.id] ?? 0;
   if (g.tipo === 'templari') return lot.templari?.partite ?? 0;
-  if (g.tipo === 'arena') { const a = lot.arena; return a ? a.vinte + a.perse + a.pari : 0; }
+  if (g.tipo === 'arena') { const a = lot.arena, on = a ? a.vinte + a.perse + a.pari : 0; return on + (lot.storia?.arena ?? 0); }
   return lot.storia?.difesa ?? 0;
 }
 
@@ -182,4 +184,10 @@ export function riscuotiIsola(lot0: LotState, nowMs: number): { lot: LotState; i
 export function segnaDifesa(lot: LotState): LotState {
   const s = lot.storia;
   return s ? avanzaStoria(con(lot, { ...s, difesa: (s.difesa ?? 0) + 1 })) : lot;
+}
+
+/** Una partita all'Arena (dal client: l'allenamento coi bot non passa dal server). Senza storia: niente. */
+export function segnaArena(lot: LotState): LotState {
+  const s = lot.storia;
+  return s ? avanzaStoria(con(lot, { ...s, arena: (s.arena ?? 0) + 1 })) : lot;
 }

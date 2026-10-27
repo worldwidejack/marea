@@ -73,9 +73,9 @@ export type Api = {
   paesani(op: 'parla' | 'accetta' | 'rifiuta' | 'dona', body: { id: string; slot?: number }): Promise<{ lot: LotState; evento?: string; premio?: { monete: number } | { mobile: string } | null }>;
   /** Botteghe del Borgo (#414): migliora il Fabbro o la barca al Cantiere di un livello; `da` = il livello che vedi (409 se è già cambiato). */
   bottega(azione: 'migliora', body: { bottega: 'fabbro' | 'cantiere'; da: number }): Promise<LotState>;
-  /** La storia delle prime ore (sim/economy/storia.ts): inizia, passo {id} (quelli che il server non vede), attrezzo {scelta}, barca, difesa.
+  /** La storia delle prime ore (sim/economy/storia.ts): inizia, passo {id} (quelli che il server non vede), attrezzo {scelta}, barca, difesa, arena.
    *  `storiaIsola`: da Remo, l'isola provata → premio e viaggio rapido. */
-  storia(azione: 'inizia' | 'passo' | 'attrezzo' | 'barca' | 'difesa', body?: { id?: string; scelta?: 'canna' | 'retino' }): Promise<LotState>;
+  storia(azione: 'inizia' | 'passo' | 'attrezzo' | 'barca' | 'difesa' | 'arena', body?: { id?: string; scelta?: 'canna' | 'retino' }): Promise<LotState>;
   storiaIsola(): Promise<{ lot: LotState; isola: string; premio: number }>;
   /** Minigiochi da solo (senza posta): apre una partita col seed del server; `opzioni` = parametri della partita (es. il mare della pesca). */
   soloStart(minigame: string, opzioni?: Record<string, string>): Promise<SoloStart>;

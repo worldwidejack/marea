@@ -152,8 +152,8 @@ const ROTTE: readonly Rotta[] = [
     fa: (c, b, x) => c.lotto('casa_' + x[1], scegli(b, ['id', 'tipo', 'cell', 'muro', 'rot', 'da', 'stanza'])) },
   // botteghe del Borgo: migliora il Fabbro o la barca al Cantiere (la merce passa da /api/rpg e /api/barca/colore)
   { m: 'POST', via: '/api/lot/bottega/migliora', fa: alLotto('bottega_migliora', ['bottega', 'da']) },
-  // la storia delle prime ore (GDD §9): passi del tutorial, regalo di Fulvio, barca da Bepi, isole raccontate a Remo, partite della Difesa
-  { m: 'POST', via: /^\/api\/lot\/storia\/(inizia|passo|attrezzo|barca|isola|difesa)$/, fa: (c, b, x) => c.lotto('storia_' + x[1], scegli(b, ['id', 'scelta'])) },
+  // la storia delle prime ore (GDD §9): passi del tutorial, regalo di Fulvio, barca da Bepi, isole raccontate a Remo, Difesa e Arena
+  { m: 'POST', via: /^\/api\/lot\/storia\/(inizia|passo|attrezzo|barca|isola|difesa|arena)$/, fa: (c, b, x) => c.lotto('storia_' + x[1], scegli(b, ['id', 'scelta'])) },
   // gli insetti di Borgo Marea e i pesci: la consegna al mobiliere aggiorna anche la classifica dei collezionisti
   { m: 'POST', via: /^\/api\/lot\/insetti\/(sasso|albero|cattura|consegna)$/, fa: async (c, b, x) => {
     const r = await c.lotto('insetti_' + x[1], scegli(b, ['idx', 'k', 'id']));
