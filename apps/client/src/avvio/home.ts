@@ -1,4 +1,4 @@
-// Schermata iniziale (#615): il disegno di Riccardo coi bottoni GIOCA · IMPOSTAZIONI · CREDITI. Markup e CSS stanno in index.html, così si vede
+// Schermata iniziale: il disegno di Riccardo coi bottoni GIOCA · IMPOSTAZIONI · CREDITI. Markup e CSS stanno in index.html, così si vede
 // prima del gioco, che intanto carica dietro e sta fermo (voce 'ferma' del registro in main.ts). GIOCA a mondo pronto chiude col velo dei
 // passaggi; prima mostra «Carico… N%» ed entra da solo appena il mondo è pronto. Con l'invito (?invito=, senza token) GIOCA apre il modulo
 // del nome (ui/entra.ts). Si vede a ogni avvio, anche ai veterani; coi test solo con ?home=1 (FLAGS.home).

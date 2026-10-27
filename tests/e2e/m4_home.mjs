@@ -1,4 +1,4 @@
-// Schermata iniziale (#615, avvio/home.ts): coi test compare solo con ?home=1. Si vede subito (markup in index.html), sta sopra il mondo che
+// Schermata iniziale (avvio/home.ts): coi test compare solo con ?home=1. Si vede subito (markup in index.html), sta sopra il mondo che
 // carica dietro (fermo), IMPOSTAZIONI apre il pannello sopra di lei, CREDITI il suo chunk, GIOCA entra col velo; toccato GIOCA prima che il
 // mondo sia pronto, «Carico… N%» ed entra da sola. Senza ?home=1 non c'è. Screenshot: telefono 390×844 e PC 1920×1080, crediti.
 export const timeout = 240000;
