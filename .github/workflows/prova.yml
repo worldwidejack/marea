@@ -44,7 +44,7 @@ jobs:
           VOLTE: ${{ inputs.volte }}
           MACCHINA: ${{ matrix.macchina }}
         run: |
-          case "$SUITE" in *[!a-z0-9_ ]*|'') echo "::error::suite non valida: $SUITE"; exit 2;; esac
+          case "$SUITE" in *[!a-z0-9_[:space:]]*|'') echo "::error::suite non valida: $SUITE"; exit 2;; esac
           case "$VOLTE" in *[!0-9]*|'') echo "::error::volte non valido: $VOLTE"; exit 2;; esac
           ok=0; ko=0; : > cadute.txt
           for i in $(seq 1 "$VOLTE"); do
