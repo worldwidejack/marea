@@ -129,7 +129,7 @@ export default async function (ctx) {
     assert(st.wp2_input.pad === 'via' && st.wp2_input.src === 'none' && st.avatar.anim === 'idle', `col pizzico cammina: ${JSON.stringify(st.wp2_input)}`);
   });
 
-  await ctx.test('zoom: un dito sul joystick e uno su un controllo (mira, bottoni) non zooma; due dita libere sì', async () => {
+  await ctx.test('zoom: un dito sul joystick e uno su un controllo non zooma; due dita libere non zoomano più (pinch rimosso, c\'è la barra)', async () => {
     await riparti(); await spawn(); await page.evaluate(() => window.__game.test.setZoom(1));
     const zoom = async () => { await page.waitForTimeout(500); return (await S()).camera.zoom; };
     const A = await page.evaluate(() => { const r = document.getElementById('btnA').getBoundingClientRect(); return [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)]; });
@@ -145,7 +145,17 @@ export default async function (ctx) {
     for (let i = 1; i <= 6; i++) await touch('touchMove', [[X[0] - i * 10, X[1]], [Y[0] + i * 10, Y[1]]]);
     const z2 = await zoom(); await touch('touchEnd', []);
     ctx.log('pizzico libero', z2);
-    assert(z2 < 0.95, `il pizzico a due dita libere non zooma: ${z2}`);
+    assert(Math.abs(z2 - 1) < 0.01, `il pizzico a due dita libere non deve più zoomare (rimosso): ${z2}`);
+    // barra zoom a lato sul telefono: visibile e funzionante
+    assert(await page.isVisible('#mzZoomBar'), 'barra zoom non visibile');
+    await ctx.shot(page, 'zoom_slider_riposo');
+    await page.click('#mzZoomBar .mz-zoom-piu');
+    await ctx.shot(page, 'zoom_slider_attivo');
+    const zPiu = await zoom();
+    assert(zPiu < 1, `il tasto + della barra non ha avvicinato: ${zPiu}`);
+    await page.click('#mzZoomBar .mz-zoom-meno');
+    const zMeno = await zoom();
+    assert(zMeno > zPiu, `il tasto − della barra non ha allontanato: ${zMeno}`);
   });
 
   await ctx.test('resta dopo il ricaricamento; spento torna il joystick fisso', async () => {

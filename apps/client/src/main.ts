@@ -63,6 +63,7 @@ import { avviaRientro } from './avvio/rientro.ts';
 import { collegaTasti } from './avvio/tasti.ts';
 import { creaRegistro } from './avvio/registro.ts';
 import { azioneA } from './avvio/azione_a.ts';
+import type { ZoomSlider } from './ui/zoom_slider.ts';
 
 async function boot(): Promise<void> {
   if (FLAGS.invito && !FLAGS.token) await entraConInvito(FLAGS.invito); // link di gruppo: prima il nome, poi si riparte col token
@@ -75,6 +76,7 @@ async function boot(): Promise<void> {
   registerPerfProvider(() => renderer.stats());
   const loader = await createLoader({ base: '/assets/' });
   const input = createInput({ canvas, root, cameraYaw: () => renderer.diorama.yaw });
+  const zoomSlider = await import('./ui/zoom_slider.ts').then((m) => m.createZoomSlider({ root, diorama: renderer.diorama })).catch((e: unknown) => { console.warn('[marea] zoom slider non caricato', e); return null; });
   // chi sei e dove abiti (slot del lotto), prima del mondo: lo spawn è sul molo della tua isola
   const api = createApi({ token: FLAGS.token });
   const me = api.enabled && FLAGS.net ? await api.me().catch((e: Error) => { hud.banner?.(e.message); return null; }) : null;
@@ -282,6 +284,7 @@ async function boot(): Promise<void> {
       input.setB(!nelMondo || !!arreda?.attivo());
       input.setAzione(nelMondo ? (negozio?.azionePesca() ?? (!world.frozen ? azioneA(world) : null)) : null);
       allegro?.update();
+      zoomSlider?.update();
     }
     const focus = qui();
     giochi.update(t, alpha);

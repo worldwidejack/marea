@@ -1,5 +1,5 @@
 // Camera diorama (ART_BIBLE §7): prospettica FOV 30°, pitch 45° verso il basso, yaw 45°, distanza 28 m × zoom ∈ [0,6, 1,6].
-// Inseguimento con molla a smorzamento critico (niente scatti all'avvio/arresto, niente jitter da fermo); rotella e pinch fluidi.
+// Inseguimento con molla a smorzamento critico (niente scatti all'avvio/arresto, niente jitter da fermo); rotella su PC e barra zoom su mobile.
 import * as THREE from 'three';
 export type DioramaCamera = {
   camera: THREE.PerspectiveCamera;
@@ -19,8 +19,9 @@ export type DioramaCamera = {
   /** Inclinazione attuale (rad). */
   readonly pitch?: number;
   /** Interni (#265, la stanza della casa): inquadratura fissa (yaw e pitch in rad, distanza in m, FOV in °) che ignora zoom, rotella,
-   *  pizzico e vista delle impostazioni finché non si passa null; con null torna esattamente com'era. */
+   *  e vista delle impostazioni finché non si passa null; con null torna esattamente com'era. */
   blocca?(v: { yaw: number; pitch: number; dist: number; fov: number } | null): void;
+  readonly isLocked?: boolean;
 };
 export const CAM = { PITCH: Math.PI / 4, YAW: Math.PI / 4, FOV: 30, DIST: 28, ZMIN: 0.6, ZMAX: 2.2, SMOOTH: 0.22, ZOOM_SMOOTH: 0.12 } as const;
 const clamp = (z: number) => Math.min(CAM.ZMAX, Math.max(CAM.ZMIN, z));
@@ -56,32 +57,7 @@ export function createDioramaCamera(o: { aspect: number; canvas: HTMLCanvasEleme
     const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
     zoomTarget = clamp(zoomTarget * Math.exp(Math.max(-60, Math.min(60, dy)) * (e.ctrlKey ? 0.01 : 0.0022)));
   };
-  // Pizzico: conta solo se ENTRAMBE le dita sono nate sul canvas (targetTouches) e il secondo non cade nella zona dei controlli (in basso a
-  // destra: mira, bottoni). `touches` include anche le dita sui controlli, e col joystick volante sotto un dito miri con l'altro: niente zoom a caso.
-  let pinch = 0, nopinch = false;
-  const inControlli = (t: Touch) => {
-    const r = o.canvas.getBoundingClientRect();
-    return t.clientX > r.left + r.width * 0.5 && t.clientY > r.top + r.height * 0.4;
-  };
-  const onTouchStart = (e: TouchEvent) => {
-    pinch = 0;
-    if (e.touches.length === 1) nopinch = false;
-    if (e.touches.length !== e.targetTouches.length) nopinch = true; // un dito è finito su un controllo: niente pizzico finché non lo molli
-    if (e.touches.length > 1) for (const t of e.changedTouches) if (inControlli(t)) nopinch = true;
-  };
-  const onTouchMove = (e: TouchEvent) => {
-    if (lock || nopinch || e.touches.length !== 2 || e.targetTouches.length !== 2) { pinch = 0; return; }
-    const t0 = e.targetTouches[0]!, t1 = e.targetTouches[1]!;
-    const d = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
-    if (pinch > 0 && d > 0) zoomTarget = clamp(zoomTarget * (pinch / d));
-    pinch = d;
-  };
-  const onTouchEnd = (e: TouchEvent) => { pinch = 0; if (e.touches.length === 0) nopinch = false; };
   o.canvas.addEventListener('wheel', onWheel, { passive: false });
-  o.canvas.addEventListener('touchstart', onTouchStart, { passive: true });
-  o.canvas.addEventListener('touchmove', onTouchMove, { passive: true });
-  o.canvas.addEventListener('touchend', onTouchEnd);
-  o.canvas.addEventListener('touchcancel', onTouchEnd);
 
   const lockOff = new THREE.Vector3();
   const place = () => {
@@ -92,6 +68,7 @@ export function createDioramaCamera(o: { aspect: number; canvas: HTMLCanvasEleme
   // Orientamento fisso: lo impostiamo una volta, poi si muove solo la posizione (niente micro-rotazioni da lookAt).
   const api: DioramaCamera = {
     camera, zoom, yaw: CAM.YAW, // zoom: valore iniziale, aggiornato a ogni update
+    get isLocked() { return lock !== null; },
     follow: (x, y, z) => {
       target.set(x, y, z);
       if (first || cur.distanceToSquared(target) > 30 * 30) { api.snap!(); first = false; }
@@ -130,10 +107,6 @@ export function createDioramaCamera(o: { aspect: number; canvas: HTMLCanvasEleme
     },
     dispose: () => {
       o.canvas.removeEventListener('wheel', onWheel);
-      o.canvas.removeEventListener('touchstart', onTouchStart);
-      o.canvas.removeEventListener('touchmove', onTouchMove);
-      o.canvas.removeEventListener('touchend', onTouchEnd);
-      o.canvas.removeEventListener('touchcancel', onTouchEnd);
     },
   };
   place();
