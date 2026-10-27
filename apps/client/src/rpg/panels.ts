@@ -19,7 +19,7 @@ import { renderContrabbando } from './contrabbando.ts';
 import type { UiState, View } from './items_ui.ts';
 
 type ViewId = 'eroe' | BuildingKind | 'contrabbando';
-const titolo = (v: ViewId): string => (v === 'eroe' ? 'Personaggio' : v === 'contrabbando' ? 'Il Furetto · contrabbando' : 'Baule');
+const titolo = (v: ViewId): string => (v === 'eroe' ? 'Personaggio' : v === 'contrabbando' ? 'Contrabbando' : 'Baule');
 const TABS: readonly { id: UiState['tab']; nome: string }[] = [{ id: 'pg', nome: 'Personaggio' }, { id: 'abilita', nome: 'Abilità' }, { id: 'zaino', nome: 'Zaino' }];
 
 let ctx: PanelCtx | null = null, sheet: HTMLElement | null = null, view: ViewId | null = null;

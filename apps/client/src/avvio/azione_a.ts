@@ -2,16 +2,17 @@
 import { canBoard } from '@marea/sim';
 import type { GameWorld } from '../game/world.ts';
 
-const AZIONI: readonly (readonly [string, string])[] = [['mzPortaBtn', 'Entra'], ['mzNegozioBtn', 'Entra'], ['mzPortoBtn', 'Guarda'], ['mzBottegaBtn', 'Compra'], ['mzLibroBtn', 'Leggi'], ['mzAmiciBtn', 'Guarda'],
+const AZIONI: readonly (readonly [string, string])[] = [['mzPortaBtn', 'Entra'], ['mzNegozioBtn', 'Entra'], ['mzPortoBtn', 'Compra'], ['mzBottegaBtn', 'Compra'], ['mzLibroBtn', 'Leggi'], ['mzAmiciBtn', 'Guarda'],
   ['mzPlay', 'Gioca'], ['mzDngEntra', 'Entra'], ['mzTemplariEntra', 'Entra'], ['mzFunivia', 'Sali'], ['mzArenaEntra', 'Entra'], ['mzDifesaEntra', 'Entra']];
-const VERBI: Record<string, string> = { PARLA: 'Parla', GIOCA: 'Gioca', FIRMA: 'Firma', ESCI: 'Esci', ENTRA: 'Entra', TORNA: 'Entra', VAI: 'Entra' };
+const VERBI: Record<string, string> = { BACHECA: 'Guarda', PARLA: 'Parla', GIOCA: 'Gioca', FIRMA: 'Firma', ESCI: 'Esci', ENTRA: 'Entra', TORNA: 'Entra', VAI: 'Entra' };
 
 export function azioneA(world: GameWorld): string | null {
   for (const [id, base] of AZIONI) {
     const b = document.getElementById(id);
     if (!b?.classList.contains('on')) continue;
     const parola = (b.textContent ?? '').trim().split(/[\s·]+/)[0]?.toUpperCase() ?? '';
-    return VERBI[parola] ?? base;
+    const v = Object.keys(VERBI).find((k) => parola.startsWith(k)); // il testo del bottone finisce con la «A» attaccata («BachecaA»)
+    return v ? VERBI[v]! : base;
   }
   return world.mode === 'walk' && canBoard(world.avatar.state, world.boat.state, world.map) ? 'Sali' : null;
 }
