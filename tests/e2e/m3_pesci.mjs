@@ -197,6 +197,15 @@ export default async function (ctx) {
       assert(await th('pescaVai'), 'ombra di riva');
       await ctx.waitState(tp, (s) => s.pesca.puoi === 'riva', 5000);
       await sleep(7500); // il saluto della guida
+      for (let i = 0; i < 6; i++) {
+        ctx.log('diag pesca ' + JSON.stringify(await tp.evaluate(() => {
+          const b = document.getElementById('mzPescaBtn'), r = b.getBoundingClientRect(), s = window.__game.state();
+          const altri = [...document.querySelectorAll('.mz-play.on:not(#mzPescaBtn), #mzPortoBtn.on, #mzAmiciBtn.on, #mzLibroBtn.on, #mzBottegaBtn.on, #mzPortaBtn.on')].map((e) => e.id + ':' + e.textContent.trim());
+          const vicini = (s.porto?.gente ?? []).filter((g) => Math.hypot(g.x - s.avatar.x, g.z - s.avatar.z) < 6).map((g) => g.id + '@' + Math.hypot(g.x - s.avatar.x, g.z - s.avatar.z).toFixed(1));
+          return { cls: b.className, testo: b.textContent.trim(), r: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)], disp: getComputedStyle(b).display, puoi: s.pesca.puoi, fase: s.pesca.fase, altri, vicini, porto: s.porto?.near, av: [s.avatar.x.toFixed(1), s.avatar.z.toFixed(1)] };
+        })));
+        await sleep(500);
+      }
       await tp.locator('#mzPescaBtn').tap();
       await ctx.waitState(tp, (s) => s.pesca.fase === 'mira' && s.pesca.stick, 3000);
       assert(await tp.locator('#mzPescaMira').isVisible(), 'joystick di mira visibile');
