@@ -8,7 +8,8 @@ import type { Look } from '@marea/protocol';
 import { ApiError, mancaText, moneteText } from '../net/api.ts';
 import { disegnoAbito, disegnoCappello } from '../game/abiti.ts';
 import type { PortoCtx } from '../game/porto.ts';
-import { PAL as P, el } from './style.ts';
+import { el } from './style.ts';
+import { LIBRO as L } from './kit.ts';
 import { resIcon } from './icons.ts';
 
 export type Tab = 'cappelli' | 'vestiti' | 'decor' | 'barca';
@@ -23,16 +24,16 @@ const DEFAULT: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, capp
 
 const CSS = `
 .mz-mc-griglia { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
-.mz-mc-pz { display: flex; flex-direction: column; gap: 4px; padding: 6px; background: ${P.sabbiaChiara}; color: ${P.neroCaldo}; border: 2px solid ${P.legnoScuro}; box-shadow: 0 3px 0 ${P.neroCaldo}; min-width: 0; }
-.mz-mc-pz.sel { border-color: ${P.arancio}; box-shadow: 0 0 0 2px ${P.arancio}, 0 3px 0 ${P.neroCaldo}; }
-.mz-mc-pz .fig { position: relative; display: block; width: 100%; aspect-ratio: 1; padding: 0; cursor: pointer; background: ${P.sabbia}; border: 2px solid ${P.legno}; border-radius: 10px; }
+.mz-mc-pz { display: flex; flex-direction: column; gap: 4px; padding: 6px; border-radius: 12px; background: ${L.cartaChiara}; color: ${L.inchiostro}; border: 1.5px solid ${L.filo}; min-width: 0; }
+.mz-mc-pz.sel { border-color: ${L.acqua}; box-shadow: 0 0 0 2px ${L.acqua}; }
+.mz-mc-pz .fig { position: relative; display: block; width: 100%; aspect-ratio: 1; padding: 0; cursor: pointer; background: ${L.cartaScura}; border: 1.5px solid ${L.filo}; border-radius: 10px; }
 .mz-mc-pz .fig img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.mz-mc-pz .fig .prova { position: absolute; left: 4px; bottom: 4px; padding: 1px 5px; background: ${P.neroCaldo}; color: ${P.sabbiaChiara}; font-size: 10px; font-weight: bold; }
-.mz-mc-pz b { font-size: 13px; line-height: 1.15; min-height: 2.3em; }
-.mz-mc-pz .pr { display: inline-flex; align-items: center; gap: 4px; font-weight: bold; }
-.mz-mc-pz .pr.no { color: ${P.rosso}; }
+.mz-mc-pz .fig .prova { position: absolute; left: 4px; bottom: 4px; padding: 1px 7px; border-radius: 999px; background: ${L.acqua}; color: ${L.cartaChiara}; font-size: 11px; }
+.mz-mc-pz b { font-size: 14px; line-height: 1.15; min-height: 2.3em; }
+.mz-mc-pz .pr { display: inline-flex; align-items: center; gap: 4px; }
+.mz-mc-pz .pr.no { color: ${L.rosso}; }
 .mz-mc-pz .mz-pt-act { min-width: 0; width: 100%; }
-.mz-mc-dopo { margin: 8px 2px 0; color: ${P.sabbia}; font-size: 12px; }
+.mz-mc-dopo { margin: 8px 2px 0; color: ${L.inchiostro2}; font-size: 12px; font-weight: 400; font-style: italic; }
 `;
 
 const errText = (e: unknown): string => {

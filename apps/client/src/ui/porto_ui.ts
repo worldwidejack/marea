@@ -10,7 +10,8 @@ import type { LotState } from '@marea/sim';
 import { barcaDi } from '@marea/sim';
 import { ApiError } from '../net/api.ts';
 import type { PortoCtx } from '../game/porto.ts';
-import { PAL, el, injectUiStyle } from './style.ts';
+import { el, injectUiStyle } from './style.ts';
+import { CORNICE_LIBRO, FONT_LIBRO, LIBRO, RAMETTO, injectKit } from './kit.ts';
 import { pixIcon, resIcon } from './icons.ts';
 import { flyResources, tickTimers, timerSpan } from './sheet.ts';
 import { TABS, mercanteBody } from './porto_mercante.ts';
@@ -29,51 +30,62 @@ export type PortoUi = {
   state(): Record<string, unknown>;
 };
 
-const P = PAL;
+const L = LIBRO;
+// Pannello del Porto e dialogo dei paesani nello stile del kit («libro illustrato», ui/kit.ts), come le botteghe.
+const BTN = `position: relative; min-height: 44px; border-radius: 12px; border: 2px solid ${L.oro}; background: ${L.acqua}; color: ${L.cartaChiara}; font: 700 15px ${FONT_LIBRO}; text-shadow: 0 1px 0 ${L.acquaScura}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px ${L.acquaScura}, 0 3px 0 1.5px ${L.inchiostro}; cursor: pointer;`;
+const BTN_GIU = `transform: translateY(2px); box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px ${L.acquaScura}, 0 1px 0 1.5px ${L.inchiostro};`;
+const BTN_SPENTO = `background: ${L.cartaScura}; color: ${L.inchiostro2}; text-shadow: none; border-color: ${L.filo}; box-shadow: 0 0 0 1.5px ${L.inchiostro2}; cursor: default;`;
+const BTN_CARTA = `background: ${L.cartaChiara}; color: ${L.inchiostro}; text-shadow: none; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px ${L.cartaScura}, 0 3px 0 1.5px ${L.inchiostro};`;
 const STYLE = `
-.mz-sheet.mz-pt { box-sizing: border-box; }
-.mz-pt .mz-head { gap: 10px; }
-.mz-pt-monete { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; min-height: 32px; padding: 0 8px; border: 2px solid ${P.legno}; font-weight: bold; white-space: nowrap; }
-.mz-pt-say { margin: 0 0 8px; color: ${P.sabbia}; font-size: 14px; line-height: 1.35; }
-.mz-pt-say b { color: ${P.giallo}; }
-.mz-pt-tabs { display: flex; gap: 6px; margin-bottom: 4px; }
-.mz-pt-tab { flex: 1; min-height: 44px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; color: ${P.sabbiaChiara}; font: bold 14px ui-monospace, Menlo, monospace; cursor: pointer; }
-.mz-pt-tab[aria-pressed="true"] { background: ${P.arancio}; color: ${P.neroCaldo}; border-color: ${P.neroCaldo}; box-shadow: 0 3px 0 ${P.neroCaldo}; }
-.mz-pt-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 3px 6px; min-height: 52px; box-sizing: border-box; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; }
-.mz-pt-row.sel { border-color: ${P.giallo}; }
+#mzPortoPanel, #mzDialogo { color: ${L.inchiostro}; font: 700 15px ${FONT_LIBRO}; font-variant-numeric: lining-nums; }
+#mzPortoPanel.mz-sheet { box-sizing: border-box; padding: 8px 10px 10px; background: ${L.carta}; border-radius: 16px; ${CORNICE_LIBRO(3)} }
+#mzPortoPanel .mz-head { gap: 8px; margin-bottom: 6px; }
+#mzPortoPanel .mz-title { min-width: 0; font: italic 700 24px ${FONT_LIBRO}; letter-spacing: 0; color: ${L.inchiostro}; white-space: nowrap; }
+#mzPortoPanel .mz-title::after { content: ''; flex: none; display: block; width: 34px; height: 17px; margin-left: 4px; vertical-align: -2px; background: ${RAMETTO} center / contain no-repeat; }
+#mzPortoPanel .mz-x { border-radius: 50%; border: 2px solid ${L.inchiostro}; background: ${L.cartaChiara}; color: ${L.inchiostro}; box-shadow: inset 0 0 0 2px ${L.oro}, 0 2px 0 rgba(46,33,24,.35); font: 700 22px/1 ${FONT_LIBRO}; }
+#mzPortoPanel .mz-btn, #mzDialogo .mz-btn { ${BTN} padding: 0 18px; }
+#mzPortoPanel .mz-btn.ghost, #mzDialogo .mz-btn.ghost { ${BTN_CARTA} }
+#mzPortoPanel .mz-btn:active:not(:disabled), #mzDialogo .mz-btn:active:not(:disabled) { ${BTN_GIU} }
+.mz-pt-monete { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; min-height: 32px; padding: 0 10px; border-radius: 999px; background: ${L.cartaScura}; border: 1.5px solid ${L.oro}; white-space: nowrap; }
+.mz-pt-say { margin: 0 0 8px; padding: 6px 10px; border-radius: 12px; background: ${L.cartaChiara}; border: 1.5px solid ${L.filo}; font-size: 14px; font-weight: 400; font-style: italic; line-height: 1.35; }
+.mz-pt-say b { color: ${L.acquaScura}; font-weight: 700; font-style: normal; }
+.mz-pt-tabs { display: flex; gap: 4px; margin: 0 -2px 4px; border-bottom: 2px solid ${L.oro}; }
+.mz-pt-tab { flex: 1; min-height: 44px; padding: 0 4px; border: 2px solid ${L.oro}; border-bottom: 0; border-radius: 10px 10px 0 0; background: ${L.cartaScura}; color: ${L.inchiostro2}; font: 700 15px ${FONT_LIBRO}; cursor: pointer; }
+.mz-pt-tab[aria-pressed="true"] { background: ${L.acqua}; color: ${L.cartaChiara}; text-shadow: 0 1px 0 ${L.acquaScura}; }
+.mz-pt-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 4px 6px; min-height: 52px; box-sizing: border-box; border-radius: 10px; background: ${L.cartaChiara}; border: 1.5px solid ${L.filo}; }
+.mz-pt-row.sel { border-color: ${L.acqua}; }
 .mz-pt-row .nm { flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .mz-pt-row div.nm { cursor: default; }
-.mz-pt-row .nm b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mz-pt-row .tag { font-size: 11px; font-weight: bold; color: ${P.giallo}; letter-spacing: .04em; }
-.mz-pt-row .tag.dim { color: ${P.sabbia}; letter-spacing: 0; font-weight: normal; }
-.mz-pt-row .pr { display: inline-flex; align-items: center; gap: 4px; font-weight: bold; white-space: nowrap; }
-.mz-pt-row .pr.no { color: ${P.arancio}; }
-.mz-pt-act { flex: none; min-width: 96px; min-height: 44px; padding: 0 8px; background: ${P.arancio}; color: ${P.neroCaldo}; border: 2px solid ${P.neroCaldo}; box-shadow: 0 3px 0 ${P.neroCaldo}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; }
-.mz-pt-act.green { background: ${P.erba}; }
-.mz-pt-act.mini { min-width: 64px; padding: 0 4px; }
-.mz-pt-chip { display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; border: 2px solid ${P.neroCaldo}; }
-.mz-pt-act:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 ${P.neroCaldo}; }
-.mz-pt-act:disabled { background: ${P.roccia}; color: ${P.pietra}; border-color: ${P.pietraScura}; cursor: default; }
-.mz-pt-miss { margin: 4px 2px 0; color: ${P.arancio}; font-size: 13px; font-weight: bold; line-height: 1.3; }
-.mz-pt-miss.ok { color: ${P.erba}; }
-.mz-pt-card { margin-top: 8px; padding: 8px 10px; background: ${P.sabbiaChiara}; color: ${P.neroCaldo}; border: 2px solid ${P.legnoScuro}; box-shadow: 0 3px 0 ${P.neroCaldo}; }
-.mz-pt-card.fatta { background: ${P.pietraChiara}; }
-.mz-pt-card .tx { font-weight: bold; font-size: 14px; line-height: 1.3; }
-.mz-pt-bar { position: relative; height: 12px; margin: 6px 0; background: ${P.pietra}; border: 2px solid ${P.neroCaldo}; }
-.mz-pt-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: ${P.erbaScura}; }
+.mz-pt-row .nm b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mz-pt-row .tag { font-size: 12px; font-weight: 700; color: ${L.acquaScura}; }
+.mz-pt-row .tag.dim { color: ${L.inchiostro2}; font-weight: 400; font-style: italic; }
+.mz-pt-row .pr { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.mz-pt-row .pr.no { color: ${L.rosso}; }
+.mz-pt-act { ${BTN} flex: none; min-width: 96px; padding: 0 12px; }
+.mz-pt-act.mini { min-width: 64px; padding: 0 6px; }
+.mz-pt-chip { display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; border: 1.5px solid ${L.inchiostro}; border-radius: 4px; }
+.mz-pt-act:active:not(:disabled) { ${BTN_GIU} }
+.mz-pt-act:disabled { ${BTN_SPENTO} }
+.mz-pt-miss { margin: 4px 2px 0; color: ${L.rosso}; font-size: 13px; line-height: 1.3; }
+.mz-pt-miss.ok { color: ${L.foglia}; }
+.mz-pt-card { margin-top: 8px; padding: 8px 10px; border-radius: 12px; background: ${L.cartaChiara}; border: 1.5px solid ${L.filo}; }
+.mz-pt-card.fatta { background: ${L.cartaScura}; }
+.mz-pt-card .tx { font-size: 15px; line-height: 1.3; }
+.mz-pt-bar { position: relative; height: 12px; margin: 6px 0; overflow: hidden; border-radius: 999px; background: ${L.cartaScura}; border: 1.5px solid ${L.inchiostro2}; }
+.mz-pt-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: ${L.acqua}; }
 .mz-pt-card .ft { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.mz-pt-card .pz { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-weight: bold; font-size: 14px; }
+.mz-pt-card .pz { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 14px; }
 .mz-pt-card .pz span { display: inline-flex; align-items: center; gap: 3px; }
-.mz-pt-card .cnt { font-size: 12px; color: ${P.roccia}; font-weight: bold; }
-.mz-dlg { position: absolute; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 178px); z-index: 21; display: none; padding: 10px 12px; box-sizing: border-box; background: rgba(46,30,20,.97); border: 3px solid ${P.sabbiaChiara}; box-shadow: 0 5px 0 ${P.neroCaldo}; }
+.mz-pt-card .cnt { font-size: 12px; color: ${L.inchiostro2}; font-weight: 400; font-style: italic; }
+.mz-dlg { position: absolute; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 178px); z-index: 21; display: none; padding: 10px 12px; box-sizing: border-box; background: ${L.carta}; border-radius: 16px; ${CORNICE_LIBRO(3)} }
 .mz-dlg.on { display: block; }
-.mz-dlg .who { display: flex; align-items: center; gap: 6px; color: ${P.giallo}; font-weight: bold; font-size: 15px; letter-spacing: .04em; }
-.mz-dlg p { margin: 6px 0 8px; font-size: 16px; line-height: 1.4; }
+.mz-dlg .who { display: flex; align-items: center; gap: 6px; color: ${L.acquaScura}; font: italic 700 19px ${FONT_LIBRO}; }
+.mz-dlg p { margin: 6px 0 8px; font-size: 17px; font-weight: 400; line-height: 1.4; }
 .mz-dlg .ft { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.mz-dlg .n { color: ${P.sabbia}; font-size: 13px; font-weight: bold; }
+.mz-dlg .n { color: ${L.inchiostro2}; font-size: 13px; }
 .mz-dlg .mz-btn { width: auto; min-width: 140px; margin: 0; justify-content: center; }
-.mz-dlg .nt { margin: -2px 0 8px; color: ${P.sabbia}; font-size: 13px; line-height: 1.35; }
-.mz-dlg .nt.bad { color: ${P.arancio}; font-weight: bold; }
+.mz-dlg .nt { margin: -2px 0 8px; color: ${L.inchiostro2}; font-size: 13px; font-weight: 400; font-style: italic; line-height: 1.35; }
+.mz-dlg .nt.bad { color: ${L.rosso}; font-weight: 700; font-style: normal; }
 .mz-dlg .sc { display: flex; gap: 8px; }
 .mz-dlg .sc .mz-btn { min-width: 0; padding: 6px 14px; }
 @media (min-width: 700px) { .mz-dlg { left: 50%; right: auto; width: 540px; transform: translateX(-50%); bottom: 32px; } }
@@ -97,7 +109,7 @@ export function battuteDi(p: PersonaPorto): string[] { return p.battute ?? []; }
 let oraFinta: number | null = null;
 
 export function createPortoUi(ctx: PortoCtx): PortoUi {
-  injectUiStyle();
+  injectUiStyle(); injectKit(); // il kit porta il carattere del libro (Alegreya)
   if (!document.getElementById('mz-portoui-style')) { const st = document.createElement('style'); st.id = 'mz-portoui-style'; st.textContent = STYLE; document.head.appendChild(st); }
   const sheet = el('div', 'mz mz-sheet mz-side mz-pt'); sheet.id = 'mzPortoPanel'; sheet.setAttribute('role', 'dialog');
   const dlg = el('div', 'mz mz-dlg'); dlg.id = 'mzDialogo'; dlg.setAttribute('role', 'dialog');
