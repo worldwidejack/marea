@@ -211,7 +211,7 @@ export function createFunivia(o: AdrenalinaOpts, place: ArchPlace, spot: { id: s
       if (!spot) return;
       const f = o.world.avatar.state;
       near = o.world.mode === 'walk' && !o.world.race.on && !aperta() && Math.hypot(f.x - spot.x, f.z - spot.z) < NEAR_M;
-      if (near && !nearWas) o.hud.toast(firmata() ? 'La funivia per la vetta: premi A' : 'Il guardiano della funivia ti aspetta col foglio: premi A', 2600);
+      if (near && !nearWas && !firmata()) o.hud.toast('Il guardiano della funivia ti aspetta col foglio: premi A', 2600);
       nearWas = near;
       if (near && pressA) usa();
     },

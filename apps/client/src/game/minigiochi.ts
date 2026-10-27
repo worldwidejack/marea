@@ -338,7 +338,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
       }
       const f = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
       near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < s.near && (!s.aPiedi || o.world.mode === 'walk') && (!s.inBarca || o.world.mode === 'boat') && (!s.aperta || s.aperta())) ?? null;
-      if (near && near !== nearWas) o.hud.toast(near.chiusa ? near.chiusa : near.tasto ? `${near.nome}: ${matchMedia('(pointer: coarse)').matches ? 'tocca «Gioca»' : `${near.tasto.nome} o «Gioca»`} · A al molo per scendere` : `${near.nome}: premi A o tocca «Gioca»`, 2500);
+      if (near && near !== nearWas && (near.chiusa || near.tasto)) o.hud.toast(near.chiusa ? near.chiusa : `${near.nome}: ${matchMedia('(pointer: coarse)').matches ? 'tocca «Gioca»' : `${near.tasto!.nome} o «Gioca»`} · A al molo per scendere`, 2500);
       nearWas = near;
       if (near && pressA && !near.tasto && !near.chiusa) void play(near);
       perle.tick(); // Perle

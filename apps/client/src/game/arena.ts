@@ -39,7 +39,7 @@ export function createArena(o: { world: GameWorld; renderer: Renderer; loader: L
   const arch = o.world.archipelago, place = arch.places.find((p) => p.island === ARENA.isola.island) ?? null;
   const [ix, iz] = ARENA.isola.ingresso;
   const spot = place ? { id: 'arena', nome: 'Colosseo dell’Arena', x: (place.origin[0] + ix + 0.5) * arch.tile, z: (place.origin[1] + iz + 0.5) * arch.tile } : null;
-  let col: Colosseo | null = null, carica: Promise<Colosseo | null> | null = null, near = false, nearWas = false, aWas = false, zoom0 = 1, entrate = 0;
+  let col: Colosseo | null = null, carica: Promise<Colosseo | null> | null = null, near = false, aWas = false, zoom0 = 1, entrate = 0;
 
   // ---- cartello sopra il portone e bottone ENTRA ----
   const layer = createLabelLayer(o.root);
@@ -77,7 +77,6 @@ export function createArena(o: { world: GameWorld; renderer: Renderer; loader: L
     o.renderer.diorama.setZoom(zoom0);
     o.renderer.diorama.follow(a.state.x, o.world.groundY(a.state.x, a.state.z), a.state.z);
     o.renderer.diorama.snap?.();
-    nearWas = true;
   }
   const vai = () => { const p = o.world.vai(ARENA.isola.island); if (p && spot) o.world.avatar.teleport(spot.x, spot.z + 2); return !!p; };
   if (FLAGS.arena === 'si') topButton({ root: o.root, id: 'mzArenaVai', order: 9, label: '⚔', title: 'Arena: vai al colosseo (prova)', onClick: () => { vai(); } });
@@ -99,8 +98,6 @@ export function createArena(o: { world: GameWorld; renderer: Renderer; loader: L
       if (!spot || col?.active || col?.aperto) { near = false; return; }
       const f = o.world.avatar.state;
       near = o.world.mode === 'walk' && !o.world.race.on && Math.hypot(f.x - spot.x, f.z - spot.z) < NEAR_M;
-      if (near && !nearWas) o.hud.toast('Il Colosseo dell’Arena: premi A o tocca «Entra nel Colosseo»', 2500);
-      nearWas = near;
       if (near && pressA) void entra();
     },
     step(f) { col?.step(f); },

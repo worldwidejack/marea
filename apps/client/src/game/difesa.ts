@@ -39,7 +39,7 @@ export function createDifesa(o: { world: GameWorld; renderer: Renderer; hud: Hud
   const arch = o.world.archipelago, place = arch.places.find((p) => p.island === ISOLA) ?? null;
   const ing = ingressoOrto();
   const spot = place && ing ? { id: 'difesa', nome: 'L’orto da difendere', x: (place.origin[0] + ing[0]) * arch.tile, z: (place.origin[1] + ing[1]) * arch.tile } : null;
-  let near = false, nearWas = false, aWas = false, aperte = 0;
+  let near = false, aWas = false, aperte = 0;
   let velo: HTMLDivElement | null = null;
 
   // ---- cartello sopra il cancello e bottone DIFENDI L'ORTO ----
@@ -87,7 +87,6 @@ export function createDifesa(o: { world: GameWorld; renderer: Renderer; hud: Hud
     if (spot && o.world.mode === 'walk') a.teleport(spot.x - 1.5, spot.z + 2.5);
     o.renderer.diorama.follow(a.state.x, o.world.groundY(a.state.x, a.state.z), a.state.z);
     o.renderer.diorama.snap?.();
-    nearWas = true;
     o.canvas.focus?.();
   }
   /** Esc fuori dal riquadro (il fuoco è tornato sul mondo): si torna all'isola. Dentro il gioco Esc lo gestisce lui. */
@@ -112,8 +111,6 @@ export function createDifesa(o: { world: GameWorld; renderer: Renderer; hud: Hud
       if (!spot || velo) { near = false; return; }
       const f = o.world.avatar.state;
       near = o.world.mode === 'walk' && !o.world.race.on && Math.hypot(f.x - spot.x, f.z - spot.z) < NEAR_M;
-      if (near && !nearWas) o.hud.toast('L’orto da difendere: premi A o tocca «Difendi l’orto»', 2500);
-      nearWas = near;
       if (near && pressA) apri();
     },
     update() {

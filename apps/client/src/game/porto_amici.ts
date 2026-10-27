@@ -76,7 +76,7 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
   const at = (c: readonly [number, number]) => ({ x: (ox + c[0] + 0.5) * T, z: (oz + c[1] + 0.5) * T });
   const group = new THREE.Group(); group.name = 'porto_amici'; o.world.scene.add(group);
   const layer = createLabelLayer(o.root);
-  let ui: PortoAmiciUi | null = null, loading: Promise<PortoAmiciUi | null> | null = null, near: AmiciKind | null = null, nearWas: AmiciKind | null = null, aWas = false, closedAt = 0;
+  let ui: PortoAmiciUi | null = null, loading: Promise<PortoAmiciUi | null> | null = null, near: AmiciKind | null = null, aWas = false, closedAt = 0;
 
   const luogo = (posto: PortoPosto) => { const w = at(posto.at), f = at(posto.fronte); return { posto, x: w.x, z: w.z, y: o.world.groundY(w.x, w.z), fx: f.x, fz: f.z }; };
   const tab = { id: 'record' as const, ...luogo(PORTO_AMICI.tabellone) }, fp = luogo(PORTO_AMICI.faro);
@@ -154,8 +154,6 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
       const pressA = a && !aWas; aWas = a;
       if (ui?.isOpen()) { near = null; return true; }
       near = findNear();
-      if (near && near !== nearWas) o.hud.toast(`${PORTO_AMICI.tabellone.nome}: premi A`, 2200);
-      nearWas = near;
       if (near && pressA) void open(near);
       return !!near || (!!loading && !ui);
     },

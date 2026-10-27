@@ -122,7 +122,7 @@ export function createPorto(o: PortoOpts): Porto {
   const group = new THREE.Group(); group.name = 'porto_ricco'; o.world.scene.add(group);
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   const layer = createLabelLayer(o.root);
-  let ui: PortoUi | null = null, loading: Promise<PortoUi | null> | null = null, near: Target | null = null, nearWas: string | null = null, aWas = false, closedAt = 0;
+  let ui: PortoUi | null = null, loading: Promise<PortoUi | null> | null = null, near: Target | null = null, aWas = false, closedAt = 0;
 
   // ---- banco e bacheca ----
   // banco e bacheca in un solo mesh (un draw call, uno per l'ombra)
@@ -273,9 +273,6 @@ export function createPorto(o: PortoOpts): Porto {
       const pressA = a && !aWas; aWas = a;
       if (ui?.isOpen()) { if (pressA && ui.kind === 'parla') ui.avanti(); near = null; return true; } // telefono: il bottone A fa andare avanti le battute
       near = findNear();
-      const k = keyOf(near);
-      if (near && k !== nearWas) o.hud.toast(near.kind === 'posto' ? `${near.posto.nome}: premi A` : `${near.p.nome}: premi A per parlare`, 2200);
-      nearWas = k;
       if (near && pressA) void open(near);
       return !!near || !!loading && !ui;
     },
