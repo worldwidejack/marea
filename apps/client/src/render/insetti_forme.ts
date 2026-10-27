@@ -340,10 +340,29 @@ export const MIRINO = forma(Array.from({ length: 12 }, (_, i) => {
   const a = (i / 12) * Math.PI * 2;
   return pz(box(0.34, 0.04, 0.24), PAL.giallo, mat(Math.cos(a), 0.02, Math.sin(a), 0, -a - Math.PI / 2));
 }));
-/** La pala in mano (manico all'origine, lama in punta). */
+/** La pala in mano: impugnatura alla mano (y = 0), manico in legno verso l'alto e grande lama da scavo sagomata in cima. */
 export const PALA = forma([
-  pz(box(0.04, 0.95, 0.04).translate(0, 0.47, 0), PAL.legnoChiaro, mat(0, 0, 0)), pz(box(0.14, 0.04, 0.04), PAL.legnoScuro, mat(0, 0.96, 0)),
-  pz(box(0.22, 0.26, 0.03), PAL.pietra, mat(0, -0.12, 0)), pz(box(0.18, 0.06, 0.035), PAL.pietraChiara, mat(0, -0.22, 0)),
+  // Impugnatura / pomello inferiore a D (sotto la mano, y = 0 .. -0.12)
+  pz(box(0.14, 0.03, 0.03), PAL.legnoScuro, mat(0, -0.10, 0)),
+  pz(box(0.025, 0.06, 0.025), PAL.legnoScuro, mat(-0.06, -0.065, 0)),
+  pz(box(0.025, 0.06, 0.025), PAL.legnoScuro, mat(0.06, -0.065, 0)),
+  pz(box(0.05, 0.025, 0.03), PAL.legnoScuro, mat(0, -0.035, 0)),
+  // Asta principale in legno chiaro che sale dalla mano (la mano stringe attorno a y = 0)
+  pz(box(0.04, 0.54, 0.04), PAL.legnoChiaro, mat(0, 0.26, 0)),
+  // Ghiera / collare in metallo scuro tra manico e lama
+  pz(box(0.055, 0.06, 0.055), PAL.pietraScura, mat(0, 0.55, 0)),
+  // Battitacco / spalle superiori della lama da scavo
+  pz(box(0.38, 0.045, 0.065), PAL.pietraScura, mat(0, 0.60, 0)),
+  // Corpo principale della lama da scavo: larga, solida e sagomata
+  pz(box(0.36, 0.26, 0.035), PAL.pietra, mat(0, 0.74, 0)),
+  // Bordi laterali rialzati a cucchiaio (concavità rivolta in avanti verso -Z)
+  pz(box(0.035, 0.26, 0.05), PAL.pietra, mat(-0.175, 0.74, -0.015)),
+  pz(box(0.035, 0.26, 0.05), PAL.pietra, mat(0.175, 0.74, -0.015)),
+  // Nervatura centrale di rinforzo sul retro
+  pz(box(0.045, 0.22, 0.045), PAL.pietraScura, mat(0, 0.73, 0.008)),
+  // Punta affilata in metallo chiaro sagomata a cuneo
+  pz(box(0.30, 0.07, 0.03), PAL.pietraChiara, mat(0, 0.89, 0)),
+  pz(box(0.18, 0.05, 0.025), PAL.pietraChiara, mat(0, 0.94, 0)),
 ]);
 /** Zolla di terra smossa dalla pala. */
 export const TERRA_CLOD = forma([pz(new THREE.DodecahedronGeometry(0.08, 0), PAL.legnoScuro, mat(0, 0, 0))]);

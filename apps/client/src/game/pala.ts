@@ -24,15 +24,10 @@ type NearBuca = { kind: 'aperta' | 'seppellita' | 'bottino'; cell: [number, numb
 const RAGGIO_BUCA = 2.1;
 const POLL_S = 5;
 const CSS = `#mzScavaBtn { position: absolute; left: 50%; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 16px); transform: translateX(-50%); z-index: 16; display: none; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px; background: rgba(46,30,20,.94); border: 2px solid ${PAL.legnoChiaro}; color: ${PAL.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; border-radius: 6px; box-shadow: 0 3px 0 ${PAL.neroCaldo}; }
-#mzScavaBtn.on { display: inline-flex; } #mzScavaBtn b { color: ${PAL.giallo}; }
-body.mz-sotto #mzScavaBtn { display: none !important; }
-#mzPalaSheet .tabs { display: flex; gap: 6px; margin: 8px 0; }
-#mzPalaSheet .tab { flex: 1; padding: 6px 8px; background: rgba(35,32,31,.85); border: 1px solid ${PAL.legno}; color: ${PAL.sabbia}; font: bold 12px ui-monospace, Menlo, monospace; cursor: pointer; }
-#mzPalaSheet .tab.on { background: ${PAL.legno}; color: ${PAL.giallo}; border-color: ${PAL.giallo}; }
-#mzPalaSheet .lista { max-height: 210px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
-#mzPalaSheet .riga { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; background: rgba(35,32,31,.75); border: 1px solid ${PAL.legnoScuro}; color: ${PAL.sabbiaChiara}; font: 13px ui-monospace, Menlo, monospace; }
-#mzPalaSheet .riga b { color: ${PAL.giallo}; } #mzPalaSheet .monete-box { display: flex; align-items: center; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
-#mzPalaSheet input[type="number"] { width: 96px; padding: 6px 8px; background: ${PAL.neroCaldo}; border: 1px solid ${PAL.legnoChiaro}; color: ${PAL.giallo}; font: bold 14px ui-monospace, Menlo, monospace; }`;
+#mzScavaBtn.on { display: inline-flex; } #mzScavaBtn b { color: ${PAL.giallo}; } body.mz-sotto #mzScavaBtn { display: none !important; }
+#mzPalaSheet .tabs { display: flex; gap: 6px; margin: 8px 0; } #mzPalaSheet .tab { flex: 1; padding: 6px 8px; background: rgba(35,32,31,.85); border: 1px solid ${PAL.legno}; color: ${PAL.sabbia}; font: bold 12px ui-monospace, Menlo, monospace; cursor: pointer; } #mzPalaSheet .tab.on { background: ${PAL.legno}; color: ${PAL.giallo}; border-color: ${PAL.giallo}; }
+#mzPalaSheet .lista { max-height: 210px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin: 8px 0; } #mzPalaSheet .riga { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; background: rgba(35,32,31,.75); border: 1px solid ${PAL.legnoScuro}; color: ${PAL.sabbiaChiara}; font: 13px ui-monospace, Menlo, monospace; }
+#mzPalaSheet .riga b { color: ${PAL.giallo}; } #mzPalaSheet .monete-box { display: flex; align-items: center; gap: 8px; margin: 8px 0; flex-wrap: wrap; } #mzPalaSheet input[type="number"] { width: 96px; padding: 6px 8px; background: ${PAL.neroCaldo}; border: 1px solid ${PAL.legnoChiaro}; color: ${PAL.giallo}; font: bold 14px ui-monospace, Menlo, monospace; }`;
 
 /** Geometria di una buca aperta: pozzo scuro nel terreno con bordo di zolle scavate. */
 function bucaApertaGeo(x: number, y: number, z: number): THREE.BufferGeometry[] {
@@ -47,12 +42,9 @@ function bucaApertaGeo(x: number, y: number, z: number): THREE.BufferGeometry[] 
 /** Geometria della croce sul terreno (stile Animal Crossing): terra smossa con segno a X ben visibile. */
 function croceSeppellitaGeo(x: number, y: number, z: number): THREE.BufferGeometry[] {
   return [
-    painted(new THREE.CylinderGeometry(0.5, 0.54, 0.04, 8), P.sabbia, M(x, y + 0.02, z)),
-    painted(new THREE.CylinderGeometry(0.42, 0.45, 0.05, 8), P.legno, M(x, y + 0.026, z)),
-    painted(new THREE.BoxGeometry(0.74, 0.06, 0.15), P.legnoScuro, M(x, y + 0.045, z, 0, Math.PI / 4, 0)),
-    painted(new THREE.BoxGeometry(0.74, 0.06, 0.15), P.legnoScuro, M(x, y + 0.045, z, 0, -Math.PI / 4, 0)),
-    painted(new THREE.BoxGeometry(0.66, 0.065, 0.08), P.neroCaldo, M(x, y + 0.05, z, 0, Math.PI / 4, 0)),
-    painted(new THREE.BoxGeometry(0.66, 0.065, 0.08), P.neroCaldo, M(x, y + 0.05, z, 0, -Math.PI / 4, 0)),
+    painted(new THREE.CylinderGeometry(0.5, 0.54, 0.04, 8), P.sabbia, M(x, y + 0.02, z)), painted(new THREE.CylinderGeometry(0.42, 0.45, 0.05, 8), P.legno, M(x, y + 0.026, z)),
+    painted(new THREE.BoxGeometry(0.74, 0.06, 0.15), P.legnoScuro, M(x, y + 0.045, z, 0, Math.PI / 4, 0)), painted(new THREE.BoxGeometry(0.74, 0.06, 0.15), P.legnoScuro, M(x, y + 0.045, z, 0, -Math.PI / 4, 0)),
+    painted(new THREE.BoxGeometry(0.66, 0.065, 0.08), P.neroCaldo, M(x, y + 0.05, z, 0, Math.PI / 4, 0)), painted(new THREE.BoxGeometry(0.66, 0.065, 0.08), P.neroCaldo, M(x, y + 0.05, z, 0, -Math.PI / 4, 0)),
   ];
 }
 
@@ -195,6 +187,10 @@ export function createPalaBorgo(o: {
     w.avatar.avviaAzione('pala_scava', 0.85, { x: cw.x, z: cw.z });
     w.frozen = true; congelato = 0.85; suona('plop');
     o.zolle?.(cw.x, w.groundY(cw.x, cw.z) + 0.1, cw.z, 6);
+    if (!o.api || !FLAGS.net) {
+      buche.push({ cell: bersaglio, stato: 'aperta', chi: 'tu', quando: adesso() });
+      rebuildMesh(); o.hud.toast('Hai scavato una buca aperta!', 2200); return { esito: 'aperta', buche };
+    }
     busy = true;
     try {
       const d = await callServer('POST', '/api/borgo/buca', { op: 'scava', cell: bersaglio });
@@ -218,6 +214,10 @@ export function createPalaBorgo(o: {
     w.avatar.avviaAzione('pala_chiudi', 0.75, { x: cw.x, z: cw.z });
     w.frozen = true; congelato = 0.75; suona('plop');
     o.zolle?.(cw.x, w.groundY(cw.x, cw.z) + 0.05, cw.z, 4);
+    if (!o.api || !FLAGS.net) {
+      buche = buche.filter((b) => b.cell[0] !== target[0] || b.cell[1] !== target[1]);
+      rebuildMesh(); chiudiSheet(); o.hud.toast('Buca chiusa: il terreno è tornato normale', 2200); return true;
+    }
     busy = true;
     try {
       const d = await callServer('POST', '/api/borgo/buca', { op: 'chiudi', cell: target });
@@ -240,6 +240,10 @@ export function createPalaBorgo(o: {
     w.avatar.avviaAzione('pala_chiudi', 0.75, { x: cw.x, z: cw.z });
     w.frozen = true; congelato = 0.75; suona('plop');
     o.zolle?.(cw.x, w.groundY(cw.x, cw.z) + 0.05, cw.z, 4);
+    if (!o.api || !FLAGS.net) {
+      buche = buche.map((b) => b.cell[0] === target[0] && b.cell[1] === target[1] ? { ...b, stato: 'seppellita' as const, dono } : b);
+      rebuildMesh(); chiudiSheet(); o.hud.toast('Hai seppellito! Resta una croce nel terreno', 2600); return true;
+    }
     busy = true;
     try {
       const d = await callServer('POST', '/api/borgo/buca', { op: 'seppellisci', cell: target, dono });
@@ -361,14 +365,11 @@ export function createPalaBorgo(o: {
       const pa = a && !aWas; aWas = a;
       const near = findNearBuca();
       if (apertaCell && (!near || near.kind !== 'aperta' || cellKeyBorgo(near.cell) !== cellKeyBorgo(apertaCell))) chiudiSheet();
-      if (!near) return false;
-      if (near.kind === 'aperta') {
-        if (pa) void apriSheetBuca(near.cell);
-        return true;
-      }
+      if (near?.kind === 'aperta') { if (pa) void apriSheetBuca(near.cell); return true; }
       if (possiedePala(o.getLot()) && conPala()) {
-        if (pa) void eseguiScava(near.cell);
-        return true;
+        const t = near?.cell ?? targetDigCell();
+        if (t && pa) { void eseguiScava(t); return true; }
+        if (near) return true;
       }
       return false;
     },

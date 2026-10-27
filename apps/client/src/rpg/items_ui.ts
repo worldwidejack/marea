@@ -87,6 +87,8 @@ const ART: Record<ItemKind, readonly string[]> = {
 };
 /** La canna da pesca (#457): canna, lenza e galleggiante. */
 const ART_CANNA: readonly string[] = ['.......c', '......cw', '.....c.w', '....c..w', '...c...w', '..b....m', '.bb.....', 'b.......'];
+/** La pala: manico con impugnatura a D e ampia lama da scavo sagomata con punta. */
+const ART_PALA: readonly string[] = ['.....cc.', '.....bc.', '....b...', '...pp...', '.pppp...', 'pwwppd..', '.pppd...', '..pd....'];
 /** Il retino (#445): cerchio, rete e asta. */
 const ART_RETINO: readonly string[] = ['..wwww..', '.w....w.', '.w....w.', '..wwww..', '...b....', '..b.....', '.b......', 'c.......'];
 export function itemIcon(kind: ItemKind, color: string, px = 24, art?: readonly string[]): HTMLCanvasElement {
@@ -96,7 +98,7 @@ export function itemIcon(kind: ItemKind, color: string, px = 24, art?: readonly 
   if (!g) return c;
   const m = palColor(color);
   const dark = m === PAL.neroCaldo || m === PAL.roccia || m === PAL.legnoScuro;
-  const col: Record<string, string> = { m, w: dark ? PAL.pietra : PAL.sabbiaChiara, b: PAL.legno, c: PAL.legnoScuro, d: PAL.neroCaldo };
+  const col: Record<string, string> = { m, w: dark ? PAL.pietra : PAL.sabbiaChiara, b: PAL.legno, c: PAL.legnoScuro, d: PAL.neroCaldo, p: PAL.pietra, s: PAL.pietraScura };
   (art ?? ART[kind] ?? ART.materiale).forEach((row, y) => { for (let x = 0; x < 8; x++) { const k = col[row[x] ?? '.']; if (k) { g.fillStyle = k; g.fillRect(x, y, 1, 1); } } });
   return c;
 }
@@ -117,7 +119,7 @@ export const iconOf = (it: ItemDef, px = 24): HTMLCanvasElement => {
   if (ins) { const c = insettoCanvas(ins, px / 16); c.classList.add('mz-rp-ico'); return c; }
   const pe = it.kind === 'pesce' ? PESCI.find((d) => d.id === it.id) : undefined; // i pesci (#457) col loro disegno 20×12
   if (pe) { const c = pesceCanvas(pe, px / 20); c.classList.add('mz-rp-ico'); return c; }
-  return itemIcon(it.kind, it.colore, px, it.id === RETINO.id ? ART_RETINO : it.id === CANNA.id ? ART_CANNA : undefined);
+  return itemIcon(it.kind, it.colore, px, it.id === RETINO.id ? ART_RETINO : it.id === CANNA.id ? ART_CANNA : it.id === 'pala' ? ART_PALA : undefined);
 };
 /** L'icona di una magia: il suo disegno; se non ne ha uno, un libro del colore della scuola. */
 export function iconaMagia(id: string, px = 24): HTMLCanvasElement {

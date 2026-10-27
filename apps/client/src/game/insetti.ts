@@ -61,7 +61,7 @@ body.mz-sotto #mzInsettiBtn, body.mz-sotto #mzAttrezzoBtn, body.mz-sotto #mzInse
 // icone 8×8 degli attrezzi: m legno, w chiaro, p pietra, d scuro
 const ICONE: Record<Attrezzo, string[]> = {
   nulla: ['........', '..m.m...', '.mmmmm..', '.mmmmmm.', '.mmmmmm.', '..mmmm..', '..mmmm..', '........'],
-  pala: ['.....dd.', '.....md.', '....m...', '...m....', '.ppm....', 'pwppd...', 'pppd....', '.dd.....'],
+  pala: ['.....dd.', '.....md.', '....m...', '...pp...', '.pppp...', 'pwwppd..', '.pppd...', '..pd....'],
   retino: ['..wwww..', '.w....w.', '.w....w.', '..wwww..', '...m....', '..m.....', '.m......', 'm.......'],
   canna: ['.......m', '......mw', '.....m.w', '....m..w', '...m...w', '.pm....w', 'dm.....d', 'd.......'],
 };
@@ -260,13 +260,23 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
     const f = w.avatar.state, h = f.yaw, rx = Math.cos(h), rz = Math.sin(h), fx = Math.sin(h), fz = -Math.cos(h);
     const b = bone('Hand.R') ?? bone('LowerArm.R');
     let x: number, y: number, z: number;
-    if (b) { b.getWorldPosition(V); x = V.x + fx * 0.08; y = V.y - 0.05; z = V.z + fz * 0.08; }
+    if (b) { b.getWorldPosition(V); x = V.x + fx * 0.04; y = V.y - 0.02; z = V.z + fz * 0.04; }
     else { x = f.x + rx * 0.28 + fx * 0.15; y = w.groundY(f.x, f.z) + 0.85; z = f.z + rz * 0.28 + fz * 0.15; }
-    let pitch = -0.25, roll = 0.1, dy = -0.35;
+    let pitch = -0.28, roll = 0.14, dy = 0;
     const az = w.avatar.azioneInCorso, p = w.avatar.azioneProgresso;
-    if (az === 'pala_sasso') { if (p < 0.35) { const t = p / 0.35; pitch = -0.25 + t * 0.7; roll = 0.1 - t * 0.3; dy -= t * 0.05; } else if (p < 0.55) { const t = (p - 0.35) / 0.2; pitch = 0.45 - t * 1.4; roll = -0.2 + t * 0.4; dy += t * 0.1; } else { const t = (p - 0.55) / 0.45; pitch = -0.95 + t * 0.7; roll = 0.2 - t * 0.1; } }
-    else if (az === 'pala_scava') { if (p < 0.4) { const t = p / 0.4; pitch = -0.25 - t * 0.75; roll = 0.1 + t * 0.2; dy -= t * 0.15; } else if (p < 0.7) { const t = (p - 0.4) / 0.3; pitch = -1.0 + t * 1.2; roll = 0.3 - t * 0.4; dy += t * 0.1; } else { const t = (p - 0.7) / 0.3; pitch = 0.2 - t * 0.45; roll = -0.1 + t * 0.2; } }
-    else if (az === 'pala_chiudi') { if (p < 0.5) { const t = p / 0.5; pitch = -0.25 - t * 0.6; roll = 0.1 + t * 0.3; } else { const t = (p - 0.5) / 0.5; pitch = -0.85 + t * 0.6; roll = 0.4 - t * 0.3; } }
+    if (az === 'pala_sasso') {
+      if (p < 0.35) { const t = p / 0.35; pitch = -0.28 + t * 0.75; roll = 0.14 - t * 0.25; dy += t * 0.10; }
+      else if (p < 0.55) { const t = (p - 0.35) / 0.2; pitch = 0.47 - t * 1.55; roll = -0.11 + t * 0.25; dy -= t * 0.10; }
+      else { const t = (p - 0.55) / 0.45; pitch = -1.08 + t * 0.80; roll = 0.14; }
+    } else if (az === 'pala_scava') {
+      if (p < 0.4) { const t = p / 0.4; pitch = -0.28 - t * 0.85; roll = 0.14 - t * 0.08; dy -= t * 0.14; }
+      else if (p < 0.7) { const t = (p - 0.4) / 0.3; pitch = -1.13 + t * 1.35; roll = 0.06 + t * 0.18; dy += t * 0.14; }
+      else { const t = (p - 0.7) / 0.3; pitch = 0.22 - t * 0.50; roll = 0.24 - t * 0.10; }
+    } else if (az === 'pala_chiudi') {
+      if (p < 0.45) { const t = p / 0.45; pitch = -0.28 + t * 0.20; roll = 0.14; dy += t * 0.08; }
+      else if (p < 0.8) { const t = (p - 0.45) / 0.35; pitch = -0.08 - t * 0.85; roll = 0.14 + t * 0.12; dy -= t * 0.12; }
+      else { const t = (p - 0.8) / 0.2; pitch = -0.93 + t * 0.65; roll = 0.26 - t * 0.12; }
+    }
     corpi.put(PALA, x, y + dy, z, h, pitch, roll);
   };
   const disegna = (now: number, dt: number) => {
