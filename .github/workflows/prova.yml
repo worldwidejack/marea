@@ -1,0 +1,70 @@
+# Prova ripetuta: una suite e2e N volte su 5 macchine in parallelo, per sapere se un test instabile è guarito davvero
+# (nella suite delle PR un test che cade una volta su dieci passa quasi sempre). Si lancia a mano, non tocca le PR:
+#   gh workflow run prova.yml -f suite=m1_emote -f volte=4 [--ref <ramo>]
+# Il riepilogo (verdi, cadute e quali test) sta nella pagina del run, alla voce Summary.
+name: Prova ripetuta
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Suite e2e da ripetere (es. m1_emote)'
+        required: true
+        type: string
+      volte:
+        description: 'Volte per macchina (le macchine sono 5)'
+        required: false
+        default: '4'
+        type: string
+env:
+  CI: '1'
+  WRANGLER_SEND_METRICS: 'false'
+jobs:
+  prova:
+    name: ${{ inputs.suite }} · macchina ${{ matrix.macchina }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        macchina: [1, 2, 3, 4, 5]
+    steps:
+      # storia di main come nelle PR: la build ne fa /novita.json
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 300
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: La suite più volte di fila
+        env:
+          SUITE: ${{ inputs.suite }}
+          VOLTE: ${{ inputs.volte }}
+          MACCHINA: ${{ matrix.macchina }}
+        run: |
+          case "$SUITE" in *[!a-z0-9_]*|'') echo "::error::suite non valida: $SUITE"; exit 2;; esac
+          case "$VOLTE" in *[!0-9]*|'') echo "::error::volte non valido: $VOLTE"; exit 2;; esac
+          ok=0; ko=0; : > cadute.txt
+          for i in $(seq 1 "$VOLTE"); do
+            if node tests/run.mjs "$SUITE" --no-build > giro.log 2>&1; then ok=$((ok+1)); else
+              ko=$((ko+1))
+              node -e "const r=require('./tests/out/report.json'); for (const x of r.results.filter((x) => !x.ok)) console.log(x.suite + ' › ' + x.name + ' :: ' + String(x.err || '').split('\n')[0].slice(0, 160))" >> cadute.txt
+              cp giro.log "giro-$i.log"
+            fi
+            echo "giro $i: verdi $ok · cadute $ko"
+          done
+          { echo "### $SUITE, macchina $MACCHINA: $ok verdi, $ko cadute su $VOLTE"; sort cadute.txt | uniq -c | sed 's/^/    /'; } >> "$GITHUB_STEP_SUMMARY"
+          cat cadute.txt
+          [ "$ko" = 0 ]
+      - name: Log dei giri caduti
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prova-${{ matrix.macchina }}
+          path: |
+            giro-*.log
+            tests/out/shots/
+          retention-days: 7
+          if-no-files-found: ignore
