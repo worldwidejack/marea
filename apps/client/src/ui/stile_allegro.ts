@@ -110,7 +110,7 @@ body #mzMiniZoom button { width: ${k(28)}; height: ${k(28)}; ${BOTTONE} backgrou
 body #mzMiniZoom button > * { display: none; }
 body #mzMiniZoom button::before { content: '+'; font: 700 ${k(19)} / 1 ${FONT_LIBRO}; color: ${L.inchiostro}; margin-top: ${k(-2)}; }
 body #mzMiniZoom button[data-zoom="-"]::before { content: '\\2212'; }
-#mzMiniMete { position: absolute; right: calc(${DESTRA}px - ${k(11)}); top: calc(${T} + ${k(MINI_TOP + 66)}); z-index: 13; width: ${k(30)}; height: ${k(30)}; padding: 0; cursor: pointer; ${BOTTONE}
+#mzMiniMete { position: absolute; right: calc(${DESTRA}px - ${k(11)}); top: calc(${T} + ${k(MINI_TOP + 72)}); z-index: 14; width: ${k(30)}; height: ${k(30)}; padding: 0; cursor: pointer; ${BOTTONE}
   background: ${L.cartaChiara} ${svg(BANDIERA)} center / 64% no-repeat; }
 #mzMiniMete.on { background-color: ${L.oroChiaro}; }
 #mzMiniMete:active { transform: translateY(${k(2)}); }
