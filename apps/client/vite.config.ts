@@ -30,6 +30,12 @@ function novita(): string {
   return JSON.stringify({ lavori });
 }
 
+/** CREDITI della schermata iniziale (ui/crediti.ts): i caratteri e le licenze degli asset così come sono scritti nei loro file. */
+function crediti(): string {
+  const leggi = (p: string) => { try { return readFileSync(new URL(p, import.meta.url), 'utf8'); } catch { return ''; } };
+  return JSON.stringify({ caratteri: leggi('public/assets/fonts/LEGGIMI.txt'), asset: leggi('../../assets/licenses.md') });
+}
+
 export default defineConfig({
   base: '/',
   define: { __BUILD__: JSON.stringify(BUILD) },
@@ -51,9 +57,11 @@ export default defineConfig({
     generateBundle() {
       this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build: BUILD, when: new Date().toISOString() }) });
       this.emitFile({ type: 'asset', fileName: 'novita.json', source: novita() });
+      this.emitFile({ type: 'asset', fileName: 'crediti.json', source: crediti() });
     },
     configureServer(server) {
       server.middlewares.use('/novita.json', (_req, res) => { res.setHeader('content-type', 'application/json'); res.end(novita()); });
+      server.middlewares.use('/crediti.json', (_req, res) => { res.setHeader('content-type', 'application/json'); res.end(crediti()); });
     },
   }],
 });

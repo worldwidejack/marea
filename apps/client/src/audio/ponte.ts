@@ -95,6 +95,8 @@ function crea(): void {
   } catch (e) { errore = String(e); console.warn('[marea] audio non partito', e); }
 }
 const onGesto = () => { gesto = true; motore?.resume(); carica(); };
+/** Il tocco su GIOCA della schermata iniziale (avvio/home.ts): conta come primo gesto anche se arriva prima di collegaAudio. */
+export function sbloccaAudio(): void { onGesto(); }
 
 /** main.ts, una volta: cosa ascoltare nel mondo. Da qui il primo gesto scarica il motore (se l'audio è acceso). */
 export function collegaAudio(m: AudioMondo): void {

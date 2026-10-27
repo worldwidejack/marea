@@ -15,7 +15,7 @@ Un arcipelago 3D low-poly in stile pixel art, condiviso tra un gruppo di amici, 
 Riferimenti: ogni format prende da un gioco di grande successo (Mario Kart e Diddy Kong Racing, Call of Duty Zombies, Skyrim, Plants vs Zombies, Brawl Stars: `VISIONE.md` §3 e i documenti delle modalità); la casa e il Borgo da Animal Crossing. Anti-riferimenti: niente grinding, niente PvP distruttivo nel mondo, mai soldi veri.
 
 ## 2. Un giorno a MAREA (il rientro: 2-10 minuti, 1-2 volte al giorno)
-1. **Entri** dal tuo link: sei a Borgo Marea, davanti alla porta di casa.
+1. **Entri** dal tuo link: prima la schermata iniziale (il disegno del Porto al tramonto, GIOCA · IMPOSTAZIONI · CREDITI) mentre il mondo carica dietro, poi GIOCA e sei a Borgo Marea, davanti alla porta di casa.
 2. Se mancavi da un po' (`rientro.json`), la cartolina **«Mentre eri via»** dice da quanto mancavi, chi ha firmato il tuo libro degli ospiti, le novità della campanella e le missioni nuove della Bacheca. L'assenza la misura il server.
 3. **Il giro del Borgo**: a mezzanotte (ora di Roma, uguale per tutti) sono cambiate le vetrine del negozio dei mobili e delle botteghe; c'è un bottino seppellito da trovare con la pala, ci sono insetti da prendere col retino e pesci da pescare con la canna, e i paesani hanno favori da chiedere. Alla Bacheca del Porto, 3 missioni al giorno.
 4. **In barca** verso un'isola a tema o un minigioco: medaglie e monete, con un tetto al giorno (§5).
