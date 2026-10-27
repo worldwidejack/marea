@@ -10,7 +10,7 @@ import { newLot } from '../src/economy/actions.ts';
 import { checkMonete, moneteOf } from '../src/economy/monete.ts';
 import {
   avanzaStoria, compraBarca, faseStoria, fattoPasso, haBarca, iniziaStoria, isolaCorrente, isolaProvata, passoCorrente, regaloAttrezzo,
-  riscuotiIsola, segnaDifesa, viaggiDisponibili,
+  riscuotiIsola, segnaArena, segnaDifesa, viaggiDisponibili,
 } from '../src/economy/storia.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { heroOf } from '../src/rpg/hero.ts';
@@ -51,6 +51,7 @@ test('storia: senza storia il gioco va come prima', () => {
   assert.equal(viaggiDisponibili(l), null);
   assert.equal(avanzaStoria(l), l, 'niente da avanzare: stesso lotto');
   assert.equal(segnaDifesa(l), l);
+  assert.equal(segnaArena(l), l);
 });
 
 test('storia: il tutorial va in ordine e i passi del client solo quando tocca a loro', () => {
@@ -151,6 +152,34 @@ test('storia: un gioco giocato prima della missione non conta', () => {
   const l = compraBarca(tutorial(giocato(lotto(STORIA.barca.prezzo), 'regata')), T0);
   assert.equal(isolaProvata(l), false);
   assert.throws(() => riscuotiIsola(l, T0), isErr('requisito'));
+});
+
+test('storia: l’Arena vale sia con l’allenamento coi bot che con una partita online', () => {
+  // Arriviamo alla missione dell'Arena
+  const l0 = compraBarca(tutorial(lotto(STORIA.barca.prezzo + 500)), T0);
+  let l = l0;
+  for (const i of STORIA.isole) {
+    if (i.isola === 'arena') break;
+    const g = i.gioco;
+    if (g.tipo === 'minigioco') l = giocato(l, g.id);
+    else if (g.tipo === 'difesa') l = segnaDifesa(l);
+    else if (g.tipo === 'templari') l = leggi({ ...l, templari: { pending: null, giorno: 0, preso: 0, record: 1, partite: (l.templari?.partite ?? 0) + 1 } });
+    l = riscuotiIsola(l, T0).lot;
+  }
+  assert.equal(isolaCorrente(l)?.isola, 'arena');
+  assert.equal(isolaProvata(l), false);
+
+  // 1) Caso allenamento coi bot (segnaArena)
+  const lAllenamento = segnaArena(l);
+  assert.equal(isolaProvata(lAllenamento), true);
+  const out = riscuotiIsola(lAllenamento, T0);
+  assert.equal(out.isola, 'arena');
+
+  // 2) Caso partita online (lot.arena aggiornato dal DO)
+  const lOnline = leggi({ ...l, arena: { pending: null, giorno: 0, preso: 0, vinte: 1, perse: 0, pari: 0 } });
+  assert.equal(isolaProvata(lOnline), true);
+  const out2 = riscuotiIsola(lOnline, T0);
+  assert.equal(out2.isola, 'arena');
 });
 
 test('storia: la missione dei dungeon apre con Gigi; i dungeon finiti prima non pagano', () => {

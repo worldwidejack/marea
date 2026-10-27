@@ -343,6 +343,9 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
       if (s?.rete) { s.voluta = true; sess = null; try { s.ws.close(1000, 'fine'); } catch { /* chiusa */ } }
       c.tornaAllIngresso();
       if (rete && c.api) { try { const l = await c.api.lot(); c.setLot(l); } catch { /* il premio si vede alla prossima lettura */ } }
+      else if (!rete && fine.esito && c.api && c.getLot()?.storia) {
+        try { const l = await c.api.storia('arena'); c.setLot(l); } catch { /* la rete: pazienza */ }
+      }
       if (fine.rivincita) { void allena(); return; }
       apri();
     });
