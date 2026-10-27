@@ -27,6 +27,8 @@ export function tickTimers(root: ParentNode, now: number): void {
 
 /** Entro quanti metri un cartello delle attività torna pieno (#129): oltre è piccolo e in trasparenza (classe `far`). */
 export const LABEL_NEAR_M = 12;
+/** px tra un cartello e il bordo dello schermo: vicino al bordo resta dentro intero invece di uscire a metà. */
+const BORDO_PX = 6;
 /** `vicino` = false: cartello discreto (piccolo, in trasparenza); di serie pieno. */
 export type Label = { el: HTMLElement; set(kind: 'bubble' | 'timer' | 'full' | 'info', content: Node[], sig: string): void; place(x: number, y: number, on: boolean, vicino?: boolean): void; remove(): void };
 export type LabelLayer = { add(onTap?: () => void): Label; el: HTMLElement };
@@ -34,6 +36,8 @@ export type LabelLayer = { add(onTap?: () => void): Label; el: HTMLElement };
 export function createLabelLayer(root: HTMLElement): LabelLayer {
   const layer = el('div', 'mz mz-labels');
   root.prepend(layer); // sotto a barra, pannello e controlli
+  let largo = 0; // larghezza dello strato, riletta solo al resize (leggerla a ogni cartello forzerebbe il layout a ogni fotogramma)
+  addEventListener('resize', () => { largo = 0; });
   return {
     el: layer,
     add(onTap) {
@@ -41,7 +45,7 @@ export function createLabelLayer(root: HTMLElement): LabelLayer {
       if (onTap) e.addEventListener('click', (ev) => { ev.stopPropagation(); onTap(); });
       e.addEventListener('pointerdown', (ev) => ev.stopPropagation());
       layer.appendChild(e);
-      let sig = '', shown = false, lx = NaN, ly = NaN, far = false;
+      let sig = '', shown = false, lx = NaN, ly = NaN, far = false, mezzo = -1; // mezzo: metà larghezza, si rimisura quando cambia
       return {
         el: e,
         set(kind, content, s) {
@@ -50,11 +54,16 @@ export function createLabelLayer(root: HTMLElement): LabelLayer {
           e.className = 'mz-lbl ' + (kind === 'full' ? 'bubble full' : kind);
           e.classList.toggle('far', far);
           e.replaceChildren(...content);
+          mezzo = -1;
         },
         place(x, y, on, vicino = true) {
           if (!on) { if (shown) { e.style.transform = 'translate(-9999px,0)'; shown = false; } return; }
-          if (far === vicino) { far = !vicino; e.classList.toggle('far', far); }
-          const rx = Math.round(x), ry = Math.round(y);
+          if (far === vicino) { far = !vicino; e.classList.toggle('far', far); mezzo = -1; }
+          if (mezzo < 0) mezzo = e.offsetWidth / 2;
+          // vicino al bordo il cartello resta dentro lo schermo intero (prima usciva a metà: «bbro» per «Fabbro»)
+          if (!largo) largo = layer.clientWidth;
+          const w = largo, cx = w > 2 * (mezzo + BORDO_PX) ? Math.min(Math.max(x, mezzo + BORDO_PX), w - mezzo - BORDO_PX) : x;
+          const rx = Math.round(cx), ry = Math.round(y);
           if (shown && rx === lx && ry === ly) return;
           shown = true; lx = rx; ly = ry;
           e.style.transform = `translate(${rx}px, ${ry}px) translate(-50%, -100%)`;
