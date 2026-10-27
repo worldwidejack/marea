@@ -1,4 +1,4 @@
-// Barra sottile per regolare lo zoom della camera su mobile (#616).
+// Barra sottile per regolare lo zoom della camera su mobile.
 // Discreta, semitrasparente a riposo (opacity .35), reattiva al tocco (opacity 1).
 import { CAM } from '../render/camera.ts';
 import type { DioramaCamera } from '../render/camera.ts';

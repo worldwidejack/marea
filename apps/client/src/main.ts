@@ -63,7 +63,6 @@ import { avviaRientro } from './avvio/rientro.ts';
 import { collegaTasti } from './avvio/tasti.ts';
 import { creaRegistro } from './avvio/registro.ts';
 import { azioneA } from './avvio/azione_a.ts';
-import type { ZoomSlider } from './ui/zoom_slider.ts';
 
 async function boot(): Promise<void> {
   if (FLAGS.invito && !FLAGS.token) await entraConInvito(FLAGS.invito); // link di gruppo: prima il nome, poi si riparte col token
