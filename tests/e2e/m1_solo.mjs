@@ -1,8 +1,6 @@
-// Primo avvio di un amico (guida «Primi passi» + minigiochi da solo): server locale pulito, Luca entra col suo link. La guida chiede di
-// entrare in casa (freccia sulla porta, A entra), poi la barca, poi la Regata; al molo della Laguna compare GIOCA, la gara la corre
-// l'autopilot, il server rigioca gli input e paga il premio della medaglia (balance.solo); la guida passa a «Spendi le monete».
-// API: play senza partita aperta 409, input rotti 400.
-// La guida non parte da sola (VISIONE §1): al primo ingresso è spenta, c'è solo il toast che la indica; Luca la accende dalle Impostazioni.
+// Primo avvio di un amico (minigiochi da solo): server locale pulito, Luca entra col suo link (coi test la storia delle prime ore non parte:
+// la prova tests/e2e/m4_storia.mjs). Entra in casa dalla porta (A), poi in barca alla Laguna; al molo compare GIOCA, la gara la corre
+// l'autopilot, il server rigioca gli input e paga il premio della medaglia (balance.solo). API: play senza partita aperta 409, input rotti 400.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -52,50 +50,34 @@ export default async function (ctx) {
     luca = P; ctx._pages.push(P);
     const page = P.page;
     await ctx.waitReady(page, 30000);
-    await ctx.waitState(page, (s) => s.lot && s.lot.ready === true && s.guida, 15000);
+    await ctx.waitState(page, (s) => s.lot && s.lot.ready === true, 15000);
     const st = () => ctx.getState(page);
     const hook = (n, ...a) => page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
 
-    await ctx.test('primo ingresso: la guida non parte da sola (solo il toast che la indica); dalle Impostazioni si accende', async () => {
-      const s0 = await st();
-      assert(s0.guida.chiusa === true && s0.guida.current === null && !s0.guida.visibile && s0.guida.primaVolta, 'guida al primo ingresso: ' + JSON.stringify(s0.guida));
-      assert(await page.locator('#mzGuida.on').count() === 0 && !s0.guida.pointer, 'la scheda della guida si vede');
-      const toast = await page.evaluate(() => document.getElementById('toast')?.textContent ?? '');
-      assert(/Primi passi/.test(toast) && /Impostazioni/.test(toast), 'toast: ' + toast);
-      await ctx.shot(page, '0_primo_ingresso');
-      await page.locator('#mzSetBtn').click();
-      await page.waitForSelector('#mzSet.on [data-set="guida"]', { timeout: 5000 });
-      assert(/^No$/.test((await page.locator('#mzSet [data-set="guida"] .sw').innerText()).trim()), 'la riga della guida deve dire No');
-      await page.locator('#mzSet [data-set="guida"]').click();
-      await ctx.waitState(page, (s) => s.guida.chiusa === false && s.guida.current === 'casa', 3000);
-      await ctx.shot(page, '0_impostazioni_guida');
-      await page.locator('#mzSet .mz-x').click();
-      await ctx.waitState(page, (s) => s.guida.visibile, 5000);
-    });
-
-    await ctx.test('apertura: guida 1/8 «Entra in casa tua» con la freccia, bussola con Casa, Porto e Regata', async () => {
+    await ctx.test('apertura: il saluto col nome, niente scheda della storia (coi test non parte); bussola con Casa, Porto e Regata', async () => {
       const s = await st();
-      assert(s.guida.current === 'casa' && s.guida.total === 8 && s.guida.pointer, 'guida: ' + JSON.stringify(s.guida));
+      const toast = await page.evaluate(() => document.getElementById('toast')?.textContent ?? '');
+      assert(/Ciao Luca/.test(toast), 'toast: ' + toast);
+      assert(!s.storia && await page.locator('.mz-guida.on').count() === 0, 'la storia è partita coi test: ' + JSON.stringify(s.storia ?? null));
       const rows = await page.evaluate(() => [...document.querySelectorAll('#compass [data-id]')].map((r) => r.dataset.id));
       assert(rows.includes('porto') && rows.includes('regata') && rows.includes('casa'), 'bussola: ' + rows.join(','));
       assert(s.minigiochi.spots.some((x) => x.id === 'regata'), 'manca il posto della Regata');
     });
     await ctx.shot(page, '1_apertura');
 
-    await ctx.test('davanti alla porta A entra in casa → guida 2/8 «Sali in barca»; si riesce in città', async () => {
+    await ctx.test('davanti alla porta A entra in casa; si riesce in città', async () => {
       const s = await st(), porta = s.borgo.porte.find((q) => q.mia);
       await hook('teleport', porta.x, porta.z);
       await ctx.waitState(page, (q) => q.borgo.near && q.borgo.near.dove === 'entra', 5000);
       await page.keyboard.press('KeyE');
-      await ctx.waitState(page, (q, slot) => q.stanza.dentro === slot && q.guida.current === 'barca', 15000, porta.slot);
+      await ctx.waitState(page, (q, slot) => q.stanza.dentro === slot, 15000, porta.slot);
       await hook('esciDiCasa', porta.slot);
       await ctx.waitState(page, (q) => q.stanza.dentro === null, 5000);
     });
     await ctx.shot(page, '2_barca');
 
-    await ctx.test('in barca → guida 3/8 «Regata»; alla Laguna A al molo sale e scende (la Regata non parte), in barca compare GIOCA (R)', async () => {
+    await ctx.test('alla Laguna A al molo sale e scende (la Regata non parte), in barca compare GIOCA (R)', async () => {
       await hook('setMode', 'boat');
-      await ctx.waitState(page, (s) => s.guida.current === 'regata', 5000);
       await hook('goto', 'laguna'); // a piedi, con la barca ormeggiata accanto al molo della Laguna
       const dock = (await st()).island.dock;
       await hook('teleport', dock.x, dock.z); await sleep(300);
@@ -113,7 +95,7 @@ export default async function (ctx) {
     });
     await ctx.shot(page, '3_gioca');
 
-    await ctx.test('GIOCA → gara (autopilot) → il server premia la medaglia; scheda con il premio; guida 4/8', async () => {
+    await ctx.test('GIOCA → gara (autopilot) → il server premia la medaglia; scheda con il premio', async () => {
       const before = (await st()).lot.monete;
       await hook('regataAutopilot', 20);
       await page.locator('#mzPlay').click();
@@ -127,15 +109,15 @@ export default async function (ctx) {
       assert(/\+\d+/.test(await page.locator('#mzEsito').innerText()), 'la scheda non mostra il premio');
       await ctx.shot(page, '4_esito');
       await page.locator('#mzEsito [data-act="ok"]').click();
-      await ctx.waitState(page, (s) => s.guida.current === 'spendi' && s.minigiochi.open === false, 5000);
+      await ctx.waitState(page, (s) => s.minigiochi.open === false, 5000);
       await ctx.waitState(page, (s, o) => s.lot.monete === o, 10000, r.lot.monete); // il contatore si aggiorna subito
       await ctx.waitState(page, (s, o) => Number(document.querySelector('.mz-chip[data-res="monete"] b')?.textContent ?? -1) === o, 10000, r.lot.monete).catch(() => assert(false, 'il contatore delle monete non segue il lotto'));
     });
-    await ctx.shot(page, '5_spendi');
+    await ctx.shot(page, '5_monete');
 
     await ctx.test('nessun pageerror per Luca', async () => { ctx.noErrors(P, 'Luca'); });
 
-    await ctx.test('link di gruppo: nome → isola sua (slot libero), guida spenta; nome corto 400; oltre max_usi 403', async () => {
+    await ctx.test('link di gruppo: nome → isola sua (slot libero); nome corto 400; oltre max_usi 403', async () => {
       const G = await ctx.B.openPage(ctx.browser, `${base}/?invito=gruppo1&test=1`, { viewport: ctx.B.IPHONE }); ctx._pages.push(G);
       await G.page.waitForSelector('#mzEntra input', { timeout: 15000 });
       await ctx.shot(G.page, '6_entra');
@@ -143,9 +125,9 @@ export default async function (ctx) {
       await G.page.click('#mzEntra button');
       await G.page.waitForURL(/[?&]t=/, { timeout: 15000, waitUntil: 'commit' });
       await ctx.waitReady(G.page, 30000);
-      await ctx.waitState(G.page, (s) => s.lot && s.lot.ready === true && s.guida && s.arch, 15000);
+      await ctx.waitState(G.page, (s) => s.lot && s.lot.ready === true && s.arch, 15000);
       const s = await ctx.getState(G.page);
-      assert(s.arch.slot === 2 && s.guida.chiusa === true && s.guida.current === null && s.guida.total === 8, 'Giò: ' + JSON.stringify({ slot: s.arch.slot, guida: s.guida }));
+      assert(s.arch.slot === 2, 'Giò: ' + JSON.stringify({ slot: s.arch.slot }));
       const tok = await G.page.evaluate(() => localStorage.getItem('marea:token'));
       const me = await (await fetch(base + '/api/me', { headers: { 'x-token': tok } })).json();
       assert(me.nome === 'Giò Bianchi' && /^gio-bianchi-[0-9a-f]{4}$/.test(me.id), 'persona: ' + JSON.stringify({ id: me.id, nome: me.nome }));

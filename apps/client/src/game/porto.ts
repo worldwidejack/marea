@@ -28,6 +28,8 @@ import { eroeForPanels } from '../ui/eroe.ts';
 import type { Label } from '../ui/sheet.ts';
 import type { PortoUi } from '../ui/porto_ui.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { primaLaStoria } from '../avvio/prima.ts';
+import type { Pagina, Scheda } from '../ui/paesani_dlg.ts';
 
 export type PortoKind = 'mercante' | 'bacheca' | 'contrabbando';
 export type Porto = {
@@ -40,8 +42,16 @@ export type Porto = {
   update(dt: number, focus: { x: number; z: number }): void;
   /** Un pannello del Porto è aperto (o si sta scaricando): il mondo sta fermo. */
   isBusy(): boolean;
-  /** Cosa è aperto adesso (la guida «Primi passi» aspetta un 'parla'). */
+  /** Cosa è aperto adesso. */
   aperto(): 'mercante' | 'bacheca' | 'parla' | null;
+  /** La storia (storia/risveglio.ts): la persona `id` ti si mette in (x, z) e ti dice `testi`; finisce quando chiudi la scheda. */
+  racconta(id: string, testi: readonly string[], at: { x: number; z: number }): Promise<void>;
+  /** La storia (storia/dialoghi.ts): `nome` (la persona `id` del Porto, se c'è) parla a pagine, con le scelte; finisce quando chiudi. */
+  dialogo(id: string, nome: string, pagine: (s: Scheda) => Pagina[]): Promise<void>;
+  /** La pagina dopo della scheda aperta (A davanti a Fulvio o a Bepi mentre parla la storia). */
+  avanti(): void;
+  /** Dove sta adesso la persona `id` del Porto (null = non c'è): la freccia della storia. */
+  dove(id: string): { x: number; z: number } | null;
   /** Dove sta la Gente del Porto adesso (coordinate mondo): la guida punta la persona più vicina. */
   gente(): readonly { x: number; z: number }[];
   close(): void;
@@ -122,7 +132,7 @@ export function createPorto(o: PortoOpts): Porto {
   const group = new THREE.Group(); group.name = 'porto_ricco'; o.world.scene.add(group);
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   const layer = createLabelLayer(o.root);
-  let ui: PortoUi | null = null, loading: Promise<PortoUi | null> | null = null, near: Target | null = null, aWas = false, closedAt = 0;
+  let racconto: (() => void) | null = null, ui: PortoUi | null = null, loading: Promise<PortoUi | null> | null = null, near: Target | null = null, aWas = false, closedAt = 0;
 
   // ---- banco e bacheca ----
   // banco e bacheca in un solo mesh (un draw call, uno per l'ombra)
@@ -182,7 +192,7 @@ export function createPorto(o: PortoOpts): Porto {
   async function loadUi(): Promise<PortoUi | null> {
     if (ui) return ui;
     loading ??= import('../ui/porto_ui.ts').then((m) => {
-      ui = m.createPortoUi({ ...o, setLook: (l) => o.world.setLook(l), onClose: () => { closedAt = performance.now(); for (const n of npcs) n.talk = false; } });
+      ui = m.createPortoUi({ ...o, setLook: (l) => o.world.setLook(l), onClose: () => { closedAt = performance.now(); for (const n of npcs) n.talk = false; racconto?.(); racconto = null; } });
       return ui;
     }).catch(() => { loading = null; o.hud.toast('Pannello non caricato: riprova', 2500); return null; });
     return loading;
@@ -194,7 +204,8 @@ export function createPorto(o: PortoOpts): Porto {
       if (!e) { o.hud.toast('Il Furetto tratta solo con chi ha un\'isola: apri MAREA col tuo link personale', 3000); return false; }
       const frasi = GENTE.gente.find((p) => p.ruolo === 'contrabbandiere')?.battute ?? [];
       btn.classList.remove('on');
-      e.openContrabbando(frasi[Math.floor(Math.random() * frasi.length)] ?? '');
+      const frase = frasi[Math.floor(Math.random() * frasi.length)] ?? '';
+      if (!primaLaStoria('furetto', (f) => e.openContrabbando(f ?? frase))) e.openContrabbando(frase);
       return true;
     }
     const u = await loadUi();
@@ -202,7 +213,7 @@ export function createPorto(o: PortoOpts): Porto {
     btn.classList.remove('on');
     if (t.kind === 'posto') { if (t.id === 'mercante') u.mercante(); else u.bacheca(); return true; }
     const n = npcs.find((x) => x.p.id === t.p.id); if (n) n.talk = true;
-    u.parla(t.p);
+    if (!primaLaStoria(t.p.id, () => u.parla(t.p))) u.parla(t.p);
     return true;
   }
 
@@ -268,6 +279,24 @@ export function createPorto(o: PortoOpts): Porto {
     isBusy: () => !!ui?.isOpen(),
     aperto: () => (ui?.isOpen() ? ui.kind : null),
     gente: () => npcs,
+    async racconta(id, testi, at) {
+      const n = npcs.find((x) => x.p.id === id), u = await loadUi();
+      if (!n || !u) return;
+      if (n.cammina) passeggio.sposta(n.cammina, at.x, at.z);
+      n.x = at.x; n.z = at.z; n.talk = true; btn.classList.remove('on');
+      u.parla(n.p, testi);
+      await new Promise<void>((r) => { racconto = r; });
+    },
+    async dialogo(id, nome, pagine) {
+      const n = npcs.find((x) => x.p.id === id), u = await loadUi();
+      if (!u) return;
+      if (n) n.talk = true;
+      btn.classList.remove('on');
+      u.parla(n?.p ?? { ...GENTE.gente[0]!, id, nome }, pagine);
+      await new Promise<void>((r) => { racconto = r; });
+    },
+    avanti: () => { if (ui?.kind === 'parla') ui.avanti(); },
+    dove: (id) => { const n = npcs.find((x) => x.p.id === id); return n ? { x: n.x, z: n.z } : null; },
     close: () => ui?.close(),
     tick(a) {
       const pressA = a && !aWas; aWas = a;

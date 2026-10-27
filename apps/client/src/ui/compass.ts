@@ -6,7 +6,7 @@
 // apre con ▸ (una sezione aperta alla volta); la casella della sezione accende o spegne tutte le sue mete, distanza e freccia sono della meta
 // che dà il nome alla sezione (il Porto) o della più vicina accesa. Una sezione con una meta sola si vede come una riga normale. L'elenco ha un'altezza massima (sopra minimappa e bottoni sul
 // PC, sopra il bottone GIOCA al centro sul telefono) e oltre quella scorre: non copre mai il resto dell'interfaccia (test m3_interfaccia).
-// Aperto/chiuso, sezione aperta e mete spente restano su questo dispositivo (localStorage). `focus(id)` evidenzia la meta della guida.
+// Aperto/chiuso, sezione aperta e mete spente restano su questo dispositivo (localStorage). `focus(id)` evidenzia la meta della scheda della storia.
 // La meta del **navigatore** (`navi`: il segnalino fissato dalla mappa, ui/segno.ts) sta in cima, è sempre accesa (× al posto della casella:
 // toccandola si toglie) e ha lei la freccia sullo schermo e il riassunto a menù chiuso, anche se ci sono altre mete accese.
 import type * as THREE from 'three';
@@ -271,7 +271,7 @@ export function createCompass(o: {
 
   const place = (r: Row, t: number) => {
     const cam = o.camera, canvas = o.canvas;
-    if (!cam || !canvas || r.d < ARRIVO_M || o.hidden?.() || (focused === r.t.id && document.querySelector('#mzGuidaPtr.on'))) { ptr.classList.remove('on'); ptrMode = 'off'; return; } // la guida punta già lì
+    if (!cam || !canvas || r.d < ARRIVO_M || o.hidden?.() || (focused === r.t.id && document.querySelector('.mz-guida-ptr.on'))) { ptr.classList.remove('on'); ptrMode = 'off'; return; } // la guida punta già lì
     if (ptrFor !== r.t.id) { ptrFor = r.t.id; tag.replaceChildren(...(r.t.icon ? [pixIcon(r.t.icon, 16)] : []), tagText); }
     tagText.textContent = `${Math.round(r.d)} m`;
     const cr = canvas.getBoundingClientRect(), phone = cr.width < 700, M = 44, TOP = 118;

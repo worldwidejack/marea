@@ -31,6 +31,7 @@ import type { Avatar } from './avatar.ts';
 import { NASCOSTI_DENTRO, costruisciStanza, createInquadratura, textureCampione } from './interno.ts';
 import type { Pianta } from './interno.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { primaLaStoria } from '../avvio/prima.ts';
 import { createPalaBorgo } from './pala.ts';
 import { createInsettiBorgo } from './insetti.ts';
 import { createPescaBorgo } from './pesca.ts';
@@ -249,7 +250,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   const vai = (v: Vicino) => {
     if (v.kind === 'porta') passa(entraDentro, () => o.hud.toast('Il negozio dei mobili: avvicinati a un pezzo e premi A', 2600));
     else if (v.kind === 'esci') passa(esciFuori);
-    else fulvio.apri(v.p);
+    else if (v.p.kind !== 'banco' || !primaLaStoria('fulvio', () => fulvio.apri(v.p))) fulvio.apri(v.p);
   };
   btn.addEventListener('click', () => { if (near) vai(near); });
 

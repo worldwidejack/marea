@@ -14,7 +14,7 @@ Per chi lavora: prima di aggiungere un minigioco piccolo e isolato, chiediti a q
 | Arcipelago condiviso, movimento in tempo reale, camera diorama regolabile, app installabile, a piedi e in barca | **sì**, è la base | c'è |
 | Giorno/notte | **sì**, ma spegnibile | c'è già l'interruttore nelle Impostazioni (#54) |
 | Meteo | **da rifare**: niente nebbia globale fissa. **Nuvole che si muovono sulla mappa** e decidono il meteo del posto dove sono (piove sotto la nuvola, non ovunque) | uno stato solo per tutto il mondo, dall'orologio (`meteo.json`, GDD §3) |
-| Tutorial «Primi passi» | **fatto** (18 ott 2026): **facoltativo**, non parte da solo, lo accende chi lo vuole | si accende dalla riga «Guida Primi passi» delle Impostazioni; al primo ingresso solo un toast che lo dice (GDD §9, `ui/guida.ts`) |
+| Storia e tutorial | **fatto** (27 ott 2026, Riccardo, Jack d'accordo): **obbligatoria** per tutti, veterani compresi; non si salta niente | naufragio, Nonna Pina, tutorial fino al regalo di Fulvio, barca da comprare da Bepi, missioni di Remo (isole e viaggio rapido) e dei dungeon (GDD §9, `storia/`); la guida «Primi passi» facoltativa non c'è più |
 | HUD del mondo | **fatto** (19 ott 2026, #417): deciso col gruppo quali bottoni tenere, poi lo stile «Allegro» (alla Super Mario) | monete, campanella con «X è online», AVATAR col menù a tutto schermo, ingranaggio, viaggio rapido, minimappa con bandierina delle mete, A con la scritta dell'azione, B solo dove serve (`ui/stile_allegro.ts`, `ui/hud_allegro.ts`, GDD §3) |
 | Minimappa e mappa grande | **fatto** (16 ott 2026, #360): **nord sempre in alto**; **zoom a più scatti**; **icone degli spot**; le isole non sbloccate **non si vedono proprio** (niente nebbia sopra) | nord in alto, zoom a scatti, icone delle mete, isole chiuse invisibili (`ui/minimappa.ts`, GDD §3); tra due varianti Jack ha scelto (17 ott) icone col contorno nero, 3 scatti, bottoni accanto al cerchio |
 
@@ -43,7 +43,7 @@ Per chi lavora: prima di aggiungere un minigioco piccolo e isolato, chiediti a q
 **Ordine dei lavori** (#414, una PR ciascuno): 1) questo documento · 2) sim e content: portafoglio, premi, prezzi, conversione dei salvataggi · 3) client: un contatore solo nell'HUD (lo stile nuovo dell'HUD si sceglie a parte), giardino e pannelli del lotto spenti, negozi a monete · 4) le botteghe Fabbro, Alchimista, Cantiere navale nel Borgo, con le vetrine del giorno: **fatto** (19 ott 2026, GDD §5 «Botteghe del Borgo») · 5) pulizia del codice spento, dopo, a parte.
 
 Resta valido, per più avanti:
-- **Direzione possibile** (da ripensare con Jack): all'inizio hai **solo la casa** → fai monete → **compri la prima barca** al Cantiere → salpi. Oggi la barca ce l'hai da subito.
+- **Partenza nuova**: **fatta** (27 ott 2026): all'inizio hai solo la casa, fai monete e **compri la barca** da Bepi al Cantiere (GDD §9).
 - **Idea**: più avanti una meccanica da **city builder a esagoni**. Da valutare.
 - Non aggiungere valute, risorse o edifici di produzione nuovi: si aggiungono **botteghe** e **cose da comprare**.
 

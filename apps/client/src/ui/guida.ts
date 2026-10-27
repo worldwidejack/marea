@@ -1,11 +1,8 @@
-// Guida «Primi passi» (GDD §9): un'azione alla volta, niente testo lungo. Una scheda con il passo corrente e una freccia gialla che punta
-// la meta: sopra la cosa se è in vista, sul bordo dello schermo (verso la meta) se è fuori. I passi e le loro condizioni li passa main.ts.
-// **Facoltativa** (VISIONE §1, 18 ott 2026): non parte da solo, la accende chi la vuole dalla riga «Guida Primi passi» delle Impostazioni;
-// al primissimo ingresso main.ts mostra solo un toast che lo dice (`primaVolta`). Un passo fatto resta fatto, **anche fuori ordine e a guida
-// spenta** (sei salito in barca prima della Segheria? vale lo stesso): progresso per persona in localStorage `marea:guida:<id>` =
-// `{ fatti: [id…], chiusa, v: 2 }`. Quello che c'era prima della v2 (il numero N = i primi N passi fatti, o il JSON senza `v`) si legge
-// ancora per i passi fatti, ma la guida riparte spenta: prima si accendeva da sola, ora la sceglie chi gioca. SALTA salta il passo, × la
-// spegne. Sul telefono la scheda sta in basso e lascia il posto ai bottoni GIOCA / PESCA / Porto quando le finirebbero sopra.
+// La scheda della storia (storia/: il tutorial, poi le missioni): un'azione alla volta, niente testo lungo. Una scheda con il passo corrente
+// e una freccia gialla che punta la meta: sopra la cosa se è in vista, sul bordo dello schermo (verso la meta) se è fuori. Obbligatoria
+// (VISIONE §1): niente SALTA né ×; i passi fatti li dice il server (letti da `done`, anche fuori ordine). `nota`: una riga in più sotto il
+// passo (la missione del dungeon mentre fai le isole). Sul telefono la scheda sta in basso e lascia il posto ai bottoni GIOCA / PESCA / Porto
+// quando le finirebbero sopra.
 import type * as THREE from 'three';
 import { ARROW_SVG } from './compass.ts';
 import { pointerPose } from './pointer.ts';
@@ -23,35 +20,24 @@ export type GuidaStep = {
 };
 export type Guida = {
   update(t: number): void;
-  /** Il passo da fare adesso (null = finita o chiusa). */
+  /** Il passo da fare adesso (null = finita). */
   current(): string | null;
-  chiusa(): boolean;
-  /** × e la riga delle Impostazioni. */
-  setChiusa(v: boolean): void;
-  /** Prima volta di questa persona su questo dispositivo (niente salvato): main.ts mostra l'invito ad accenderla. */
-  readonly primaVolta: boolean;
 };
 
 const CSS = `
 .mz-guida { position: absolute; left: 8px; top: max(8px, env(safe-area-inset-top)); width: 260px; box-sizing: border-box; display: none; padding: 6px 8px 8px 10px; background: rgba(46,30,20,.93); border: 2px solid ${PAL.giallo}; box-shadow: 0 3px 0 ${PAL.neroCaldo}; z-index: 13; pointer-events: none !important; }
 .mz-guida.on { display: block; }
 .mz-guida.cede { visibility: hidden; }
-.mz-guida .hd { display: flex; align-items: center; gap: 6px; }
-.mz-guida small { flex: 1; color: ${PAL.giallo}; font-size: 11px; letter-spacing: .08em; }
+.mz-guida small { display: block; color: ${PAL.giallo}; font-size: 11px; letter-spacing: .08em; }
 .mz-guida b { display: block; font-size: 16px; margin: 2px 0; }
 .mz-guida span { display: block; color: ${PAL.sabbia}; font-size: 13px; line-height: 1.3; }
-.mz-guida button { pointer-events: auto; cursor: pointer; flex: none; min-height: 30px; min-width: 30px; padding: 0 8px; margin: 0; background: ${PAL.legnoScuro}; border: 2px solid ${PAL.legno}; color: ${PAL.sabbiaChiara}; font: bold 11px ui-monospace, Menlo, monospace; }
-.mz-guida button[data-act="chiudi"] { padding: 0; font-size: 16px; }
-.mz-guida button:active { transform: translateY(2px); }
-.mz-guida button:focus { outline: none; } .mz-guida button:focus-visible { outline: 3px solid ${PAL.giallo}; outline-offset: 1px; }
+.mz-guida i { display: none; margin-top: 4px; padding-top: 4px; border-top: 1px solid ${PAL.legno}; color: ${PAL.sabbiaChiara}; font-size: 12px; font-style: normal; }
+.mz-guida i.on { display: block; }
 .mz-guida.ok { border-color: ${PAL.erba}; }
 .mz-guida.ok small { color: ${PAL.erba}; }
-.mz-guida.ok button { display: none; }
-.mz-guida.ok .hd { min-height: 30px; }
 @media (max-width: 699px) {
   .mz-guida { top: auto; left: 8px; right: 8px; width: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 180px); }
-  .mz-guida button { min-height: 36px; min-width: 36px; }
-  .mz-guida.ok .hd { min-height: 36px; }
+  body:has(#mzAttrezzoBtn.on) .mz-guida { right: 84px; } /* il bottone dell'attrezzo in mano (Q), sopra la A */
 }
 .mz-guida-ptr { position: absolute; left: 0; top: 0; width: 32px; height: 40px; display: none; color: ${PAL.giallo}; z-index: 12; pointer-events: none !important; filter: drop-shadow(0 3px 0 ${PAL.neroCaldo}); }
 .mz-guida-ptr.on { display: block; }
@@ -59,67 +45,40 @@ const CSS = `
 #ui.mz-racing .mz-guida, #ui.mz-racing .mz-guida-ptr { visibility: hidden; }
 `;
 
-type Saved = { fatti: string[]; chiusa: boolean; nuovo?: boolean };
-
-/** `vecchi`: quanti passi in testa a `steps` c'erano già col vecchio formato (un numero): il numero salvato vale solo per loro. */
-export function createGuida(o: { root: HTMLElement; camera: THREE.Camera; canvas: HTMLCanvasElement; steps: GuidaStep[]; vecchi?: number; storeKey: string; hidden(): boolean; onFocus?(id: string | null): void }): Guida {
+export function createGuida(o: {
+  root: HTMLElement; camera: THREE.Camera; canvas: HTMLCanvasElement; steps: GuidaStep[]; hidden(): boolean; onFocus?(id: string | null): void;
+  /** Davanti al contatore («Storia 3/8»), l'id della scheda, il nome nello stato dei test, titolo e testo a passi finiti. */
+  nome: string; id: string; stato: string; fine: readonly [string, string];
+  /** Una riga sotto il passo (null = niente). */
+  nota?(): string | null;
+}): Guida {
+  const { nome, fine } = o;
   injectUiStyle();
   if (!document.getElementById('mz-guida-style')) { const st = document.createElement('style'); st.id = 'mz-guida-style'; st.textContent = CSS; document.head.appendChild(st); }
-  const card = el('div', 'mz mz-guida'); card.id = 'mzGuida';
-  const small = el('small'), tit = el('b'), come = el('span');
-  const btn = (act: string, text: string, title: string) => {
-    const b = el('button', 'mz', text); b.type = 'button'; b.dataset['act'] = act; b.title = title; b.setAttribute('aria-label', title);
-    for (const ev of ['pointerdown', 'touchstart']) b.addEventListener(ev, (x) => x.stopPropagation()); // niente joystick né tocchi sul mondo
-    return b;
-  };
-  const salta = btn('salta', 'Salta ▸', 'Salta questo passo'), chiudi = btn('chiudi', '×', 'Spegni la guida');
-  const hd = el('div', 'hd'); hd.append(small, salta, chiudi);
-  card.append(hd, tit, come);
-  const ptr = el('div', 'mz-guida-ptr'); ptr.id = 'mzGuidaPtr'; ptr.innerHTML = ARROW_SVG; // SVG statico
+  const card = el('div', 'mz mz-guida'); card.id = o.id;
+  const small = el('small'), tit = el('b'), come = el('span'), nota = el('i');
+  card.append(small, tit, come, nota);
+  const ptr = el('div', 'mz-guida-ptr'); ptr.id = card.id + 'Ptr'; ptr.innerHTML = ARROW_SVG; // SVG statico
   o.root.append(ptr, card);
 
-  const ids = o.steps.map((s) => s.id);
-  const read = (): Saved => {
-    try {
-      const raw = localStorage.getItem(o.storeKey);
-      if (!raw) return { fatti: [], chiusa: true, nuovo: true }; // non parte da sola: la accende chi la vuole (Impostazioni)
-      if (/^\d+$/.test(raw.trim())) return { fatti: ids.slice(0, Math.min(Number(raw), o.vecchi ?? ids.length)), chiusa: true }; // formato di prima: i primi N passi
-      const v = JSON.parse(raw) as Partial<Saved> & { v?: number };
-      // prima della v2 la guida si accendeva da sola: chi l'aveva ancora accesa non l'aveva scelta, riparte spenta (i passi fatti restano)
-      return { fatti: Array.isArray(v.fatti) ? v.fatti.filter((x): x is string => typeof x === 'string') : [], chiusa: v.v === 2 ? v.chiusa !== false : true };
-    } catch { return { fatti: [], chiusa: true }; }
-  };
-  const saved = read();
-  const fatti = new Set(saved.fatti);
-  let chiusa = saved.chiusa;
-  const write = () => { try { localStorage.setItem(o.storeKey, JSON.stringify({ fatti: [...fatti], chiusa, v: 2 })); } catch { /* storage bloccato: al prossimo avvio la guida riparte spenta */ } };
-  if (saved.nuovo) write(); // l'invito (toast in main.ts) si vede una volta sola
-  const total = o.steps.length;
+  const ids = o.steps.map((s) => s.id), fatti = new Set<string>(), total = o.steps.length;
   const doneN = () => o.steps.filter((s) => fatti.has(s.id)).length;
   const next = () => o.steps.find((s) => !fatti.has(s.id)) ?? null;
-  let tNow = 0, okUntil = 0, byeUntil = 0, closedUntil = 0, sig = '', lastDone: GuidaStep | null = null, cede = false, nextCede = 0;
+  let okUntil = 0, byeUntil = 0, sig = '', lastDone: GuidaStep | null = null, cede = false, nextCede = 0, primo = true;
 
-  salta.addEventListener('click', (e) => { e.preventDefault(); salta.blur(); const st = next(); if (!st) return; fatti.add(st.id); write(); okUntil = 0; if (!next()) byeUntil = tNow + 5; });
-  chiudi.addEventListener('click', (e) => { e.preventDefault(); chiudi.blur(); setChiusa(true); });
-  function setChiusa(v: boolean): void {
-    if (v === chiusa) return;
-    chiusa = v; write();
-    closedUntil = v ? tNow + 3.5 : 0;
-    if (!v && !next()) byeUntil = tNow + 5;
-  }
-
-  const show = (sm: string, titolo: string, testo: string, ok: boolean) => {
-    const s = `${sm}|${titolo}|${testo}|${ok}`;
+  const show = (sm: string, titolo: string, testo: string, ok: boolean, n: string | null = null) => {
+    const s = `${sm}|${titolo}|${testo}|${ok}|${n}`;
     if (s === sig) return;
     sig = s;
-    small.textContent = sm; tit.textContent = titolo; come.textContent = testo;
+    small.textContent = sm; tit.textContent = titolo; come.textContent = testo; nota.textContent = n ?? '';
+    nota.classList.toggle('on', !!n);
     card.classList.toggle('ok', ok);
   };
   const place = (target: { x: number; y: number; z: number } | null, t: number) => {
     if (!target) { ptr.classList.remove('on'); return; }
     const r = o.canvas.getBoundingClientRect();
     const M = 44, TOP = 118; // margini dal bordo; in alto si sta sotto barra risorse e toast
-    // in basso: sopra la scheda della guida quando sta in basso (telefono), così la freccia non finisce sui bottoni A/B
+    // in basso: sopra la scheda quando sta in basso (telefono), così la freccia non finisce sui bottoni A/B
     const cr = card.classList.contains('on') ? card.getBoundingClientRect() : null;
     const BOT = cr && cr.top - r.top > r.height / 2 ? cr.top - r.top - 12 : r.height - M;
     const p = pointerPose({ camera: o.camera, canvas: o.canvas, root: o.root, target, top: TOP, bottom: BOT, m: M });
@@ -144,36 +103,31 @@ export function createGuida(o: { root: HTMLElement; camera: THREE.Camera; canvas
     return false;
   };
 
-  registerStateProvider('guida', () => ({ done: doneN(), total, current: chiusa ? null : next()?.id ?? null, pointer: ptr.classList.contains('on'), chiusa, fatti: ids.filter((id) => fatti.has(id)), cede, visibile: card.classList.contains('on'), primaVolta: saved.nuovo === true }));
+  registerStateProvider(o.stato, () => ({ done: doneN(), total, current: next()?.id ?? null, pointer: ptr.classList.contains('on'), fatti: ids.filter((id) => fatti.has(id)), cede, visibile: card.classList.contains('on'), nota: nota.textContent || null }));
   return {
-    primaVolta: saved.nuovo === true,
-    current: () => (chiusa ? null : next()?.id ?? null),
-    chiusa: () => chiusa,
-    setChiusa,
+    current: () => next()?.id ?? null,
     update(t) {
-      tNow = t;
-      // ogni passo si controlla sempre, anche fuori ordine e a guida chiusa (se la riapri, quello che hai fatto vale)
+      // ogni passo si controlla sempre, anche fuori ordine; quelli già fatti all'apertura non fanno festa
       for (const st of o.steps) {
         if (fatti.has(st.id) || !st.done()) continue;
-        fatti.add(st.id); write(); lastDone = st;
-        if (!chiusa) { okUntil = t + 1.4; if (!next()) byeUntil = t + 7; }
+        fatti.add(st.id); lastDone = st;
+        if (!primo) { okUntil = t + 1.4; if (!next()) byeUntil = t + 7; }
       }
+      primo = false;
       const hide = o.hidden();
       const ora = performance.now(); // tempo vero: a pochi fps il tempo del gioco va piano (dt ≤ 0,1 s)
       if (ora >= nextCede) { nextCede = ora + 150; cede = sopraUnBottone(); card.classList.toggle('cede', cede); }
       const st = next();
-      if (chiusa || !st) {
+      if (!st) {
         o.onFocus?.(null); ptr.classList.remove('on');
-        const msg = chiusa ? t < closedUntil : t < byeUntil;
-        card.classList.toggle('on', msg && !hide);
-        if (chiusa) show('Primi passi · Spenta', 'Guida spenta', 'Quando vuoi la riaccendi dalle Impostazioni (ingranaggio in alto).', true);
-        else show('Primi passi · Fatto!', 'Ora sai tutto', 'Il resto lo scopri da solo. O te lo spiega Nonna Pina, che non aspetta altro.', true);
+        card.classList.toggle('on', t < byeUntil && !hide);
+        show(`${nome} · Fatto!`, fine[0], fine[1], true);
         return;
       }
       card.classList.toggle('on', !hide);
       const n = doneN();
-      if (t < okUntil && lastDone) show(`Primi passi ${n}/${total} · Fatto!`, lastDone.titolo, `Prossimo: ${st.titolo}`, true);
-      else show(`Primi passi ${n + 1}/${total}`, st.titolo, st.come, false);
+      if (t < okUntil && lastDone) show(`${nome} ${n}/${total} · Fatto!`, lastDone.titolo, `Prossimo: ${st.titolo}`, true);
+      else show(`${nome} ${n + 1}/${total}`, st.titolo, st.come, false, o.nota?.() ?? null);
       o.onFocus?.(st.id);
       place(hide ? null : st.target(), t);
     },

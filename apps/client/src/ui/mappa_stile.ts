@@ -126,8 +126,6 @@ export const MAPPA_CSS = `
 #mzMini canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; border-radius: 50%; border: 3px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; box-sizing: border-box; background: ${P.abisso}; }
 #mzMini .n { position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%); font: bold 11px ui-monospace, Menlo, monospace; color: ${P.giallo}; text-shadow: 0 1px 0 ${P.neroCaldo}, 1px 0 0 ${P.neroCaldo}, -1px 0 0 ${P.neroCaldo}; pointer-events: none; }
 #mzMini:focus { outline: none; } #mzMini:focus-visible canvas { border-color: ${P.giallo}; }
-#mzMini.qui canvas { animation: mzMiniQui 1s steps(2, jump-none) infinite; }
-@keyframes mzMiniQui { from { border-color: ${P.giallo}; } to { border-color: ${P.legnoChiaro}; } }
 #mzMiniZoom { position: absolute; right: 168px; bottom: calc(env(safe-area-inset-bottom, 0px) + 171px); z-index: 13; display: flex; flex-direction: column; gap: 6px; }
 #mzMiniZoom button { width: 36px; height: 36px; padding: 0; display: grid; place-items: center; border-radius: 50%; ${BTN} }
 #mzMiniZoom button:disabled { opacity: .4; cursor: default; }

@@ -1,7 +1,8 @@
 // Isola della Difesa nel mondo (docs/DIFESA.md §6): il cancello dell'orto davanti al casale, col cartello che si vede da lontano e
 // DIFENDI L'ORTO (A vicino, ≤ 4 m). Il gioco è la pagina difesa.html (canvas 2D, chunk tutto suo): si apre sopra il
 // mondo in un riquadro a tutto schermo e il mondo intanto sta fermo (niente passi né resa: main.ts salta il frame finché è aperto).
-// Si torna all'isola con ✕ ISOLA, con Esc a menù chiuso, o dal gioco stesso (messaggio `marea:difesa:esci`). Livelli e medaglie restano
+// Si torna all'isola con ✕ ISOLA, con Esc a menù chiuso, o dal gioco stesso (messaggio `marea:difesa:esci`). A ogni partita finita il gioco
+// manda `marea:difesa:partita` → `onPartita` (la missione dell'isola, storia/missioni.ts). Livelli e medaglie restano
 // quelli del banco (localStorage del browser): sono gli stessi dentro e fuori dal mondo.
 // Bundle iniziale: piccolo, niente import della sim. Prove: ?difesa=1 mette il bottone 🥕 (vai all'orto).
 import * as THREE from 'three';
@@ -34,7 +35,7 @@ export function ingressoOrto(): [number, number] | null {
   return c ? [c.at[0] - 6.3, c.at[1]] : null;
 }
 
-export function createDifesa(o: { world: GameWorld; renderer: Renderer; hud: Hud; root: HTMLElement; canvas: HTMLCanvasElement }): DifesaIsola {
+export function createDifesa(o: { world: GameWorld; renderer: Renderer; hud: Hud; root: HTMLElement; canvas: HTMLCanvasElement; onPartita?(): void }): DifesaIsola {
   injectUiStyle();
   const arch = o.world.archipelago, place = arch.places.find((p) => p.island === ISOLA) ?? null;
   const ing = ingressoOrto();
@@ -91,12 +92,18 @@ export function createDifesa(o: { world: GameWorld; renderer: Renderer; hud: Hud
   }
   /** Esc fuori dal riquadro (il fuoco è tornato sul mondo): si torna all'isola. Dentro il gioco Esc lo gestisce lui. */
   function esc(e: KeyboardEvent): void { if (e.key === 'Escape') { e.stopPropagation(); chiudi(); } }
-  addEventListener('message', (e) => { if (e.origin === location.origin && (e.data as { tipo?: string } | null)?.tipo === 'marea:difesa:esci') chiudi(); });
+  let partite = 0;
+  addEventListener('message', (e) => {
+    if (e.origin !== location.origin) return;
+    const tipo = (e.data as { tipo?: string } | null)?.tipo;
+    if (tipo === 'marea:difesa:esci') chiudi();
+    else if (tipo === 'marea:difesa:partita' && velo) { partite++; o.onPartita?.(); }
+  });
 
   const vai = () => { const p = o.world.vai(ISOLA); if (p && spot) o.world.avatar.teleport(spot.x - 1.5, spot.z + 2.5); return !!p; };
   if (FLAGS.difesa) topButton({ root: o.root, id: 'mzDifesaVai', order: 9, label: '🥕', title: 'Difesa: vai all’orto (prova)', onClick: () => { vai(); } });
 
-  registerStateProvider('difesa', () => ({ spot, near, aperte, aperta: !!velo }));
+  registerStateProvider('difesa', () => ({ spot, near, aperte, partite, aperta: !!velo }));
   registerTestHook('difesaVai', () => vai());
   registerTestHook('difesaApri', () => { apri(); return true; });
   registerTestHook('difesaChiudi', () => { chiudi(); return true; });

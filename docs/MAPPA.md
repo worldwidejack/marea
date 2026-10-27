@@ -7,7 +7,7 @@
 | Dove | Cosa c'è | Chi |
 |---|---|---|
 | `main.ts` | avvio: crea isole e modalità, il registro (chi è aperto, chi ferma il mondo), il ciclo a 60 Hz | tutti |
-| `avvio/` | i pezzi dell'avvio: registro delle modalità, mete della bussola, passi della guida, tasti, grafica, rientro, scritta sotto A | tutti |
+| `avvio/` | i pezzi dell'avvio: registro delle modalità, mete della bussola, tasti, grafica, rientro, scritta sotto A, gancio della storia (prima.ts) | tutti |
 | `flags.ts` | interruttori dall'URL (`?test=1`, `?fps=1`, `?net=0`…) | tutti |
 | `game/` | il mondo: avatar, barca, input; Borgo, casa, arredi, negozio dei mobili, botteghe, pala, insetti, pesca; Porto; posti dei minigiochi; ingressi di dungeon e isole a tema; animali | tutti, R sul Borgo |
 | `render/` | grafica 3D: scena a metà risoluzione, camera, acqua, luce, meteo e nuvole, isole (un file per isola a tema), mobili | J, R |
@@ -18,6 +18,7 @@
 | `adrenalina/` | snowboard dell'Adrenalina (chunk dalla funivia) | B |
 | `templari/` | partita a ondate dei Templari (chunk entrando in chiesa) | B |
 | `rpg/` | dungeon, eroe, forgia, alchimia, contrabbando; duello dell'Arena | R |
+| `storia/` | storia delle prime ore (chunk): naufragio, Nonna Pina, tutorial, barca, missioni di Remo e dei dungeon, viaggio rapido | R |
 | `difesa/` | Difesa alla Plants vs Zombies: `difesa.html`, che si apre anche dal cancello dell'isola | J |
 | `sparo/` | banco dello sparatutto a missioni (`provasparo.html`) | J |
 | `prova3d/`, `provapixel/` | banchi delle prove di stile | J |
