@@ -12,6 +12,8 @@ export type Loader = {
   missing?(names: readonly string[]): string[];
   /** Aggiunge i modelli di un manifest secondario (es. 'manifest_rpg.json', caricato entrando in un dungeon). Una volta sola per file. */
   extend(file: string): Promise<void>;
+  /** Modelli chiesti e già arrivati (o falliti) da quando c'è la pagina: la barra «Carico… N%» della schermata iniziale (avvio/home.ts). */
+  conta(): { chiesti: number; fatti: number };
 };
 export class MissingAsset extends Error { override name = 'MissingAsset'; }
 
@@ -68,6 +70,7 @@ export async function createLoader(o: { base: string }): Promise<Loader> {
     });
   };
   const extended = new Map<string, Promise<void>>();
+  let chiesti = 0, fatti = 0;
   const api: Loader = {
     manifest,
     extend(file) {
@@ -83,6 +86,7 @@ export async function createLoader(o: { base: string }): Promise<Loader> {
     },
     has: (name) => Object.prototype.hasOwnProperty.call(manifest.models, name),
     missing: (names) => names.filter((n) => !api.has(n)),
+    conta: () => ({ chiesti, fatti }),
     load(name) {
       const entry = manifest.models[name];
       if (!entry) return Promise.reject(new MissingAsset(`[marea] modello mancante nel manifest: ${name}`));
@@ -91,6 +95,7 @@ export async function createLoader(o: { base: string }): Promise<Loader> {
         p = gltf.loadAsync(o.base + entry.file)
           .then((g) => { fix(g); return { scene: g.scene, clips: g.animations }; })
           .catch((e: unknown) => { models.delete(name); throw new MissingAsset(`[marea] modello ${name} (${entry.file}) non caricato: ${String((e as Error)?.message ?? e)}`); });
+        chiesti++; void p.catch(() => {}).finally(() => { fatti++; });
         models.set(name, p);
       }
       return p.then((r) => ({ scene: r.scene.clone(true), clips: r.clips }));

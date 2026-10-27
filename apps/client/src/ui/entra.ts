@@ -38,6 +38,7 @@ export function entraConInvito(codice: string): Promise<never> {
       const d = (await r.json().catch(() => ({}))) as { token?: string; error?: string };
       if (!r.ok || !d.token) { err.textContent = d.error ?? 'Non è andata, riprova'; btn.disabled = false; return; }
       const q = new URLSearchParams(location.search); q.delete('invito'); q.set('t', d.token); // gli altri parametri (es. ?fps=1) restano
+      try { sessionStorage.setItem('marea:home:salta', '1'); } catch { /* si rivede la schermata iniziale */ } // GIOCA l'hai appena toccato (index.html)
       location.replace(`/?${q.toString()}`);
     } catch { err.textContent = 'Niente connessione, riprova'; btn.disabled = false; }
   });

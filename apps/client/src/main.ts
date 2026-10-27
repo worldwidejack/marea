@@ -63,9 +63,11 @@ import { avviaRientro } from './avvio/rientro.ts';
 import { collegaTasti } from './avvio/tasti.ts';
 import { creaRegistro } from './avvio/registro.ts';
 import { azioneA } from './avvio/azione_a.ts';
+import { apriHome } from './avvio/home.ts';
 
 async function boot(): Promise<void> {
-  if (FLAGS.invito && !FLAGS.token) await entraConInvito(FLAGS.invito); // link di gruppo: prima il nome, poi si riparte col token
+  const home = apriHome(); // schermata iniziale (avvio/home.ts): il mondo carica dietro
+  if (FLAGS.invito && !FLAGS.token) { await home.gioca; await entraConInvito(FLAGS.invito); } // link di gruppo: GIOCA, il nome, poi si riparte col token
   installTestApi(__BUILD__);
   preparaInstallazione(); // l'icona sul telefono entra col proprio link
   const canvas = document.getElementById('gl') as HTMLCanvasElement;
@@ -74,6 +76,7 @@ async function boot(): Promise<void> {
   const renderer = createRenderer({ canvas, flags: FLAGS });
   registerPerfProvider(() => renderer.stats());
   const loader = await createLoader({ base: '/assets/' });
+  home.segui(loader); home.passo();
   const input = createInput({ canvas, root, cameraYaw: () => renderer.diorama.yaw });
   const zoomSlider = await import('./ui/zoom_slider.ts').then((m) => m.createZoomSlider({ root, diorama: renderer.diorama })).catch((e: unknown) => { console.warn('[marea] zoom slider non caricato', e); return null; });
   // chi sei e dove abiti (slot del lotto), prima del mondo: lo spawn è sul molo della tua isola
@@ -81,8 +84,10 @@ async function boot(): Promise<void> {
   const me = api.enabled && FLAGS.net ? await api.me().catch((e: Error) => { hud.banner?.(e.message); return null; }) : null;
   const owners = me ? await api.lots().catch(() => []) : [];
   const net = me && api.enabled ? api : null; // le chiamate al server, solo con un link valido
+  home.passo();
   const world = await createGameWorld({ renderer, loader, flags: FLAGS, hud, build: __BUILD__, slot: me ? me.slot ?? null : undefined, ...(me ? { look: me.look, barca: barcaDi(me.look), meId: me.id } : {}), abitanti: owners }); // senza login: ?slot=N dall'URL (test), altrimenti Porto
   renderer.diorama.setZoom(1.6); // si parte larghi: l'isola e i suoi cartelli si vedono subito
+  home.passo();
   const arch = world.archipelago;
   // il proprio lotto (azioni) e quelli degli altri (sola lettura): la casa, i mobili, le monete
   const lots: LotView[] = [];
@@ -201,6 +206,7 @@ async function boot(): Promise<void> {
     { id: 'foto', gruppo: 'ferma', aperto: () => foto.isOpen() },
     { id: 'pesca', gruppo: 'ferma', aperto: () => !!negozio?.pescando() },
     { id: 'retino', gruppo: 'ferma', aperto: () => !!negozio?.retinoFermo() },
+    { id: 'home', gruppo: 'ferma', aperto: () => home.aperta() },
   ]);
 
   const apriEditor = () => { if (!editor || reg.occupato()) return false; feed?.close(); editor.open(); return true; };
@@ -223,6 +229,7 @@ async function boot(): Promise<void> {
     },
   });
   guidaRef = guida;
+  home.impostazioni(impostazioni); home.passo();
   // modalità foto: macchina fotografica in alto o tasto O; il codice vero (ui/foto_ui.ts) alla prima apertura
   const qui = () => (world.mode === 'walk' ? world.avatar.state : world.boat.state);
   const postoDi = (f: { x: number; z: number }): string | null => {
@@ -308,12 +315,15 @@ async function boot(): Promise<void> {
   // chiusura pulita della rete (il server vede subito il leave); tornando indietro dalla cache del browser si riparte da capo
   addEventListener('pagehide', () => { for (const lv of lots) lv.dispose(); world.dispose(); });
   addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
-  avviaRientro({ api, me, hud, root, myView: mioLotto, libri, busy: () => reg.occupato() || reg.aperto(['personale']) });
+  avviaRientro({ api, me, hud, root, myView: mioLotto, libri, busy: () => reg.occupato() || reg.aperto(['personale']), dopo: home.chiusa });
+  home.pronto(velo); // GIOCA già toccato: si entra adesso
   setReady();
   // la guida non parte da sola (VISIONE §1): al primissimo ingresso il saluto dice dove si accende, e se ne va da sé
   const ciao = me ? `Ciao ${me.nome}` : 'MAREA';
-  if (guida.primaVolta) hud.toast(`${ciao}! Se vuoi una mano, la guida «Primi passi» la accendi dalle Impostazioni (ingranaggio in alto)`, 7000);
-  else hud.toast(ciao, 2500);
+  void home.chiusa.then(() => {
+    if (guida.primaVolta) hud.toast(`${ciao}! Se vuoi una mano, la guida «Primi passi» la accendi dalle Impostazioni (ingranaggio in alto)`, 7000);
+    else hud.toast(ciao, 2500);
+  });
   console.log(`[marea] build ${__BUILD__} · isola ${world.map.id} ${world.map.w}×${world.map.h}`);
 }
 boot().catch((e) => { console.error('[marea] avvio fallito', e); document.body.insertAdjacentHTML('beforeend', `<pre style="color:#F4E3C1;padding:16px">Qualcosa è andato storto all'avvio.\n${String(e)}</pre>`); });

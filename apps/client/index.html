@@ -9,6 +9,9 @@
 <script>(function(){var t='';try{t=new URLSearchParams(location.search).get('t')||localStorage.getItem('marea:token')||''}catch(e){}var l=document.createElement('link');l.rel='manifest';l.id='manifest';l.href='/manifest.webmanifest'+(/^[A-Za-z0-9_-]{8,128}$/.test(t)?'?t='+encodeURIComponent(t):'');document.head.appendChild(l)})();</script>
 <link rel="icon" type="image/png" href="/favicon.png" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<!-- la schermata iniziale: il disegno e il carattere dei bottoni partono subito, prima del gioco -->
+<link rel="preload" as="image" type="image/webp" href="/assets/home/sfondo.webp" fetchpriority="high" />
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/alegreya-latin.woff2" crossorigin />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="MAREA" />
@@ -22,11 +25,57 @@
   #toast { position: absolute; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); font-size: 14px; background: rgba(46,30,20,.9); padding: 6px 10px; border: 2px solid #C98A4B; opacity: 0; transition: opacity .25s; }
   /* joystick e bottoni hanno lo stile inline in game/input.ts; qui solo l'attenuazione su desktop */
   @media (pointer: fine) and (min-width: 900px) { #joystick, .btn { opacity: .35; } }
+
+  /* schermata iniziale (avvio/home.ts). Sfondo 571×1056 e le due immagini in base64 da tools/home_sfondo.mjs. Sopra il gioco (39) ma sotto il
+     velo dei passaggi (40), che la chiude a scalini; le Impostazioni, aperte da qui, le stanno sopra. --u = 1/100 della larghezza del disegno */
+  @font-face { font-family: 'MzAlegreya'; src: url('/assets/fonts/alegreya-latin.woff2') format('woff2'); font-weight: 400 900; font-style: normal; font-display: swap; }
+  #mzHome { --mz-home-mini: url("data:image/webp;base64,UklGRigFAABXRUJQVlA4IBwFAAAwFQCdASowAFgAPpk6l0gloyIhNVgJWLATCWwAuNuYC1SY7S/lN7mJ9Ct2/vPK6ZzvONeOYqejMGw4jqp7z5XwOhlAK/xq37GekvUJ6VxvFI/ZMaKcjlPSRm10r4wAjws9YyMrgtaH8aLV3kIS+lYtmiv6U5xOD0G7i7OQyHqym2q4Edmg7elq7rqMQRW1gEVybMA3k9seGXLe2nNAvF7tx1nj4ugA29iGSsmIHFrbhI8AAPx+0zfuK5tTcw1ZoTlp9je7GNprjwJy9OXZp6LSbLDP77tocnTOTDxW0324wHg2MLN7A/9cKpTi7S6/RnW063f1zpr/n7szYBr8lA/xnaKaNGPeZ/6v89+LSVZdljcD8emYIBKio4V7NJgM2t16gP5ls0jNMWzYFIocbninAnygyf6C7UN891kYtdPlZCRbjHfZOPJBuWP/cth009cW7AfBglHfm0rt0vaDou9DyGUnNhE/IMDlU+yjTsFaJh/nhGImO4ON0bybm8+LfnsOCb8ucj11OUVsEfuxwuY2qONCOCkdry8CcTHgsV4bAJ5q84qUaeXbLysW0hr0vAS27ChR4DEpyPwHAt951+UBC1UJYlTYX4TzIvQCFwY+bRNZb434XpYzNk1VPXkYVuwH/w4e7SLYT7q/XAdj30dOl6tv33Fx1E2yuCUSaGsfPeocZoNpNPEsiwnSbnjOdmkmnSEM6YBrXBz0F3dkiE1rq2za3IwEeLgIw3euv3P7IijeRjsixhnFkPv/0C5duVAlfsbUxbfK8REP77/bN+ZbXlQ6OPbfiMEXKLSoug3vDLHUJXBvFTV3sWrjiix0sjxrkyG886oizH7xNjo/iQUgVUWDQN6RtotBRsoNqcqkXFftSdIJaP1iU8VAreesATPl5GbjjltwOuIOlLVBTJlH6Pll2YDfYi0n/AQMuAaUGTWjJvEW1i6LUr3k3pwsQn9kUBzdY9kLmwydlvFdBQU660/ddV4Ndofjxpgz52pLIY77q5OWsbULaxF8zn10/9ww1Aq0MgWIsWfY0lbuzXzUbW3MIzfvnOnOxpNUsH2Pa/GrzH5KqREHaRv33du6HPkQqpx9g6tkwX6gGbrYeSlR1zeRY7+D+X8USUa1rDvA5uFUlOWr+ht7FTzko+9tnBOBJRqrWS09lfm4OCVYpxcwuuT2Vn/lAD1r67ToQ3NeeruybkcK0/p3towXJ+5FfhzfqUUpy9ktUWzcQV7BDQafABbSH/2UNn4FqtbfWFX//tEVWdkRGRLv0qnVJLw87q5/F/lUABreXPzoHoELVMcSvCGVs03q60IqCZbbVGeb4KVSOE/r+79m3P0M6jDsGfTJd6BeVLuriEfRkoX1mU//4e40+C14OmcuobANk87jhJ/MHRNxJbTNLUr+dlKZOFtDgX0b56Xi0/nLuVeOgpZGVC4lg24fbXGG1InFn40soF31T+EJ3CLBIc38D4pKKbydYKXWdLkBJwAP2syDwfLODiNEsoMmn14tNTBneMF+J7liL5zhgeIyzVEQtbBTK13HWp4tUs/4RTTh2yO5dFC6t8khf8oRWxKuluHWU+oYuFj2pG0bXmoPPdxPt0zPzTdysFoBgEGt79o55XfbXtzLLOSSMa1lKC7e917yl58Lb3PIq29iRSxw9SN0TKALwTnOKzIAADs+N+rpoklWZeZUfl70ET2UuuL42AlT2SZ8XiiNlzIkt/9li9l2BElm984DDArjPCEMrTrAAAA="); --mz-home-bordi: url("data:image/webp;base64,UklGRvQEAABXRUJQVlA4TOcEAAAvAcBBAFVIEgCwkKQf2PaU1a62e2zbrKrGotM99tzmtvaeBsd9wd5t/2X0hyQla9v2tG2YGWRS6ho6xjPeCoYwwxiOtt/NRqXSJzsMEgQATBoHCwTdlZI2pYqTzvX1vge4b6d1d0X7Pwda0UhkiI60fDEht9WyEc+QnXqaeFZ/2hlqOeNZsxO39PXnqq4az3XFfKVr2tOYpd8Qf6Nr2tPYBYJRG8GoU9S0xzGroMctXdMexxxdj2a1qPbsuBgtP/VfukPg4rtOEeRw0ioAF4OL4qXURfECyJV0mLwyQK4ErgyILnIhlSttXhmXILprI5S0EQI2AoXymo0wShbKwEYXwBVOW3o6p6WswnaH3a/zO+/z3Q+8UtEOGpxaNPYbjFI09tos2uuwShHtt6hLBy0KH7YopVA+6LBK3jhqMEu1ulK+OO7Qqos3v0WqjTa/ZaqDNr7Tl1Z/yIqLN77xiovBTxo/yy9XXNy/3VFcM5RucF/yL5GFIwuXr0uj4Gj3qvLXzs4PW//tdHvv49VC7/+j95eLyZcH7y+J2R5atvmH7y8lScWSIj9rfDKI8LzyURLhWfm1UYSnlbfkQnZS+uiOj6elj974eFb66CER9kfrs8r7wN/NPXvqJ9lGFYiH8LAosIqcfGLwSAR3MYfE9O0Kh8RVEzOSmjYwo8g6r8g6h0VdUMS0iUURpm5XIBJlPnW7Ih1pqdvIJChYkC5iBhZHmUm75+vlOSI0IJC3D2z7oHiTZSc5scP5p6BuV6C2xLJ9QZLUskNeQiJ5zBkOYYMGHPuAOoPcctyRUZp7ox5VsZBJqQrHwy11ztAsrsOAHp/zDqTxcadqCw4tdurOwODGtDrHBddW5R02MpuUfuDCfEleQHt0DmGxu7vL3hXk6Fi9DZ0szTA5z691ZZHz/T+WfuAtW3lRG5ShOL8Kco0sC4P6cyZzV6jVhTGDrlXhpMzWYKH7hKmW+dG9tFZS25MJvcZ10kGAH7pgaORHfzIz9NP6ZEYN9g3JbnJ4HUqSseEPCz9MjS7HYDnHOyZYT4+uiSSZm9yUzJnJtEPspa3dCbGftsxP9HFiNLIpfDbp58lbK7OZTOprJxYmH8wFLM7cX5kxWLi1krGwcm9h1OSpR1OjoXU+mVk0tUcdWFUpvDqTsaAuje0yp+GfsswvHP9Bw9u3qG86RTYS2bDg/J9iZxBhT3TGPQsjGYOe1VsZA++0b1Ohtz+3qVIA1q4TxUui/3NdivM90rCRjCVWKN5J4A3zDhpmd8g726PB0wgta1u0iOZo8WCNZo8TO7OWt7PHrOnp0RyzrLA1gRPsT2VqNgDVF3s+Frf9DTiatnqhg0RNAXGTqMl/4CaZk7r2LvWfWXKXaQwImTLNHqlfBG0e4Q+lDo8wivzlpsEjsTG2cNvfkENiS0BwS9DmBCUSElZQaBYgJ7fRBzBZUfrLEH4DJidKPLd1HjweiQK1MU9tzFEbNwVEPITNHuFFqcUjzIba4pGfA9TsP3gH9da/YQNvtfguyVvfqUlyW4Eq2XMIZukCBFLPEcCReg7Zc972qj9uan/SUqPvGtJGhxcKUG/ywh+p3hIGv8AUun4kdnhwmkjIgUNTm+05NLNo7lA9x0Da5MBt8h/x3I6QNmTBEXmLTXwG6hx3vicYfmF12Bx7sDkMYGMYQJFaAA==");
+    --u: min(1vw, 6px); position: absolute; inset: 0; z-index: 39; overflow: hidden; background: #23201F; color: #F4E3C1; font-family: 'MzAlegreya', 'Alegreya', Georgia, serif; font-variant-numeric: lining-nums; -webkit-tap-highlight-color: transparent; }
+  #mzHome ~ #mzSet { z-index: 41; }
+  #mzHome .q { position: absolute; inset: 0; }
+  #mzHome .q i { position: absolute; inset: 0; background-position: center top; background-size: cover; background-repeat: no-repeat; }
+  #mzHome .mini { background-image: var(--mz-home-mini); image-rendering: pixelated; }
+  #mzHome .img { background-image: url(/assets/home/sfondo.webp); }
+  #mzHome .lato { display: none; }
+  @media (min-aspect-ratio: 571/1056) {
+    #mzHome { --u: max(2.4px, min(calc(100vh * 571 / 105600), 6px)); }
+    #mzHome .q { left: 50%; right: auto; width: calc(100vh * 571 / 1056); transform: translateX(-50%); }
+    #mzHome .lato { display: block; position: absolute; top: 0; bottom: 0; width: calc(50% - 100vh * 571 / 2112 + 1px); background: var(--mz-home-bordi) 0 0 / 200% 100% no-repeat; image-rendering: pixelated; }
+    #mzHome .lato.sx { left: 0; }
+    #mzHome .lato.dx { right: 0; background-position: 100% 0; }
+  }
+  #mzHome .bot { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--u) * 5); transform: translateX(-50%); width: calc(var(--u) * 96); display: flex; align-items: flex-start; justify-content: space-between; }
+  #mzHome button { margin: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+  #mzHome button:disabled { cursor: default; }
+  #mzHome .gioca { width: calc(var(--u) * 46); height: calc(var(--u) * 16); min-height: 48px; margin-top: calc(var(--u) * 1); background: #E8433F; border: calc(var(--u) * 1) solid #F2A33A; border-radius: calc(var(--u) * 8);
+    box-shadow: 0 0 0 2px #2E1E14, inset 0 calc(var(--u) * -1.6) 0 #8E5A2B, 0 calc(var(--u) * 1.2) 0 2px #2E1E14; font-size: max(22px, calc(var(--u) * 8.6)); font-weight: 800; letter-spacing: .05em; line-height: 1; text-shadow: 0 2px 0 #2E1E14; }
+  #mzHome .tondo { width: calc(var(--u) * 25); display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 1.4); background: none; border: 0; }
+  #mzHome .tondo b { display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: calc(var(--u) * 17); height: calc(var(--u) * 17); min-width: 48px; min-height: 48px; border-radius: 50%; background: #E8433F;
+    border: calc(var(--u) * .9) solid #F2A33A; box-shadow: 0 0 0 2px #2E1E14, inset 0 calc(var(--u) * -1.2) 0 #8E5A2B, 0 calc(var(--u) * 1) 0 2px #2E1E14; }
+  #mzHome .tondo svg { width: 58%; height: 58%; }
+  #mzHome .tondo span { font-size: max(11px, calc(var(--u) * 3.2)); font-weight: 800; letter-spacing: .04em; white-space: nowrap; text-shadow: 1px 1px 0 #2E1E14, -1px 1px 0 #2E1E14, 1px -1px 0 #2E1E14, -1px -1px 0 #2E1E14; }
+  #mzHome .tondo:disabled b { filter: grayscale(.6) brightness(.8); }
+  #mzHome button:active:not(:disabled) { transform: translateY(2px); }
+  #mzHome .carico { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--u) * 29); transform: translateX(-50%); width: calc(var(--u) * 60); min-width: 200px; display: none; text-align: center; font-size: max(15px, calc(var(--u) * 4.2)); font-weight: 700; text-shadow: 0 2px 0 #2E1E14; }
+  #mzHome.carica .carico { display: block; }
+  #mzHome .barra { height: 10px; margin-top: 6px; background: #2E1E14; border: 2px solid #F2A33A; box-shadow: 0 0 0 2px #2E1E14; }
+  #mzHome .barra i { display: block; width: 0; height: 100%; background: #F5D547; }
 </style>
 </head>
 <body>
 <canvas id="gl"></canvas>
-<div id="ui"><div id="perf"></div><div id="toast"></div></div>
+<div id="ui"><div id="mzHome" role="dialog" aria-label="MAREA">
+  <div class="lato sx"></div><div class="lato dx"></div>
+  <div class="q"><i class="mini"></i><i class="img"></i></div>
+  <div class="carico" aria-live="polite"><span>Carico… 0%</span><div class="barra"><i></i></div></div>
+  <div class="bot">
+    <button type="button" class="tondo" data-home="impostazioni" disabled><b><svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="#23201F" d="M6 0h4v1h-4zM5 1h1v1h-1zM10 1h1v1h-1zM2 2h2v1h-2zM5 2h1v1h-1zM10 2h1v1h-1zM12 2h2v1h-2zM1 3h1v1h-1zM4 3h1v1h-1zM11 3h1v1h-1zM14 3h1v1h-1zM1 4h1v1h-1zM14 4h1v1h-1zM2 5h1v1h-1zM7 5h2v1h-2zM13 5h1v1h-1zM1 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM14 6h1v1h-1zM0 7h1v1h-1zM5 7h1v1h-1zM10 7h1v1h-1zM15 7h1v1h-1zM0 8h1v1h-1zM5 8h1v1h-1zM10 8h1v1h-1zM15 8h1v1h-1zM1 9h1v1h-1zM6 9h1v1h-1zM9 9h1v1h-1zM14 9h1v1h-1zM2 10h1v1h-1zM7 10h2v1h-2zM13 10h1v1h-1zM1 11h1v1h-1zM14 11h1v1h-1zM1 12h1v1h-1zM4 12h1v1h-1zM11 12h1v1h-1zM14 12h1v1h-1zM2 13h2v1h-2zM5 13h1v1h-1zM10 13h1v1h-1zM12 13h2v1h-2zM5 14h1v1h-1zM10 14h1v1h-1zM6 15h4v1h-4z"/><path fill="#E8E1D6" d="M6 1h4v1h-4zM6 2h1v1h-1zM9 2h1v1h-1zM2 3h2v1h-2zM5 3h6v1h-6zM12 3h2v1h-2zM2 4h12v1h-12zM3 5h4v1h-4zM9 5h4v1h-4zM2 6h4v1h-4zM10 6h4v1h-4zM1 7h4v1h-4zM11 7h4v1h-4zM1 8h4v1h-4zM11 8h4v1h-4zM2 9h4v1h-4zM10 9h4v1h-4zM3 10h4v1h-4zM9 10h4v1h-4zM2 11h12v1h-12zM2 12h2v1h-2zM5 12h6v1h-6zM12 12h2v1h-2zM6 13h1v1h-1zM9 13h1v1h-1zM6 14h4v1h-4z"/><path fill="#B9AFA3" d="M7 2h2v1h-2zM7 13h2v1h-2z"/></svg></b><span>IMPOSTAZIONI</span></button>
+    <button type="button" class="gioca" data-home="gioca">GIOCA</button>
+    <button type="button" class="tondo" data-home="crediti"><b><svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="#23201F" d="M1 2h6v1h-6zM9 2h6v1h-6zM0 3h1v1h-1zM7 3h2v1h-2zM15 3h1v1h-1zM0 4h1v1h-1zM7 4h2v1h-2zM15 4h1v1h-1zM0 5h1v1h-1zM7 5h2v1h-2zM15 5h1v1h-1zM0 6h1v1h-1zM7 6h2v1h-2zM15 6h1v1h-1zM0 7h1v1h-1zM7 7h2v1h-2zM15 7h1v1h-1zM0 8h1v1h-1zM7 8h2v1h-2zM15 8h1v1h-1zM0 9h1v1h-1zM7 9h2v1h-2zM15 9h1v1h-1zM0 10h1v1h-1zM7 10h2v1h-2zM15 10h1v1h-1zM0 11h1v1h-1zM7 11h2v1h-2zM15 11h1v1h-1zM0 12h16v1h-16zM0 13h1v1h-1zM15 13h1v1h-1zM0 14h16v1h-16z"/><path fill="#F4E3C1" d="M1 3h6v1h-6zM9 3h6v1h-6zM1 4h1v1h-1zM6 4h1v1h-1zM9 4h1v1h-1zM14 4h1v1h-1zM1 5h6v1h-6zM9 5h6v1h-6zM1 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM14 6h1v1h-1zM1 7h6v1h-6zM9 7h6v1h-6zM1 8h1v1h-1zM6 8h1v1h-1zM9 8h1v1h-1zM14 8h1v1h-1zM1 9h6v1h-6zM9 9h6v1h-6zM1 10h1v1h-1zM6 10h1v1h-1zM9 10h1v1h-1zM14 10h1v1h-1zM1 11h6v1h-6zM9 11h6v1h-6z"/><path fill="#B9AFA3" d="M2 4h4v1h-4zM10 4h4v1h-4zM2 6h4v1h-4zM10 6h4v1h-4zM2 8h4v1h-4zM10 8h4v1h-4zM2 10h4v1h-4zM10 10h4v1h-4z"/><path fill="#8E5A2B" d="M1 13h14v1h-14z"/></svg></b><span>CREDITI</span></button>
+  </div>
+</div><div id="perf"></div><div id="toast"></div></div>
+<!-- la home si salta come in flags.ts (FLAGS.home): test senza ?home=1, banchi, gara tra amici; e una volta sola dopo il modulo dell'invito (ui/entra.ts) -->
+<script>(function(){var q=new URLSearchParams(location.search),on=function(k){return q.get(k)==='1'||q.get(k)==='true'},dopo=false;try{dopo=sessionStorage.getItem('marea:home:salta')==='1';sessionStorage.removeItem('marea:home:salta')}catch(e){}if((on('test')&&!on('home'))||q.has('banco')||q.get('templari')==='banco'||q.get('arena')==='banco'||q.get('gara')==='amici'||dopo){var h=document.getElementById('mzHome');if(h)h.remove()}})();</script>
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
