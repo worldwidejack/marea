@@ -188,7 +188,7 @@ export default async function (ctx) {
       assert(btn && !(await btn.isVisible()), 'la faccina è ancora in vista (#417)');
       await btn.evaluate((b) => b.click()); // la riga c'è ancora nel codice: la si apre dal bottone nascosto
       // la riga si apre subito al tocco, ma su GitHub il telefono appena aperto risponde piano: con 2 s l'attesa scadeva con la riga già
-      // aperta e visibile («locator resolved to visible … mzEmoteRow on», 22 e 27 ott)
+      // aperta e visibile («locator resolved to visible … mzEmoteRow on»)
       await anna.page.waitForSelector('#mzEmoteRow.on', { timeout: 10000 });
       const picks = await anna.page.$$eval('#mzEmoteRow.on .mz-emote-pick', (bs) => bs.map((b) => { const r = b.getBoundingClientRect(); return { id: b.dataset.emote, w: r.width, h: r.height, l: r.left, r: r.right, t: r.top }; }));
       ctx.log('riga: ' + JSON.stringify(picks));

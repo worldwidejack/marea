@@ -146,14 +146,25 @@ export default async function (ctx) {
       await Bp.page.evaluate((p) => { window.__game.test.goto('porto'); window.__game.test.teleport(p.x + 2.1, p.z + 2.1); }, a);
       await ctx.waitState(Bp.page, (s, o) => { const d = (s.peersDrawn ?? []).find((x) => x.id === 'anna'); return !!d && d.walk && Math.hypot(d.x - o.x, d.z - o.z) < 0.3; }, 45000, a).catch(dbg);
       await Bp.page.bringToFront(); // Bruno davanti (per lo screenshot); Anna apre la ruota e preme 8 dalla sua scheda
+      // il gesto dura 1 s e il fumetto 2,5 s: su GitHub (2-4 fps) quando il test arrivava a guardare a volte erano già finiti («Bruno non
+      // vede il gesto», textContent in attesa 30 s). Si segnano nella pagina di Bruno nell'istante in cui il fumetto di Anna compare
+      await Bp.page.evaluate(() => {
+        const visto = { testo: null, gesti: null }; window.__balla = visto;
+        const o = new MutationObserver(() => {
+          const e = document.querySelector('.mz-emote[data-who="anna"][data-emote="balla"]');
+          if (!e) return;
+          visto.testo = e.textContent; visto.gesti = window.__game.state().emotes.gesti; o.disconnect();
+        });
+        o.observe(document.body, { childList: true, subtree: true });
+      });
       assert(await A.page.evaluate(() => window.__game.test.emoteWheel()), 'emoteWheel() ha risposto false');
       await A.page.keyboard.press('Digit8');
       await bubble(A.page, 'me', 'balla');
-      await bubble(Bp.page, 'anna', 'balla', process.env.CI ? 6000 : 2500);
-      assert((await Bp.page.textContent('.mz-emote[data-who="anna"]')).includes('Si balla!'), 'testo del fumetto di Anna');
-      const gs = (await ctx.getState(Bp.page)).emotes.gesti;
-      ctx.log('gesti su Bruno ' + JSON.stringify(gs));
-      assert(gs.some((g) => g.who === 'anna' && g.id === 'balla'), 'Bruno non vede il gesto di Anna');
+      await Bp.page.waitForFunction(() => window.__balla.testo !== null, null, { timeout: process.env.CI ? 8000 : 2500 });
+      const visto = await Bp.page.evaluate(() => window.__balla);
+      assert(visto.testo.includes('Si balla!'), 'testo del fumetto di Anna: ' + visto.testo);
+      ctx.log('gesti su Bruno ' + JSON.stringify(visto.gesti));
+      assert(visto.gesti.some((g) => g.who === 'anna' && g.id === 'balla'), 'Bruno non vede il gesto di Anna');
       // screenshot indicativo: col Mac carico (0,5-1 fps, uno scatto 10-30 s) il fumetto può essere già sparito quando la foto finisce
       await ctx.shot(Bp.page, 'bruno_vede_balla_1280');
       ctx.log('fumetto di Anna ' + ((await Bp.page.$('.mz-emote[data-who="anna"]')) ? 'nella foto' : 'sparito prima della fine dello scatto'));
