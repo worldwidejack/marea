@@ -66,6 +66,7 @@ Se la tua PR litiga su un documento archiviato (`docs/archivio/`), togli le tue 
 - Una PR che tocca solo file `.md` o `docs/` non rifà test e deploy (il gioco non cambia).
 - Due merge ravvicinati: i deploy vanno in coda, non si accavallano.
 - GitHub disegna il gioco a 2-4 fps (contro ~60 di un Mac): se cade una suite e2e, i controlli la riprovano una volta sola e lasciano un avviso (test instabile da sistemare). Static, types, sim e budget non si riprovano. Un test e2e nuovo non deve aspettare tempi fissi brevi (`sleep(200)` sul Mac sono ~12 frame, su GitHub nemmeno uno): aspetta lo stato (`ctx.waitState`, `waitForFunction`).
+- Un test instabile si misura con la **prova ripetuta** (`.github/workflows/prova.yml`): `gh workflow run prova.yml -f suite=<suite> -f volte=4 [--ref <ramo>]` fa girare la suite 4 volte su 5 macchine (20 giri) e nel riepilogo del run dice quante cadute e quali test. Si misura prima e dopo la correzione: è guarito quando non cade più.
 
 ## 7. Far giocare qualcuno, ritrovare un link (senza passare da nessuno)
 Chi sviluppa è **admin** e fa tutto da solo, col suo Claude, senza login Cloudflare. Ti serve il **tuo link personale** (quello con cui giochi): salvalo in `~/.config/marea/link.txt` (una riga) oppure nella variabile `MAREA_TOKEN`. Non sei ancora admin? Te lo dà un altro dev con `admin.mjs admin <tuo nome>`.
