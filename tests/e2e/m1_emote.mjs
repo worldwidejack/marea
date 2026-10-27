@@ -120,7 +120,7 @@ export default async function (ctx) {
       assert(g.w > 60 && g.h >= 28, 'fumetto troppo piccolo');
       // Bruno fa l'emote 2: la sua testa (stessa quota) e quella di Anna distano in px quanto ~3 m, non 0 e non mezza schermata
       await bruno.page.keyboard.press('Digit2');
-      await bruno.page.waitForSelector('.mz-emote[data-who="me"][data-emote="esulta"]', { state: 'attached', timeout: 3000 });
+      await bruno.page.waitForSelector('.mz-emote[data-who="me"][data-emote="esulta"]', { state: 'attached', timeout: LAT + 4000 }); // stesso margine largo: su GitHub 2-4 fps
       const both = (await st(bruno)).emotes.shown;
       const me = both.find((x) => x.who === 'me'), an = both.find((x) => x.who === 'anna') ?? g.s; // Anna è ferma: se il suo fumetto (2,5 s) è già sparito vale l'ancora letta sopra (CI lento)
       const d = Math.hypot(me.x - an.x, me.y - an.y);
@@ -187,7 +187,9 @@ export default async function (ctx) {
       const btn = await anna.page.$('#mzEmoteBtn');
       assert(btn && !(await btn.isVisible()), 'la faccina è ancora in vista (#417)');
       await btn.evaluate((b) => b.click()); // la riga c'è ancora nel codice: la si apre dal bottone nascosto
-      await anna.page.waitForSelector('#mzEmoteRow.on', { timeout: 2000 });
+      // la riga si apre subito al tocco, ma su GitHub il telefono appena aperto risponde piano: con 2 s l'attesa scadeva con la riga già
+      // aperta e visibile («locator resolved to visible … mzEmoteRow on»)
+      await anna.page.waitForSelector('#mzEmoteRow.on', { timeout: 10000 });
       const picks = await anna.page.$$eval('#mzEmoteRow.on .mz-emote-pick', (bs) => bs.map((b) => { const r = b.getBoundingClientRect(); return { id: b.dataset.emote, w: r.width, h: r.height, l: r.left, r: r.right, t: r.top }; }));
       ctx.log('riga: ' + JSON.stringify(picks));
       assert(picks.length === 4 && picks.map((p) => p.id).join() === 'saluto,esulta,ride,no', 'riga sbagliata');
