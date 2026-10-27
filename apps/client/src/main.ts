@@ -86,15 +86,9 @@ async function boot(): Promise<void> {
   const arch = world.archipelago;
   // il proprio lotto (azioni) e quelli degli altri (sola lettura): la casa, i mobili, le monete
   const lots: LotView[] = [];
-  let lottoFinto: LotState | null = (!me && (FLAGS.test || !FLAGS.net)) ? ({
-    owner: 'prova', version: 1, nowMs: Date.now(), monete: 1000, ledger: {},
-    hero: { inv: { pala: 1, retino: 1, canna: 1 }, equip: {} } as unknown,
-  } as LotState) : null;
-  const myLot = () => lots.find((lv) => !lv.readonly)?.state() ?? lottoFinto;
+  const myLot = () => lots.find((lv) => !lv.readonly)?.state() ?? null;
   const setMyLot = (l: LotState) => {
-    const m = lots.find((lv) => !lv.readonly);
-    if (m) m.set(l);
-    else lottoFinto = l;
+    lots.find((lv) => !lv.readonly)?.set(l);
     world.setEquip(l.hero ? { ...l.hero.equip, ...(l.hero.armaturaFuori ? { corpoFuori: true } : {}) } : 'partenza');
   };
   const isole: LibroIsola[] = []; // case abitate col loro libro degli ospiti
