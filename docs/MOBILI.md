@@ -62,6 +62,7 @@ guardare le anteprime in `assets/export/preview` e il gioco con `?test=1` (ARRED
 ## 6. Come funziona (per chi deve toccare il codice)
 
 - Regole di posa: `packages/sim/src/economy/casa.ts` (`celleMobile`: le celle occupate, l'ancora è la cella d'angolo e l'ingombro va verso +x/+z, girando a quarti di giro). Server e client usano le stesse funzioni.
+- Collisioni in casa: `packages/sim/src/world/casa_mappa.ts` (`mascheraCase`). I mobili a terra e il baule chiudono le loro celle (roccia `r`); l'avatar scivola lungo i bordi. Mobili a parete e tappeti (altezza < 0,15 m) non bloccano il passo.
 - Vista in casa: `game/arredi_vista.ts` (un mobile con modello è una mesh a parte con texture atlas; gli altri, scatole fuse in una mesh sola). Anteprima e sagoma: `game/arreda.ts`. Negozio: `game/negozio.ts` (i mobili della vetrina del giorno sulle pedane e al muro; il banco del mobiliere dice cosa c'è oggi e quando cambia).
 - Caricamento modelli: `render/mobili_modelli.ts` (`manifest_mobili.json`, mai nel JS iniziale; budget ≤ 3 MB, `tools/build.mjs`).
 

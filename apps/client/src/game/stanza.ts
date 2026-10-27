@@ -96,9 +96,9 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; lotDi?: 
     if (scale.length) { const m = new THREE.Mesh(merged(scale), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })); m.name = 'scale'; m.castShadow = m.receiveShadow = true; room.add(m); }
   };
   costruisci(0, 'terra');
-  // chi cammina in casa urta i muri della stanza del suo livello, non il bordo del pavimento massimo del template
+  // chi cammina in casa urta i muri della stanza del suo livello e i mobili a terra (e il baule)
   let mascherata: GridMap | null = null;
-  w.maschera = (m) => (mascherata ??= mascheraCase(m, arch.lots, livelloDi));
+  w.maschera = (m) => (mascherata ??= mascheraCase(m, arch.lots, livelloDi, (slot) => o.lotDi?.(slot)?.casa));
   // pavimento e carta di chi ci abita (#265: comprati al negozio dei mobili e scelti con ARREDA): si ridipingono quando cambiano
   const finiture = (slot: number) => {
     if (quiStanza === 'cantina') return;

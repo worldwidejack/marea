@@ -122,6 +122,12 @@ export default async function (ctx) {
       assert(s.arreda.target && s.arreda.target.cell[0] === X0 + 1 && s.arreda.target.cell[1] < Z0 + 3 && s.arreda.ok, 'sagoma: ' + JSON.stringify(s.arreda));
       await V.page.locator('#mzArredaBar button', { hasText: 'QUI' }).click();
       await ctx.waitState(V.page, (q) => q.arreda.arredi.length === 1 && q.arreda.modo === null, 8000);
+      // collisione col comodino posato: camminando verso nord l'avatar si ferma al bordo della cella
+      await mettiti(V, X0 + 1.5, Z0 + 3.2);
+      await V.page.keyboard.down('ArrowUp'); await sleep(400); await V.page.keyboard.up('ArrowUp');
+      s = await V.st();
+      const zLimite = mondo(0, Z0 + 3).z;
+      assert(s.avatar.z >= zLimite, `l'avatar ha attraversato il comodino: z=${s.avatar.z} < limite=${zLimite}`);
       await V.page.locator('#mzArredaBtn').click();
       await V.page.locator(`#mzArreda [data-mobile="${orologio.id}"]`).click();
       await mettiti(V, X1 - 1.5, Z0 + 0.6);

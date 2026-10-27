@@ -20,7 +20,8 @@ export default async function (ctx) {
   const SERVER = path.join(ctx.ROOT, 'apps/server');
   const persist = path.join(ctx.OUT, `m3cantina-${process.pid}`);
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
-  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
+  const WIN = process.platform === 'win32';
+  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000, shell: WIN }).toString();
   const read = (f) => JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src', f), 'utf8'));
   const borgo = read('borgo.json'), arch = read('archipelago.json'), mobili = read('mobili.json').mobili;
   const SLOT = 0, ORIG = arch.islands.find((i) => i.role === 'lotto' && i.slot === SLOT).at;
@@ -36,7 +37,7 @@ export default async function (ctx) {
   const parti = async () => {
     const port = await freePort(), inspector = await freePort();
     dev = spawn('npx', ['--no-install', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
-      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: !WIN, shell: WIN, stdio: ['ignore', 'pipe', 'pipe'] });
     dev.stdout.on('data', (d) => (log += d)); dev.stderr.on('data', (d) => (log += d));
     const base = `http://127.0.0.1:${port}`;
     let up = false;
@@ -46,16 +47,22 @@ export default async function (ctx) {
   };
   const ferma = async () => {
     if (!dev) return;
-    try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ }
-    await sleep(800);
-    try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ }
+    if (WIN) { try { execFileSync('taskkill', ['/pid', String(dev.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* già chiuso */ } }
+    else {
+      try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ }
+      await sleep(800);
+      try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ }
+    }
     await sleep(800);
     dev = null;
   };
   try {
     fs.rmSync(persist, { recursive: true, force: true });
+    fs.mkdirSync(persist, { recursive: true });
     wr('d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist);
-    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--command', "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0);");
+    const sql = path.join(persist, 'persone.sql');
+    fs.writeFileSync(sql, "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0);\n");
+    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--file', sql);
     // 1) il lotto nasce (primo GET), 2) a server fermo gli si scrive la casa al livello massimo con un mobile per piano, 3) si riparte
     let BASE = await parti();
     assert((await fetch(BASE + '/api/lot', { headers: { 'x-token': 'tokL' } })).ok, 'primo /api/lot');

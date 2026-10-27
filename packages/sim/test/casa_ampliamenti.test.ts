@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { BORGO, MOBILI } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
 import { ampliaCasa, ampliatoOggi, compraMobile, livelloLotto, posaMobile, postoMobileError } from '../src/economy/casa.ts';
+import type { CasaState } from '../src/economy/casa.ts';
 import { LIVELLI_CASA, MAX_LIVELLO_CASA, PIANTE_MAX, inStanza, livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzaTerra, stanzeDi } from '../src/economy/stanze.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
@@ -183,4 +184,64 @@ test('la collisione chiude anche cantina e secondo piano finché non si sbloccan
   assert.equal(maschera.at(x, z), '.', 'aperta dal livello della cantina');
   const lastra = stanzeDi(MAX_LIVELLO_CASA).find((s) => s.id === 'piano')!.pavimento;
   assert.equal(maschera.at(l0.origin[0] + lastra[0], l0.origin[1] + lastra[1]), 'r', 'il secondo piano è ancora chiuso');
+});
+
+test('la collisione: l’eroe urta i mobili a terra e il baule; i mobili a parete e i tappeti non bloccano il passo', () => {
+  const arch = composeArchipelago(ARCHIPELAGO, ISLANDS), mappa = arch.map;
+  const l0 = arch.lots[0]!;
+  const caseMap = new Map<number, CasaState>();
+  const maschera = mascheraCase(mappa, arch.lots, () => 0, (s) => caseMap.get(s));
+
+  const [X0, Z0] = ST.pavimento;
+  const mobCell: [number, number] = [X0 + 2, Z0 + 2];
+  const cx = l0.origin[0] + mobCell[0], cz = l0.origin[1] + mobCell[1];
+
+  // Senza mobili la cella è calpestabile
+  assert.equal(maschera.at(cx, cz), '.');
+  assert.ok(maschera.walkable((cx + 0.5) * 2, (cz + 0.5) * 2));
+
+  // Con un mobile a terra (1×1) la cella diventa chiusa ('r')
+  caseMap.set(l0.slot, {
+    arredi: [{ id: 'mob-1', mobile: 'comodino_lampada', cell: mobCell }],
+  });
+  assert.equal(maschera.at(cx, cz), 'r');
+  assert.ok(!maschera.walkable((cx + 0.5) * 2, (cz + 0.5) * 2));
+
+  // Camminando verso nord da Z0 + 3 verso il mobile in Z0 + 2, l'avatar si ferma
+  const x0 = (l0.origin[0] + mobCell[0] + 0.5) * 2;
+  const z0 = (l0.origin[1] + mobCell[1] + 1.5) * 2;
+  let s = newAvatar(x0, z0);
+  for (let i = 0; i < 240; i++) s = stepAvatar(s, { ...NO_INPUT, mx: 0, my: -1 }, maschera);
+  assert.ok(s.z > (l0.origin[1] + mobCell[1] + 1) * 2, 'si è fermato prima di entrare nel comodino');
+
+  // Con un mobile a più celle (divano 2×1), entrambe le celle sono chiuse
+  const divanoCell: [number, number] = [X0 + 3, Z0 + 3];
+  caseMap.set(l0.slot, {
+    arredi: [{ id: 'divano-1', mobile: 'divano_in_pelle_vintage', cell: divanoCell, rot: 0 }],
+  });
+  const dc1: [number, number] = [l0.origin[0] + divanoCell[0], l0.origin[1] + divanoCell[1]];
+  const dc2: [number, number] = [l0.origin[0] + divanoCell[0] + 1, l0.origin[1] + divanoCell[1]];
+  assert.equal(maschera.at(dc1[0], dc1[1]), 'r', 'prima cella del divano');
+  assert.equal(maschera.at(dc2[0], dc2[1]), 'r', 'seconda cella del divano');
+
+  // Anche il baule chiude la sua cella
+  const bauleCell: [number, number] = [X0 + 1, Z0 + 1];
+  caseMap.set(l0.slot, {
+    baule: { livello: 1, cell: bauleCell },
+  });
+  assert.equal(maschera.at(l0.origin[0] + bauleCell[0], l0.origin[1] + bauleCell[1]), 'r', 'baule chiuso');
+
+  // Mobile a parete: appeso al muro, il pavimento sotto resta calpestabile
+  const pareteCell: [number, number] = [X0 + 2, Z0];
+  caseMap.set(l0.slot, {
+    arredi: [{ id: 'orologio-1', mobile: 'orologio', cell: pareteCell, muro: 'n' }],
+  });
+  assert.equal(maschera.at(l0.origin[0] + pareteCell[0], l0.origin[1] + pareteCell[1]), '.', 'mobile a parete non blocca');
+
+  // Tappeto (altezza < 0.15 m): calpestabile
+  const tappetoCell: [number, number] = [X0 + 2, Z0 + 2];
+  caseMap.set(l0.slot, {
+    arredi: [{ id: 'tappeto-1', mobile: 'tappeto_rettangolare_a_tinta_unita', cell: tappetoCell }],
+  });
+  assert.equal(maschera.at(l0.origin[0] + tappetoCell[0], l0.origin[1] + tappetoCell[1]), '.', 'tappeto calpestabile');
 });
