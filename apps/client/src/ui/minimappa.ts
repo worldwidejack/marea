@@ -41,9 +41,7 @@ export type Minimappa = { update(me: Pose, peers: readonly { nome?: string; x: n
   /** Uno scatto di zoom (+1 più vicino, −1 più lontano): la mappa grande se è aperta, se no la minimappa (tasti + e −). */
   zoom(passi: number): void;
   /** L'isola `id` (MappaPlace.id) è già stata scoperta (ci sei passato vicino)? La bussola mostra le isole a tema solo da scoperte. */
-  vista(id: string): boolean;
-  /** Bordo giallo che lampeggia sul cerchio (la guida «Primi passi» dice di toccarlo). */
-  evidenzia(on: boolean): void };
+  vista(id: string): boolean };
 
 
 type Saved = { viste?: string[]; raggio?: number; zoom?: number }; // zoom: a che punto degli scatti della mappa grande (0 = tutta, 1 = il più vicino)
@@ -375,6 +373,5 @@ export function createMinimappa(o: {
     toggle, close, isOpen: () => open,
     zoom(passi) { if (open) zoomGrande(zg + passi); else zoomMini(passi); },
     vista: (id) => viste.has(id),
-    evidenzia(on) { mini.classList.toggle('qui', on); },
   };
 }

@@ -161,12 +161,12 @@ body .mz-play { min-height: ${k(48)}; padding: 0 ${k(14)} 0 ${k(8)}; gap: ${k(8)
 body .mz-play:active { transform: translateY(${k(2)}); }
 body .mz-play small { display: grid; place-items: center; min-width: ${k(24)}; height: ${k(24)}; padding: 0 ${k(5)}; box-sizing: border-box; border-radius: 999px; background: ${L.cartaChiara}; color: ${L.inchiostro}; border: 1.5px solid ${L.oro}; font-size: ${k(12)}; opacity: 1; text-shadow: none; }
 
-/* ——— guida «Primi passi»: pagina di carta; sul telefono resta in basso sopra i comandi, sul PC sotto la colonna di sinistra ——— */
+/* ——— scheda della storia: pagina di carta; sul telefono resta in basso sopra i comandi, sul PC sotto la colonna di sinistra ——— */
 body .mz-guida { border-radius: ${k(14)}; background: ${L.carta}; ${CORNICE} color: ${L.inchiostro}; padding: ${k(8)} ${k(10)} ${k(10)} ${k(12)}; }
 body .mz-guida small { color: ${L.acquaScura}; font: italic 700 ${k(12)} ${FONT_LIBRO}; letter-spacing: .02em; }
 body .mz-guida b { font: 700 ${k(17)} ${FONT_LIBRO}; color: ${L.inchiostro}; }
 body .mz-guida span { color: ${L.inchiostro2}; font: ${k(13)} / 1.3 ${FONT_LIBRO}; }
-body .mz-guida button { border-radius: 999px; background: ${L.cartaChiara}; border: 1.5px solid ${L.oro}; color: ${L.inchiostro}; font: 700 ${k(11)} ${FONT_LIBRO}; }
+body .mz-guida i { color: ${L.inchiostro2}; border-top-color: ${L.oro}; font: italic ${k(12)} / 1.3 ${FONT_LIBRO}; }
 body .mz-guida.ok { border-color: ${L.foglia}; } body .mz-guida.ok small { color: ${L.foglia}; }
 @media (min-width: 700px) { body .mz-guida { left: 10px; top: calc(${T} + ${k(204)}); width: ${k(260)}; } }
 

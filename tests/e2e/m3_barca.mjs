@@ -153,8 +153,6 @@ export default async function (ctx) {
     const mh = (n, ...a) => mp.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
     const mst = () => ctx.getState(mp);
     const luca = (s) => s.barche.altre.find((b) => b.id === 'luca');
-    // la guida dei primi passi coprirebbe le barche negli screenshot
-    if (await mp.locator('#mzGuida [data-act="chiudi"]').isVisible().catch(() => false)) await mp.locator('#mzGuida [data-act="chiudi"]').click();
 
     await ctx.test('telefono: l’editor ha la sezione Barca (anteprima, scafo, vela, nome) dentro lo schermo', async () => {
       await mp.locator('#mzAvatarBtn').click();

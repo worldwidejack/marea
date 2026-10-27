@@ -4,7 +4,6 @@
 > Dal 14 ott 2026 la direzione del gioco sta in `docs/VISIONE.md` (un'isola intera per ogni format): un'idea qui sotto che è un minigioco piccolo e isolato va prima legata a un'isola-format.
 
 ## Dalla revisione di Jack (14 ott 2026, `VISIONE.md`)
-- **Partenza nuova**: solo la casa → risorse o monete → compri la prima barca → salpi → colonizzi altre isole.
 - **City builder a esagoni** sulle isole colonizzate.
 - ~~**Shooter MAREA**~~: dal 16 ott 2026 è lo sparatutto a missioni (`docs/SPARO.md`).
 - **Corse come hub del movimento**: oltre a kart, snowboard e mountain bike, altri mezzi e forse cose che volano.

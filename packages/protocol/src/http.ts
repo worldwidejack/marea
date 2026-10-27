@@ -7,7 +7,8 @@ import type { PackedInputs } from '@marea/sim/replay.ts';
 import type { Look, LookSalvato } from './messages.ts';
 
 /** GET /api/me: chi sei, col look salvato in D1 (anche la barca, se scelta) e il tuo lotto. */
-export type Me = { id: string; nome: string; look: LookSalvato; lotto: LotState | null; slot?: number | null; now?: number };
+/** `admin`: chi sviluppa MAREA (vede tutto il viaggio rapido). */
+export type Me = { id: string; nome: string; look: LookSalvato; lotto: LotState | null; slot?: number | null; now?: number; admin?: boolean };
 /** GET /api/persone (tutti) e /api/lots (solo chi ha un'isola). */
 export type PersonaVista = { id: string; nome: string; slot: number | null; look: LookSalvato };
 /** POST /api/rientro: riepilogo dell'assenza (null se mancavi da poco o è il primo ingresso), novità non lette del feed. */

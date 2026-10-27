@@ -22,6 +22,7 @@ import { inFila, scegliLod } from './gente_lod.ts';
 import type { Avatar } from './avatar.ts';
 import type { BottegaUi } from '../rpg/bottega_ui.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { primaLaStoria } from '../avvio/prima.ts';
 
 export type Botteghe = {
   /** Dove ci si ferma per comprare (coordinate mondo): per la bussola. */
@@ -121,7 +122,7 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
     const u = await loadUi();
     if (!u || u.isOpen()) return false;
     btn.classList.remove('on');
-    u.apri(id);
+    if (!primaLaStoria(id, () => u.apri(id))) u.apri(id);
     return true;
   }
   function findNear(): BottegaId | null {

@@ -19,6 +19,8 @@ export type Passeggio = {
   aggiungi(id: string, x: number, z: number, velocita: number): Passante;
   /** Ogni frame. `fermo(p)`: chi è fermo adesso (ci stai parlando o sei vicino) non si muove. */
   update(dt: number, fermo: (p: Passante) => boolean): void;
+  /** Porta `p` in (x, z) di colpo, senza più meta (la storia: Nonna Pina che ti trova sulla spiaggia). */
+  sposta(p: Passante, x: number, z: number): void;
   /** La rete dei percorsi è pronta (per i test). */
   readonly pronta: boolean;
 };
@@ -83,6 +85,11 @@ export function createPasseggio(o: { world: GameWorld }): Passeggio {
       const s: Stato = { id, x, z, yaw: Math.PI, anim: 'idle', v: velocita, percorso: [], sosta: 1 + Math.random() * 3, attesa: 0, meta: null };
       passanti.push(s); solidi.mobile(id, { x, z, r: PS.raggio });
       return s;
+    },
+    sposta(p, x, z) {
+      const s = passanti.find((q) => q.id === p.id); if (!s) return;
+      s.x = x; s.z = z; s.percorso = []; s.meta = null; s.sosta = PS.sosta[1];
+      solidi.mobile(s.id, { x, z, r: PS.raggio });
     },
     update(dt, fermo) {
       if (solidi.versione !== versione) {

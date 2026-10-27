@@ -1,5 +1,5 @@
 // Flag dall'URL, congelati all'avvio. Contratto: docs/TECH.md §9.
-export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; invito: string; serie: boolean; rientro: boolean; novita: boolean; home: boolean; templari: boolean; banco: boolean; gara: boolean; adrenalina: boolean; difesa: boolean; arena: '' | 'si' | 'banco'; dipinto: 'si' | 'no' | 'prova'; slot: number | null; ruota: '' | '0' | '1'; finiture: Readonly<Record<string, string>> };
+export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; invito: string; serie: boolean; rientro: boolean; novita: boolean; home: boolean; storia: boolean; templari: boolean; banco: boolean; gara: boolean; adrenalina: boolean; difesa: boolean; arena: '' | 'si' | 'banco'; dipinto: 'si' | 'no' | 'prova'; slot: number | null; ruota: '' | '0' | '1'; finiture: Readonly<Record<string, string>> };
 function read(): Flags {
   const q = new URLSearchParams(location.search);
   const on = (k: string) => q.get(k) === '1' || q.get(k) === 'true';
@@ -18,6 +18,7 @@ function read(): Flags {
     // La stessa regola sta nello script in index.html, che la toglie prima di disegnarla
     home: (!on('test') || on('home')) && !q.has('banco') && q.get('templari') !== 'banco' && q.get('arena') !== 'banco' && q.get('gara') !== 'amici',
     novita: on('novita'), // coi test (?test=1) la schermata «Dall'ultima volta» (#279) compare solo con ?novita=1
+    storia: on('storia'), // coi test (?test=1) la storia delle prime ore (storia/) parte solo con ?storia=1
     rientro: on('rientro'), // coi test (?test=1) la cartolina «Mentre eri via» compare solo con ?rientro=1 (l'orologio di prova la farebbe uscire ovunque)
     serie: on('serie'), // coi test (?test=1) le impostazioni partono spente; ?serie=1 usa quelle di serie vere (#59)
     gara: q.get('gara') === 'amici', // link «gara tra amici» (#204): si apre subito la sala delle Corse

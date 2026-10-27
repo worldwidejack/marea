@@ -6,6 +6,7 @@ import type { CasaState } from './casa.ts';
 import type { InsettiState } from './insetti.ts';
 import type { PaesaniState } from './paesani.ts';
 import type { PesciState } from './pesci.ts';
+import type { StoriaState } from './storia.ts';
 /** Libro mastro delle monete: entrate e uscite (assente = 0 e 0). */
 export type LedgerTotals = { monete?: { generated: number; spent: number } };
 /** La conversione di un vecchio salvataggio (#414, `cambio.ts`): quando, quante monete in tutto e da cosa (risorse, edifici spenti, monete del personaggio). */
@@ -82,6 +83,8 @@ export type LotState = {
   paesani?: PaesaniState;
   /** Arena PvP (docs/ARENA.md, arena/premio.ts): duello aperto, monete prese oggi (giorno UTC), partite vinte, perse e pari. Assente = mai giocato. */
   arena?: ArenaLotto;
+  /** La storia delle prime ore (economy/storia.ts, GDD §9): tutorial, barca comprata, missioni delle isole e dei dungeon. Assente = non iniziata. */
+  storia?: StoriaState;
 };
 /** Il duello aperto dal DO Arena (`run`, questo giocatore è l'eroe `idx`), monete del premio prese oggi e statistiche. */
 export type ArenaLotto = { pending: { run: string; idx: number; startMs: number } | null; giorno: number; preso: number; vinte: number; perse: number; pari: number };

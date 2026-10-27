@@ -1,0 +1,93 @@
+{
+  "_nota": "La storia delle prime ore (GDD §9): naufragio, Nonna Pina, tutorial guidato fino a Fulvio, la barca da Bepi, poi le missioni «Scopri le isole» (Capitan Remo) e «Dungeon». `attiva`: il client la fa partire solo se true. Passi: `tipo` client = lo segna il client (parlare, entrare in casa); arreda/attrezzo/cattura/guadagna = li vede il server dal lotto. Isole: `gioco` dice cosa conta come «provato» (una partita in più da quando la missione è partita). Testi: pagine da 4 righe al massimo; {nome} = il nome di chi gioca, {prezzo} = il prezzo della barca, {manca} = le monete che mancano; nelle missioni {isola}, {cosa}, {dungeon}, {premio}. `barca.consigli`: come fare monete, a giro sulla scheda finché la barca non è tua. `missioni`: la scheda dopo la barca (Remo, un'isola alla volta, poi i dungeon).",
+  "attiva": true,
+  "regaloPina": "lume_a_olio_mezzo_vuoto",
+  "barca": {
+    "prezzo": 400,
+    "consigli": [
+      "I paesani col «!» sulla testa hanno un favore da chiederti. Di solito pagano.",
+      "Pesci e insetti li compra il Furetto, in piazza. Niente domande.",
+      "L'Ingorgo, al barile qui nel Borgo: una partita, qualche moneta.",
+      "La Grotta della Marea, sotto la piazza: forzieri, banditi e un capo nervoso."
+    ]
+  },
+  "passi": [
+    { "id": "naufragio", "tipo": "client", "titolo": "…", "come": "Il mare si è preso tutto." },
+    { "id": "pina", "tipo": "client", "chi": "pina", "titolo": "Chi è quella signora?", "come": "Una signora ti viene incontro sulla spiaggia: parlale." },
+    { "id": "casa", "tipo": "client", "titolo": "La casa del Navigante", "come": "Segui la freccia ed entra in casa tua." },
+    { "id": "arreda", "tipo": "arreda", "titolo": "Un lume per la casa", "come": "Tocca ARREDA e posa il lume che ti ha dato Nonna Pina." },
+    { "id": "attrezzo", "tipo": "attrezzo", "chi": "fulvio", "titolo": "Il negozio di Fulvio", "come": "Esci e vai da Fulvio, al negozio dei mobili: ha un regalo per te." },
+    { "id": "cattura", "tipo": "cattura", "titolo": "Il primo bottino", "come": "Prendi un pesce dalla riva o un insetto col retino (Q per averlo in mano)." },
+    { "id": "vendi", "tipo": "guadagna", "chi": "furetto", "titolo": "Le prime monete", "come": "Vendilo al Furetto, il Contrabbandiere in piazza." },
+    { "id": "bepi", "tipo": "client", "chi": "bepi", "titolo": "Una barca, ti serve", "come": "Vai da Bepi al Cantiere navale, in riva a est del molo." },
+    { "id": "gigi", "tipo": "client", "chi": "gigi", "titolo": "Un consiglio da marinaio", "come": "Gigi il Mozzo sa come si fanno le monete in fretta: parlagli." }
+  ],
+  "isole": [
+    { "isola": "laguna", "gioco": { "tipo": "minigioco", "id": "regata" }, "premio": 50, "cosa": "la Regata" },
+    { "isola": "corse", "gioco": { "tipo": "minigioco", "id": "corse" }, "premio": 60, "cosa": "il Gran Premio" },
+    { "isola": "templari", "gioco": { "tipo": "templari" }, "premio": 70, "cosa": "le ondate dei Templari" },
+    { "isola": "difesa", "gioco": { "tipo": "difesa" }, "premio": 70, "cosa": "la difesa dell'orto" },
+    { "isola": "arena", "gioco": { "tipo": "arena" }, "premio": 80, "cosa": "un duello nell'Arena" },
+    { "isola": "adrenalina", "gioco": { "tipo": "minigioco", "id": "snowboard" }, "premio": 90, "cosa": "una discesa in snowboard" },
+    { "isola": "vulcano", "gioco": { "tipo": "minigioco", "id": "lava" }, "premio": 100, "cosa": "la Fuga dalla lava" },
+    { "isola": "giardino", "gioco": { "tipo": "minigioco", "id": "koi" }, "premio": 110, "cosa": "le Carpe koi" },
+    { "isola": "ghiacci", "gioco": { "tipo": "minigioco", "id": "pinguini" }, "premio": 120, "cosa": "i Pinguini sul ghiaccio" },
+    { "isola": "tempesta", "gioco": { "tipo": "minigioco", "id": "arrembaggio" }, "premio": 150, "cosa": "l'Arrembaggio" }
+  ],
+  "dungeon": { "premio": 50 },
+  "missioni": {
+    "remo": { "titolo": "Capitan Remo ti cerca", "come": "È al Porto. Dice che le isole qui intorno non si scoprono da sole." },
+    "isola": { "titolo": "{isola}", "come": "Vai sull'isola e prova {cosa}. Anche una partita persa vale." },
+    "torna": { "titolo": "Torna da Capitan Remo", "come": "Hai provato {cosa}: raccontalo a Remo, al Porto." },
+    "dungeon": { "titolo": "Dungeon: {dungeon}", "come": "Finiscilo e la missione paga {premio} monete. Uno alla volta, dal più facile." },
+    "fine": ["Missioni finite", "Isole scoperte e dungeon sconfitti. Il viaggio rapido (in alto) ti porta dove vuoi."]
+  },
+  "dialoghi": {
+    "risveglio": [
+      "…acqua salata ovunque. Sabbia nei capelli. Sei vivo, a quanto pare.",
+      "Pina: Oh, santa pazienza, un altro naufrago! Fatti vedere… aspetta.",
+      "Pina: Quella faccia. Quel naso. Sei TU! Il Navigante della leggenda!",
+      "Pina: Trecento anni fa uno uguale a te salvò il Borgo dalla Grande Mareggiata, e partì giurando che sarebbe tornato dal mare.",
+      "Pina: Da allora gli teniamo la casa pronta. Spolveriamo ogni giovedì. Trecento anni di giovedì, {nome}."
+    ],
+    "senzaCasa": [
+      "Pina: Ah. La casa del Navigante… l'abbiamo affittata. Trecento anni sono lunghi.",
+      "Pina: Tranquillo, il Borgo è grande: intanto il lume tienilo tu."
+    ],
+    "casa": [
+      "Pina: È su per la via, la freccia ti ci porta. Un po' vuota, lo so: il Navigante viaggiava leggero.",
+      "Pina: E tieni questo lume: era suo. Più o meno. Posalo in casa con ARREDA."
+    ],
+    "fulvio": [
+      "Fulvio: Il Navigante! Pina me l'ha detto, e io a Pina credo sempre. Quasi sempre.",
+      "Fulvio: Per tirare su due monete ti serve un attrezzo. Te ne regalo uno: scegli con calma, tanto il negozio non scappa."
+    ],
+    "fulvioGrazie": [
+      "Fulvio: Ottima scelta. Quello che prendi lo puoi vendere al Furetto in piazza, o portarlo qui per il Diario.",
+      "Fulvio: E se un giorno vuoi l'altro attrezzo, è sullo scaffale. A prezzo pieno, eh."
+    ],
+    "furetto": [
+      "Furetto: Roba fresca, eh? Te la prendo io. Niente domande, niente ricevute."
+    ],
+    "bepi": [
+      "Bepi: Un navigante senza barca è solo un signore bagnato.",
+      "Bepi: La tua è finita in fondo al mare, ma una come lei te la rimetto in piedi. Stessi colori, stesso nome.",
+      "Bepi: Costa {prezzo} monete. Non faccio credito, nemmeno alle leggende."
+    ],
+    "bepiPronto": "Bepi: {prezzo} monete e la barca è tua. Stessi colori, stesso nome. Affare fatto?",
+    "bepiManca": "Bepi: Ti mancano {manca} monete. Torna quando le hai: la barca non scappa. Io nemmeno.",
+    "bepiBarca": [
+      "Bepi: Ecco qua, varata e asciutta. L'ho ormeggiata al tuo posto, al molo.",
+      "Bepi: Capitan Remo ti cercava: dice che le isole qui intorno non si scoprono da sole."
+    ],
+    "gigi": [
+      "Gigi: Monete in fretta? La pesca è bella ma lenta. Sotto la piazza c'è la Grotta della Marea.",
+      "Gigi: Banditi, forzieri, un capo con un brutto carattere. Se torni su intero, torni su ricco.",
+      "Gigi: Prima passa dal Fabbro, Brando, accanto alla Grotta. Un bastone in mano non ha mai fatto male a nessuno. Cioè, sì, ma agli altri."
+    ],
+    "remoMissione": "Remo: Senti, Navigante: c'è un'isola che ti aspetta. Prossima tappa: {isola}. Prova {cosa}, poi torna qui e raccontami.",
+    "remoAttesa": "Remo: Ancora qui? {isola}, {cosa}. Il mare è lì, non morde. Quasi mai.",
+    "remoFatto": "Remo: Hai provato {cosa}? Bravo. Ora che la conosci, {isola} è nel tuo viaggio rapido: ci torni quando vuoi. Tieni, per il disturbo.",
+    "remoFine": "Remo: Le hai viste tutte. Il Navigante della leggenda non avrebbe saputo fare di meglio. Forse proprio perché eri tu."
+  }
+}

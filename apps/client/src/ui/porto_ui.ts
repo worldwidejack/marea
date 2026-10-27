@@ -23,7 +23,9 @@ import { registerTestHook } from '../test/testapi.ts';
 export type PortoUiKind = 'mercante' | 'bacheca' | 'parla';
 export type PortoUi = {
   readonly kind: PortoUiKind | null;
-  mercante(): void; bacheca(): void; parla(p: PersonaPorto): void;
+  mercante(): void; bacheca(): void;
+  /** Le battute di `p`; con `testi` quelle (la storia: Nonna Pina al risveglio, o pagine con le scelte) invece della chiacchierata. */
+  parla(p: PersonaPorto, testi?: readonly string[] | ((s: Scheda) => Pagina[])): void;
   /** Battuta dopo (l'ultima chiude). */
   avanti(): void;
   close(): void; isOpen(): boolean;
@@ -250,18 +252,20 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
     if (ctx.api?.enabled) ctx.api.lot().then((l) => { ctx.setLot(l); if (g === gen) render(); }, () => { /* restano quelli noti */ });
   }
 
-  function parla(p: PersonaPorto): void {
+  function parla(p: PersonaPorto, testi?: readonly string[] | ((s: Scheda) => Pagina[])): void {
     close(true);
     kind = 'parla'; gen++; persona = p; riga = 0; pagine = null; notaErr = null;
-    if (p.ruolo === 'paesano') {
-      const g = gen;
-      const scheda: Scheda = {
-        viva: () => g === gen && kind === 'parla',
-        poi: (nuove) => { if (g !== gen || !pagine) return; pagine.splice(riga + 1, pagine.length, ...nuove); riga++; notaErr = null; renderDlg(); },
-        nota: (t) => { if (g !== gen) return; notaErr = t; renderDlg(); },
-        chiudi: () => { if (g === gen) close(); },
-        vola: (n) => { const b = dlg.querySelector<HTMLElement>('.ft') ?? dlg; fly(b, n); },
-      };
+    const g = gen;
+    const scheda: Scheda = {
+      viva: () => g === gen && kind === 'parla',
+      poi: (nuove) => { if (g !== gen || !pagine) return; pagine.splice(riga + 1, pagine.length, ...nuove); riga++; notaErr = null; renderDlg(); },
+      nota: (t) => { if (g !== gen) return; notaErr = t; renderDlg(); },
+      chiudi: () => { if (g === gen) close(); },
+      vola: (n) => { const b = dlg.querySelector<HTMLElement>('.ft') ?? dlg; fly(b, n); },
+    };
+    if (typeof testi === 'function') pagine = testi(scheda);
+    else if (testi) pagine = testi.map((testo) => ({ testo }));
+    else if (p.ruolo === 'paesano') {
       const c = ctx.cielo?.() ?? null; cieloUsato = c;
       pagine = chiacchierata({ id: p.id, ctx, cielo: c, cancello: cancelloVuotoAperto(ctx.getLot()), ora: oraFinta ?? ctx.api?.serverNow() ?? Date.now(), scheda });
       if (!pagine.length) pagine = [{ testo: '…' }];

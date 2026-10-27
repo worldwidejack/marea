@@ -1,5 +1,5 @@
 // Freccia sullo schermo verso una cosa del mondo: sopra la cosa se è in vista, sul bordo (nella direzione della cosa vista dal centro della
-// fascia libera) se è fuori o dietro la camera. La usano la guida «Primi passi» (gialla) e la bussola con una sola meta scelta.
+// fascia libera) se è fuori o dietro la camera. La usano la scheda della storia (gialla) e la bussola con una sola meta scelta.
 import * as THREE from 'three';
 
 /** `x, y` in px dentro la tela (ox, oy = angolo della tela nel root). In vista: il punto della cosa; fuori: il punto sul bordo e `ang`

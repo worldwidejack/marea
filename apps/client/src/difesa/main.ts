@@ -110,6 +110,7 @@ function medaglia(): 'oro' | 'argento' | 'bronzo' {
 }
 function fine(vinta: boolean): void {
   finita = true; scelta = null;
+  if (window.parent !== window) window.parent.postMessage({ tipo: 'marea:difesa:partita' }, location.origin); // dal mondo: conta per la missione
   const def = livelloDef(s), lv = s.livello, minuti = Math.floor(s.tick / TICK_HZ / 60), sec = Math.floor((s.tick / TICK_HZ) % 60);
   const tempo = `${minuti}:${String(sec).padStart(2, '0')}`;
   setTimeout(() => {

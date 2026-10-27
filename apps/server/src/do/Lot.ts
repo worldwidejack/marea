@@ -14,6 +14,7 @@
 // Isola dei Templari (lot_templari.ts): POST /templari_start {subito?} · /templari_finish {inputs, azioni, hash} (replay e premio delle ondate) ·
 // /templari_reliquia (il calice della Tempesta) · /templari_party_start (solo dal DO TemplariInsieme; il finish insieme rigioca il suo log).
 // Isola dell'Adrenalina (docs/ADRENALINA.md §2): POST /adrenalina_liberatoria {} → {lot, nuova} (la firma al cancello della funivia, una volta sola).
+// Storia delle prime ore (lot_storia.ts, GDD §9): POST /storia_<azione>; a ogni lettura `avanzaStoria` segna i passi che si vedono dal lotto.
 // Rientro e libro degli ospiti (#86): POST /rientro {} → {riepilogo, lot} (riepilogo dell'assenza se mancavi da abbastanza, poi visto = adesso)
 // · /visto {} → {ok} («ci sono» del client che gioca) · /firma {chi, nome, emote} → LotState (un amico firma il libro di questa isola).
 import { DurableObject } from 'cloudflare:workers';
@@ -49,6 +50,8 @@ import { RPG_ACTS, SERVE_GRUPPO, json, rpgRoute } from './lot_rpg.ts';
 import { TEMPLARI_ACTS, templariRoute } from './lot_templari.ts';
 import { ARENA_ACTS, arenaRoute } from './lot_arena.ts';
 import { firmaLiberatoria } from '@marea/sim/adrenalina/liberatoria.ts';
+import { GIOCHI_IN_BARCA, avanzaStoria, haBarca } from '@marea/sim/economy/storia.ts';
+import { STORIA_ACTS, storiaRoute } from './lot_storia.ts';
 
 const isCell = (v: unknown): v is [number, number] => Array.isArray(v) && v.length === 2 && v.every((n) => Number.isInteger(n) && n >= 0 && n < 256);
 /** Un id dal client. 64: gli id dei mobili arrivano a 44 caratteri e quello di un mobile posato è `<id>-<n>` (con 40 quattro mobili non si compravano né si posavano). */
@@ -82,8 +85,8 @@ export class Lot extends DurableObject<Env> {
     }
     const lot = JSON.parse(row.json) as LotState | LottoDiPrima;
     // salvataggi di prima: monete, niente giardino, decorazioni in casa, baule di serie (economy/cambio.ts), una volta sola;
-    // e personaggi con abilità o perk che non esistono più (Navigazione): via, i perk tornano punti
-    const fit = fitHero(aggiornaSalvataggio(lot));
+    // e personaggi con abilità o perk che non esistono più (Navigazione): via, i perk tornano punti; poi i passi della storia che si vedono dal lotto
+    const fit = avanzaStoria(fitHero(aggiornaSalvataggio(lot)));
     // spedizione abbandonata da un pezzo con un altare toccato: si chiude tenendo il bottino dell'altare
     const chiusa = chiudiScaduta(fit, now);
     if (chiusa) { this.save(chiusa.lot); return chiusa.lot; }
@@ -122,6 +125,7 @@ export class Lot extends DurableObject<Env> {
         return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
       }
       if (ARENA_ACTS.has(act)) return arenaRoute(lot, act, body, now, (l) => this.save(l)); // solo dal DO Arena
+      if (STORIA_ACTS.has(act)) return storiaRoute(lot, act, body, now, (l) => this.save(l));
       if (TEMPLARI_ACTS.has(act)) {
         // partita insieme aperta: prima il log della squadra dal DO TemplariInsieme, poi il lotto riletto (nell'attesa può essere cambiato)
         const g = lot.templari?.pending?.party;
@@ -216,6 +220,7 @@ export class Lot extends DurableObject<Env> {
     if (act === 'solo_start') {
       const mg = body['minigame'];
       if (typeof mg !== 'string' || !Object.hasOwn(MINIGAMES, mg)) return json({ error: 'Minigioco sconosciuto' }, 400);
+      if (GIOCHI_IN_BARCA.has(mg) && !haBarca(lot)) return json({ error: 'Ti serve una barca: Bepi al Cantiere te la vende', code: 'requisito' }, 409);
       const seed = crypto.getRandomValues(new Uint32Array(1))[0]! >>> 1;
       // opzioni della partita (es. il mare della pesca): le normalizza il modulo; senza `opzioni` nel modulo si ignorano
       const mod = getMinigame(mg), opzioni = mod.opzioni ? mod.opzioni(body['opzioni']) : undefined;
