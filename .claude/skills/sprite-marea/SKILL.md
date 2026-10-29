@@ -1,11 +1,11 @@
 ---
 name: sprite-marea
-description: Come si fanno gli sprite dei personaggi di MAREA nel look 3 votato dal gruppo (personaggio 2.5D in pixel art in un mondo 3D, 16 direzioni = 9 viste disegnate + 7 specchiate, 4 disegni per mossa, 36 per mossa). Riga di stile in testa al prompt, modello approvato e sagoma grigia allegati, una vista per foglio su fondo magenta, Codex o ChatGPT; gli script in tools/sprite (prompt, genera, pixel, foglio, in_fenaki) e il controllo con Fenaki; prima di entrare nel gioco li vede Jack. Da caricare prima di generare, preparare, controllare o mettere nel gioco un personaggio a sprite, un abitante, una mossa nuova.
+description: Come si fanno gli sprite dei personaggi di MAREA nel look 3 votato dal gruppo (personaggio 2.5D in pixel art in un mondo 3D, 16 direzioni = 9 viste disegnate + 7 specchiate, 4 disegni per mossa, 36 per mossa). Riga di stile in testa al prompt, modello approvato e sagoma grigia allegati, una vista per foglio su fondo magenta, Codex o ChatGPT; gli script in tools/sprite (prompt, genera, pixel, foglio, in_fenaki) e il controllo con Fenaki; prima di entrare nel gioco li guarda chi li fa (e il gruppo, se vuole). Da caricare prima di generare, preparare, controllare o mettere nel gioco un personaggio a sprite, un abitante, una mossa nuova.
 ---
 
 # Gli sprite dei personaggi di MAREA (look 3)
 
-Il gruppo ha votato il **look 3**: il mondo è in 3D e il motore lo fa sembrare disegnato; i personaggi sono **sprite 2.5D in pixel art**. Questa ricetta è quella che nella prova dei look (`assets/concept/personaggio/`) ha dato 108 disegni buoni al primo colpo. Seguila com'è: uno sprite fatto a occhio si vede subito accanto agli altri, e Jack lo boccia.
+Il gruppo ha votato il **look 3**: il mondo è in 3D e il motore lo fa sembrare disegnato; i personaggi sono **sprite 2.5D in pixel art**. Questa ricetta è quella che nella prova dei look (`assets/concept/personaggio/`) ha dato 108 disegni buoni al primo colpo. Seguila com'è: uno sprite fatto a occhio si vede subito accanto agli altri, e stona.
 
 ## Il look 3 in numeri
 - **16 direzioni**: 9 viste disegnate, da davanti a dietro passando da destra (S, SSE, SE, ESE, E, ENE, NE, NNE, N), e le 7 del lato sinistro sono lo **specchio** (le fa il gioco: non si disegnano). La vista la sceglie il gioco dall'angolo fra dove guarda il personaggio e la camera, a scatti di 22,5°.
@@ -15,18 +15,18 @@ Il gruppo ha votato il **look 3**: il mondo è in 3D e il motore lo fa sembrare 
 - Fino all'Art Bible sul look 3, per i personaggi a sprite vale questa skill dove `docs/ART_BIBLE.md` §5 dice altro (6 teste, modello 3D, Mixamo).
 
 ## La regola
-**Prima di metterli nel gioco li vede Jack.** Il gusto lo decide lui, guardando immagini (il foglio, il video), mai a parole. Si va per gradini e a ogni gradino si aspetta l'ok: il modello in 5 viste, poi il giro 1 (tre viste), poi il resto. Niente produzione in serie prima dell'ok sul primo pezzo. La persona con cui lavori sceglie con A/B e immagini; Jack vede il foglio nella PR, e il merge si fa solo col suo ok. (Sul Mac di Jack le domande di gusto vanno nella Lanterna.)
+**Prima di metterli nel gioco, guardali.** Il gusto lo decide la persona con cui lavori, guardando immagini (il foglio, il video), mai a parole; se vuole un parere, il foglio va nel gruppo. Si va per gradini: il modello in 5 viste, poi il giro 1 (tre viste), poi il resto. Niente produzione in serie prima che il primo pezzo le piaccia. Nessuno deve approvare: il gruppo è alla pari (Jack, 29/10: «non sono e non voglio essere io il capo»). (Sul Mac di Jack le domande di gusto vanno nella Lanterna.)
 
 ## Cosa serve
 - **Codex** (`codex login` con l'account ChatGPT) per disegnare in automatico con `genera.py`, oppure **ChatGPT** a mano (`prompt.py --stampa`).
-- **Fenaki**, il banco d'animazione di Jack: repo privato `worldwidejack/fenaki` (l'accesso lo dà Jack), installato seguendo il suo `CLAUDE.md`. Se `claude mcp list` non mostra `fenaki`, installalo prima di cominciare (o di' alla persona di chiedere l'accesso a Jack).
+- **Fenaki**, il banco d'animazione di Jack: repo privato `worldwidejack/fenaki` (Riccardo e birbasan ci sono dentro, in scrittura), installato seguendo il suo `CLAUDE.md`. Se `claude mcp list` non mostra `fenaki`, installalo prima di cominciare.
 - **Python**: quello del venv di Fenaki (`<fenaki>/.venv/bin/python`, su Windows `<fenaki>\.venv\Scripts\python.exe`), che ha già Pillow, numpy e OpenCV. Negli esempi qui sotto `PY` = quel python.
 
 ## La cartella del personaggio
 `assets/concept/sprite/<id>/`, con dentro `scheda.json`: l'esempio vero è `assets/concept/sprite/protagonista/scheda.json`. La scheda dice chi è (`descrizione` in inglese, **identica in ogni prompt**: capelli, testa, pelle, vestiti coi colori), `pronome` (he / she / it), `modello` (il disegno approvato), `viste` (le 5 viste del modello), `stile` (per un personaggio nuovo: i fogli a pixel di F3, uno per vista del giro 1), `alto` (px in piedi), `testa` (% coi capelli), `mosse` (una frase in inglese per riga del foglio: «WALK CYCLE, 4 frames: …»), `extra` (colori piccoli che devono restare, come il verde della pozione). Nel repo vanno scheda, prompt, tavolozza e i JPG; i PNG (fogli, sprite) restano sul computer (`.gitignore`). La mappa degli script è in `tools/sprite/README.md`.
 
 ## Il giro
-**0. Un personaggio nuovo comincia da un disegno solo**, scelto da Jack fra 3 varianti (A/B/C) generate col modello di F3 accanto, così sta nello stesso mondo. Poi scrivi la scheda.
+**0. Un personaggio nuovo comincia da un disegno solo**, scelto dalla persona fra 3 varianti (A/B/C) generate col modello di F3 accanto, così sta nello stesso mondo. Poi scrivi la scheda.
 
 **1. Il modello in 5 viste** (davanti, 3/4 davanti, profilo, 3/4 dietro, dietro), il foglio da cui nascono tutte le viste:
 ```
@@ -45,7 +45,7 @@ PY tools/sprite/pixel.py <cartella>                # → sprite/: taglio per sag
 PY tools/sprite/foglio.py <cartella> --apri        # → _FOGLIO_sprite.jpg
 PY tools/sprite/in_fenaki.py <cartella>            # → controllo/: le mosse e il giro delle viste in Fenaki
 ```
-Controlla (sotto), poi **ok della persona e di Jack sul giro 1 prima di andare avanti**: è il gradino che decide lo stile.
+Controlla (sotto), poi **ok della persona sul giro 1 prima di andare avanti**: è il gradino che decide lo stile.
 
 **3. Giro 2: le altre sei viste** (S, SSE, ESE, ENE, NNE, N), ognuna fra due viste del modello e col foglio a pixel della vista vicina del giro 1 allegato come stile, «dello stesso artista»:
 ```
@@ -77,14 +77,14 @@ Poi in **Fenaki** (`in_fenaki.py` ha preparato `controllo/`): `provino(cartella=
 
 ## Farli vedere
 1. Alla persona: il foglio aperto (`foglio.py --apri`) e la pagina di Fenaki; le scelte di gusto come A/B con le immagini.
-2. A Jack, nella PR: `_FOGLIO_sprite.jpg` (e il video se serve) nella PR della cartella del personaggio, con scritto cosa guardare. Nel gioco entrano solo dopo il suo ok: il motore degli sprite del look 3 arriverà in MAREA con una PR sua, che leggerà `sprite/elenco.json` (lo stesso formato della prova dei look).
+2. Nella PR: `_FOGLIO_sprite.jpg` (e il video se serve) nella cartella del personaggio, con scritto cosa guardare, così il gruppo vede cosa entra. Il motore degli sprite del look 3 arriverà in MAREA con una PR sua, che leggerà `sprite/elenco.json` (lo stesso formato della prova dei look).
 
 ## Cosa NON fare
 - Partire da forme fatte da codice al posto del design: prima il disegno approvato, poi le viste. La sagoma grigia dice solo misura e angolo e sparisce sotto il disegno (se il generatore copia le forme della base, il risultato sembra un modello low-poly ridisegnato).
 - Più viste in un foglio, più di 3 mosse in un foglio, fogli senza la camminata in prima riga.
 - Saltare il giro 1 o fare il giro 2 prima dell'ok: i 6 fogli del giro 2 copiano lo stile del giro 1, anche i suoi difetti.
 - Ritoccare la tavolozza a mano o mischiare le tavolozze di due personaggi: ognuno ha la sua `sprite/tavolozza.json`.
-- Mettere i PNG nel repo (solo i JPG) o gli sprite nel gioco senza l'ok di Jack.
+- Mettere i PNG nel repo (solo i JPG).
 - Fidarsi del «fatto» di Codex: apri sempre il foglio. Dopo ~40-50 immagini di fila Codex si può fermare: rilancia `genera.py`, salta i fogli già fatti.
 
 ## Tempi e costi (dalla prova)
