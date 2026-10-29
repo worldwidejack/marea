@@ -76,6 +76,7 @@ Con la camera bassa si vede fino all'orizzonte: senza accorgimenti si disegnereb
 - **Scenografia minuta** (sassi, cespugli, casse, barili, lanterne): niente ombre e spenta oltre `MINUTI_M` (150 m).
 - **Tutto fuso per isola**: moduli del terreno, prop ed edifici stanno sull'atlas (materiali `mat_atlas` e `mat_emissivo`) e si fondono in una geometria per isola, materiale e gruppo. Un'isola costa ~5-8 draw call invece di 15-30.
 - Un modello nuovo per le isole: **sull'atlas** (così si fonde). Una scenografia nuova vicino a un'isola: dentro il suo gruppo, o con un culling suo (come `temi_fx.ts`, `porto.ts`, `animali.ts`).
+- **Grafica bassa** (Impostazioni → «Grafica superiore» spenta, per i dispositivi meno prestanti): `avvio/aspetto.ts` la applica in un punto solo. Risoluzione di resa 0,35 (`render/pixel.ts`, niente HD delle Corse), niente ombre del sole (`setOmbre` in `render/light.ts`, vale per tutti i soli creati da `createLights`), niente `PointLight` di notte (`Luci.reali`), mare `LITE` (`water2.ts`: senza scia della luna, stelle riflesse, faro e seconda ottava d'onde), meteo, contorni e stampa forzati spenti (`leggera` in `render/viste.ts`: il pannello conserva le scelte). Dungeon e Templari hanno luci proprie e non cambiano.
 - Controllo: `tests/e2e/m3_prestazioni.mjs` (giro di tutte le isole e del mare aperto, camere e zoom diversi, giorno e notte, telefono e PC; numeri in `tests/out/m3_prestazioni.json`). Hook di test `disegnati()`: mesh per mesh cosa si disegna nella vista e nell'ombra.
 
 ## 6. Cloudflare piano Free (verificato il 29 set 2026)

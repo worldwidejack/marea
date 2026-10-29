@@ -23,6 +23,8 @@ export type Renderer = {
   setView(v: View | null): void;
   /** HD (#277, l'isola delle Corse): `k` pixel veri per pixel CSS (al massimo quelli dello schermo); null = la metà pixel di sempre. */
   setNitido?(k: number | null): void;
+  /** Grafica bassa (impostazioni): risoluzione di resa ridotta (pixel.ts) e niente HD. */
+  setBassa(on: boolean): void;
   /** Interni del mondo (#265, la stanza della casa): niente cielo né foschia della passata finale, fondo di `colore`; null = all'aperto. */
   setInterno(colore: string | null): void;
   /** Al chiuso: dentro un interno (setInterno con un colore) o in una scena a parte (dungeon, Templari): niente nuvole, pioggia né tuoni. */
@@ -37,23 +39,23 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
   o.canvas.style.imageRendering = 'pixelated';
   const scene = new THREE.Scene();
   const sky = createSky(); scene.background = sky.texture; scene.add(sky.object);
-  const scale = pixelScale(o.flags);
   const diorama = createDioramaCamera({ aspect: 1, canvas: o.canvas });
   let frames = 0, fps = 0, frameMs = 0, last = performance.now(), acc = 0, calls = 0, tris = 0;
-  let nitido: number | null = null, w = 1, h = 1, active: THREE.Scene = scene, post: Post | null = null, view: View | null = null, interno = false;
+  let nitido: number | null = null, w = 1, h = 1, active: THREE.Scene = scene, post: Post | null = null, view: View | null = null, interno = false, bassa = false;
   const camera = diorama.camera, FAR = camera.far;
   const applyView = () => {
     const v = active === scene ? view : null;
     if (v) diorama.setView!((v.pitch * Math.PI) / 180, v.fov, v.dist); else diorama.setView!(CAM.PITCH, CAM.FOV, CAM.DIST);
     camera.far = v ? v.far : FAR; camera.updateProjectionMatrix();
   };
+  const hd = () => nitido !== null && !bassa; // in grafica bassa niente HD (Corse): sarebbe tutta la risoluzione risparmiata
   // iOS, girando il telefono, a volte manda «resize» prima di aver rifatto il layout: le misure restano quelle di prima e l'immagine
   // esce stirata. Per questo `render` ricontrolla le misure a ogni frame (cw, ch) e rifà il resize se sono cambiate.
   let cw0 = 0, ch0 = 0;
   const resize = () => {
     const cw = o.canvas.clientWidth || innerWidth, ch = o.canvas.clientHeight || innerHeight;
     cw0 = cw; ch0 = ch;
-    const k = nitido !== null ? Math.min(nitido, devicePixelRatio || 1) : Math.min(1.5, devicePixelRatio || 1) * scale;
+    const k = hd() ? Math.min(nitido!, devicePixelRatio || 1) : Math.min(1.5, devicePixelRatio || 1) * pixelScale(o.flags, bassa);
     w = Math.max(1, Math.round(cw * k)); h = Math.max(1, Math.round(ch * k));
     gl.setSize(w, h, false); post?.setSize(w, h);
     diorama.camera.aspect = cw / Math.max(1, ch); diorama.camera.updateProjectionMatrix();
@@ -75,7 +77,8 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
     get interno() { return interno; },
     setInterno: (c) => { interno = c !== null; scene.background = c !== null ? new THREE.Color(c) : sky.texture; },
     setView: (v) => { view = v; applyView(); },
-    setNitido: (k) => { if (k === nitido) return; nitido = k; o.canvas.style.imageRendering = k !== null ? 'auto' : 'pixelated'; resize(); },
+    setNitido: (k) => { if (k === nitido) return; nitido = k; o.canvas.style.imageRendering = hd() ? 'auto' : 'pixelated'; resize(); },
+    setBassa: (on) => { if (on === bassa) return; bassa = on; o.canvas.style.imageRendering = hd() ? 'auto' : 'pixelated'; resize(); },
     render: (_alpha, t) => {
       // Hook prima del render per chi deve riallineare qualcosa dopo world.update (es. il sole sul passo della shadow map).
       for (const c of active.children) (c.userData.preRender as (() => void) | undefined)?.();

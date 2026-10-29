@@ -12,7 +12,9 @@ const RAGGIO = 7, FORZA = 9;
 
 type Punto = { x: number; y: number; z: number; col: string };
 type Bulbo = { x: number; y: number; z: number; ry: number; kind: 'carta' | 'insegna' };
-export type Luci = { group: THREE.Group; set(k: number, x: number, z: number, nowMs: number): void; readonly accese: number; readonly punti: number };
+export type Luci = { group: THREE.Group; set(k: number, x: number, z: number, nowMs: number): void; readonly accese: number; readonly punti: number;
+  /** Grafica bassa: spente le luci vere (ognuna pesa su ogni materiale illuminato) restano le lampadine finte. */
+  reali(on: boolean): void };
 
 /** Dove stanno le lampade di una decorazione (offset locali come in island_parts.ts, ruotati di `rot` attorno a Y). */
 function lampade(k: string): { at: [number, number, number]; col: string; kind: Bulbo['kind'] }[] {
@@ -53,16 +55,22 @@ export function createLuci(o: { props: readonly { k: string; x: number; z: numbe
   const carta = mk(new THREE.CylinderGeometry(0.18, 0.18, 0.4, 6), P.giallo, bulbi.filter((b) => b.kind === 'carta'));
   const insegna = mk(new THREE.BoxGeometry(1.24, 0.74, 0.16), P.rosaNeon, bulbi.filter((b) => b.kind === 'insegna'));
 
-  let accese = 0, next = 0;
+  let accese = 0, next = 0, vere = true;
   const d2 = (p: Punto, x: number, z: number) => (p.x - x) ** 2 + (p.z - z) ** 2;
   return {
     group,
     get accese() { return accese; },
     get punti() { return punti.length; },
+    reali(on) {
+      if (on === vere) return;
+      vere = on; accese = 0;
+      for (const l of pool) { l.intensity = 0; if (on) group.add(l); else group.remove(l); }
+    },
     set(k, x, z, nowMs) {
       const on = k > 0.02;
       for (const b of [carta, insegna]) if (b) { b.mesh.visible = on; b.mat.opacity = Math.min(1, k * 1.1); }
       if (!on) { if (accese) { for (const l of pool) l.intensity = 0; accese = 0; } return; }
+      if (!vere) return;
       if (nowMs >= next) { // i più vicini: un ordinamento di qualche decina di punti ogni ¼ s
         next = nowMs + 250;
         const vicini = punti.filter((p) => d2(p, x, z) < 60 * 60).sort((a, b) => d2(a, x, z) - d2(b, x, z)).slice(0, POOL);

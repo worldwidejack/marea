@@ -61,6 +61,7 @@ float vnoise(vec2 p) {
   vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
 }
+#ifndef LITE
 // Scia della luna come nelle notti di Kawase Hasui: un'onda ti manda la luna solo se ha la pendenza giusta (mezzo vettore tra camera e
 // luna), quindi la scia è fitta verso l'orizzonte e si sbriciola avvicinandosi. Le onde sono strette lungo la luna e lunghe di lato:
 // trattini orizzontali con buchi scuri, a gradini di colore (crema, azzurro, blu), alone tratteggiato e qualche scintilla sui bordi.
@@ -85,6 +86,7 @@ vec3 scia(vec2 q, float t, float dist, vec3 c) {
   if (P > 0.08 && sp > 0.985) return uLunaB; // scintille sparse sui bordi
   return k > 0.12 ? mix(c, uLunaC, 0.35) : c; // alone: trattini appena più chiari attorno alla scia
 }
+#endif
 ${GLSL_SCIA}
 void main() {
   vec2 q = (floor(vW.xz * 8.0) + 0.5) / 8.0; // 8 texel/m
@@ -99,7 +101,11 @@ void main() {
   vec2 qw = q - sFuori * sciaSpinta(sS, sLat, sE, sForza); // il mare spinto di lato dalla barca: le onde si leggono qui
   if (uMode == 1) {
     // stampa: campo d'onde che scorre; linee di livello chiare, creste ricciute di schiuma dove il campo è alto
+    #ifdef LITE
+    float w = vnoise(qw * vec2(0.11, 0.17) + vec2(t * 0.05, t * 0.02)); // grafica bassa: una sola ottava
+    #else
     float w = vnoise(qw * vec2(0.11, 0.17) + vec2(t * 0.05, t * 0.02)) * 0.65 + vnoise(qw * 0.33 + vec2(-t * 0.04, t * 0.03)) * 0.35;
+    #endif
     float l = fract(w * 6.0);
     // lontano le righe diventano più fini di un pixel e si sbriciolano in puntini (#286): oltre 70 m il mare è a tinta unita
     bool vicino = length(vW.xz - cameraPosition.xz) < 70.0;
@@ -150,6 +156,7 @@ void main() {
     }
   }
   c *= uTint;
+  #ifndef LITE
   if (uNight > 0.01) { // notte (#56): scia della luna e stelle riflesse
     vec2 toP = vW.xz - cameraPosition.xz;
     c = mix(c, scia(q, t, length(toP), c), uNight);
@@ -157,11 +164,14 @@ void main() {
     if (length(toP) < 70.0 && st > 0.9965 && fract(t * 0.6 + st * 13.0) > 0.3) c = mix(c, uFoam, uNight * 0.85); // stelle riflesse solo vicino (#286)
   }
   if (dd > 1.0) c = faroAcqua(q, c, t);
+  #endif
   gl_FragColor = vec4(c, 1.0); // uTint: il ciclo giorno/notte scurisce l'acqua (non è illuminata)
   #include <colorspace_fragment>
 }`;
 
-export type Water2 = { mesh: THREE.Mesh; follow(x: number, z: number): void; update(t: number): void; set(mode: number, c: string[], foam: string, line: string, sunDir: [number, number, number]): void; tint(c: THREE.Color): void; night(n: number, moonDir: readonly [number, number, number]): void };
+export type Water2 = { mesh: THREE.Mesh; follow(x: number, z: number): void; update(t: number): void; set(mode: number, c: string[], foam: string, line: string, sunDir: [number, number, number]): void; tint(c: THREE.Color): void; night(n: number, moonDir: readonly [number, number, number]): void;
+  /** Grafica bassa: mare più semplice, senza scia della luna, stelle riflesse, luce del faro e seconda ottava d'onde. */
+  lite(on: boolean): void };
 
 export function createWater2(map: GridMap): Water2 {
   const col = (h: string) => new THREE.Color(h);
@@ -184,6 +194,7 @@ export function createWater2(map: GridMap): Water2 {
     update: (t) => { U.uTime.value = t % 3600; tickScia(); },
     tint: (c) => { U.uTint.value.copy(c); },
     night: (n, d) => { U.uNight.value = n; U.uMoonDir.value.set(d[0], d[1], d[2]).normalize(); },
+    lite: (on) => { if (on === ('LITE' in mat.defines)) return; if (on) mat.defines['LITE'] = 1; else delete mat.defines['LITE']; mat.needsUpdate = true; },
     set: (mode, c, foam, line, sunDir) => {
       U.uMode.value = mode; U.uC0.value.set(c[0]!); U.uC1.value.set(c[1]!); U.uC2.value.set(c[2]!); U.uC3.value.set(c[3]!);
       U.uFoam.value.set(foam); U.uLine.value.set(line); U.uSunDir.value.set(...sunDir).normalize();
