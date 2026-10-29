@@ -56,8 +56,9 @@ export type HeroRt = {
   /** Magia a raggio (Fuoco/Elettricità continua, Cura/Furia a flusso, magie.ts): tick da quando è accesa (0 = spenta), metri liberi davanti all'eroe, elemento. */
   canale: number; canaleLen: number; canaleEl?: SpellElement;
   /** Diga dei Disertori: tick fino a cui i rottami non lo riprendono; Vento in Poppa dell'Albero della «Stella del Mattino» (unici.ts):
-   *  cariche di Brezza, metri corsi verso la prossima, e se il colpo in corso è quello che le ha consumate (l'onda d'urto). */
-  rottT: number; brezza: number; brezzaM: number; poppa: boolean;
+   *  cariche di Brezza, metri corsi verso la prossima, e se il colpo in corso è quello che le ha consumate (l'onda d'urto).
+   *  Tempio della «Doppia Nera»: tick rimasti «In Fresca», metri corsi verso la carica e se il colpo in corso solleva l'onda di neve. */
+  rottT: number; brezza: number; brezzaM: number; poppa: boolean; fresca: number; frescaM: number; ondaNeve: boolean;
 };
 export type EnemyState = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'morto';
 export type Enemy = {
@@ -306,7 +307,7 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
         cdMagia: 0, cdMagie: {}, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, spX: 0, spZ: 0, spT: 0, spUrto: 0, brucia: 0, bruciaDps: 0, bruciaAcc: 0,
         barr: 0, pressione: hero.arma.traits.lame?.cariche ?? 0, ultimoAttacco: -1e6, ritmo: 0, tic: -1, rintocco: false, molla: hero.arma.traits.carillon?.colpi ?? 0, mollaT: 0, ecoT: -1e6, lancT: [],
         prevA: false, prevC: false, prevD: false, prevE: false, cdScarica: 0, raffica: 0, raffT: 0, massimaP: 0, massimo: false, canale: 0, canaleLen: 0,
-        rottT: 0, brezza: 0, brezzaM: 0, poppa: false,
+        rottT: 0, brezza: 0, brezzaM: 0, poppa: false, fresca: 0, frescaM: 0, ondaNeve: false,
       },
       runHero: hero, done: false, outcome: null,
       bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0,

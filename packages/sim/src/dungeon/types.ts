@@ -128,6 +128,8 @@ export type DungeonEvent = (
   | { t: 'incastrato' }
   | { t: 'brezza'; n: number }
   | { t: 'poppa'; x: number; z: number }
+  | { t: 'fresca'; n: number }
+  | { t: 'valanga'; x: number; z: number }
 ) & { eroe?: number };
 
 export type DungeonView = {
@@ -166,7 +168,7 @@ export type DungeonView = {
     /** Mausoleo, gli unici addosso: carica della Barriera Cinetica (0..1, 1 = pronta); il contatore dell'arma (pressione del Fendiflutti,
      *  ritmo della Grande Lancetta con `tic` = secondi al prossimo tic, colpi dell'Arco Carillon). */
     barriera?: number;
-    carico?: { tipo: 'pressione' | 'ritmo' | 'molla' | 'brezza'; n: number; max: number; tic?: number };
+    carico?: { tipo: 'pressione' | 'ritmo' | 'molla' | 'brezza' | 'fresca'; n: number; max: number; tic?: number };
   };
   nemici: { id: number; tipo: string; model: string; x: number; z: number; fx: number; fz: number; anim: EnemyAnim; t: number; vita: number; max: number; alleato: boolean; sanguina: boolean; boss: boolean;
     /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. */

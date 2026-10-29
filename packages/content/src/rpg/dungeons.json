@@ -315,7 +315,7 @@
      ]}
     ]
    }},
-  {"id":"mausoleo","nome":"Mausoleo Cinetico","descr":"Sotto l'arco nord-ovest della Laguna, il Santuario della Regina e l'orologio del Pilone 4: lancette giganti, chierici a ingranaggi, sentinelle con lo scudo, la Guardia d'Onore e il Custode dell'Egida. Argento, oro, gli unici della Regina.","stile":"mausoleo","difficolta":7,"richiede":"fucina","tile":2,"legenda":{"P":{"colonna":true},"=":{"cancello":1},"x":{"carica":1},"S":{"sarcofago":true},"e":{"nemico":"sentinella_egida"},"g":{"nemico":"guardia_onore"},"h":{"nemico":"chierico_ingranaggi"},"K":{"nemico":"custode_egida","capo":true},"c":{"forziere":"comune_mausoleo"},"R":{"forziere":"raro_mausoleo"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"B":{"altare":true,"asciutti":[1]}},"ingresso":{"island":"laguna","at":[8,13]},
+  {"id":"mausoleo","nome":"Mausoleo Cinetico","descr":"Sotto l'arco nord-ovest della Laguna, il Santuario della Regina e l'orologio del Pilone 4: lancette giganti, chierici a ingranaggi, sentinelle con lo scudo, la Guardia d'Onore e il Custode dell'Egida. Argento, oro, gli unici della Regina.","stile":"mausoleo","difficolta":6,"richiede":"fucina","tile":2,"legenda":{"P":{"colonna":true},"=":{"cancello":1},"x":{"carica":1},"S":{"sarcofago":true},"e":{"nemico":"sentinella_egida"},"g":{"nemico":"guardia_onore"},"h":{"nemico":"chierico_ingranaggi"},"K":{"nemico":"custode_egida","capo":true},"c":{"forziere":"comune_mausoleo"},"R":{"forziere":"raro_mausoleo"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"B":{"altare":true,"asciutti":[1]}},"ingresso":{"island":"laguna","at":[8,13]},
    "lancette":[{"n":1,"at":[5,13],"lunga":8.4,"giro":0.55,"fase":0,"largo":0.45,"danno":20,"spinta":3,"pausa":1.5},{"n":2,"at":[21,14],"lunga":10.4,"giro":0.5,"fase":0,"largo":0.45,"danno":22,"spinta":3,"pausa":1.5},{"n":3,"at":[21,14],"lunga":6.4,"giro":-0.8,"fase":3.1416,"largo":0.45,"danno":22,"spinta":3,"pausa":1.5}],
    "rows": [
     "#############################################",
@@ -450,6 +450,63 @@
        "Ora le barche piccole sono oltre la barriera corallina, ma le fregate reali ci sono addosso.",
        "Vaelen ha ordinato di calare le ancore a prua e a poppa, intraversando la nave per chiudere il canale col nostro stesso scafo.",
        "Trenta uomini hanno scelto di restare a bordo con lui. Che il mare ci sia lieve."
+     ]}
+    ]
+   }},
+  {"id":"baita","nome":"Il Tempio della «Doppia Nera»","descr":"Sulle pendici rocciose dell'Isola dell'Adrenalina: il megacomplesso del noleggio sci dove la setta degli «Assi della Pista» custodisce l'Ultima Lastra di Ghiaccio. Turbine spazzaneve, raffiche di tormenta, Controllori dello Skipass e Jean-Claude «Valanga». Argento, oro, meteorite.","stile":"baita","difficolta":7,"tile":2,"legenda":{"1":{"ruota":1},"2":{"ruota":2},"4":{"ruota":4},"5":{"ruota":5},"w":{"acqua":1},"W":{"acqua":2},"=":{"acqua":6},"_":{"ponte":5},"r":{"risacca":3},"X":{"risacca":3,"rottami":true},"R":{"risacca":4},"Y":{"risacca":4,"rottami":true},"p":{"pilone":true},"o":{"colonna":true},"t":{"luce":true},"A":{"altare":true},"B":{"altare":true,"asciutti":[5],"ferme":[4]},"g":{"nemico":"controllore_skipass"},"f":{"nemico":"maestro_racchetta"},"u":{"nemico":"cornacchia_bombardino"},"V":{"nemico":"jean_claude","capo":true},"c":{"forziere":"comune_baita"},"C":{"forziere":"raro_baita"}},"ingresso":{"island":"adrenalina","at":[24,20]},
+   "venti":[{"n":3,"dir":"s","forza":6,"soffia":1,"pausa":2.2,"fase":0},{"n":4,"dir":"o","forza":9,"soffia":1,"pausa":0}],
+   "rottami":{"danno":18,"ogni":0.8},
+   "rows": [
+    "##############################              #",
+    "#############t............t###              #",
+    "#t.....######........g.....###t............t#",
+    "#.c....######..f...........###............C.#",
+    "#...g..##........WWWWWW....###=............=#",
+    "#......##........WWC.WW..u.###=..p......p..=#",
+    "#......##..##....WW..WW....###=............=#",
+    "#......##..##....WWWWWW....###=.....V......=#",
+    "#wwww####..##.2.........f..###=............=#",
+    "#wwww####..##t.............###=............=#",
+    "#t..........###..#############=..p......p..=#",
+    "#.......o...##t.......########=............=#",
+    "#....1....u.##.....f..########..............#",
+    "#...........##......4.########t............t#",
+    "#......A....##........################..#####",
+    "#..........t######..##################..#####",
+    "#..f..........o.rr...o.rr.o.#######t......t##",
+    "#...............rr.....rr...#######.....g..##",
+    "####...######...ro.....or.f.#######..B.....##",
+    "####...######t..rr..g..rr..t#YYRRRR........##",
+    "#t........###...rr.....rr...#YYRRRR........##",
+    "#.........###.u.rr.....rr......g.##......f.##",
+    "#.........###...XX.f...XXu.......##........##",
+    "#......g..###c..XX.....XX...#############..##",
+    "#........t###############################..##",
+    "#.........###############################..##",
+    "#.........t........___.....c....t..........##",
+    "#.............f....___.5.........u.........##",
+    "#.<.......###################################",
+    "#############################################"
+   ],
+   "testi": {
+    "sottotitolo": "Stazione Intermedia del Culto della Sciolina",
+    "voci": [
+     {"id":"noleggio","zona":[1,20,9,28],"chi":"Altoparlante gracchiante","testo":"«Benvenuti al Noleggio! Ricordiamo che gli scarponi sono stretti di proposito: se sentite ancora le dita dei piedi, non state sciando!»"},
+     {"id":"tunnel","zona":[13,16,27,23],"chi":"Altoparlante gracchiante","testo":"«Attenzione: il vento contrario è offerto dalla Direzione per simulare i 200 km/h stando fermi! Vietato lamentarsi dei bastoncini rotti!»"},
+     {"id":"apresski","zona":[13,1,26,9],"chi":"Altoparlante gracchiante","testo":"«L’Après-Ski del Rimpianto è aperto! Oggi offerta speciale: chi sopravvive ai Maestri vince un Bombardino tiepido e un cerotto!»"},
+     {"id":"terrazza","zona":[35,16,42,22],"chi":"Jean-Claude «Valanga»","capo":true,"testo":"«Ehi, spazzaneve! Hai osato salire sulla mia Doppia Nera senza gli occhiali a specchio?! Preparati a mangiare neve gialla!»"}
+    ],
+    "letture": [
+     {"id":"listino","tipo":"incisione","at":[8,20],"titolo":"Listino Prezzi del Noleggio · targa smaltata","righe":[
+       "Skipass Giornaliero: 500 Monete. Supplemento Ossigeno: 200 Monete. Supplemento Simpatia del Personale: Esaurito dal 1998.",
+       "Nota della Direzione: I turisti sorpresi a scendere «a spazzaneve» verranno usati come pali da slalom per gli allenamenti del pomeriggio.",
+       "In caso di valanga, mantenere una postura fotogenica per il fotografo automatico."
+     ]},
+     {"id":"comandamenti","tipo":"libro","at":[16,13],"titolo":"I Dieci Comandamenti della Sciolina","righe":[
+       "Articolo 1: Il ghiaccio si scioglie, ma lo Stile è eterno. Chi frena in curva tradisce la Montagna e merita gli scarponi di due taglie in meno.",
+       "Articolo 4: Quando la Grande Estate ha fuso i ghiacciai, noi non siamo scesi a valle a metterci i sandali coi calzini.",
+       "Abbiamo chiuso le porte della Baita, acceso i cannoni spara-neve a manetta e giurato fedeltà a Jean-Claude «Valanga».",
+       "Articolo 9: Chi tocca il termostato dei cannoni verrà condannato ad ascoltare musica techno tirolese per l’eternità."
      ]}
     ]
    }}

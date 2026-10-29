@@ -74,8 +74,8 @@ const nOggetti = (b: Record<string, number>) => Object.values(b).reduce((a, n) =
 /** Per i test (Fucina): il Mastro Forgiatore, se c'è. */
 /** Per i test (Mausoleo): il Custode dell'Egida, se c'è. */
 const custode = (v: DungeonView) => { const k = v.nemici.find((n) => n.tipo === 'custode_egida'); return k ? { x: k.x, z: k.z, vita: k.vita, max: k.max, anim: k.anim, attacco: k.attacco ?? null, fase: k.fase ?? 0, cariche: k.cariche ?? null, mira: k.mira ?? null } : null; };
-/** Per i test (Diga): il Capitano Vaelen, se c'è. */
-const vaelen = (v: DungeonView) => { const k = v.nemici.find((n) => n.tipo === 'capitano_vaelen'); return k ? { x: k.x, z: k.z, vita: k.vita, max: k.max, anim: k.anim, attacco: k.attacco ?? null, fase: k.fase ?? 0, corsia: k.corsia ?? null, scudo: !!k.scudo } : null; };
+/** Per i test (Diga / Baita): il Capitano Vaelen o Jean-Claude «Valanga», se c'è. */
+const vaelen = (v: DungeonView) => { const k = v.nemici.find((n) => n.tipo === 'capitano_vaelen' || n.tipo === 'jean_claude'); return k ? { x: k.x, z: k.z, vita: k.vita, max: k.max, anim: k.anim, attacco: k.attacco ?? null, fase: k.fase ?? 0, corsia: k.corsia ?? null, scudo: !!k.scudo } : null; };
 const mastro = (v: DungeonView) => { const k = v.nemici.find((n) => n.tipo === 'mastro_forgiatore'); return k ? { x: k.x, z: k.z, vita: k.vita, max: k.max, anim: k.anim, attacco: k.attacco ?? null, mira: k.mira ?? null, spento: !!k.spento } : null; };
 /** Insieme: tick in cuscinetto prima di ripartire dopo uno stallo, oltre cui si va a 2 tick per frame, oltre cui si recupera di corsa. */
 const CUSCINETTO = 2 * SQ_TICKS, SVELTO = 4 * SQ_TICKS, RECUPERO = 30 * SQ_TICKS;
@@ -188,15 +188,15 @@ export function startRun(ctx: RunCtx, o: {
       if (sc.def.stile === 'fucina') ffx = createFucinaFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       // Mausoleo prima del Drenaggio: anche lui ha una valvola (la chiave di carica) e un bacino (il cancello)
       else if (sc.def.stile === 'mausoleo') mfx = createMausoleoFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
-      // Diga prima del Drenaggio e dell'Archivio: ha valvole, bacini e correnti, ma sono ruote, mare e risacca
-      else if (sc.def.stile === 'diga') dfx = createDigaFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
+      // Diga e Baita prima del Drenaggio e dell'Archivio: hanno valvole, bacini e correnti (ruote/turbine, mare/neve e risacca/tormenta)
+      else if (sc.def.stile === 'diga' || sc.def.stile === 'baita') dfx = createDigaFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       else if (sc.map.valvole.length || sc.map.bacini.length || o.dungeon === 'drenaggio') fx = createDrenaggioFx({ sc }); else if (sc.map.venti.length || o.dungeon === 'archivio') afx = createArchivioFx({ sc, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       ufx = createUniciFx(sc.scene, sc.floorY); // gli unici della Regina si portano in ogni dungeon
       gfx = createMagieFx(sc.scene, sc.floorY); // raggi, bombe e scoppi delle magie di fuoco ed elettricità
       if ((phase as Phase) === 'over') { cleanup(); return; }
       hud = createDungeonHud({ root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera, hero: s.runHero, stile: sc.def.stile });
       controls = createControls({
-        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, yaw: () => ctx.renderer.diorama.yaw, insieme: !!rete, ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : sc.def.stile === 'diga' ? { valvola: 'A · Gira la ruota', timone: 'A · Gira la ruota' } : {}),
+        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, yaw: () => ctx.renderer.diorama.yaw, insieme: !!rete, ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : sc.def.stile === 'diga' ? { valvola: 'A · Gira la ruota', timone: 'A · Gira la ruota' } : sc.def.stile === 'baita' ? { valvola: 'A · Aziona la turbina', timone: 'A · Spegni i cannoni' } : {}),
         onAbort: () => (phase === 'end' ? finish() : abort()),
         onZaino: openZaino,
         onSalva: () => { const e = act({ t: 'salva' }); if (e) ctx.hud.toast(e, 1800); },

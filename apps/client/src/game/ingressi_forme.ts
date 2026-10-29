@@ -15,6 +15,7 @@ export function placeholder(stile?: string): THREE.Object3D {
   if (stile === 'fucina') return altoforno();
   if (stile === 'mausoleo') return tempietto();
   if (stile === 'diga') return prua();
+  if (stile === 'baita') return chalet();
   const g = new THREE.Group(), stone = new THREE.MeshLambertMaterial({ color: '#4A4340', flatShading: true }), dark = new THREE.MeshLambertMaterial({ color: '#23201F' });
   for (const sx of [-1.3, 1.3]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.6, 1.2), stone); p.position.set(sx, 1.3, 0); g.add(p); }
   const top = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.7, 1.2), stone); top.position.y = 2.9; g.add(top);
@@ -147,6 +148,41 @@ function prua(): THREE.Object3D {
   // la lanterna azzurra brilla da sé (si vede anche di notte, nella tempesta): seconda draw call
   g.add(new THREE.Mesh(merged([painted(new THREE.BoxGeometry(0.26, 0.36, 0.26), PAL.acquaBassa, M(0.75, 2.47, -2.7))]),
     new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, emissive: PAL.acquaBassa, emissiveIntensity: 0.9 })));
+  return g;
+}
+
+/** Il Tempio della «Doppia Nera» (Isola dell'Adrenalina), finché manca prop_ingresso_baita: baita alpina di larice col tetto spiovente
+ *  coperto di neve finta, sci rosa fluo incrociati sopra la porta, due rombi neri del cartello «Doppia Nera» e un cannone spara-neve davanti. */
+function chalet(): THREE.Object3D {
+  const cil = (r: number, h: number, n = 6) => new THREE.CylinderGeometry(r, r, h, n);
+  const parts: THREE.BufferGeometry[] = [
+    painted(new THREE.BoxGeometry(3.8, 0.24, 3.0), PAL.pietra, M(0, 0.12, 0.2)), // basamento di pietra
+    painted(new THREE.BoxGeometry(3.2, 2.2, 2.4), PAL.legno, M(0, 1.32, 0.3)), // baita di larice
+    painted(new THREE.BoxGeometry(3.3, 0.16, 2.5), PAL.legnoScuro, M(0, 0.85, 0.3)),
+    painted(new THREE.BoxGeometry(3.3, 0.16, 2.5), PAL.legnoScuro, M(0, 1.85, 0.3)),
+    // tetto spiovente a due falde con cappello di neve bianca
+    painted(new THREE.BoxGeometry(2.3, 0.22, 2.8), PAL.legnoScuro, M(-0.9, 2.85, 0.3, 0, 0, 0.55)),
+    painted(new THREE.BoxGeometry(2.3, 0.22, 2.8), PAL.legnoScuro, M(0.9, 2.85, 0.3, 0, 0, -0.55)),
+    painted(new THREE.BoxGeometry(2.35, 0.16, 2.85), PAL.sabbiaChiara, M(-0.9, 2.98, 0.3, 0, 0, 0.55)),
+    painted(new THREE.BoxGeometry(2.35, 0.16, 2.85), PAL.sabbiaChiara, M(0.9, 2.98, 0.3, 0, 0, -0.55)),
+    painted(new THREE.BoxGeometry(1.4, 0.7, 2.3), PAL.legno, M(0, 2.65, 0.3)), // timpano
+    // bocca d'ingresso col tornello a lato
+    painted(new THREE.BoxGeometry(1.35, 1.65, 0.14), PAL.neroCaldo, M(0, 1.05, -0.92)),
+    painted(new THREE.BoxGeometry(1.6, 0.18, 0.24), PAL.legnoChiaro, M(0, 1.92, -0.95)),
+    // due sci rosa fluo incrociati sopra la porta e cartello «Doppia Nera» (due rombi neri su giallo)
+    painted(new THREE.BoxGeometry(1.7, 0.12, 0.06), PAL.rosaNeon, M(0, 2.55, -0.95, 0, 0, 0.45)),
+    painted(new THREE.BoxGeometry(1.7, 0.12, 0.06), PAL.rosaNeon, M(0, 2.55, -0.95, 0, 0, -0.45)),
+    painted(new THREE.BoxGeometry(0.45, 0.45, 0.06), PAL.giallo, M(0, 3.15, -0.95, 0, 0, Math.PI / 4)),
+    painted(new THREE.BoxGeometry(0.16, 0.16, 0.08), PAL.neroCaldo, M(-0.08, 3.15, -0.97, 0, 0, Math.PI / 4)),
+    painted(new THREE.BoxGeometry(0.16, 0.16, 0.08), PAL.neroCaldo, M(0.08, 3.15, -0.97, 0, 0, Math.PI / 4)),
+    // cannone spara-neve giallo/azzurro e cumulo di neve a fianco
+    painted(cil(0.28, 0.85, 8), PAL.giallo, M(-1.45, 0.85, -1.25, 1.1, -0.3, 0)),
+    painted(cil(0.32, 0.14, 8), PAL.acquaBassa, M(-1.35, 1.02, -1.58, 1.1, -0.3, 0)),
+    painted(cil(0.1, 0.65, 5), PAL.roccia, M(-1.45, 0.35, -1.25)),
+    painted(new THREE.BoxGeometry(1.1, 0.35, 0.8), PAL.sabbiaChiara, M(1.35, 0.25, -1.2)),
+  ];
+  const g = new THREE.Group(); g.name = 'ingresso_baita';
+  g.add(new THREE.Mesh(merged(parts), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
   return g;
 }
 

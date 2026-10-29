@@ -31,6 +31,7 @@ import { kitArchivio } from './archivio.ts';
 import { kitFucina } from './fucina.ts';
 import { kitMausoleo } from './mausoleo.ts';
 import { kitDiga } from './diga.ts';
+import { kitBaita } from './baita.ts';
 import { erbaParts, kitArena, STILI_ARENA } from './arena_kit.ts';
 
 export type DungeonScene = {
@@ -63,6 +64,7 @@ const STYLE: Record<string, Stile> = {
   fucina: { floor: PAL.roccia, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.arancio, hemi: [PAL.legno, PAL.neroCaldo, 1.3], coperchio: PAL.neroCaldo },
   mausoleo: { floor: PAL.pietraChiara, wall: PAL.pietra, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.pietraChiara, PAL.abisso, 0.9], coperchio: PAL.ombraCalda },
   diga: { floor: PAL.legno, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.acquaProfonda, PAL.ombraCalda, 1.25], coperchio: PAL.ombraCalda },
+  baita: { floor: PAL.legno, wall: PAL.legno, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.sabbiaChiara, PAL.acquaProfonda, 1.35], coperchio: PAL.ombraCalda },
   // Arena (docs/ARENA.md): il colosseo, sabbia dell'arena e pietra chiara, tutto illuminato (niente nebbia), muretti bassi al posto delle grate
   colosseo: { floor: PAL.sabbia, wall: PAL.pietraChiara, top: 0.05, lantern: PAL.sabbiaChiara, hemi: [PAL.sabbiaChiara, PAL.pietraScura, 2.1], coperchio: PAL.ombraCalda },
   // le mappe nuove dell'Arena (rpg/arena_kit.ts): il giardino (vialetti di ghiaia, siepi alte attorno) e le rovine (lastre di pietra, muri scuri)
@@ -102,7 +104,7 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
       floors.push(i);
       if (isCol(cx, cz)) cols.push(i);
       if (def.legenda[c]?.luce) lightsAt.push(i);
-      if (c === '.' && def.stile !== 'vuoto' && def.stile !== 'archivio' && def.stile !== 'fucina' && def.stile !== 'mausoleo' && def.stile !== 'diga' && !arena && cellHash(cx, cz, 7) < 0.035 && Math.abs(cx - map.exit.cx) + Math.abs(cz - map.exit.cz) > 3) bones.push(i);
+      if (c === '.' && def.stile !== 'vuoto' && def.stile !== 'archivio' && def.stile !== 'fucina' && def.stile !== 'mausoleo' && def.stile !== 'diga' && def.stile !== 'baita' && !arena && cellHash(cx, cz, 7) < 0.035 && Math.abs(cx - map.exit.cx) + Math.abs(cz - map.exit.cz) > 3) bones.push(i);
     } else if (c === '#') {
       let touches = false;
       for (let dz = -1; dz <= 1 && !touches; dz++) for (let dx = -1; dx <= 1; dx++) if (isFloor(cx + dx, cz + dz)) { touches = true; break; }
@@ -116,7 +118,7 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
   const k = def.stile;
   const [pFloor, pWall, pLow, pCol, pTorch, pExit, pBones] = await Promise.all([
     parts(loader, `dng_${k}_pavimento`), parts(loader, `dng_${k}_muro`), parts(loader, `dng_${k}_muro_basso`),
-    parts(loader, k === 'vuoto' ? 'dng_cristallo' : k === 'fucina' || k === 'mausoleo' || k === 'diga' ? `dng_${k}_colonna` : 'dng_colonna'), parts(loader, 'dng_torcia'), parts(loader, 'dng_scala'), parts(loader, 'dng_ossa'),
+    parts(loader, k === 'vuoto' ? 'dng_cristallo' : k === 'fucina' || k === 'mausoleo' || k === 'diga' || k === 'baita' ? `dng_${k}_colonna` : 'dng_colonna'), parts(loader, 'dng_torcia'), parts(loader, 'dng_scala'), parts(loader, 'dng_ossa'),
   ]);
 
   // ---- sorgenti di luce: torce sul muro accanto alla cella «luce» (meglio nord/ovest, che restano alti), altrimenti un braciere a terra ----
@@ -164,15 +166,15 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
   const PIENO: Ritocco = { taglia: true, griglia: true }, TERRA: Ritocco = { griglia: true };
   // scala, altari e bracieri sono bassi: la finestra non li tocca
   const ACCESO: Ritocco = { taglia: true, griglia: true, minimo: 'acceso' }, SEMPRE: Ritocco = { griglia: true, minimo: 'sempre' }, BASSO: Ritocco = { griglia: true, minimo: 'acceso' };
-  // segnaposto in codice finché non ci sono i modelli dng_drenaggio_* / dng_archivio_* / dng_fucina_* / dng_mausoleo_* / dng_diga_*
-  const dk = k === 'drenaggio' ? kitDrenaggio(st.top) : k === 'archivio' ? kitArchivio(st.top) : k === 'fucina' ? kitFucina(st.top) : k === 'mausoleo' ? kitMausoleo(st.top) : k === 'diga' ? kitDiga(st.top) : null, ak = k === 'archivio' ? kitArchivio(st.top) : null;
-  // la Diga: il tavolato della nave corre tutto nello stesso verso (girato di mezzo giro sì, di un quarto no)
-  makeBatch(pFloor ?? dk?.pavimento ?? [boxPart(T, 0.3, T, -0.3 + st.top, st.floor)], floors, mats(floors, k === 'diga' ? (i) => rot(i) & 2 : rot), 'pavimento', TERRA);
+  // segnaposto in codice finché non ci sono i modelli dng_drenaggio_* / dng_archivio_* / dng_fucina_* / dng_mausoleo_* / dng_diga_* / dng_baita_*
+  const dk = k === 'drenaggio' ? kitDrenaggio(st.top) : k === 'archivio' ? kitArchivio(st.top) : k === 'fucina' ? kitFucina(st.top) : k === 'mausoleo' ? kitMausoleo(st.top) : k === 'diga' ? kitDiga(st.top) : k === 'baita' ? kitBaita(st.top) : null, ak = k === 'archivio' ? kitArchivio(st.top) : null;
+  // la Diga e la Baita: il tavolato corre tutto nello stesso verso (girato di mezzo giro sì, di un quarto no)
+  makeBatch(pFloor ?? dk?.pavimento ?? [boxPart(T, 0.3, T, -0.3 + st.top, st.floor)], floors, mats(floors, k === 'diga' || k === 'baita' ? (i) => rot(i) & 2 : rot), 'pavimento', TERRA);
   makeBatch(pWall ?? dk?.muro ?? [boxPart(T, 2.4, T, 0, st.wall)], highWalls, mats(highWalls, rot), 'muro', PIENO);
   makeBatch(pLow ?? dk?.muro_basso ?? [boxPart(T, 0.6, T, 0, st.wall)], lowWalls, mats(lowWalls, rot), 'muro_basso', PIENO);
-  // Fucina, Mausoleo e Diga cercano la loro colonna (dng_<stile>_colonna) prima del segnaposto; Drenaggio e Archivio le hanno solo in codice
+  // Fucina, Mausoleo, Diga e Baita cercano la loro colonna (dng_<stile>_colonna) prima del segnaposto; Drenaggio e Archivio le hanno solo in codice
   const ka = kitArena(k, T); // giardino e rovine: colonne e muretti in codice
-  makeBatch(ka?.colonna ?? (k === 'fucina' || k === 'mausoleo' || k === 'diga' ? pCol ?? dk?.colonna : dk ? dk.colonna : pCol) ?? [boxPart(0.9, 2.4, 0.9, 0, st.wall)], cols, mats(cols, rot), 'colonna', PIENO);
+  makeBatch(ka?.colonna ?? (k === 'fucina' || k === 'mausoleo' || k === 'diga' || k === 'baita' ? pCol ?? dk?.colonna : dk ? dk.colonna : pCol) ?? [boxPart(0.9, 2.4, 0.9, 0, st.wall)], cols, mats(cols, rot), 'colonna', PIENO);
   // acqua dei bacini: un batch per bacino, scala in altezza = livello a gradini (0 = asciutto, non si disegna)
   const acque = map.bacini.map((b) => {
     const base = b.celle.map((i) => place(i % W, Math.floor(i / W), rot(i)).multiply(new THREE.Matrix4().makeTranslation(0, st.top, 0)));

@@ -10,8 +10,8 @@ import { startDungeon } from '../src/rpg/run.ts';
 import { newHero } from '../src/rpg/hero.ts';
 import type { LotState } from '../src/economy/types.ts';
 
-test('dungeon: otto mappe (grotta, cripta, vuoto, drenaggio, archivio, fucina, mausoleo, diga) con stile, tile 2 e dimensioni da gioco', () => {
-  assert.deepEqual(DUNGEONS.map((d) => d.id), ['grotta', 'cripta', 'vuoto', 'drenaggio', 'archivio', 'fucina', 'mausoleo', 'diga']);
+test('dungeon: nove mappe (grotta, cripta, vuoto, drenaggio, archivio, fucina, mausoleo, diga, baita) con stile, tile 2 e dimensioni da gioco', () => {
+  assert.deepEqual(DUNGEONS.map((d) => d.id), ['grotta', 'cripta', 'vuoto', 'drenaggio', 'archivio', 'fucina', 'mausoleo', 'diga', 'baita']);
   for (const d of DUNGEONS) {
     assert.equal(d.tile, 2);
     assert.equal(d.stile, d.id);
@@ -78,7 +78,7 @@ test('dungeon: ingressi su celle calpestabili delle isole giuste, raggiungibili 
   // il Portale del Vuoto al Borgo Marea in un posto marginale (costa ovest);
   // il Drenaggio a terra sull'anello della Laguna, vicino al molo, l'Archivio più avanti sull'arco est, la Fucina sull'arco nord, il Mausoleo sull'arco nord-ovest (Epopea della Regata);
   // la Diga dei Disertori nella gola tra le creste di roccia dell'Isola della Tempesta, l'isola dei pirati
-  const dove: Record<string, string> = { grotta: 'porto', cripta: 'selvaggia', vuoto: 'porto', drenaggio: 'laguna', archivio: 'laguna', fucina: 'laguna', mausoleo: 'laguna', diga: 'tempesta' };
+  const dove: Record<string, string> = { grotta: 'porto', cripta: 'selvaggia', vuoto: 'porto', drenaggio: 'laguna', archivio: 'laguna', fucina: 'laguna', mausoleo: 'laguna', baita: 'adrenalina', diga: 'tempesta' };
   for (const d of DUNGEONS) {
     assert.equal(d.ingresso.island, dove[d.id]);
     const def = ISLANDS.find((i) => i.id === d.ingresso.island)!;

@@ -52,8 +52,8 @@ const isMobili = (n) => n.startsWith('mob_');
 const isGente = (n) => n.startsWith('npc_');
 const isAbiti = (n) => /^(abt|cap)_/.test(n);
 const CLIPS = ['idle', 'walk', 'run', 'sit', 'row'];
-const DNG_MODULE = /^dng_(grotta|cripta|vuoto|drenaggio|archivio|fucina|mausoleo|diga)_(pavimento|muro|muro_basso)$/;
-const BOSS = new Set(['nem_re_ossa', 'nem_custode', 'nem_capoturno', 'nem_astrolabio', 'nem_forgiatore', 'nem_custode_egida', 'nem_vaelen']);
+const DNG_MODULE = /^dng_(grotta|cripta|vuoto|drenaggio|archivio|fucina|mausoleo|diga|baita)_(pavimento|muro|muro_basso)$/;
+const BOSS = new Set(['nem_re_ossa', 'nem_custode', 'nem_capoturno', 'nem_astrolabio', 'nem_forgiatore', 'nem_custode_egida', 'nem_vaelen', 'nem_valanga']);
 // Corse: edifici, gru, faro e arco di roccia come gli edifici; prop e manichini come i prop (le teste sotto il minimo dei prop).
 const CORSE_GRANDI = /^cs_(casa_|gru_|faro|tribuna|arco_|g_tempio|g_cascata)/;
 // Corse (#178, Jack 9 ott: sull'isola si può andare oltre il budget del resto): veicoli fino a 1800 triangoli, animali piloti fino a 3000.
