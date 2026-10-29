@@ -10,8 +10,8 @@ import { startDungeon } from '../src/rpg/run.ts';
 import { newHero } from '../src/rpg/hero.ts';
 import type { LotState } from '../src/economy/types.ts';
 
-test('dungeon: nove mappe (grotta, cripta, vuoto, drenaggio, archivio, fucina, mausoleo, diga, baita) con stile, tile 2 e dimensioni da gioco', () => {
-  assert.deepEqual(DUNGEONS.map((d) => d.id), ['grotta', 'cripta', 'vuoto', 'drenaggio', 'archivio', 'fucina', 'mausoleo', 'diga', 'baita']);
+test('dungeon: dieci mappe (grotta, cripta, vuoto, drenaggio, archivio, fucina, mausoleo, diga, baita, ceneri) con stile, tile 2 e dimensioni da gioco', () => {
+  assert.deepEqual(DUNGEONS.map((d) => d.id), ['grotta', 'cripta', 'vuoto', 'drenaggio', 'archivio', 'fucina', 'mausoleo', 'diga', 'baita', 'ceneri']);
   for (const d of DUNGEONS) {
     assert.equal(d.tile, 2);
     assert.equal(d.stile, d.id);
@@ -78,7 +78,7 @@ test('dungeon: ingressi su celle calpestabili delle isole giuste, raggiungibili 
   // il Portale del Vuoto al Borgo Marea in un posto marginale (costa ovest);
   // il Drenaggio a terra sull'anello della Laguna, vicino al molo, l'Archivio più avanti sull'arco est, la Fucina sull'arco nord, il Mausoleo sull'arco nord-ovest (Epopea della Regata);
   // la Diga dei Disertori nella gola tra le creste di roccia dell'Isola della Tempesta, l'isola dei pirati
-  const dove: Record<string, string> = { grotta: 'porto', cripta: 'selvaggia', vuoto: 'porto', drenaggio: 'laguna', archivio: 'laguna', fucina: 'laguna', mausoleo: 'laguna', baita: 'adrenalina', diga: 'tempesta' };
+  const dove: Record<string, string> = { grotta: 'porto', cripta: 'selvaggia', vuoto: 'porto', drenaggio: 'laguna', archivio: 'laguna', fucina: 'laguna', mausoleo: 'laguna', baita: 'adrenalina', diga: 'tempesta', ceneri: 'vulcano' };
   for (const d of DUNGEONS) {
     assert.equal(d.ingresso.island, dove[d.id]);
     const def = ISLANDS.find((i) => i.id === d.ingresso.island)!;
@@ -126,8 +126,11 @@ test('dungeon: Portale del Vuoto (difficoltà 8) più difficile del Mausoleo, bo
   assert.equal(vuoto.difficolta, 8);
   assert.ok(vuoto.difficolta > mausoleo.difficolta);
   const diga = DUNGEONS.find((d) => d.id === 'diga')!;
-  assert.equal(diga.difficolta, Math.max(...DUNGEONS.map((d) => d.difficolta)), 'la Diga è la più difficile del gioco');
+  const ceneri = DUNGEONS.find((d) => d.id === 'ceneri')!;
+  assert.ok(diga.difficolta > vuoto.difficolta && ceneri.difficolta > diga.difficolta);
+  assert.equal(ceneri.difficolta, Math.max(...DUNGEONS.map((d) => d.difficolta)), 'il Santuario del Capo Ardente è il più difficile del gioco');
   assert.equal(diga.richiede, undefined, 'la Diga è aperta fin dall’inizio');
+  assert.equal(ceneri.richiede, undefined, 'il Santuario è aperto fin dall’inizio');
   assert.equal(vuoto.richiede, 'unico_anello_onda');
 
   const bossVuoto = ENEMIES.find((e) => e.id === 'custode')!;

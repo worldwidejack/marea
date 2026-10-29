@@ -89,6 +89,15 @@ test('testi: la Baita ha sottotitolo, 4 voci ironiche (gli altoparlanti della pi
   assert.deepEqual(t.letture?.map((l) => `${l.id}:${l.tipo}`), ['listino:incisione', 'comandamenti:libro']);
 });
 
+test('testi: il Santuario del Capo Ardente ha sottotitolo, 4 voci (i sacerdoti e l’Arconte Solan) e 2 letture: il patto e il giuramento', () => {
+  const t = dungeonDef('ceneri').testi;
+  assert.ok(t?.sottotitolo);
+  assert.ok(t.sottotitolo.includes('Monte Ceneri'));
+  assert.deepEqual(t.voci?.map((v) => v.id), ['statue', 'vasche', 'scoria', 'cratere']);
+  assert.deepEqual(t.voci?.filter((v) => v.capo).map((v) => v.id), ['cratere'], 'parla Solan davanti al Cratere');
+  assert.deepEqual(t.letture?.map((l) => `${l.id}:${l.tipo}`), ['patto:incisione', 'giuramento:libro']);
+});
+
 test('testi: poche voci e corte, zone dentro la mappa sul pavimento, id unici', () => {
   for (const d of DUNGEONS) {
     const t = d.testi;

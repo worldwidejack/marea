@@ -115,6 +115,8 @@ export type RunArmor = {
   velocitaMolt: number;
   /** Armatura del Moto Perpetuo (Mausoleo): la Barriera Cinetica (Traits.barriera). Assente con ogni altra armatura. */
   barriera?: NonNullable<Traits['barriera']>;
+  /** Manto del Primo Lucignolo (Santuario del Capo Ardente): Sovralimentazione della Brace (Traits.vampa). Assente con ogni altro abito. */
+  vampa?: NonNullable<Traits['vampa']>;
 };
 export type RunSpell = { id: string; scuola: 'distruzione' | 'evocazione' | 'supporto'; elemento?: SpellElement; costo: number; ricarica: number; danno: number; velocita: number; raggio: number; sanguina: number; evoca: string | null; durata: number;
   /** Forma e dettagli (SpellDef): assenti = proiettile. Raggio: `costo` e `danno` sono al secondo. */

@@ -74,6 +74,7 @@ export function rebuild(s: DungeonState): void {
   h.frecce = rh.frecce ? rh.frecce.n : 0;
   h.pozioni = rh.pozione !== null ? rh.pozioni[rh.pozione]?.n ?? 0 : 0;
   if (!rh.armatura.barriera) h.barr = 0; // tolta l'Armatura del Moto Perpetuo, la Barriera si spegne
+  if (!rh.armatura.vampa) { h.vampa = 0; h.sovralimentata = false; } // tolto il Manto del Primo Lucignolo, la Vampa si spegne
 }
 
 /** Cambia equipaggiamento (item null = togli). null se non si può: niente `stato`, oggetto che non hai, slot sbagliato, niente da cambiare.

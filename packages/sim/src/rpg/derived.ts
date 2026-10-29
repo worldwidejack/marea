@@ -72,6 +72,7 @@ function armorOf(h: HeroState, m: Mods, staminaMax: number): RunArmor & { legger
     out.leggera = peso <= (A.leggera ?? 12);
     if (it.traits?.barriera) (out as RunArmor).barriera = { ...it.traits.barriera }; // Armatura del Moto Perpetuo
   }
+  if (it?.traits?.vampa) (out as RunArmor).vampa = { ...it.traits.vampa, chiazza: { ...it.traits.vampa.chiazza } }; // Manto del Primo Lucignolo
   out.vsMagia = r2(out.vsMagia * clamp(1 - mod(m, 'resistMagia'), 0.1, 1));
   return out;
 }

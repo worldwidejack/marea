@@ -9,9 +9,11 @@
 //   tempo e libera un'onda d'urto che fa di più, respinge e sfonda ogni scudo.
 // Tutto sull'eroe di turno; senza questi oggetti non succede niente (le funzioni escono subito).
 import { DT } from '../constants.ts';
+import type { RunArmor } from '../rpg/types.ts';
 import type { DungeonState, Enemy } from './state.ts';
 import { ev, secToTicks } from './state.ts';
 import { buff, hitEnemy } from './combat.ts';
+import { fuocoAmico } from './fuoco.ts';
 import { moveCircle } from './map.ts';
 import { alto, grigliaDi } from './muove.ts';
 import { FRECCIA_Y, HZ } from './tuning.ts';
@@ -161,4 +163,27 @@ export function eco(s: DungeonState, e: Enemy, danno: number): void {
     if (dx * dx + dz * dz > r * r) continue;
     hitEnemy(s, o, { danno: danno * E.frazione, traits: {}, magico: false, skill: h.arma.skill, caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ox: e.x, oz: e.z });
   }
+}
+
+/** Sovralimentazione della Brace (Manto del Primo Lucignolo): ogni magia di Fuoco a segno o attacco caricato in mischia accende una
+ *  carica di Vampa (al massimo `cariche`). */
+export function caricaVampa(s: DungeonState): void {
+  const h = s.hero, V = s.runHero.armatura.vampa;
+  if (!V || h.vampa >= V.cariche) return;
+  h.vampa++;
+  ev(s, { t: 'vampa', n: h.vampa });
+}
+/** Parte una magia di Fuoco: se la Vampa è piena, consuma tutte le cariche e attiva la Sovralimentazione della Brace. */
+export function consumaVampa(s: DungeonState): NonNullable<RunArmor['vampa']> | null {
+  const h = s.hero, V = s.runHero.armatura.vampa;
+  if (!V || h.vampa < V.cariche) return null;
+  h.vampa = 0;
+  ev(s, { t: 'sovralimentata', x: r2(h.x), z: r2(h.z) });
+  return V;
+}
+/** Sovralimentazione della Brace: all'impatto lascia a terra una chiazza di brace ardente che brucia i nemici. */
+export function chiazzaVampa(s: DungeonState, x: number, z: number): void {
+  const V = s.runHero.armatura.vampa;
+  if (!V) return;
+  fuocoAmico(s, x, z, V.chiazza.raggio, V.chiazza.durata, V.chiazza.dps);
 }

@@ -54,6 +54,7 @@ export const INGRESSI = [
   { id: 'mausoleo', nome: 'Mausoleo Cinetico', island: 'laguna', at: [8, 13], stile: 'mausoleo', difficolta: 6, richiede: 'fucina' },
   { id: 'baita', nome: 'Il Tempio della «Doppia Nera»', island: 'adrenalina', at: [24, 20], stile: 'baita', difficolta: 7 },
   { id: 'diga', nome: 'La Diga dei Disertori', island: 'tempesta', at: [22, 20], stile: 'diga', difficolta: 9 },
+  { id: 'ceneri', nome: 'Il Santuario del Capo Ardente', island: 'vulcano', at: [15, 18], stile: 'ceneri', difficolta: 10 },
 ] as const;
 /** Il dungeon da completare prima di poter entrare (porta sigillata), o null. */
 export const richiesto = (id: string): string | null => { const d = INGRESSI.find((x) => x.id === id); return d && 'richiede' in d ? d.richiede : null; };
@@ -230,9 +231,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
   let entered = 0, finishes = 0, aborts = 0, lastErr: string | null = null, lastResult: unknown = null, current: string | null = null;
   /** Salvataggi all'altare confermati dal server in questa sessione, e l'ultima spedizione interrotta recuperata alla discesa. */
   let salvataggi = 0, recuperato: unknown = null;
-  const ctx: RunCtx = { world: o.world, renderer: o.renderer, loader: o.loader, hud: o.hud, root: o.root, canvas: o.canvas };
-
-  const v = new THREE.Vector3();
+  const ctx: RunCtx = { world: o.world, renderer: o.renderer, loader: o.loader, hud: o.hud, root: o.root, canvas: o.canvas }, v = new THREE.Vector3();
   const screenOf = (x: number, y: number, z: number) => {
     v.set(x, y, z).project(o.renderer.camera);
     const r = o.canvas.getBoundingClientRect(), rr = o.root.getBoundingClientRect();

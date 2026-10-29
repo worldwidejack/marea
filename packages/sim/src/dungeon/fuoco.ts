@@ -43,7 +43,7 @@ export function inGetto(s: DungeonState, x: number, z: number, r = 0): boolean {
  *  risvegliato o a spedizione finita niente. */
 export function brucia(s: DungeonState, dps: number, sec: number): void {
   const h = s.hero;
-  if (s.done || h.protetto > 0 || inGetto(s, h.x, h.z)) return;
+  if (s.done || h.protetto > 0 || s.runHero.armatura.vampa || inGetto(s, h.x, h.z)) return;
   if (h.brucia <= 0) ev(s, { t: 'bruciato' });
   h.bruciaDps = h.brucia > 0 ? Math.max(h.bruciaDps, dps) : dps;
   h.brucia = Math.max(h.brucia, secToTicks(sec));

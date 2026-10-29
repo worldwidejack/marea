@@ -509,5 +509,61 @@
        "Articolo 9: Chi tocca il termostato dei cannoni verrà condannato ad ascoltare musica techno tirolese per l’eternità."
      ]}
     ]
+   }},
+  {"id":"ceneri","nome":"Il Santuario del Capo Ardente","descr":"Scavato nelle viscere della caldera sull'Isola Vulcano: le fonderie liturgiche dell'Ordine dei Laternari, dove l'Arconte Solan alimenta il Primo Lucignolo col magma vivo. Ruote di chiusa termale, soffioni di vapore bollente, Sentinelle del Braciere e Totem del Censo. Oro, vetro, meteorite.","stile":"ceneri","difficolta":10,"tile":2,"legenda":{"1":{"ruota":1},"2":{"ruota":2},"4":{"ruota":4},"5":{"ruota":5},"w":{"acqua":1},"W":{"acqua":2},"=":{"acqua":6},"_":{"ponte":5},"r":{"risacca":3},"X":{"risacca":3,"rottami":true},"R":{"risacca":4},"Y":{"risacca":4,"rottami":true},"p":{"pilone":true},"o":{"colonna":true},"t":{"luce":true},"A":{"altare":true},"B":{"altare":true,"asciutti":[5],"ferme":[4]},"g":{"nemico":"sentinella_braciere"},"f":{"nemico":"cantore_fuliggine"},"u":{"nemico":"totem_censo"},"V":{"nemico":"arconte_solan","capo":true},"c":{"forziere":"comune_ceneri"},"C":{"forziere":"raro_ceneri"}},"ingresso":{"island":"vulcano","at":[15,18]},
+   "venti":[{"n":3,"dir":"s","forza":6.5,"soffia":1,"pausa":2.0,"fase":0},{"n":4,"dir":"o","forza":9.5,"soffia":1,"pausa":0}],
+   "rottami":{"danno":26,"ogni":0.8},
+   "rows": [
+    "##############################              #",
+    "#############t............t###              #",
+    "#t.....######........g.....###t............t#",
+    "#.c....######..f...........###............C.#",
+    "#...g..##........WWWWWW....###=............=#",
+    "#......##........WWC.WW..u.###=..p......p..=#",
+    "#......##..##....WW..WW....###=............=#",
+    "#......##..##....WWWWWW....###=.....V......=#",
+    "#wwww####..##.2.........f..###=............=#",
+    "#wwww####..##t.............###=............=#",
+    "#t..........###..#############=..p......p..=#",
+    "#.......o...##t.......########=............=#",
+    "#....1....u.##.....f..########..............#",
+    "#...........##......4.########t............t#",
+    "#......A....##........################..#####",
+    "#..........t######..##################..#####",
+    "#..f..........o.rr...o.rr.o.#######t......t##",
+    "#...............rr.....rr...#######.....g..##",
+    "####...######...ro.....or.f.#######..B.....##",
+    "####...######t..rr..g..rr..t#YYRRRR........##",
+    "#t........###...rr.....rr...#YYRRRR........##",
+    "#.........###.u.rr.....rr......g.##......f.##",
+    "#.........###...XX.f...XXu.......##....g...##",
+    "#......g..###c..XX.....XX...#############..##",
+    "#........t###############################..##",
+    "#.........###############################..##",
+    "#.........t........___.....c....t..........##",
+    "#.............f....___.5.........u.........##",
+    "#.<.......###################################",
+    "#############################################"
+   ],
+   "testi": {
+    "sottotitolo": "Le Fonderie Sacre di Monte Ceneri",
+    "voci": [
+     {"id":"statue","zona":[1,20,9,28],"chi":"Eco tra le colonne","testo":"«Hanno giurato di tenere acceso il mondo, anche a costo di bruciare se stessi. Ora di umano non gli è rimasta nemmeno la voce.»"},
+     {"id":"vasche","zona":[1,10,11,15],"chi":"Eco tra le colonne","testo":"«Le Ruote Termali pompano l’acqua del mare sul magma vivo. Raffredda i canali, o la roccia fusa non ti lascerà passare!»"},
+     {"id":"scoria","zona":[13,16,27,23],"chi":"Eco tra le colonne","testo":"«Attento ai soffioni del cratere! Aspetta che il vapore cali e corri dietro ai pilastri di basalto, o finirai sulle braci!»"},
+     {"id":"cratere","zona":[35,16,42,22],"chi":"Arconte Solan","capo":true,"testo":"«Chi osa portare il freddo delle acque fin dentro il Cratere?! Io sono Solan, l’ultimo Lucignolo, e tu sarai solo nuova cenere!»"}
+    ],
+    "letture": [
+     {"id":"patto","tipo":"incisione","at":[8,20],"titolo":"Il Patto del Primo Lucignolo · lastra di basalto","righe":[
+       "Quando il Sole Antico si velò dietro la Grande Caligine e i mari cominciarono a gelare, i Sette Fondatori scesero nel ventre di Monte Ceneri.",
+       "Non pregarono gli dèi del cielo: imbrigliarono il sangue della terra in condotti di bronzo e ossidiana per accendere i Fari dell’Arcipelago.",
+       "Così nacque l’Ordine dei Laternari: finché il Primo Lucignolo arde nel cratere, nessuna nave si perderà nel buio."
+     ]},
+     {"id":"giuramento","tipo":"libro","at":[16,13],"titolo":"Il Giuramento dei Laternari · codice rilegato in rame","righe":[
+       "Articolo Primo: L’Olio di Roccia non deve mai raffreddarsi. Chi lascia spegnere una vasca di decantazione verrà calato nel canale per ravvivarne la brace.",
+       "Nota dell’Arconte Solan: Da anni le isole là fuori non mandano più né novizi né tributi. Dicono che il sole è tornato e che i nostri Fari non servono più.",
+       "Mentono. La luce del cielo è tiepida e bugiarda. Ho fatto murare i cancelli e aprire tutte le chiuse del magma: se il mondo ha dimenticato il sacro fuoco, sarà il vulcano stesso a ricordarglielo."
+     ]}
+    ]
    }}
 ]

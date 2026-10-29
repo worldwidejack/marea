@@ -19,7 +19,7 @@ import { apriValvola, valvolaVicina } from './acque.ts';
 import { giraTimone, timoneVicino } from './vento.ts';
 import { alto } from './muove.ts';
 import { aimAlleato, canale, fermaCanale, isSupporto, lanciaBomba } from './magie.ts';
-import { caricaBarriera, caricaBrezza, eco, fineColpo, inizioColpo, inizioPoppa, molla, moltCaricaPoppa, moltRitmo, spintaPoppa, stepUnici, stordisci } from './unici.ts';
+import { caricaBarriera, caricaBrezza, caricaVampa, consumaVampa, eco, fineColpo, inizioColpo, inizioPoppa, molla, moltCaricaPoppa, moltRitmo, spintaPoppa, stepUnici, stordisci } from './unici.ts';
 import { curaCompagni, lamaAria, scaricaDi, statiCaricato, terremoto, veleno } from './perk.ts';
 import { aimEroi, colpisciEroe, eroiNemici, evocazioneNemica, ostile, separaEroi } from './pvp.ts';
 
@@ -124,6 +124,7 @@ function sweepSwing(s: DungeonState): void {
   }
   if (k < 1) return;
   h.colpito = true;
+  if (h.caricato && h.colpiti.length > 0) caricaVampa(s); // Manto del Primo Lucignolo: il caricato a segno accende una carica di Vampa
   if (h.caricato && rh.perk?.terremoto && h.colpiti.length > 0) terremoto(s); // Terremoto: il caricato a segno scuote il terreno
   const fragile = a.traits.fragile ?? 0;
   if (h.colpiti.length > 0 && fragile > 0 && a.id) {
@@ -207,12 +208,12 @@ function cast(s: DungeonState, dir: Mira): void {
     return;
   }
   if (!dir) faceTo(s, aim(s, MAGIA_GITTATA, COS_CONO_ARCO, 0, true));
-  const v = sp.velocita;
+  const v = sp.velocita, vampa = sp.elemento === 'fuoco' ? consumaVampa(s) : null, mole = (sp.mole ?? 1) * (vampa ? vampa.raggioMolt : 1);
   s.proj.push({
     id: s.nextId++, tipo: 'magia', x: h.x + h.fx * 0.4, y: MAGIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v, g: 0,
-    danno: sp.danno * (1 + buff(s, 'dannoDistruzione')), life: Math.max(1, Math.round((MAGIA_GITTATA / Math.max(1, v)) * HZ)),
-    traits: sp.sanguina ? { sanguina: sp.sanguina } : {}, raggio: sp.raggio, colpiti: [], dalNemico: false, contundente: false, magico: true, arrowId: null, da: s.cur,
-    ...(sp.mole ? { mole: sp.mole } : {}), ...(sp.elemento ? { elemento: sp.elemento } : {}), ...(sp.rallenta ? { rallenta: sp.rallenta } : {}),
+    danno: sp.danno * (1 + buff(s, 'dannoDistruzione')) * (vampa ? 1 + vampa.danno : 1), life: Math.max(1, Math.round((MAGIA_GITTATA / Math.max(1, v)) * HZ)),
+    traits: sp.sanguina ? { sanguina: sp.sanguina } : {}, raggio: sp.raggio * (vampa ? vampa.raggioMolt : 1), colpiti: [], dalNemico: false, contundente: false, magico: true, arrowId: null, da: s.cur,
+    ...(mole > 1 ? { mole } : {}), ...(sp.elemento ? { elemento: sp.elemento } : {}), ...(sp.rallenta ? { rallenta: sp.rallenta } : {}), ...(vampa ? { vampa: true as const } : {}),
   });
 }
 
@@ -275,7 +276,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   const curSp = magiaPronta(s);
   h.cdMagia = curSp ? (h.cdMagie?.[curSp.id] ?? 0) : 0;
   if (h.cdScarica > 0) h.cdScarica--;
-  if (h.canale > 0 && h.act !== 'punta') h.canale = 0; // il raggio vive solo mentre si punta
+  if (h.canale > 0 && h.act !== 'punta') { h.canale = 0; h.sovralimentata = false; } // il raggio vive solo mentre si punta
   if (h.buffs.length) h.buffs = h.buffs.filter((b) => b.fine > s.tick);
   if (h.lento > 0) h.lento--;
   let aDown = inp.a && !h.prevA;

@@ -51,6 +51,10 @@ export type Traits = {
   /** Tempio della «Doppia Nera», la Tavola «Valanga Pro-99» (Carica in Scivolata): correndo per `metri` m entri «In Fresca» per `durata` s.
    *  Qualsiasi attacco in mischia mentre sei «In Fresca» solleva un'onda di neve: danno + `danno` (frazione) e `rallenta` chi colpisce. */
   fresca?: { metri: number; durata: number; danno: number; rallenta: { molt: number; secondi: number } };
+  /** Santuario del Capo Ardente, il Manto del Primo Lucignolo (Sovralimentazione della Brace): immune al fuoco a terra e alle scorie;
+   *  ogni magia di Fuoco a segno o colpo caricato in mischia accende una carica di Vampa (al massimo `cariche`). A `cariche`, la prossima
+   *  magia di Fuoco le consuma: raggio/larghezza × `raggioMolt`, danno + `danno` (frazione) e lascia a terra una `chiazza` di brace ardente. */
+  vampa?: { cariche: number; raggioMolt: number; danno: number; chiazza: { raggio: number; durata: number; dps: number } };
 };
 
 export type MaterialDef = {
@@ -253,7 +257,7 @@ export type LootTable = { id: string; monete: [number, number]; voci: LootEntry[
 
 /** Mappa ASCII, una cella = `tile` m: '#' muro, '.' pavimento, '<' scala d'uscita (anche lo spawn, accanto), ' ' vuoto. Ogni altra lettera la spiega `legenda` (sopra c'è pavimento). */
 export type DungeonDef = {
-  id: string; nome: string; descr: string; stile: 'grotta' | 'cripta' | 'vuoto' | 'drenaggio' | 'archivio' | 'fucina' | 'mausoleo' | 'diga' | 'baita' | 'colosseo' | 'giardino' | 'rovine'; tile: number;
+  id: string; nome: string; descr: string; stile: 'grotta' | 'cripta' | 'vuoto' | 'drenaggio' | 'archivio' | 'fucina' | 'mausoleo' | 'diga' | 'baita' | 'ceneri' | 'colosseo' | 'giardino' | 'rovine'; tile: number;
   /** Porta sigillata (Epopea della Regata): si entra solo dopo aver completato questo dungeon (`HeroState.completati`). */
   richiede?: string;
   /** Archivio: correnti d'aria. Le celle della corrente n (legenda `vento: n`) spingono chi ci cammina verso `dir` (n = −z, s = +z,

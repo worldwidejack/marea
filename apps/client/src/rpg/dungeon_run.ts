@@ -188,15 +188,15 @@ export function startRun(ctx: RunCtx, o: {
       if (sc.def.stile === 'fucina') ffx = createFucinaFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       // Mausoleo prima del Drenaggio: anche lui ha una valvola (la chiave di carica) e un bacino (il cancello)
       else if (sc.def.stile === 'mausoleo') mfx = createMausoleoFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
-      // Diga e Baita prima del Drenaggio e dell'Archivio: hanno valvole, bacini e correnti (ruote/turbine, mare/neve e risacca/tormenta)
-      else if (sc.def.stile === 'diga' || sc.def.stile === 'baita') dfx = createDigaFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
+      // Diga, Baita e Ceneri prima del Drenaggio e dell'Archivio: hanno valvole, bacini e correnti
+      else if (sc.def.stile === 'diga' || sc.def.stile === 'baita' || sc.def.stile === 'ceneri') dfx = createDigaFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       else if (sc.map.valvole.length || sc.map.bacini.length || o.dungeon === 'drenaggio') fx = createDrenaggioFx({ sc }); else if (sc.map.venti.length || o.dungeon === 'archivio') afx = createArchivioFx({ sc, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       ufx = createUniciFx(sc.scene, sc.floorY); // gli unici della Regina si portano in ogni dungeon
       gfx = createMagieFx(sc.scene, sc.floorY); // raggi, bombe e scoppi delle magie di fuoco ed elettricità
       if ((phase as Phase) === 'over') { cleanup(); return; }
       hud = createDungeonHud({ root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera, hero: s.runHero, stile: sc.def.stile });
       controls = createControls({
-        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, yaw: () => ctx.renderer.diorama.yaw, insieme: !!rete, ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : sc.def.stile === 'diga' ? { valvola: 'A · Gira la ruota', timone: 'A · Gira la ruota' } : sc.def.stile === 'baita' ? { valvola: 'A · Aziona la turbina', timone: 'A · Spegni i cannoni' } : {}),
+        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, yaw: () => ctx.renderer.diorama.yaw, insieme: !!rete, ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : sc.def.stile === 'diga' ? { valvola: 'A · Gira la ruota', timone: 'A · Gira la ruota' } : sc.def.stile === 'baita' ? { valvola: 'A · Aziona la turbina', timone: 'A · Spegni i cannoni' } : sc.def.stile === 'ceneri' ? { valvola: 'A · Gira la ruota termale', timone: 'A · Chiudi il soffione' } : {}),
         onAbort: () => (phase === 'end' ? finish() : abort()),
         onZaino: openZaino,
         onSalva: () => { const e = act({ t: 'salva' }); if (e) ctx.hud.toast(e, 1800); },

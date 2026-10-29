@@ -31,6 +31,7 @@ import { formaNemico as formaFucina } from './fucina.ts';
 import { formaNemico as formaMausoleo } from './mausoleo.ts';
 import { formaNemico as formaDiga } from './diga.ts';
 import { formaBaita } from './baita.ts';
+import { formaCeneri } from './ceneri.ts';
 import type { Arco } from './arco.ts';
 
 type NemV = DungeonView['nemici'][number] & { area?: number };
@@ -74,7 +75,7 @@ const steps = (v: number, n: number) => Math.floor(Math.max(0, Math.min(1, v)) *
 const ARCIERI = new Set(ENEMIES.filter((d) => d.comportamento === 'arciere' && !d.arpione).map((d) => d.id));
 /** Archivio: chi vola e quanto sta alto quando vola alto (quando scende sta a BASSO). */
 const VOLA = new Set(ENEMIES.filter((d) => d.muove === 'vola').map((d) => d.id));
-const ALTO: Record<string, number> = { nem_aerostato: 1.7, nem_astrolabio: 1.2, nem_anello: 1.4, nem_albatros: 1.8, nem_cornacchia: 1.8 }, BASSO = 0.35, SU_GRATA = 1.0;
+const ALTO: Record<string, number> = { nem_aerostato: 1.7, nem_astrolabio: 1.2, nem_anello: 1.4, nem_albatros: 1.8, nem_cornacchia: 1.8, nem_totem_censo: 1.7 }, BASSO = 0.35, SU_GRATA = 1.0;
 const FUOCO = new THREE.Color(PAL.arancio), AZZURRO = new THREE.Color(PAL.acquaBassa), NERO = new THREE.Color(0, 0, 0), ORO = new THREE.Color(PAL.giallo);
 /** Impugnatura dell'arco (spazio della radice del nemico, −Z avanti): a riposo nella mano sinistra lungo il fianco; in mira davanti
  *  all'altezza delle spalle, col corpo girato di fianco (la sinistra verso il bersaglio). */
@@ -111,7 +112,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         body.add(m); e.arco = { obj: m, a: armaArco(m, o.loader, true, 2.6) };
       });
     }
-    void object(o.loader, n.model, () => formaNemico(n.model) ?? formaArchivio(n.model) ?? formaFucina(n.model) ?? formaMausoleo(n.model) ?? formaDiga(n.model) ?? formaBaita(n.model) ?? boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
+    void object(o.loader, n.model, () => formaNemico(n.model) ?? formaArchivio(n.model) ?? formaFucina(n.model) ?? formaMausoleo(n.model) ?? formaDiga(n.model) ?? formaBaita(n.model) ?? formaCeneri(n.model) ?? boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
       body.add(m);
       if (n.model === 'nem_astrolabio') for (const g of giriAstrolabio()) { m.add(g); e.giri.push(g); } // anelli che girano (anche sul modello vero)
       e.mats = materialsOf(m);
@@ -267,7 +268,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         if (n.attacco === 'cambio') { glowC = WHITE; glow = Math.floor(t * 10) % 2 ? 0.8 : 0.2; }
         // Diga: il Fuciliere mira in ginocchio, fermo (niente inclinazione all'indietro); la Guardia della Paratia senza il portello
         if (n.attacco === 'fucile') { b.rotation.x = 0; b.position.z = 0; b.position.y -= 0.3; }
-        if (n.model === 'nem_guardiano' || n.model === 'nem_controllore') { const p = b.getObjectByName('portello'); if (p) p.visible = !n.senza; }
+        if (n.model === 'nem_guardiano' || n.model === 'nem_controllore' || n.model === 'nem_sentinella_braciere') { const p = b.getObjectByName('portello'); if (p) p.visible = !n.senza; }
         if (e.arco) {
           const yaw = b.rotation.y, a = e.arco.obj;
           a.position.lerpVectors(ARCO_GIU, ARCO_SU, su).applyAxisAngle(YA, -yaw); // nello spazio del corpo, che è girato di yaw
