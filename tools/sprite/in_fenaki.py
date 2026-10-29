@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MAREA — gli sprite di un personaggio nel banco di Fenaki, per controllarli prima di farli vedere a Jack.
+"""MAREA — gli sprite di un personaggio nel banco di Fenaki, per controllarli prima di metterli nel gioco.
 
 Scrive <cartella>/controllo/ (una cartella di disegni di Fenaki):
 - ogni sprite di sprite/ ingrandito ×zoom a pixel netti (Fenaki misura e mostra meglio i disegni grandi), col perno sul

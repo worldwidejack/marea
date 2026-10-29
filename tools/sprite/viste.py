@@ -4,10 +4,10 @@ disegnano gli sprite. Due passi, prima e dopo il generatore:
 
   guida   la sagoma grigia: 5 figure in fila sullo stesso grigio caldo dei fogli, alla stessa altezza, piedi sulla stessa
           riga, testa alla percentuale del disegno approvato, braccia staccate di ~12°. Va allegata al generatore (prompt.py
-          --modello) e non si mostra a Jack: serve a tenere le proporzioni (senza, Codex fa proporzioni da adulto normale).
+          --modello) e non si mostra: serve a tenere le proporzioni (senza, Codex fa proporzioni da adulto normale).
   taglia  dal foglio fatto dal generatore alle 5 viste separate e scontornate, tagliate per sagome (una mano può stare
           sotto i capelli della vista accanto): modello/vista_<S|SE|E|NE|N>.png, le copie .jpg per il repo e
-          modello/_FOGLIO_5_viste.jpg (grandi alla stessa scala + la misura in gioco), da far approvare a Jack.
+          modello/_FOGLIO_5_viste.jpg (grandi alla stessa scala + la misura in gioco), da far scegliere alla persona.
 
 Uso:  python tools/sprite/viste.py guida <cartella> [--testa 45] [--largo 0.82]
       python tools/sprite/viste.py taglia <cartella> <foglio.png>

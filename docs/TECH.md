@@ -113,7 +113,7 @@ Ogni partita invia al DO `Lot` il **seed** e l'**input log** (uno `InputFrame` c
 | Impantanarsi | PR piccole, una cosa alla volta, sempre online |
 | Prestazioni su telefono | budget in build, mezza risoluzione, atlas unico, test delle prestazioni |
 | Tetti Cloudflare Free | posizioni a 10 Hz con batching, Hibernation, logica nei DO |
-| Look incoerente | atlas, art bible, screenshot approvati da Jack prima della PR |
+| Look incoerente | atlas, art bible, screenshot visti prima della PR (dal gruppo, se cambia il look comune) |
 | Tre AI in parallelo sugli stessi file | PR piccole, `check_static`, `main` sempre verde, `MAPPA.md` |
 | Cheating | replay nel DO, orologio del server |
 | Node esegue `.ts` solo se «erasable» | `erasableSyntaxOnly` in tsconfig + `types` nel test runner |
