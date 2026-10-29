@@ -48,6 +48,9 @@ export type Traits = {
    *  `metri` m corsi (al massimo `cariche`). Piene, il prossimo attacco caricato si carica in `carica` del tempo, le consuma e libera
    *  un'onda d'urto marina: danno + `danno` (frazione), chi prendi vola via di `spinta` m (i capi no) e ogni scudo nel giro si sfonda. */
   poppa?: { metri: number; cariche: number; carica: number; danno: number; spinta: number };
+  /** Tempio della «Doppia Nera», la Tavola «Valanga Pro-99» (Carica in Scivolata): correndo per `metri` m entri «In Fresca» per `durata` s.
+   *  Qualsiasi attacco in mischia mentre sei «In Fresca» solleva un'onda di neve: danno + `danno` (frazione) e `rallenta` chi colpisce. */
+  fresca?: { metri: number; durata: number; danno: number; rallenta: { molt: number; secondi: number } };
 };
 
 export type MaterialDef = {
@@ -250,7 +253,7 @@ export type LootTable = { id: string; monete: [number, number]; voci: LootEntry[
 
 /** Mappa ASCII, una cella = `tile` m: '#' muro, '.' pavimento, '<' scala d'uscita (anche lo spawn, accanto), ' ' vuoto. Ogni altra lettera la spiega `legenda` (sopra c'è pavimento). */
 export type DungeonDef = {
-  id: string; nome: string; descr: string; stile: 'grotta' | 'cripta' | 'vuoto' | 'drenaggio' | 'archivio' | 'fucina' | 'mausoleo' | 'diga' | 'colosseo' | 'giardino' | 'rovine'; tile: number;
+  id: string; nome: string; descr: string; stile: 'grotta' | 'cripta' | 'vuoto' | 'drenaggio' | 'archivio' | 'fucina' | 'mausoleo' | 'diga' | 'baita' | 'colosseo' | 'giardino' | 'rovine'; tile: number;
   /** Porta sigillata (Epopea della Regata): si entra solo dopo aver completato questo dungeon (`HeroState.completati`). */
   richiede?: string;
   /** Archivio: correnti d'aria. Le celle della corrente n (legenda `vento: n`) spingono chi ci cammina verso `dir` (n = −z, s = +z,

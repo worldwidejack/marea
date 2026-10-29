@@ -202,6 +202,7 @@ function unici(s: DungeonState): Partial<DungeonView['hero']> {
   else if (t.ritmo) o.carico = { tipo: 'ritmo', n: h.ritmo, max: t.ritmo.colpi, ...(h.tic >= s.tick ? { tic: r2((h.tic - s.tick) / HZ) } : {}) };
   else if (t.carillon) o.carico = { tipo: 'molla', n: h.molla, max: t.carillon.colpi };
   else if (t.poppa) o.carico = { tipo: 'brezza', n: h.brezza, max: t.poppa.cariche };
+  else if (t.fresca) o.carico = { tipo: 'fresca', n: h.fresca > 0 ? 1 : 0, max: 1 };
   return o;
 }
 
@@ -242,8 +243,8 @@ function acqueHash(s: DungeonState): Record<string, unknown> {
   // Fucina: chiazze di fuoco, chi brucia, il Mastro spento
   if (fucina(s)) o['fucina'] = [s.fuochi.map((f) => [f.id, f.fine]), s.eroi.map((r) => r.hero.brucia), s.enemies.filter((e) => e.spento).map((e) => e.id)];
   // Mausoleo: onde in corsa, fasi del Custode, barriere e contatori degli unici
-  // Diga: piloni fracassati, rottami e Brezza degli eroi
-  if (s.map.piloni.length || s.def.rottami) o['diga'] = [s.piloni.map((b) => (b ? 1 : 0)), s.eroi.map((r) => [r.hero.rottT, r.hero.brezza, r3(r.hero.brezzaM)])];
+  // Diga e Baita: piloni fracassati, rottami, Brezza e Fresca degli eroi
+  if (s.map.piloni.length || s.def.rottami) o['diga'] = [s.piloni.map((b) => (b ? 1 : 0)), s.eroi.map((r) => [r.hero.rottT, r.hero.brezza, r3(r.hero.brezzaM), ...(r.hero.arma.traits.fresca ? [r.hero.fresca, r3(r.hero.frescaM)] : [])])];
   if (mausoleoMappa(s)) o['mausoleo'] = [s.onde.map((x) => [x.id, r3(x.r), x.colpiti.length]), s.enemies.filter((e) => e.fase || e.colpiB).map((e) => [e.id, e.fase ?? 0, e.colpiB ?? 0]), s.eroi.map((r) => [r3(r.hero.barr), r.hero.pressione, r.hero.ritmo, r.hero.molla])];
   return o;
 }
@@ -259,8 +260,9 @@ function parteHash(s: DungeonState): Record<string, unknown> {
     // v5: zaino ed equipaggiamento cambiati dal menu, lanterna di partenza e di uscita
     zaino: [s.stato ? Object.keys(s.equip).sort().map((k) => [k, s.equip[k as keyof typeof s.equip]]) : null, roundBag(s.buttati), roundBag(s.rotti), s.hero.arma.id],
     lanterne: [s.partenza, s.uscitaLanterna],
-    // Vento in Poppa (l'Albero della «Stella del Mattino»): la Brezza, solo con quell'arma in mano (l'hash degli altri resta quello di sempre)
+    // Vento in Poppa (l'Albero della «Stella del Mattino») e Carica in Scivolata (Tavola «Valanga Pro-99»): solo con quell'arma in mano
     ...(h.arma.traits.poppa ? { brezza: [h.brezza, r3(h.brezzaM)] } : {}),
+    ...(h.arma.traits.fresca ? { fresca: [h.fresca, r3(h.frescaM)] } : {}),
   };
 }
 

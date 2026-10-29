@@ -70,6 +70,7 @@ export function createUniciFx(scene: THREE.Scene, floorY: number): UniciFx {
         else if (e.t === 'eco') onda(e.x, e.z, PAL.acqua, 2.5, 0.35);
         else if (e.t === 'rintocco') onda(e.x, e.z, PAL.giallo, 3, 0.45);
         else if (e.t === 'poppa') { onda(e.x, e.z, PAL.acquaBassa, 4.5, 0.45); onda(e.x, e.z, PAL.sabbiaChiara, 3, 0.3); }
+        else if (e.t === 'valanga') { onda(e.x, e.z, PAL.rosaNeon, 3.6, 0.4); onda(e.x, e.z, PAL.acquaBassa, 2.6, 0.3); }
         else if (e.t === 'tic') ticT = performance.now() / 1000;
         else if (e.t === 'terremoto') onda(e.x, e.z, PAL.sabbia, 4.5, 0.5);
         else if (e.t === 'catena') { onda(e.da[0], e.da[1], PAL.giallo, 1.3, 0.25); onda(e.a[0], e.a[1], PAL.giallo, 1.6, 0.3); }
@@ -98,13 +99,14 @@ export function createUniciFx(scene: THREE.Scene, floorY: number): UniciFx {
         fiamme.setMatrixAt(nF++, m4.compose(p3.set(f.x, floorY + 0.02, f.z), q4.setFromAxisAngle(YA, Math.floor(now * 6 + f.id) * 0.9), s3.set(k, k * h, k)));
       }
       fiamme.count = nF; fiamme.instanceMatrix.needsUpdate = true;
-      // Vento in Poppa: i nastri sopra la spalla, accesi quante cariche di Brezza; pieni sventolano a scatti
-      const br = v.hero.carico?.tipo === 'brezza' ? v.hero.carico : null;
+      // Vento in Poppa / Carica in Scivolata: i nastri sopra la spalla, accesi quante cariche di Brezza o Fresca; pieni sventolano a scatti
+      const br = v.hero.carico?.tipo === 'brezza' || v.hero.carico?.tipo === 'fresca' ? v.hero.carico : null;
       nastri.visible = !!br && v.hero.anim !== 'morto';
       nBrezza = br ? br.n : 0;
       if (br) {
         nastri.position.set(hero.x, floorY + 2.35, hero.z); nastri.rotation.y = Math.PI / 4; // di fronte alla camera (da sud-est)
-        nastri.children.forEach((c, k) => { const m = c as THREE.Mesh; m.material = k < br.n ? nastroOn : nastroOff; m.rotation.z = br.n >= br.max ? 0.35 * ((Math.floor(now * 8) + k) % 3 - 1) : 0; });
+        const tot = br.tipo === 'fresca' ? (br.n >= 1 ? 3 : 0) : br.n;
+        nastri.children.forEach((c, k) => { const m = c as THREE.Mesh; m.material = k < tot ? nastroOn : nastroOff; m.rotation.z = br.n >= br.max ? 0.35 * ((Math.floor(now * 8) + k) % 3 - 1) : 0; });
       }
       stella.visible = now - ticT < 0.16;
       if (stella.visible) { stella.position.set(hero.x, floorY + 2.3, hero.z); stella.rotation.set(0, Math.PI / 4, Math.PI / 4); }

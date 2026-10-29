@@ -84,6 +84,7 @@ export function fineColpo(s: DungeonState): void {
 /** Ogni tick: il tic della Grande Lancetta (suono), il ritmo che si perde a stare fermi; le molle dell'Arco Carillon che si ricaricano. */
 export function stepUnici(s: DungeonState): void {
   const h = s.hero, a = h.arma, R = a.traits.ritmo, M = a.traits.carillon;
+  if (h.fresca > 0) h.fresca--;
   if (R && h.tic === s.tick && h.act === 'idle') ev(s, { t: 'tic' });
   if (R && h.ritmo > 0 && h.act === 'idle' && s.tick - h.tic > secToTicks(R.reset)) h.ritmo = 0;
   if (M && h.molla < M.colpi && s.tick >= h.mollaT) {
@@ -102,13 +103,18 @@ export function molla(s: DungeonState): boolean {
   return false;
 }
 
-/** Vento in Poppa: correndo la vela si gonfia, una carica di Brezza ogni `metri` m corsi (fino a `cariche`). (x0, z0) = dov'era prima
+/** Vento in Poppa e Carica in Scivolata: correndo la vela si gonfia (Brezza) o la tavola prende velocità (In Fresca). (x0, z0) = dov'era prima
  *  del passo. */
 export function caricaBrezza(s: DungeonState, x0: number, z0: number): void {
-  const h = s.hero, P = h.arma.traits.poppa;
-  if (!P || !h.running || h.brezza >= P.cariche) return;
-  const dx = h.x - x0, dz = h.z - z0;
-  h.brezzaM += Math.sqrt(dx * dx + dz * dz);
+  const h = s.hero, P = h.arma.traits.poppa, F = h.arma.traits.fresca;
+  if (!h.running) return;
+  const dx = h.x - x0, dz = h.z - z0, step = Math.sqrt(dx * dx + dz * dz);
+  if (F && h.fresca <= 0) {
+    h.frescaM += step;
+    if (h.frescaM >= F.metri) { h.frescaM = 0; h.fresca = secToTicks(F.durata); ev(s, { t: 'fresca', n: 1 }); }
+  }
+  if (!P || h.brezza >= P.cariche) return;
+  h.brezzaM += step;
   if (h.brezzaM < P.metri) return;
   h.brezzaM -= P.metri; h.brezza++;
   if (h.brezza >= P.cariche) h.brezzaM = 0;
@@ -118,9 +124,11 @@ export function caricaBrezza(s: DungeonState, x0: number, z0: number): void {
 export const brezzaPiena = (s: DungeonState): boolean => { const P = s.hero.arma.traits.poppa; return !!P && s.hero.brezza >= P.cariche; };
 /** Moltiplicatore del tempo di carica del caricato: con la Brezza piena si carica in `carica` del tempo. */
 export const moltCaricaPoppa = (s: DungeonState): number => (brezzaPiena(s) ? s.hero.arma.traits.poppa!.carica : 1);
-/** Parte un caricato pieno: con la Brezza piena è l'onda d'urto (consuma le cariche). */
+/** Parte un colpo: con la Brezza piena il caricato libera l'onda d'urto; «In Fresca» qualsiasi colpo in mischia solleva un'onda di neve. */
 export function inizioPoppa(s: DungeonState, caricato: boolean): void {
   const h = s.hero;
+  h.ondaNeve = !!h.arma.traits.fresca && h.fresca > 0;
+  if (h.ondaNeve) { h.fresca = 0; h.frescaM = 0; ev(s, { t: 'valanga', x: r2(h.x), z: r2(h.z) }); }
   h.poppa = caricato && brezzaPiena(s);
   if (!h.poppa) return;
   h.brezza = 0; h.brezzaM = 0;

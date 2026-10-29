@@ -148,7 +148,7 @@ export function createAudio(): Audio {
         : e.t === 'lancetta' || e.t === 'sfondato' ? 'martello' : e.t === 'tic' ? 'click' : e.t === 'rintocco' ? 'tpl_campana' : e.t === 'fase' ? 'tuono' // Mausoleo
         : e.t === 'ondata' ? 'raffica' : e.t === 'scatto' ? 'sfrigola' : e.t === 'cura' ? 'magia' : e.t === 'sarcofago' ? 'apri' : e.t === 'barriera' ? 'altare'
         : e.t === 'barrieraPronta' || e.t === 'carillon' ? 'bip' : e.t === 'eco' ? 'plop' : e.t === 'scarico' ? 'vuoto'
-        : e.t === 'sparo' ? 'tpl_moschetto' : e.t === 'cannonata' ? 'cannone' : e.t === 'pilone' ? 'tpl_asse' : e.t === 'incastrato' ? 'martello' : e.t === 'poppa' ? 'raffica' : e.t === 'brezza' ? 'bip' : null; // Diga
+        : e.t === 'sparo' ? 'tpl_moschetto' : e.t === 'cannonata' ? 'cannone' : e.t === 'pilone' ? 'tpl_asse' : e.t === 'incastrato' ? 'martello' : e.t === 'poppa' || e.t === 'valanga' ? 'raffica' : e.t === 'brezza' || e.t === 'fresca' ? 'bip' : null; // Diga / Baita
       if (id) suona(id);
     },
     resume() { if (vol.musica > 0 || vol.effetti > 0) void ctx.resume(); },

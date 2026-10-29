@@ -42,10 +42,8 @@ export type Ingressi = {
   next(): string | null;
 };
 
-/**
- * Copia a mano di `ingresso`, `stile`, `difficolta` e `richiede` di packages/content/src/rpg/dungeons.json (il JSON è GDR: qui non si può importare).
- * Il test e2e m2_dungeon controlla che coincida con DUNGEONS: se un dungeon si sposta, aggiornare anche qui.
- */
+/** Copia a mano di `ingresso`, `stile`, `difficolta` e `richiede` di packages/content/src/rpg/dungeons.json (il JSON è GDR: qui non si può importare).
+ *  Il test e2e m2_dungeon controlla che coincida con DUNGEONS: se un dungeon si sposta, aggiornare anche qui. */
 export const INGRESSI = [
   { id: 'grotta', nome: 'Grotta della Marea', island: 'porto', at: [54, 35], stile: 'grotta', difficolta: 1 },
   { id: 'cripta', nome: 'Cripta delle Ossa', island: 'selvaggia', at: [18, 12], stile: 'cripta', difficolta: 2 },
@@ -53,7 +51,8 @@ export const INGRESSI = [
   { id: 'drenaggio', nome: 'Impianto di Drenaggio', island: 'laguna', at: [18, 45], stile: 'drenaggio', difficolta: 3 },
   { id: 'archivio', nome: 'Archivio Navigazionale', island: 'laguna', at: [47, 36], stile: 'archivio', difficolta: 4, richiede: 'drenaggio' },
   { id: 'fucina', nome: 'Fucina a Pressione', island: 'laguna', at: [26, 5], stile: 'fucina', difficolta: 5, richiede: 'archivio' },
-  { id: 'mausoleo', nome: 'Mausoleo Cinetico', island: 'laguna', at: [8, 13], stile: 'mausoleo', difficolta: 7, richiede: 'fucina' },
+  { id: 'mausoleo', nome: 'Mausoleo Cinetico', island: 'laguna', at: [8, 13], stile: 'mausoleo', difficolta: 6, richiede: 'fucina' },
+  { id: 'baita', nome: 'Il Tempio della «Doppia Nera»', island: 'adrenalina', at: [24, 20], stile: 'baita', difficolta: 7 },
   { id: 'diga', nome: 'La Diga dei Disertori', island: 'tempesta', at: [22, 20], stile: 'diga', difficolta: 9 },
 ] as const;
 /** Il dungeon da completare prima di poter entrare (porta sigillata), o null. */

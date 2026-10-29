@@ -63,8 +63,9 @@ export function rebuild(s: DungeonState): void {
   h.cdMagia = curSp ? ((h.cdMagie ??= {})[curSp.id] ?? 0) : 0;
   if (cambia) {
     h.colpiFragile = rh.arma.usura ?? 0;
-    // unici del Mausoleo: l'arma nuova parte carica (pressione, molle) e senza ritmo
+    // unici del Mausoleo, della Diga e della Baita: l'arma nuova parte carica (pressione, molle) e senza ritmo/brezza/fresca
     h.pressione = rh.arma.traits.lame?.cariche ?? 0; h.molla = rh.arma.traits.carillon?.colpi ?? 0; h.mollaT = 0; h.ritmo = 0; h.tic = -1; h.rintocco = false;
+    h.brezza = 0; h.brezzaM = 0; h.poppa = false; h.fresca = 0; h.frescaM = 0; h.ondaNeve = false;
   }
   // arma nuova o mani cambiate (arma ⇄ magia o magia diversa): il colpo, la carica, l'arco teso o il lancio in corso si interrompono
   if ((cambia || cambiaMagia) && (h.act === 'press' || h.act === 'carica' || h.act === 'swing' || h.act === 'tende' || h.act === 'punta' || h.act === 'lancia')) {

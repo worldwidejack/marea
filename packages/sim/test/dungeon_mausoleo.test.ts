@@ -43,7 +43,7 @@ test('mausoleo: tre lancette sui perni, il cancello con la sua chiave, il sarcof
   const d = dungeonDef('mausoleo'), m = parseDungeon(d);
   assert.equal(d.richiede, 'fucina');
   assert.equal(d.stile, 'mausoleo');
-  assert.equal(d.difficolta, 7);
+  assert.equal(d.difficolta, 6);
   assert.equal(d.ingresso.island, 'laguna');
   assert.deepEqual(m.lancette.map((l) => l.n), [1, 2, 3]);
   for (const l of m.lancette) assert.equal(m.solid[cellOf(m, l.x, l.z)], 1, 'il perno è una colonna');

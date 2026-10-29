@@ -96,7 +96,7 @@ function sweepSwing(s: DungeonState): void {
   const k = swept(h.stile, h.actT / h.actDur), fatto = k * COLPI[h.stile].arco;
   if (k > 0) {
     const mod = a.classe === 'pesante' ? 'dannoPesanti' : 'dannoLeggere';
-    const danno = a.danno * (h.caricato ? a.caricaMolt : 1) * (1 + buff(s, mod)) * moltRitmo(s) * (h.poppa ? 1 + (a.traits.poppa?.danno ?? 0) : 1);
+    const danno = a.danno * (h.caricato ? a.caricaMolt : 1) * (1 + buff(s, mod)) * moltRitmo(s) * (h.poppa ? 1 + (a.traits.poppa?.danno ?? 0) : 1) * (h.ondaNeve ? 1 + (a.traits.fresca?.danno ?? 0) : 1);
     for (const e of ostili(s)) {
       if (h.colpiti.includes(e.id) || alto(s, e)) continue; // chi vola alto: la lama gli passa sotto
       const dx = e.x - h.x, dz = e.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
@@ -105,7 +105,7 @@ function sweepSwing(s: DungeonState): void {
       h.colpiti.push(e.id);
       // spinta e direzione del colpo: dove va la lama (nel giro, via dall'eroe)
       const dirX = h.stile === 'giro' && d > 1e-6 ? dx / d : h.fx, dirZ = h.stile === 'giro' && d > 1e-6 ? dz / d : h.fz;
-      const preso = hitEnemy(s, e, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false, ox: h.x, oz: h.z, mischia: true, ...(h.massimo ? { letale: true } : {}), ...(h.poppa ? { sfonda: true } : {}) });
+      const preso = hitEnemy(s, e, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false, ox: h.x, oz: h.z, mischia: true, ...(h.massimo ? { letale: true } : {}), ...(h.poppa ? { sfonda: true } : {}), ...(h.ondaNeve && a.traits.fresca ? { rallenta: a.traits.fresca.rallenta } : {}) });
       if (h.poppa) spintaPoppa(s, e, dirX, dirZ); // Vento in Poppa: l'onda d'urto respinge (anche chi ha parato)
       if (preso > 0 && rh.perk) { if (h.caricato) statiCaricato(s, e); else veleno(s, e); } // Taglio Critico (sanguina e rallenta), Colpo fatale (paralizza); Lame avvelenate sui colpi normali
       // Mausoleo: il Rintocco stordisce, l'Eco della Marea fa l'onda attorno a chi hai preso
@@ -334,7 +334,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       break;
     case 'swing':
       if (!h.colpito) sweepSwing(s);
-      if (h.actT >= h.actDur) { h.act = 'idle'; h.actT = 0; h.poppa = false; fineColpo(s); }
+      if (h.actT >= h.actDur) { h.act = 'idle'; h.actT = 0; h.poppa = false; h.ondaNeve = false; fineColpo(s); }
       break;
     case 'tende': {
       h.carica = Math.min(1, h.actT / h.actDur);

@@ -11,7 +11,7 @@ import { heroBase } from './dungeon_util.ts';
 /** dungeon → unico del boss */
 const UNICO: Record<string, string> = {
   grotta: 'unico_nunchaku_bandito', cripta: 'unico_martello_re', vuoto: 'unico_arco_custode', drenaggio: 'unico_corazza_marea',
-  archivio: 'unico_veste_arcimago', fucina: 'unico_katana_spettro', mausoleo: 'unico_anello_onda', diga: 'unico_albero_stella',
+  archivio: 'unico_veste_arcimago', fucina: 'unico_katana_spettro', mausoleo: 'unico_anello_onda', baita: 'unico_tavola_valanga', diga: 'unico_albero_stella',
 };
 
 test('boss unici: ogni dungeon ha il suo unico, e nessun dungeon è rimasto senza', () => {

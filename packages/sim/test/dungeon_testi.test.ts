@@ -80,6 +80,15 @@ test('testi: la Diga ha sottotitolo, 4 voci (l’eco della nave, l’ultima col 
   assert.ok(/Gola del Dente/.test(t.letture!.find((l) => l.id === 'editto')!.righe.join(' ')));
 });
 
+test('testi: la Baita ha sottotitolo, 4 voci ironiche (gli altoparlanti della pista e Jean-Claude) e 2 letture: il listino prezzi e i Dieci Comandamenti', () => {
+  const t = dungeonDef('baita').testi;
+  assert.ok(t?.sottotitolo);
+  assert.ok(t.sottotitolo.includes('Sciolina'));
+  assert.deepEqual(t.voci?.map((v) => v.id), ['noleggio', 'tunnel', 'apresski', 'terrazza']);
+  assert.deepEqual(t.voci?.filter((v) => v.capo).map((v) => v.id), ['terrazza'], 'parla Jean-Claude davanti alla Terrazza VIP');
+  assert.deepEqual(t.letture?.map((l) => `${l.id}:${l.tipo}`), ['listino:incisione', 'comandamenti:libro']);
+});
+
 test('testi: poche voci e corte, zone dentro la mappa sul pavimento, id unici', () => {
   for (const d of DUNGEONS) {
     const t = d.testi;
