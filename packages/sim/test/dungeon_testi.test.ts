@@ -89,13 +89,14 @@ test('testi: la Baita ha sottotitolo, 4 voci ironiche (gli altoparlanti della pi
   assert.deepEqual(t.letture?.map((l) => `${l.id}:${l.tipo}`), ['listino:incisione', 'comandamenti:libro']);
 });
 
-test('testi: il Santuario del Capo Ardente ha sottotitolo, 4 voci (i sacerdoti e l’Arconte Solan) e 2 letture: il patto e il giuramento', () => {
+test('testi: il Santuario del Capo Ardente ha sottotitolo, 4 voci degli echi del santuario (la lanterna, la preghiera, la lava, il Capo Ardente) e 2 letture: la targa del Primo Lucignolo e il diario di un esploratore', () => {
   const t = dungeonDef('ceneri').testi;
   assert.ok(t?.sottotitolo);
-  assert.ok(t.sottotitolo.includes('Monte Ceneri'));
-  assert.deepEqual(t.voci?.map((v) => v.id), ['statue', 'vasche', 'scoria', 'cratere']);
-  assert.deepEqual(t.voci?.filter((v) => v.capo).map((v) => v.id), ['cratere'], 'parla Solan davanti al Cratere');
-  assert.deepEqual(t.letture?.map((l) => `${l.id}:${l.tipo}`), ['patto:incisione', 'giuramento:libro']);
+  assert.ok(t.sottotitolo.includes('la pietra sanguina fuoco'));
+  assert.deepEqual(t.voci?.map((v) => v.id), ['lanterna', 'preghiera', 'lava', 'capo']);
+  assert.ok(t.voci!.some((v) => /braciere/.test(v.testo)), 'la voce dei bracieri');
+  assert.deepEqual(t.letture?.map((l) => `${l.id}:${l.tipo}`), ['targa:incisione', 'diario:libro']);
+  assert.ok(/Solan/.test(t.letture!.find((l) => l.id === 'targa')!.righe.join(' ')) && /lanterna/.test(t.letture!.find((l) => l.id === 'diario')!.righe.join(' ')));
 });
 
 test('testi: poche voci e corte, zone dentro la mappa sul pavimento, id unici', () => {

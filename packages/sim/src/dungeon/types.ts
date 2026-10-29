@@ -79,7 +79,7 @@ export type DungeonEvent = (
   | { t: 'raffica' }
   | { t: 'raggio'; x: number; z: number }
   /** Colpo parato: dagli anelli dell'Astrolabio (senza `perche`), dallo scafandro del Golem-Palombaro, dalla fornace del Mastro acceso. */
-  | { t: 'parato'; x: number; z: number; perche?: 'scafandro' | 'fornace' | 'scudo' | 'cuore' | 'catene' }
+  | { t: 'parato'; x: number; z: number; perche?: 'scafandro' | 'fornace' | 'scudo' | 'cuore' | 'catene' | 'fumo' }
   | { t: 'anelli' }
   /** Fucina: prendi fuoco · una cascata ti spegne · il Mastro Forgiatore spento da una cascata (prende danni) · si riaccende · parte la
    *  sua carica · una palla di magma che cade. */
@@ -131,6 +131,12 @@ export type DungeonEvent = (
   | { t: 'fresca'; n: number }
   | { t: 'valanga'; x: number; z: number }
   | { t: 'vampa'; n: number }
+  /** Santuario del Capo Ardente: un braciere (indice `i`, stanza `n`) si accende o si spegne (calcio, globo di lava) · tutti i bracieri della stanza n sono
+   *  accesi (le trappole di lava si spengono, il passaggio si apre) · l'ondata di calore colpisce · lo Sciamano colpito alla lanterna resta visibile. */
+  | { t: 'braciere'; i: number; n: number; acceso: boolean }
+  | { t: 'stanza'; n: number }
+  | { t: 'calore' }
+  | { t: 'rivelato'; id: number }
   | { t: 'sovralimentata'; x: number; z: number }
   /** Tempio della «Doppia Nera» (Baita): scivolamento su Ghiaccio Vivo, stanza scongelata, pozzanghere di Sciolina/Bombardino,
    *  capogiro dell'Acrobata, bandierine di slalom, Jean-Claude che urla all'arbitro, frenata, salto, bilico, lamina, Trick Elicottero, assideramento. */
@@ -201,7 +207,7 @@ export type DungeonView = {
     /** Fucina, il Mastro Forgiatore: attacco in corso (per la carica `mira` = dove arriva, solo durante l'avviso) e spento dalla cascata. */
     attacco?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo' | 'cura' | 'ondata' | 'fendenti' | 'scatto' | 'geyser' | 'colpo' | 'cambio'
       | 'affondo' | 'spazzata' | 'salva' | 'incastrato' | 'detriti' | 'sbilanciato' | 'fucile' | 'schiacciata'
-      | 'trottola' | 'frenata' | 'salto' | 'bilico' | 'slalom' | 'arbitro' | 'lamina'; mira?: [number, number]; spento?: boolean;
+      | 'trottola' | 'frenata' | 'salto' | 'bilico' | 'slalom' | 'arbitro' | 'lamina' | 'lancia' | 'calcio' | 'evoca' | 'sputo' | 'mites' | 'onda' | 'schianto' | 'pioggia' | 'esposto'; mira?: [number, number]; spento?: boolean;
     /** Mausoleo: potenziato da un Chierico, scudo sfondato (Sentinella), stordito dal Rintocco; il Custode: fase (0 acqua, 1 vapore, 2 moto)
      *  e, nella terza, colpi presi verso la scarica (`cariche` su `colpi`). `mira`: per la cura chi ripara, per lo scatto dove ricompare. */
     potenziato?: boolean; rotto?: boolean; stordito?: boolean; fase?: number; cariche?: number; colpi?: number;
@@ -213,6 +219,9 @@ export type DungeonView = {
     corsia?: [number, number, number]; fisso?: boolean; scudo?: boolean;
     /** Diga, la Guardia della Paratia: ha perso il portello (`rotto` resta solo mentre barcolla). */
     senza?: boolean;
+    /** Santuario del Capo Ardente: lo Sciamano nascosto nel fumo (il client non lo disegna); Korok nella finestra di punizione: moltiplicatore dei colpi di
+     *  mischia (il nucleo sul petto brilla). */
+    invisibile?: boolean; esposto?: number;
     /** Arena: evocazione dell'avversario di chi guarda (il client la tinge di rosso, non di viola). */
     avversario?: boolean }[];
   proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica' | 'palla_nemica'; x: number; y: number; z: number; vx: number; vz: number;
@@ -233,7 +242,9 @@ export type DungeonView = {
   acque: { n: number; livello: number }[];
   valvole: { x: number; z: number; n: number; aperta: boolean }[];
   vicinoValvola: boolean;
-  geyser: { id: number; x: number; z: number; r: number; getto: boolean; t: number; bomba?: boolean; magma?: boolean; cannone?: boolean }[];
+  geyser: { id: number; x: number; z: number; r: number; getto: boolean; t: number; bomba?: boolean; magma?: boolean; cannone?: boolean;
+    /** Santuario: l'onda di calore di Korok (chi sta al riparo di un braciere acceso non la sente) · un cerchio da cui nasce un Mite. */
+    onda?: boolean; evoca?: boolean }[];
   /** Archivio (negli altri dungeon liste vuote): correnti d'aria (direzione, stato e fase 0..1 nello stato), timoni (fermi o no), A qui
    *  ferma una corrente. */
   venti: { n: number; dx: number; dz: number; stato: 'calma' | 'avviso' | 'soffia' | 'ferma'; t: number }[];
@@ -251,6 +262,11 @@ export type DungeonView = {
   sarcofago?: { x: number; z: number; aperto: boolean };
   /** Diga dei Disertori (negli altri dungeon lista vuota): i piloni dell'arena, interi o fracassati dalla carica del Capitano. */
   piloni: { x: number; z: number; rotto: boolean }[];
+  /** Santuario del Capo Ardente (negli altri dungeon liste vuote): bracieri (acceso o no), A qui ne accende uno, ondate di calore (la zona in m, lo stato e la
+   *  fase 0..1 nello stato). */
+  bracieri: { x: number; z: number; n: number; acceso: boolean }[];
+  vicinoBraciere: boolean;
+  calore: { n: number; zona: [number, number, number, number]; stato: 'calma' | 'avviso'; t: number }[];
   /** Bottino e monete al sicuro all'ultimo altare (null = nessun altare toccato). */
   salvato: { bottino: Record<string, number>; monete: number } | null;
   zaino: { peso: number; max: number; monete: number; bottino: Record<string, number> };

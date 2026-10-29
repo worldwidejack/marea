@@ -11,6 +11,7 @@ import { pesoZaino } from './loot.ts';
 import { magiaInMano, vicinoUscita } from './hero.ts';
 import { altareSotto, salvatoQui } from './altari.ts';
 import { livello, valvolaVicina } from './acque.ts';
+import { alRiparoBraciere, braciereVicino, caloreVista, nascosto } from './braci.ts';
 import { areaRaggio } from './enemies.ts';
 import { alRiparo, nelVento, statoVento, timoneVicino } from './vento.ts';
 import { alto, schermato } from './muove.ts';
@@ -72,13 +73,13 @@ export function viewOf(s: DungeonState): DungeonView {
       vita: h.vita, magicka: h.magicka, stamina: h.stamina, max: { ...rh.max },
       ...canaleVista(s), ricaricaMagia: h.cdMagia / HZ, ricaricaMagie: ricaricheMagie(h), ...perkVista(s), frecce: h.frecce, pozioni: h.pozioni, protetto: h.protetto > 0, arma: h.arma.id, rallentato: h.lento > 0,
       ...inMano(s),
-      ...(s.correnti.length ? { vento: !s.done && nelVento(s), riparo: !s.done && alRiparo(s) } : {}), ...(h.spT > 0 ? { spinto: true } : {}),
+      ...(s.correnti.length ? { vento: !s.done && nelVento(s), riparo: !s.done && alRiparo(s) } : s.map.bracieri.length ? { riparo: !s.done && alRiparoBraciere(s, h.x, h.z) } : {}), ...(h.spT > 0 ? { spinto: true } : {}),
       ...(fucina(s) ? { brucia: h.brucia > 0, bagnato: !s.done && inGetto(s, h.x, h.z) } : {}),
       ...unici(s),
     },
     nemici: s.enemies.map((e) => {
       const a = enemyAnim(e);
-      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0 || sanguinante(s, e), boss: !!e.def.boss, ...(paralizzato(s, e) ? { paralizzato: true, stordito: true } : {}), ...(rallentato(s, e) ? { lento: true } : {}), ...(e.capo ? { capo: true } : {}), ...(e.st === 'prepara' && e.area ? { area: areaRaggio(e.def) } : {}), ...(e.st === 'prepara' && e.tiro ? { tiro: true } : {}), ...archivio(s, e), ...mausoleo(s, e), ...diga(s, e), ...(evocazioneNemica(s, e) ? { avversario: true } : {}) };
+      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0 || sanguinante(s, e), boss: !!e.def.boss, ...(paralizzato(s, e) ? { paralizzato: true, stordito: true } : {}), ...(rallentato(s, e) ? { lento: true } : {}), ...(e.capo ? { capo: true } : {}), ...(e.st === 'prepara' && e.area ? { area: areaRaggio(e.def) } : {}), ...(e.st === 'prepara' && e.tiro ? { tiro: true } : {}), ...archivio(s, e), ...mausoleo(s, e), ...diga(s, e), ...ceneri(s, e), ...(evocazioneNemica(s, e) ? { avversario: true } : {}) };
     }),
     proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: p.x, y: p.y, z: p.z, vx: p.vx, vz: p.vz, ...(p.mole ? { mole: p.mole } : {}), ...(p.elemento ? { el: p.elemento } : {}), ...(p.bomba ? { bomba: p.bomba, r: r2(p.raggio) } : {}) })),
     bottini: s.loot.map((l) => ({ id: l.id, x: l.x, z: l.z, tipo: l.tipo, vuoto: parte(s, l).vuoto })),
@@ -93,12 +94,15 @@ export function viewOf(s: DungeonState): DungeonView {
     venti: s.map.venti.map((v) => ({ n: v.n, dx: v.dx, dz: v.dz, ...statoVento(s, v) })),
     timoni: s.map.timoni.map((t) => ({ x: t.x, z: t.z, n: t.n, fermo: !!s.correnti.find((c) => c.n === t.n)?.ferma })),
     vicinoTimone: !s.done && s.map.timoni.length > 0 && timoneVicino(s) >= 0,
-    geyser: s.geyser.map((g) => ({ id: g.id, x: g.x, z: g.z, r: g.r, getto: g.t > g.avviso, t: g.t > g.avviso ? Math.min(1, (g.t - g.avviso) / g.getto) : Math.min(1, g.t / g.avviso), ...(g.spinta !== undefined ? { bomba: true } : {}), ...(g.magma ? { magma: true } : {}), ...(g.cannone ? { cannone: true } : {}) })),
+    geyser: s.geyser.map((g) => ({ id: g.id, x: g.x, z: g.z, r: g.r, getto: g.t > g.avviso, t: g.t > g.avviso ? Math.min(1, (g.t - g.avviso) / g.getto) : Math.min(1, g.t / g.avviso), ...(g.spinta !== undefined ? { bomba: true } : {}), ...(g.magma ? { magma: true } : {}), ...(g.cannone ? { cannone: true } : {}), ...(g.riparo ? { onda: true } : {}), ...(g.evoca ? { evoca: true } : {}) })),
     lave: s.map.lave.map((v) => ({ n: v.n, ...statoLava(s, v) })),
     fuochi: s.fuochi.map((f) => ({ id: f.id, x: f.x, z: f.z, r: f.r, t: Math.max(0, Math.min(1, 1 - (f.fine - s.tick) / f.durata)), ...(f.amico ? { amico: true } : {}) })),
     lancette: s.map.lancette.map((l) => { const [dx, dz] = lancettaDir(l, s.tick); return { n: l.n, x: l.x, z: l.z, dx, dz, lunga: l.lunga, largo: l.largo, giro: l.giro }; }),
     onde: s.onde.map((o) => ({ id: o.id, x: o.x, z: o.z, r: o.r, max: o.max, spessore: o.spessore, varchi: o.varchi.map(([x, z]): [number, number] => [x, z]), barriera: !!o.barriera })),
     piloni: s.map.piloni.map((p, k) => ({ x: p.x, z: p.z, rotto: !!s.piloni[k] })),
+    bracieri: s.map.bracieri.map((b, i) => ({ x: b.x, z: b.z, n: b.n, acceso: !!s.bracieri[i] })),
+    vicinoBraciere: !s.done && s.map.bracieri.length > 0 && braciereVicino(s) >= 0,
+    calore: caloreVista(s),
     ...(s.map.sarcofago ? { sarcofago: { x: s.map.sarcofago.x, z: s.map.sarcofago.z, aperto: s.enemies.some((e) => e.capo && e.st === 'morto') } } : {}),
     zaino: { peso: r2(pesoZaino(s)), max: rh.caricoMax, monete: s.monete, bottino: { ...s.bottino } },
     eventi: s.eventi,
@@ -177,6 +181,28 @@ function diga(_s: DungeonState, e: Enemy): Partial<DungeonView['nemici'][number]
   }
   return o;
 }
+/** Santuario del Capo Ardente: lo Sciamano nascosto, la linea che ti lega a lui, la corsia della clava, il braciere che il Colosso sta per calciare, Korok
+ *  (fase, attacco in corso, finestra di punizione col suo moltiplicatore). */
+function ceneri(s: DungeonState, e: Enemy): Partial<DungeonView['nemici'][number]> {
+  const d = e.def, o: Partial<DungeonView['nemici'][number]> = {}, m = e.mira;
+  if (d.sciamano) {
+    if (nascosto(s, e)) o.invisibile = true;
+    if (e.modo === 'evoca' && e.st === 'prepara') { o.attacco = 'evoca'; o.mira = [r2(s.hero.x), r2(s.hero.z)]; }
+  }
+  if (d.lanciatore && e.modo === 'lancia' && e.st === 'prepara') o.attacco = 'lancia';
+  if (d.colosso) {
+    const b = e.braciere !== undefined ? s.map.bracieri[e.braciere] : undefined;
+    if (e.modo === 'calcio' && e.st === 'prepara' && b) { o.attacco = 'calcio'; o.mira = [r2(b.x), r2(b.z)]; }
+    if (e.modo === 'schiacciata' && e.st === 'prepara' && m) { o.attacco = 'schiacciata'; o.corsia = [r2(e.x + m.dx * m.len), r2(e.z + m.dz * m.len), d.colosso.largo]; }
+    if (e.modo === 'incastrato' && e.st === 'recupera') o.attacco = 'incastrato';
+  }
+  if (d.korok) {
+    o.fase = e.fase ?? 0;
+    if (e.modo && (e.st === 'prepara' || e.st === 'recupera')) o.attacco = e.modo as NonNullable<typeof o.attacco>;
+    if (e.esp !== undefined) o.esposto = e.esp;
+  }
+  return o;
+}
 /** Perk Scarica (secondi di ricarica) e Carica massima (progresso verso il colpo letale): niente chiavi senza il perk. */
 function perkVista(s: DungeonState): { scarica?: number; massima?: number } {
   const P = s.runHero.perk, h = s.hero, o: { scarica?: number; massima?: number } = {};
@@ -247,6 +273,8 @@ function acqueHash(s: DungeonState): Record<string, unknown> {
   if (fucina(s)) o['fucina'] = [s.fuochi.map((f) => [f.id, f.fine]), s.eroi.map((r) => r.hero.brucia), s.enemies.filter((e) => e.spento).map((e) => e.id)];
   // Mausoleo: onde in corsa, fasi del Custode, barriere e contatori degli unici
   // Diga e Baita: piloni fracassati, rottami, Brezza e Fresca degli eroi
+  // Santuario del Capo Ardente: bracieri accesi e le micce
+  if (s.map.bracieri.length) o['ceneri'] = [s.bracieri.map((b) => (b ? 1 : 0)), s.enemies.filter((e) => e.fuso !== undefined || e.rivelato).map((e) => [e.id, e.fuso ?? 0, e.rivelato ? 1 : 0])];
   if (s.map.piloni.length || s.def.rottami) o['diga'] = [s.piloni.map((b) => (b ? 1 : 0)), s.eroi.map((r) => [r.hero.rottT, r.hero.brezza, r3(r.hero.brezzaM), ...(r.hero.arma.traits.fresca ? [r.hero.fresca, r3(r.hero.frescaM)] : [])])];
   if (s.dungeon === 'baita') o['baita'] = [s.sciolti, s.pozzanghere.map((p) => [p.id, p.fine]), s.bandierine.map((b) => [b.id, b.abbattuta ? 1 : 0])];
   if (mausoleoMappa(s)) o['mausoleo'] = [s.onde.map((x) => [x.id, r3(x.r), x.colpiti.length]), s.enemies.filter((e) => e.fase || e.colpiB).map((e) => [e.id, e.fase ?? 0, e.colpiB ?? 0]), s.eroi.map((r) => [r3(r.hero.barr), r.hero.pressione, r.hero.ritmo, r.hero.molla])];

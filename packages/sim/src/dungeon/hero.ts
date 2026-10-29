@@ -14,7 +14,7 @@ import {
 import { sweepTo, swept, swingStyle } from './swing.ts';
 import { aimDir } from './mira.ts'; import { consuma, rebuild } from './zaino.ts';
 import { apriValvola, valvolaVicina } from './acque.ts'; import { giraTimone, timoneVicino } from './vento.ts';
-import { alto } from './muove.ts'; import { aimAlleato, canale, fermaCanale, isSupporto, lanciaBomba } from './magie.ts';
+import { alto } from './muove.ts'; import { accendi, braciereVicino } from './braci.ts'; import { aimAlleato, canale, fermaCanale, isSupporto, lanciaBomba } from './magie.ts';
 import { caricaBarriera, caricaBrezza, caricaVampa, consumaVampa, eco, fineColpo, inizioColpo, inizioPoppa, molla, moltCaricaPoppa, moltRitmo, spintaPoppa, stepUnici, stordisci } from './unici.ts';
 import { curaCompagni, lamaAria, scaricaDi, statiCaricato, terremoto, veleno } from './perk.ts';
 import { aimEroi, colpisciEroe, eroiNemici, evocazioneNemica, ostile, separaEroi } from './pvp.ts';
@@ -292,6 +292,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   if (aDown && s.map.valvole.length) { const v = valvolaVicina(s); if (v >= 0) { apriValvola(s, v); aDown = false; } }
   // Archivio: A accanto al timone di una corrente la ferma (e non attacca)
   if (aDown && s.map.timoni.length) { const t = timoneVicino(s); if (t >= 0) { giraTimone(s, t); aDown = false; } }
+  if (aDown && s.map.bracieri.length) { const b = braciereVicino(s); if (b >= 0) { accendi(s, b); aDown = false; } } // Santuario: A accanto a un braciere spento lo accende
   // Mausoleo: il tic della Grande Lancetta, le molle dell'Arco Carillon
   stepUnici(s);
   // azioni

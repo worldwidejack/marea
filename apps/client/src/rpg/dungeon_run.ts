@@ -196,7 +196,7 @@ export function startRun(ctx: RunCtx, o: {
       if ((phase as Phase) === 'over') { cleanup(); return; }
       hud = createDungeonHud({ root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera, hero: s.runHero, stile: sc.def.stile });
       controls = createControls({
-        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, yaw: () => ctx.renderer.diorama.yaw, insieme: !!rete, ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : sc.def.stile === 'diga' ? { valvola: 'A · Gira la ruota', timone: 'A · Gira la ruota' } : sc.def.stile === 'baita' ? { valvola: 'A · Aziona la turbina', timone: 'A · Spegni i cannoni' } : sc.def.stile === 'ceneri' ? { valvola: 'A · Gira la ruota termale', timone: 'A · Chiudi il soffione' } : {}),
+        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, yaw: () => ctx.renderer.diorama.yaw, insieme: !!rete, ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : sc.def.stile === 'diga' ? { valvola: 'A · Gira la ruota', timone: 'A · Gira la ruota' } : sc.def.stile === 'baita' ? { valvola: 'A · Aziona la turbina', timone: 'A · Spegni i cannoni' } : sc.def.stile === 'ceneri' ? { valvola: 'A · Accendi il braciere' } : {}),
         onAbort: () => (phase === 'end' ? finish() : abort()),
         onZaino: openZaino,
         onSalva: () => { const e = act({ t: 'salva' }); if (e) ctx.hud.toast(e, 1800); },
@@ -432,7 +432,7 @@ export function startRun(ctx: RunCtx, o: {
         return { pos, nome: a.nome, frac: c ? c.vita / Math.max(1, c.max) : 0 };
       }));
       controls.setExit(phase === 'play' && view.vicinoUscita);
-      controls.setValvola(phase === 'play' && view.vicinoValvola); controls.setTimone(phase === 'play' && view.vicinoTimone);
+      controls.setValvola(phase === 'play' && (view.vicinoValvola || view.vicinoBraciere)); controls.setTimone(phase === 'play' && view.vicinoTimone);
       controls.setLanterna(phase === 'play' && view.lanterna >= 0 ? { salvatoQui: view.salvatoQui, oggetti: nOggetti(view.zaino.bottino), monete: view.zaino.monete } : null);
       sc.setAltare(view.altari.findIndex((a) => a.attivo));
       const h = view.hero, rh = s.runHero, spell = rh.magia !== null ? rh.magie[rh.magia] : null;

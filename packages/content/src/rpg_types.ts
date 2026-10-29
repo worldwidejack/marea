@@ -1,6 +1,6 @@
 // Tipi dei contenuti del Mondo Sotterraneo (docs/RPG.md, CONTRACTS §15). Solo dati: le formule stanno in @marea/sim/rpg e @marea/sim/dungeon.
 // I JSON stanno in packages/content/src/rpg/; si importano da `@marea/content/rpg.ts` (MAI da index.ts: il client li carica solo nel chunk GDR).
-
+import type { ColossoDef, KorokDef, LanciatoreDef, MicciaDef, OndataDef, SciamanoDef } from './rpg_ceneri_types.ts';
 export type SkillId = 'armiLeggere' | 'armiPesanti' | 'arceria' | 'distruzione' | 'evocazione' | 'supporto' | 'forgiatura' | 'alchimia';
 export const SKILLS: readonly SkillId[] = ['armiLeggere', 'armiPesanti', 'arceria', 'distruzione', 'evocazione', 'supporto', 'forgiatura', 'alchimia'];
 export type AttrId = 'vita' | 'magicka' | 'stamina';
@@ -136,7 +136,7 @@ export type EnemyDef = {
    *  Archivio: `bombardiere` (Aerostato-Spia) sta a qualche metro dall'eroe e sgancia `bomba`; `astrolabio` è il capo con `astrolabio`;
    *  `anello` sono gli anelli-scudo che il capo stacca a metà vita (non hanno IA: girano attorno a lui).
    *  Fucina: `forgiatore` è il capo con `forgiatore`. */
-  comportamento: 'mischia' | 'arciere' | 'mago' | 'torretta' | 'bombardiere' | 'astrolabio' | 'anello' | 'forgiatore' | 'chierico' | 'custode' | 'fuciliere' | 'vaelen' | 'acrobata' | 'alchimista' | 'sparaneve' | 'jean_claude';
+  comportamento: 'mischia' | 'arciere' | 'mago' | 'torretta' | 'bombardiere' | 'astrolabio' | 'anello' | 'forgiatore' | 'chierico' | 'custode' | 'fuciliere' | 'vaelen' | 'acrobata' | 'alchimista' | 'sparaneve' | 'jean_claude' | 'lanciatore' | 'colosso' | 'sciamano' | 'miccia' | 'korok';
   /** Dove si muove (Archivio). `grate`: anche sulle grate (Drone Idro-Ragno), dove l'eroe non sale. `vola`: sopra acqua, grate e vuoto,
    *  non sopra muri e scaffali; il vento non lo sposta e in mischia lo prendi solo quando scende (prepara, colpisce, recupera).
    *  `asciutto` (Fucina, il Mastro Forgiatore): camminando gira attorno alle cascate d'acqua (`getto`), non ci entra mai da sé. */
@@ -256,7 +256,7 @@ export type EnemyDef = {
   contundente?: boolean;
   /** Scappa da chi indossa armatura con `terrore` ≥ questo valore (nemici deboli contro le ossa). */
   pauroso?: number;
-  loot: string; xp: number; boss?: boolean;
+  loot: string; xp: number; boss?: boolean; lanciatore?: LanciatoreDef; colosso?: ColossoDef; sciamano?: SciamanoDef; miccia?: MicciaDef; korok?: KorokDef; // Santuario del Capo Ardente (docs/SANTUARIO.md), tipi in rpg_ceneri_types.ts
 };
 export type LootEntry = { item: string; p: number; n: [number, number]; raro?: boolean };
 export type LootTable = { id: string; monete: [number, number]; voci: LootEntry[] };
@@ -272,16 +272,16 @@ export type DungeonDef = {
   venti?: { n: number; dir: 'n' | 's' | 'e' | 'o'; forza: number; soffia: number; pausa: number; fase?: number }[];
   /** Fucina: colate di lava che respirano. Le celle della colata n (legenda `lava: n`) si camminano sempre, ma per `scorre` s la lava
    *  scorre (chi ci sta sopra brucia: `dps` al secondo, ancora per `secondi` s dopo) e per `crosta` s fa la crosta (si passa), a giro,
-   *  sfasati di `fase` s; negli ultimi istanti della crosta le crepe si accendono (avviso). */
-  lave?: { n: number; scorre: number; crosta: number; fase?: number; dps: number; secondi: number }[];
+   *  sfasati di `fase` s; negli ultimi istanti della crosta le crepe si accendono (avviso).  Santuario: con tutti i bracieri della stanza `stanza` accesi fa la crosta; `istante` = danni di colpo a chi la tocca (ogni 0,6 s). */
+  lave?: { n: number; scorre: number; crosta: number; fase?: number; dps: number; secondi: number; stanza?: number; istante?: number }[];
   /** Mausoleo: lancette giganti che girano a terra attorno al perno nella cella `at` (una colonna): lunghe `lunga` m, `giro` rad/s (il
    *  segno è il verso), angolo di partenza `fase` rad (0 = verso +x, poi verso +z). Chi sta sulla lancetta (entro `largo` m) prende `danno`
    *  e vola avanti di `spinta` m; per `pausa` s quella lancetta non lo riprende. Gli automi conoscono il ritmo: a loro non fa niente. */
   lancette?: { n: number; at: [number, number]; lunga: number; giro: number; fase: number; largo: number; danno: number; spinta: number; pausa: number }[];
   /** Diga dei Disertori: i rottami acuminati (legenda `rottami`, pavimento): chi ci sta sopra prende `danno` (taglio) ogni `ogni` s. */
   rottami?: { danno: number; ogni: number };
-  /** Difficoltà, invisibile al giocatore: la bussola punta solo al dungeon più facile non ancora completato (docs/RPG.md §2). */
-  difficolta: number;
+  /** Difficoltà, invisibile al giocatore: la bussola punta solo al dungeon più facile non ancora completato (docs/RPG.md §2). Santuario del Capo Ardente: `ondate` di calore nelle stanze, `arena` = rettangolo [x0, z0, x1, z1] (celle) dove cammina il capo (il resto è lava). */
+  difficolta: number; ondate?: OndataDef[]; arena?: [number, number, number, number];
   rows: string[];
   /** `altare`: altare di salvataggio (docs/RPG.md §4): passandoci il bottino raccolto fin lì è al sicuro; morendo dopo si riparte da lì.
    *  `capo` (con `nemico`): ucciso lui, il dungeon è completato (`HeroState.completati`); uno per dungeon. Non cambia il nemico.
@@ -300,9 +300,9 @@ export type DungeonDef = {
    *  Diga dei Disertori: `ruota: n` Ruota di Sentina (sul pavimento, A accanto): svuota il bacino n o ferma la corrente n (quello che c'è
    *  col suo numero); `risacca: n` cella della corrente di risacca n (come `vento: n`: le correnti stanno in `venti`); `rottami` rottami
    *  acuminati (pavimento, fanno male: `rottami` del dungeon); `ponte: n` il ponte mobile alzato sopra l'acqua, un bacino come `acqua: n`
-   *  (la ruota lo abbassa); `pilone` bitta di legno: solida come una colonna, ma la carica del capo la fracassa.
+   *  (la ruota lo abbassa); `pilone` bitta di legno: solida come una colonna, ma la carica del capo la fracassa. Santuario: `braciere: n` braciere spento della stanza n (solido): A accanto lo accende; con tutti accesi la stanza si chiude (colata `stanza: n`, bacino `acqua: n`).
    *  Arena: `erba` erba alta (pavimento): chi ci sta dentro non lo vedono gli avversari (sim/dungeon/erba.ts). */
-  legenda: Record<string, { erba?: boolean; nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number; vento?: number; timone?: number; grata?: boolean; ferme?: number[]; lava?: number; colata?: number; chiusa?: number; getto?: boolean; cancello?: number; carica?: number; sarcofago?: boolean; ruota?: number; risacca?: number; rottami?: boolean; ponte?: number; pilone?: boolean; tornello?: number; colonnina?: number; ghiaccio?: number }>;
+  legenda: Record<string, { erba?: boolean; nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number; vento?: number; timone?: number; grata?: boolean; ferme?: number[]; lava?: number; colata?: number; chiusa?: number; getto?: boolean; cancello?: number; carica?: number; sarcofago?: boolean; ruota?: number; risacca?: number; rottami?: boolean; ponte?: number; pilone?: boolean; tornello?: number; colonnina?: number; ghiaccio?: number; braciere?: number }>;
   /** Dove sta l'ingresso nel mondo: cella di un'isola di islands.json (il modello è `prop_ingresso_<stile>`). */
   ingresso: { island: string; at: [number, number] };
   /** Lore dentro il dungeon (docs/RPG.md §2c): solo testo per il client, la sim non lo vede. */

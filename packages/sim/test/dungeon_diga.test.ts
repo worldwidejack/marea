@@ -63,7 +63,7 @@ test('diga: ruote, risacca, rottami, piloni e lanterne; sull’Isola della Tempe
   assert.deepEqual(capo.map((e) => e.tipo), ['capitano_vaelen']);
   assert.deepEqual(DIGA.slice(0, 3).map((t) => s.enemies.filter((e) => e.tipo === t).length), [6, 8, 5]);
   // i nemici più forti prima del Santuario del Capo Ardente
-  const CENERI = ['sentinella_braciere', 'cantore_fuliggine', 'totem_censo', 'arconte_solan'];
+  const CENERI = ['lanciatore_lava', 'guerriero_colossale', 'sciamano_fumo', 'fuoco_fatuo', 'mite_lava', 'korok'];
   const altri = ENEMIES.filter((e) => !DIGA.includes(e.id) && !CENERI.includes(e.id) && e.loot !== 'nessuno');
   const V = enemyDef('capitano_vaelen'), G = enemyDef('guardiano_paratia');
   for (const b of altri.filter((e) => e.boss)) assert.ok(V.vita > b.vita && V.danno >= b.danno && V.armatura >= b.armatura, `Vaelen contro ${b.id}`);

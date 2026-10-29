@@ -10,12 +10,16 @@ import { caduto, kill, wake } from './combat.ts';
 import { cellOf } from './map.ts';
 import type { DMap } from './map.ts';
 import { AVVISO_LAVA, BRUCIA_NUMERO, FUOCHI_MAX, GETTO_RAGGIO, HZ } from './tuning.ts';
+import { stanzaAcca } from './braci.ts';
+import { hitHero } from './combat.ts';
+import { spingi } from './vento.ts';
 
 type LavaDef = DMap['lave'][number];
 export type StatoLava = 'crosta' | 'avviso' | 'scorre';
 
 /** Stato di una colata a questo tick e fase 0..1 dentro lo stato (per l'avviso e la resa). */
 export function statoLava(s: DungeonState, v: LavaDef): { stato: StatoLava; t: number } {
+  if (v.stanza !== undefined && stanzaAcca(s, v.stanza)) return { stato: 'crosta', t: 0 }; // Santuario: i bracieri della stanza sono accesi
   const on = secToTicks(v.scorre), off = Math.max(0, Math.round(v.crosta * HZ));
   if (off === 0) return { stato: 'scorre', t: 0 };
   const k = (s.tick + Math.round(v.fase * HZ)) % (on + off);
@@ -90,7 +94,7 @@ export function stepFuoco(s: DungeonState): void {
         return;
       }
       const v = lavaSu(s, h.x, h.z);
-      if (v) brucia(s, v.dps, v.secondi);
+      if (v) { brucia(s, v.dps, v.secondi); if (v.istante) lavaViva(s, v.istante); }
       for (const f of s.fuochi) {
         if (f.amico) continue;
         const dx = h.x - f.x, dz = h.z - f.z, rr = f.r + r * 0.5;
@@ -107,6 +111,17 @@ export function stepFuoco(s: DungeonState): void {
     e.vita -= e.def.acqua.danno * DT;
     if (e.vita <= 0) conEroe(s, s.eroi.length > 1 ? e.ultimo ?? 0 : 0, () => kill(s, e));
   }
+}
+
+/** La lava che uccide di colpo (il bordo dell'arena del Santuario): un gran colpo a chi la tocca, poi rispinto verso il centro dell'arena. */
+function lavaViva(s: DungeonState, danno: number): void {
+  const h = s.hero, A = s.def.arena;
+  if (h.rottT > s.tick || h.protetto > 0) return;
+  h.rottT = s.tick + secToTicks(0.6);
+  hitHero(s, danno, 'magia', h.x, h.z);
+  if (!A || s.done) return;
+  const dx = ((A[0] + A[2] + 1) / 2) * s.map.tile - h.x, dz = ((A[1] + A[3] + 1) / 2) * s.map.tile - h.z, d = Math.sqrt(dx * dx + dz * dz);
+  if (d > 1e-6) spingi(s, dx / d, dz / d, 3.2, 0.3);
 }
 
 /** Le chiazze della Combustione bruciano i nemici che ci stanno dentro: il danno (e l'xp di Distruzione) va a chi le ha accese. */

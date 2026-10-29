@@ -19,6 +19,7 @@ import { stepFuoco } from './fuoco.ts';
 import { stepLancette, stepOnde } from './mausoleo.ts';
 import { stepRottami } from './diga.ts';
 import { stepBaita } from './baita.ts';
+import { stepCalore } from './braci.ts';
 import { scopriChiAttacca } from './erba.ts';
 import { resultOf, viewOf } from './view.ts';
 import { autopilot } from './autopilot.ts';
@@ -51,6 +52,7 @@ export function stepParty(s: DungeonState, inputs: readonly DungeonInput[]): voi
   if (!finita(s) && (s.correnti.length || s.eroi.some((r) => r.hero.spT > 0))) stepVento(s);
   if (!finita(s) && s.def.rottami) stepRottami(s);
   if (!finita(s) && s.dungeon === 'baita') stepBaita(s);
+  if (!finita(s) && s.def.ondate) stepCalore(s);
   if (!finita(s)) pickup(s);
   if (!finita(s)) stepAltari(s);
   s.tick++;

@@ -12,6 +12,7 @@ import { spingi } from './vento.ts';
 import { scarica } from './custode.ts';
 import { barriera } from './unici.ts';
 import { chino, sbilancia, scudoSu } from './vaelen.ts';
+import { colpoCeneri } from './ceneri.ts';
 import { evocazioneNemica } from './pvp.ts';
 import { scopri } from './erba.ts';
 import { BOSS_RALLENTA, COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, RETRO_SCAFANDRO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
@@ -80,7 +81,10 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
   if (e.def.forgiatore && !e.spento) { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: 'fornace' }); if (!e.aggro) wake(s, e); return 0; }
   // Mausoleo: il Custode che cambia cuore non prende danni
   if (e.def.custode && e.modo === 'cambio') { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: 'cuore' }); return 0; }
-  let retro = 1;
+  // Santuario del Capo Ardente: i punti deboli del Lanciatore, del Colosso, dello Sciamano e di Korok (ceneri.ts)
+  const mc = colpoCeneri(s, e, src);
+  if (mc < 0) return 0;
+  let retro = mc;
   // Diga, il Capitano Vaelen: mentre spezza le catene non prende danni; lo scudo della salva para da davanti (un caricato da davanti o
   // l'onda d'urto del Vento in Poppa lo sfondano e la salva finisce); chino sulla lancia, alle spalle la catena prende di più
   const V = e.def.vaelen;

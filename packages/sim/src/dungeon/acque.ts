@@ -3,12 +3,13 @@
 // altri dungeon le liste sono vuote e qui non succede niente.
 import type { EnemyDef } from '@marea/content/rpg.ts';
 import type { Bacino, DungeonState, Enemy } from './state.ts';
-import { conEroe, ev, finita, inGioco, secToTicks } from './state.ts';
+import { conEroe, ev, finita, inGioco, newEnemy, secToTicks } from './state.ts';
 import { hitHero } from './combat.ts';
 import { isSolid } from './map.ts';
 import { GEYSER_DIR, RAGGIO_VALVOLA, SCOLO_TICKS } from './tuning.ts';
 import { spingi } from './vento.ts';
 import { fuocoA } from './fuoco.ts';
+import { alRiparoBraciere, spegniIn } from './braci.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 const bacinoDi = (s: DungeonState, n: number): Bacino | undefined => s.bacini.find((b) => b.n === n);
@@ -77,13 +78,17 @@ export function stepGeyser(s: DungeonState): void {
       ev(s, { t: g.magma ? 'magma' : g.cannone ? 'cannonata' : g.spinta !== undefined ? 'bomba' : 'geyser', x: r2(g.x), z: r2(g.z) });
       // Fucina: la palla di magma lascia una pozza che brucia
       if (g.magma) fuocoA(s, g.x, g.z, g.magma.raggio, g.magma.durata, g.magma.dps, g.magma.secondi);
+      // Santuario del Capo Ardente: il globo spegne i bracieri vicini; il cerchio dei Mite fa nascere i Mite
+      if (g.spegne) spegniIn(s, g.x, g.z, g.r - 0.3);
+      if (g.evoca) { const m = newEnemy(s, g.evoca, g.x, g.z); m.aggro = true; m.st = 'insegue'; }
     }
-    if (g.t > g.avviso) {
+    if (g.t > g.avviso && !g.senzaDanno) {
       for (const i of inGioco(s)) {
         if (g.colpiti.includes(i)) continue;
         conEroe(s, i, () => {
           const h = s.hero, dx = h.x - g.x, dz = h.z - g.z, r = g.r + s.runHero.raggio;
           if (dx * dx + dz * dz > r * r) return;
+          if (g.riparo && alRiparoBraciere(s, h.x, h.z)) return; // l'onda di calore non passa nell'area di un braciere acceso
           g.colpiti.push(i);
           const prima = !s.done && h.protetto <= 0;
           hitHero(s, g.danno, 'contundente', h.x, h.z);
