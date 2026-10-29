@@ -206,7 +206,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         const n = e.v, x = e.px + (e.x - e.px) * alpha, z = e.pz + (e.z - e.pz) * alpha;
         const lit = o.scene.light(x, z) >= 0.45 || (Math.abs(x - hero.x) < 6 && Math.abs(z - hero.z) < 6);
         const dead = n.anim === 'morto', since = dead ? now - e.diedAt : 0;
-        e.root.visible = lit && (!dead || since < 1.2);
+        e.root.visible = lit && !n.invisibile && (!dead || since < 1.2); // lo Sciamano nel fumo non si vede
         if (e.ring) e.ring.visible = false;
         if (!e.root.visible) continue;
         e.root.position.set(x, fy, z); e.root.rotation.y = yawOf(n.fx, n.fz);
@@ -265,10 +265,11 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         if (n.potenziato && !glowC) { glowC = ORO; glow = Math.floor(t * 5 + e.id) % 2 ? 0.45 : 0.15; }
         if (n.rotto) { b.rotation.z = 0.15 * (Math.floor(t * 6) % 2 ? 1 : -1); b.rotation.x = -0.2; glowC = RED; glow = Math.floor(t * 8) % 2 ? 0.5 : 0.1; }
         if (n.stordito) b.rotation.z = 0.2 * (Math.floor(t * 5 + e.id) % 4 - 1.5) / 1.5;
+        if (n.esposto) { glowC = ORO; glow = Math.floor(t * 8) % 2 ? 0.55 : 0.3; } // Korok: il nucleo scoperto brilla
         if (n.attacco === 'cambio') { glowC = WHITE; glow = Math.floor(t * 10) % 2 ? 0.8 : 0.2; }
         // Diga: il Fuciliere mira in ginocchio, fermo (niente inclinazione all'indietro); la Guardia della Paratia senza il portello
         if (n.attacco === 'fucile') { b.rotation.x = 0; b.position.z = 0; b.position.y -= 0.3; }
-        if (n.model === 'nem_guardiano' || n.model === 'nem_controllore' || n.model === 'nem_sentinella_braciere') { const p = b.getObjectByName('portello'); if (p) p.visible = !n.senza; }
+        if (n.model === 'nem_guardiano' || n.model === 'nem_controllore') { const p = b.getObjectByName('portello'); if (p) p.visible = !n.senza; }
         if (e.arco) {
           const yaw = b.rotation.y, a = e.arco.obj;
           a.position.lerpVectors(ARCO_GIU, ARCO_SU, su).applyAxisAngle(YA, -yaw); // nello spazio del corpo, che è girato di yaw

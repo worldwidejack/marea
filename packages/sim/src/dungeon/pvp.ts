@@ -8,6 +8,7 @@ import type { DungeonState, Enemy } from './state.ts';
 import { hitHeroPvp } from './combat.ts';
 import type { HitSrc } from './combat.ts';
 import { visibileDa } from './erba.ts';
+import { nascosto } from './braci.ts';
 import { lineOfSight, moveCircle } from './map.ts';
 
 /** Squadra dell'eroe i (senza pvp tutti nella stessa). */
@@ -24,7 +25,7 @@ export function eroiNemici(s: DungeonState): number[] {
 /** Un'evocazione della squadra avversaria dell'eroe di turno (senza pvp mai). */
 export const evocazioneNemica = (s: DungeonState, e: Enemy): boolean => !!s.pvp && e.alleato && squadraDi(s, e.padrone ?? 0) !== squadraDi(s, s.cur);
 /** Un bersaglio per l'eroe di turno: i nemici del dungeon e, in Arena, le evocazioni avversarie. */
-export const ostile = (s: DungeonState, e: Enemy): boolean => e.st !== 'morto' && (!e.alleato || evocazioneNemica(s, e));
+export const ostile = (s: DungeonState, e: Enemy): boolean => e.st !== 'morto' && (!e.alleato || evocazioneNemica(s, e)) && !nascosto(s, e);
 /** Un alleato per l'eroe di turno: le evocazioni della sua squadra (senza pvp tutte). */
 export const amica = (s: DungeonState, e: Enemy): boolean => e.alleato && e.st !== 'morto' && !evocazioneNemica(s, e);
 /** L'eroe j è della squadra dell'eroe di turno (sé compreso). */

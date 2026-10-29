@@ -29,6 +29,7 @@ import { stepCustode } from './custode.ts';
 import { stepVaelen } from './vaelen.ts';
 import { stepAcrobata, stepAlchimista, stepSparaneve } from './baita.ts';
 import { stepJeanClaude } from './jean_claude.ts';
+import { stepCeneri } from './ceneri.ts';
 import { areaSuAlleati, colpoSuAlleato, passoContro, puntato, scegliAlleato } from './contro_alleati.ts';
 import { giraVerso, girata, moveToward, potenza, setState } from './passi.ts';
 import { colpoCorsia, corsiaFino } from './diga.ts';
@@ -93,7 +94,7 @@ function vedeEroe(s: DungeonState, e: Enemy, vista: number): boolean {
 
 /** Passo verso l'eroe: diretto se lo vede ed è vicino, altrimenti lungo il flow field (aggira i muri). Sulla griglia del nemico (chi sale
  *  sulle grate scappando le preferisce); l'Archivista a Molla scarta di lato a zig-zag. */
-function chase(s: DungeonState, e: Enemy, speed: number, verso: 1 | -1): void {
+export function chase(s: DungeonState, e: Enemy, speed: number, verso: 1 | -1): void {
   const h = s.hero, g = grigliaDi(s, e), flow = flowDi(s, e);
   let tx = h.x, tz = h.z;
   const dx0 = h.x - e.x, dz0 = h.z - e.z, d0 = Math.sqrt(dx0 * dx0 + dz0 * dz0);
@@ -310,6 +311,7 @@ function stepFoe(s: DungeonState, e: Enemy): void {
   if (def.comportamento === 'alchimista' && e.st !== 'dorme' && e.st !== 'veglia') { stepAlchimista(s, e); return; }
   if (def.comportamento === 'sparaneve' && e.st !== 'dorme' && e.st !== 'veglia') { stepSparaneve(s, e); return; }
   if (def.comportamento === 'jean_claude' && e.st !== 'dorme' && e.st !== 'veglia') { stepJeanClaude(s, e); return; }
+  if (stepCeneri(s, e)) return; // Santuario del Capo Ardente
   if (def.comportamento === 'fuciliere' && (e.st === 'insegue' || e.modo === 'fucile') && !fearful(s, e)) { stepFuciliere(s, e); return; }
   if (def.comportamento === 'chierico' && e.st === 'insegue') { if (!fearful(s, e)) { stepChierico(s, e); return; } }
   switch (e.st) {

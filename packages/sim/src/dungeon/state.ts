@@ -91,7 +91,7 @@ export type Enemy = {
    *  Gli anelli: id del loro Astrolabio e versore della loro posizione attorno a lui. */
   modo?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo' | 'cura' | 'ondata' | 'fendenti' | 'scatto' | 'geyser' | 'colpo' | 'cambio'
     | 'affondo' | 'spazzata' | 'salva' | 'incastrato' | 'detriti' | 'sbilanciato' | 'fucile' | 'schiacciata'
-    | 'trottola' | 'frenata' | 'salto' | 'bilico' | 'slalom' | 'arbitro' | 'lamina';
+    | 'trottola' | 'frenata' | 'salto' | 'bilico' | 'slalom' | 'arbitro' | 'lamina' | 'lancia' | 'calcio' | 'evoca' | 'sputo' | 'mites' | 'onda' | 'schianto' | 'pioggia' | 'esposto';
   mira?: { dx: number; dz: number; len: number };
   salve?: number;
   diviso?: boolean;
@@ -107,8 +107,8 @@ export type Enemy = {
    *  mischia. Il Custode (custode.ts): fase (0 acqua, 1 vapore, 2 moto) e colpi presi verso la scarica della Barriera. */
   potT?: number; potM?: number; potV?: number; rotto?: number; stordito?: number; comboN?: number; mischia?: boolean; fase?: number; colpiB?: number;
   /** Diga, il Capitano Vaelen (vaelen.ts): il pilone (indice in map.piloni) contro cui finirà la carica in corso, -1 = un muro. Le corsie dei
-   *  colpi dritti (la schiacciata della Guardia, gli affondi e la carica di Vaelen, la linea del Fuciliere) stanno in `mira`. */
-  pilone?: number;
+   *  colpi dritti (la schiacciata della Guardia, gli affondi e la carica di Vaelen, la linea del Fuciliere) stanno in `mira`. Santuario (ceneri.ts, korok.ts): `rivelato` visibile per sempre (Sciamano colpito alla lanterna), `fuso` scadenza della miccia, `braciere` bersaglio del calcio, `esp` moltiplicatore della finestra di Korok. */
+  pilone?: number; rivelato?: boolean; fuso?: number; braciere?: number; esp?: number;
   /** Perk dell'eroe (v9). Taglio Critico: sanguina fino al tick `emorr` (% della vita massima al secondo `emorrPct`), rallentato fino al tick
    *  `lentoT` (`lentoAcc` accumula i tick: va al passo di `lentoMolt` tick su 1). Colpo fatale: paralizzato fino al tick `paralisi`.
    *  Evocazioni: danno × `dannoM`. Fuori dall'hash. */
@@ -144,8 +144,8 @@ export type Geyser = { id: number; x: number; z: number; r: number; t: number; a
   spinta?: number;
   /** Fucina: è una palla di magma del Mastro Forgiatore; dove cade lascia una pozza che brucia (fuoco.ts). */
   magma?: { durata: number; raggio: number; dps: number; secondi: number };
-  /** Diga: è una cannonata della salva del Capitano Vaelen. */
-  cannone?: true };
+  /** Diga: è una cannonata della salva del Capitano Vaelen. Santuario: `da` id di chi l'ha lanciato, `evoca` cosa fa nascere, `riparo` non colpisce chi sta al riparo di un braciere, `spegne` spegne i bracieri vicini, `senzaDanno` solo l'evocazione. */
+  cannone?: true; da?: number; evoca?: string; riparo?: true; spegne?: true; senzaDanno?: true };
 /** Archivio: una corrente d'aria (le celle e i numeri stanno in map.venti); `ferma` = il suo timone è girato. */
 export type Corrente = { n: number; ferma: boolean };
 /** Fucina: chiazza di fuoco a terra (scia della Fornace Semovente, pozza di magma) fino al tick `fine`: chi ci sta dentro brucia. */
@@ -219,8 +219,8 @@ export type DungeonState = EroeRt & {
   fuochi: Fuoco[];
   /** Mausoleo (mausoleo.ts): onde d'acqua in corsa (uguali per tutti). Negli altri dungeon vuote. */
   onde: Onda[];
-  /** Diga dei Disertori (diga.ts): i piloni dell'arena già fracassati (uguali per tutti, indice in map.piloni). Negli altri dungeon vuoti. */
-  piloni: boolean[];
+  /** Diga dei Disertori (diga.ts): i piloni dell'arena già fracassati (uguali per tutti, indice in map.piloni). Negli altri dungeon vuoti. Santuario del Capo Ardente (braci.ts): `bracieri` quali sono accesi (indice in map.bracieri). */
+  piloni: boolean[]; bracieri: boolean[];
   /** Arena PvP (pvp.ts, docs/ARENA.md): la squadra di ogni eroe; quelli di squadre diverse si colpiscono. `rivela[i]` = fino a che tick l'eroe i
    *  è scoperto anche nell'erba alta (erba.ts). Assente nei dungeon. Fuori dall'hash (lo mette in hash il duello). */
   pvp?: { squadre: number[]; rivela: number[] };
@@ -311,7 +311,7 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
   Object.assign(s, {
     v: 1, seed, dungeon: def.id, def, map, tick: 0, anim: 'fermo',
     enemies: [], proj: [], loot: [], nextId: 1, bacini: map.bacini.map((b) => ({ n: b.n, aperta: false, scolo: 0 })), geyser: [],
-    correnti: map.venti.map((v) => ({ n: v.n, ferma: false })), griglie: {}, flowAlt: {}, fuochi: [], onde: [], piloni: map.piloni.map(() => false),
+    correnti: map.venti.map((v) => ({ n: v.n, ferma: false })), griglie: {}, flowAlt: {}, fuochi: [], onde: [], piloni: map.piloni.map(() => false), bracieri: map.bracieri.map(() => false),
     sciolti: [], pozzanghere: [], bandierine: [], flow: new Int32Array(map.w * map.h), flowTick: -999, flowCell: -1, flowKey: '', rng, eventi: [],
     eroi: eroi.map(({ hero, stato }): EroeRt => ({
       hero: {

@@ -193,19 +193,19 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         case 'libro': say(`Hai imparato: ${nome(e.item).replace(/^Libro: /, '')}`, 2600); break;
         case 'evocato': say('Un alleato combatte per te', 1800); break;
         case 'risveglio': say('Ti risvegli alla lanterna: perso solo il bottino raccolto dopo', 3200); break;
-        case 'valvola': say(fucina ? 'Chiusa aperta: l’acqua raffredda la Colata Maestra…' : mausoleo ? 'Chiave caricata: il cancello del Santuario scende…' : diga ? (e.n === 5 ? 'Ruota girata: il ponte mobile si abbassa…' : 'Ruota girata: le paratie si aprono, l’acqua scende…') : baita ? (e.n === 5 ? 'Turbina accesa: il cancelletto di slalom si abbassa…' : 'Turbina accesa: lo spazzaneve libera la pista…') : ceneri ? (e.n === 5 ? 'Ruota termale girata: il ponte d’ossidiana si abbassa…' : 'Ruota termale girata: la lava refluisce nel condotto…') : 'Valvola girata: l’acqua scende…', 2200); break;
-        case 'asciutto': say(fucina ? 'La Colata è fredda: adesso si passa' : mausoleo ? 'Il cancello è aperto: il Santuario ti aspetta' : diga ? (e.n === 5 ? 'Il ponte è giù: la via breve per la stiva' : 'Prosciugato: adesso si passa') : baita ? (e.n === 5 ? 'Cancelletto aperto: scorciatoia per la Terrazza VIP!' : 'Pista battuta: adesso si passa!') : ceneri ? (e.n === 5 ? 'Il ponte d’ossidiana è giù: scorciatoia per il Crinale!' : 'Crosta solidificata: adesso si passa!') : 'Svuotato: adesso si passa', 2200); break;
+        case 'valvola': say(fucina ? 'Chiusa aperta: l’acqua raffredda la Colata Maestra…' : mausoleo ? 'Chiave caricata: il cancello del Santuario scende…' : diga ? (e.n === 5 ? 'Ruota girata: il ponte mobile si abbassa…' : 'Ruota girata: le paratie si aprono, l’acqua scende…') : baita ? (e.n === 5 ? 'Turbina accesa: il cancelletto di slalom si abbassa…' : 'Turbina accesa: lo spazzaneve libera la pista…') : 'Valvola girata: l’acqua scende…', 2200); break;
+        case 'asciutto': say(fucina ? 'La Colata è fredda: adesso si passa' : mausoleo ? 'Il cancello è aperto: il Santuario ti aspetta' : diga ? (e.n === 5 ? 'Il ponte è giù: la via breve per la stiva' : 'Prosciugato: adesso si passa') : baita ? (e.n === 5 ? 'Cancelletto aperto: scorciatoia per la Terrazza VIP!' : 'Pista battuta: adesso si passa!') : ceneri ? 'Il canale di lava si è raffreddato: adesso si passa!' : 'Svuotato: adesso si passa', 2200); break;
         case 'rallentato': say('La fanghiglia ti rallenta', 1600); break;
-        case 'timone': say(diga ? 'Ruota girata: la risacca si ferma' : baita ? 'Cannoni spenti: la tormenta artificiale si placa!' : ceneri ? 'Soffione chiuso: il getto piroclastico si placa!' : 'Timone girato: il vento si ferma', 2400); break;
+        case 'timone': say(diga ? 'Ruota girata: la risacca si ferma' : baita ? 'Cannoni spenti: la tormenta artificiale si placa!' : 'Timone girato: il vento si ferma', 2400); break;
         case 'arpionato': say('Arpionato! Il drone ti tira a sé', 1600); break;
         case 'urto': say('Sbattuto contro il muro', 1400); break;
         case 'parato': say(e.perche === 'scafandro' ? 'Lo scafandro para: colpiscilo alle valvole sulla schiena' : e.perche === 'fornace' ? 'Il fuoco lo protegge: fallo caricare dentro una cascata'
-          : e.perche === 'scudo' ? (baita ? 'Il Tornello blindato para: sfondalo con un colpo caricato o aggiralo!' : ceneri ? 'Il pavese d’ossidiana para: sfondalo con un colpo caricato o aggiralo!' : diga ? 'Lo scudo para: un colpo caricato lo sfonda, o prendilo alle spalle' : 'Lo scudo para e ti respinge: un colpo caricato lo sfonda, o prendila alle spalle') : e.perche === 'cuore' ? 'Cambia cuore: adesso non lo scalfisci'
-          : e.perche === 'catene' ? (baita ? 'Si sta sciolinando la tavola: adesso non lo scalfisci!' : ceneri ? 'Invoca il fuoco solare: adesso non lo scalfisci!' : 'Spezza le catene: adesso non lo scalfisci') : 'Gli anelli lo proteggono: rompili!', 2200); break;
-        case 'sfondato': say(baita ? 'Tornello divelto: passa senza timbrare!' : ceneri ? 'Pavese d’ossidiana infranto: colpisci adesso!' : diga ? 'Scudo in frantumi: colpisci adesso!' : 'Scudo sfondato: colpiscila adesso!', 1800); break;
+          : e.perche === 'scudo' ? (baita ? 'Il Tornello blindato para: sfondalo con un colpo caricato o aggiralo!' : diga ? 'Lo scudo para: un colpo caricato lo sfonda, o prendilo alle spalle' : 'Lo scudo para e ti respinge: un colpo caricato lo sfonda, o prendila alle spalle') : e.perche === 'fumo' ? 'È nel fumo: accendi un braciere vicino a lui per vederlo' : e.perche === 'cuore' ? (ceneri ? 'Korok ruggisce: adesso non lo scalfisci' : 'Cambia cuore: adesso non lo scalfisci')
+          : e.perche === 'catene' ? (baita ? 'Si sta sciolinando la tavola: adesso non lo scalfisci!' : 'Spezza le catene: adesso non lo scalfisci') : 'Gli anelli lo proteggono: rompili!', 2200); break;
+        case 'sfondato': say(baita ? 'Tornello divelto: passa senza timbrare!' : diga ? 'Scudo in frantumi: colpisci adesso!' : 'Scudo sfondato: colpiscila adesso!', 1800); break;
         case 'lancetta': say('Travolto dalla lancetta', 1200); break;
         case 'fase': if (baita) { this.flash('FUORIPISTA ESTREMO', P.rosaNeon, 'Jean-Claude sgancia i pesi: riparati dietro i pupazzi di neve!', 2400); break; }
-          if (ceneri) { this.flash('IL GIORNO DEL CIELO CHIUSO', P.arancio, 'l’Arconte Solan scatena la fornace: riparati dietro gli sfiati termici!', 2400); break; }
+          if (ceneri) { this.flash(e.n === 1 ? 'IL CUORE SI SVEGLIA' : 'LA PIOGGIA DI BRACI', P.arancio, e.n === 1 ? 'Korok scatena il calore: stai accanto a un braciere acceso!' : 'sotto un quarto di vita il soffitto cade a pezzi', 2400); break; }
           if (diga) { this.flash('L’ULTIMA MAREA', P.acquaBassa, 'il Capitano spezza le catene: riparati dietro i piloni', 2400); break; }
           this.flash(e.n === 1 ? 'SECONDO CUORE' : 'TERZO CUORE', e.n === 1 ? P.pietraChiara : P.giallo, e.n === 1 ? 'il vapore: guarda dove ricompare' : 'il moto: ogni cinque colpi la Barriera scarica', 2200); break;
         case 'sarcofago': this.flash('IL SARCOFAGO SI APRE', P.acquaBassa, 'il Custode dell’Egida è caduto', 2600); break;
@@ -220,10 +220,15 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         case 'riacceso': say('Il Mastro si riaccende', 1800); break;
         // Diga dei Disertori / Baita / Ceneri
         case 'rottami': say(baita ? 'Bastoncini e sci rotti!' : ceneri ? 'Scorie incandescenti!' : 'Rottami acuminati!', 1000); break;
-        case 'pilone': say(baita ? 'Pupazzo esploso: Jean-Claude ha gli occhiali appannati, colpiscilo!' : ceneri ? 'Sfiato termico esploso: l’Arconte Solan è accecato dal vapore, colpiscilo!' : 'Il pilone va in pezzi: il Capitano è stordito, colpiscilo!', 2600); break;
-        case 'incastrato': say(baita ? 'Tavola piantata nel ghiaccio: colpiscilo agli attacchi alle spalle!' : ceneri ? 'Scettro piantato nel basalto: colpiscilo alle spalle!' : 'La lancia è incastrata: colpiscilo alla catena, alle spalle', 2200); break;
+        case 'pilone': say(baita ? 'Pupazzo esploso: Jean-Claude ha gli occhiali appannati, colpiscilo!' : 'Il pilone va in pezzi: il Capitano è stordito, colpiscilo!', 2600); break;
+        case 'incastrato': say(baita ? 'Tavola piantata nel ghiaccio: colpiscilo agli attacchi alle spalle!' : ceneri ? 'Clava incastrata: colpiscilo alle spalle e lo stordisci!' : 'La lancia è incastrata: colpiscilo alla catena, alle spalle', 2200); break;
         case 'brezza': if (e.n >= 3) say('Vento in Poppa: il prossimo caricato è un’onda d’urto', 1800); break;
         case 'fresca': say('In Fresca! Il prossimo colpo solleva una valanga gelida!', 1800); break;
+        // Santuario del Capo Ardente
+        case 'braciere': say(e.acceso ? 'Braciere acceso: la sua luce ti ripara dal calore e svela gli Sciamani' : 'Un braciere si è spento!', 2000); break;
+        case 'stanza': say('Tutti i bracieri accesi: la lava si placa', 2400); break;
+        case 'calore': say('Ondata di calore! Stai nell’area di un braciere acceso', 1600); break;
+        case 'rivelato': say('Lanterna colpita: lo Sciamano resta visibile', 2200); break;
         case 'vampa': if (e.n >= 3) say('Sovralimentazione della Brace: la prossima magia di fuoco esplode!', 1800); break;
         case 'sovralimentata': say('SOVRALIMENTAZIONE DELLA BRACE!', 1400); break;
         default:

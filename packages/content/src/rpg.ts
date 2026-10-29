@@ -13,6 +13,7 @@ import dungeons from './rpg/dungeons.json' with { type: 'json' };
 import type { DungeonDef, EnemyDef, ItemDefRaw, LootTable, MaterialDef, PerkDef, RecipeDef, RpgBalance, SpellDef, WeaponTypeDef } from './rpg_types.ts';
 
 export type * from './rpg_types.ts';
+export type * from './rpg_ceneri_types.ts';
 export { ATTRS, SKILLS } from './rpg_types.ts';
 
 export const RPG = balance as unknown as RpgBalance;

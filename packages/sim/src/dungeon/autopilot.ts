@@ -20,6 +20,7 @@ import { fits, pesoZaino } from './loot.ts';
 import { vicinoUscita } from './hero.ts';
 import { valvolaVicina } from './acque.ts';
 import { timoneVicino } from './vento.ts';
+import { braciereVicino } from './braci.ts';
 import { alto } from './muove.ts';
 import { areaRaggio } from './enemies.ts';
 import { inGetto, statoLava } from './fuoco.ts';
@@ -68,7 +69,7 @@ function lavaDavanti(s: DungeonState, dx: number, dz: number): boolean {
     const i = cellOf(m, h.x + dx * k, h.z + dz * k), n = i >= 0 ? m.lava[i]! : 0;
     if (!n) continue;
     const v = m.lave.find((l) => l.n === n)!, st = statoLava(s, v);
-    return st.stato !== 'crosta' || (1 - st.t) * v.crosta < 1.7;
+    return st.stato !== 'crosta' || (v.crosta > 0 && (1 - st.t) * v.crosta < 1.7);
   }
   return false;
 }
@@ -230,7 +231,7 @@ function viaDalleCorsie(s: DungeonState): { x: number; z: number } | null {
   for (const e of s.enemies) {
     if (e.alleato || e.st !== 'prepara' || !e.mira) continue;
     let largo: number;
-    if (e.modo === 'schiacciata' && e.def.schiacciata) largo = e.def.schiacciata.largo;
+    if (e.modo === 'schiacciata' && (e.def.schiacciata || e.def.colosso)) largo = (e.def.schiacciata ?? e.def.colosso)!.largo;
     else if (e.modo === 'affondo' && e.def.vaelen) largo = e.def.vaelen.affondo.largo;
     else if (e.modo === 'carica' && e.def.vaelen) { if (e.stT < e.stDur - secToTicks(e.def.vaelen.carica.blocca) - 10) continue; largo = e.def.vaelen.carica.largo + 0.4; }
     else if (e.modo === 'fucile' && e.def.fucile) { if (e.stT < e.stDur - secToTicks(e.def.fucile.blocca) - 8) continue; largo = 0.45; }
@@ -249,7 +250,7 @@ function viaDalleCorsie(s: DungeonState): { x: number; z: number } | null {
 function digaScotta(s: DungeonState, x: number, z: number): boolean {
   const c = cellOf(s.map, x, z), r = s.runHero.raggio;
   if (c >= 0 && s.map.rottami[c]) return true;
-  for (const g of s.geyser) { if (g.spinta === undefined || g.t > g.avviso) continue; const dx = x - g.x, dz = z - g.z, rr = g.r + r + 0.2; if (dx * dx + dz * dz < rr * rr) return true; }
+  for (const g of s.geyser) { if ((g.spinta === undefined && g.da === undefined) || g.t > g.avviso) continue; const dx = x - g.x, dz = z - g.z, rr = g.r + r + 0.2; if (dx * dx + dz * dz < rr * rr) return true; }
   return false;
 }
 /** Diga: se sotto i piedi fa male, la direzione verso il posto sicuro più vicino (null = va bene così). */
@@ -266,7 +267,7 @@ function viaDaiRottami(s: DungeonState): { x: number; z: number } | null {
 /** Fucina: in (x, z) scotta (lava che scorre o sta per scorrere, chiazza di fuoco, palla di magma in arrivo). */
 function scotta(s: DungeonState, x: number, z: number): boolean {
   const m = s.map, i = cellOf(m, x, z), n = i >= 0 ? m.lava[i]! : 0, r = s.runHero.raggio;
-  if (n) { const v = m.lave.find((l) => l.n === n)!, st = statoLava(s, v); if (st.stato !== 'crosta' || (1 - st.t) * v.crosta < 0.6) return true; }
+  if (n) { const v = m.lave.find((l) => l.n === n)!, st = statoLava(s, v); if (st.stato !== 'crosta' || (v.crosta > 0 && (1 - st.t) * v.crosta < 0.6)) return true; }
   for (const f of s.fuochi) { const dx = x - f.x, dz = z - f.z, rr = f.r + r; if (dx * dx + dz * dz < rr * rr) return true; }
   for (const g of s.geyser) { if (!g.magma || g.t > g.avviso) continue; const dx = x - g.x, dz = z - g.z, rr = g.r + r; if (dx * dx + dz * dz < rr * rr) return true; }
   return false;
@@ -319,6 +320,8 @@ export function autopilot(s: DungeonState, rng: Rng): DungeonInput {
   if (s.map.valvole.length && valvolaVicina(s) >= 0 && !m.prevA && h.act === 'idle') { o.a = true; return finish(); }
   // Archivio: accanto a un timone libero lo gira
   if (s.map.timoni.length && timoneVicino(s) >= 0 && !m.prevA && h.act === 'idle') { o.a = true; return finish(); }
+  // Santuario: accanto a un braciere spento lo accende
+  if (s.map.bracieri.length && braciereVicino(s) >= 0 && !m.prevA && h.act === 'idle') { o.a = true; return finish(); }
   // minaccia: un ostile in aggro vicino, o uno che si vede da vicino (col Drenaggio non chi sta oltre l'acqua)
   const oltre = s.map.bacini.length || s.map.grate.length ? heroField(s, m) : null;
   let threat: Enemy | null = null, td = Infinity;
@@ -353,6 +356,16 @@ export function autopilot(s: DungeonState, rng: Rng): DungeonInput {
       if (s.correnti.find((c) => c.n === t.n)?.ferma || m.ban.has(`t${i}`)) return;
       const c = f[cellOf(s.map, t.x, t.z)] ?? -1;
       if (c >= 0 && c < best) { best = c; goal = `t${i}`; gx = t.x; gz = t.z; }
+    });
+    // i bracieri spenti sono solidi: si va alla cella libera accanto più vicina
+    s.map.bracieri.forEach((b, i) => {
+      if (s.bracieri[i] || m.ban.has(`b${i}`)) return;
+      let c = -1, px = b.x, pz = b.z;
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        const j = cellOf(s.map, b.x + dx * s.map.tile, b.z + dz * s.map.tile), v = j >= 0 ? f[j] ?? -1 : -1;
+        if (v >= 0 && (c < 0 || v < c)) { c = v; px = b.x + dx * s.map.tile; pz = b.z + dz * s.map.tile; }
+      }
+      if (c >= 0 && c < best) { best = c; goal = `b${i}`; gx = px; gz = pz; }
     });
     if (!disarmato)
       for (const e of s.enemies) {
