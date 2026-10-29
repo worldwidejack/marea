@@ -91,4 +91,4 @@ Font pixel leggibile (Press Start 2P per i titoli, un pixel-sans per il corpo), 
 - **Vietate**: Sketchfab non-CC0, generatori 3D a crediti, foto, texture realistiche, personaggi a blocchi o da giocattolo, qualsiasi IP di terzi.
 
 ## 11. Come si approva un asset
-Contact sheet (`tests/out/contact.png` o `assets/export/preview/*.png`) con 3 varianti a confronto → Jack sceglie A/B/C. Nessuna produzione in serie prima dell'ok sul primo pezzo della famiglia.
+Contact sheet (`tests/out/contact.png` o `assets/export/preview/*.png`) con 3 varianti a confronto → si sceglie A/B/C: la persona con cui lavori, il gruppo se il pezzo cambia il look comune. Nessuna produzione in serie prima dell'ok sul primo pezzo della famiglia.

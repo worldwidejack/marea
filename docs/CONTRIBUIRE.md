@@ -26,7 +26,7 @@ Se un passo fallisce, sistemalo tu (versione di Node, Chrome mancante) e aggiung
 ## 2. Prendere un lavoro
 - Bacheca: `gh issue list` (o https://github.com/worldwidejack/marea/issues).
 - Scegli una issue libera e prendila: `gh issue edit <n> --add-assignee @me`. Se ha già un assegnatario è sua: scegline un'altra o chiedi nella issue.
-- Hai un'idea che non c'è? `gh issue create --title "…" --body "…"` e assegnatela. Se l'idea cambia il gioco (un minigioco nuovo, regole nuove dell'economia), scrivila prima in `docs/BACKLOG.md` o nella issue e aspetta l'ok di Jack: dove va il gioco lo decide lui (`docs/VISIONE.md`).
+- Hai un'idea che non c'è? `gh issue create --title "…" --body "…"` e assegnatela. Se l'idea cambia il gioco (un minigioco nuovo, regole nuove dell'economia), scrivila prima in `docs/BACKLOG.md` o nella issue e parlane nel gruppo: dove va il gioco si decide insieme (`docs/VISIONE.md`), e se non si è d'accordo vince 2 su 3.
 
 ## 3. Lavorare
 ```

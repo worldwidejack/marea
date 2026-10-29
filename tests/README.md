@@ -1,6 +1,6 @@
 # MAREA — test e collaudo
 
-## Per Jack: il collaudo dal telefono (5 minuti)
+## Per chi gioca: il collaudo dal telefono (5 minuti)
 1. **Apri il tuo link** sul telefono, in 4G (non Wi-Fi): <https://marea.stanza-idee.workers.dev>.
 2. **Aggiungi `?fps=1`** in fondo al link: in alto compare un contatore con fps, draw call e triangoli. Lascialo acceso mentre giochi.
 3. **Guarda queste 5 cose**, in quest'ordine:
@@ -12,7 +12,7 @@
 4. **Manda lo screenshot** dove qualcosa non ti convince o è bello, **con una nota vocale** di 10-20 secondi: «qui l'acqua è troppo chiara», «questa lanterna mi piace». Con `?fps=1` acceso lo screenshot contiene anche i numeri.
 5. **Non devi scrivere altro**: cosa vedi e cosa senti, a voce.
 
-Il suo Claude divide ogni frase in tre buste: **difetto** (si riproduce con un test in `tests/e2e/` e si sistema), **gusto** (diventa una scelta A/B con screenshot, mai una domanda aperta), **idea** (una riga in `docs/BACKLOG.md`, non si fa senza l'ok di Jack).
+Il tuo AI divide ogni frase in tre buste: **difetto** (si riproduce con un test in `tests/e2e/` e si sistema), **gusto** (diventa una scelta A/B con screenshot, mai una domanda aperta), **idea** (una riga in `docs/BACKLOG.md`, si fa quando il gruppo è d'accordo).
 
 ## Per gli AI: comandi
 ```

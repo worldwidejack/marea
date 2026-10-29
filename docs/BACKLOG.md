@@ -1,6 +1,6 @@
 # MAREA — Backlog (idee parcheggiate, zero sensi di colpa)
 
-> Ogni idea nuova → una riga qui. Entra nel gioco solo con l'ok di Jack.
+> Ogni idea nuova → una riga qui. Entra nel gioco quando il gruppo è d'accordo (se no, 2 su 3).
 > Dal 14 ott 2026 la direzione del gioco sta in `docs/VISIONE.md` (un'isola intera per ogni format): un'idea qui sotto che è un minigioco piccolo e isolato va prima legata a un'isola-format.
 
 ## Dalla revisione di Jack (14 ott 2026, `VISIONE.md`)
@@ -10,8 +10,8 @@
 - **Visite con permessi**, ed eventuali attacchi o interazioni competitive tra isole (prima stava tra i «Mai»).
 - **Oggetti e equipaggiamento che passano da un'isola all'altra**, con una lore comune.
 
-## Da confermare con Jack
-- **Isola dell'Arena** (Riccardo, 17 ott 2026, #373, `docs/ARENA.md`): PvP alla Brawl Stars con le armi, le magie e le pozioni dei dungeon, duello 1v1, 2v2 e 3v3 al meglio di 3 (colosseo, giardino, rovine). È già giocabile (isola a `[238, 256]`, aperta a tutti); non è nella tabella dei format di `VISIONE.md`: Jack dice se resta un'isola a sé o se va legata a un'isola-format.
+## Da decidere nel gruppo
+- **Isola dell'Arena** (Riccardo, 17 ott 2026, #373, `docs/ARENA.md`): PvP alla Brawl Stars con le armi, le magie e le pozioni dei dungeon, duello 1v1, 2v2 e 3v3 al meglio di 3 (colosseo, giardino, rovine). È già giocabile (isola a `[238, 256]`, aperta a tutti); non è nella tabella dei format di `VISIONE.md`: si decide insieme se resta un'isola a sé o se va legata a un'isola-format.
 
 ## Format piaciuti a Jack, parcheggiati (16 ott 2026, brainstorming del prossimo format)
 - **Isola dello sport**: calcio, basket, golf (idea già nata nel gruppo).
@@ -42,7 +42,7 @@
 - Test `m1_isola`: usare l'orologio di test di M1-server (`X-Test-Now-Offset` con `--var TEST_CLOCK:1`) invece di aspettare 3 minuti veri.
 - ~~Runner dei test: processi wrangler orfani dopo un timeout~~ fatto l'8 ott 2026 (#8).
 - ~~Regata sulla laguna~~ fatto in Fetta 2 (v3).
-- Casa, «slot cosmetici 2 → 4 → 6» (GDD §5): nessun codice li usa. Da decidere con Jack (A/B): A = set salvati di look da richiamare con un tasto; B = la Casa sblocca colori/capelli extra. Finché non si decide, la Casa produce solo il numero mostrato nel pannello.
+- Casa, «slot cosmetici 2 → 4 → 6» (GDD §5): nessun codice li usa. Da decidere nel gruppo (A/B): A = set salvati di look da richiamare con un tasto; B = la Casa sblocca colori/capelli extra. Finché non si decide, la Casa produce solo il numero mostrato nel pannello.
 - Clip di animazione per le 8 emote in `chr_base.glb` (oggi fumetto): 30 min di Blender, poi `avatar.setEmote(id)`.
 - Modello `dng_altare` (oggi piedistallo di box + cristallo che si accende, in `rpg/dungeon_scene.ts`): un pezzo per stile (grotta, cripta, vuoto) nel `manifest_rpg.json`.
 - Test e2e con `wrangler dev` su Windows: `npx` va lanciato come `node node_modules/wrangler/bin/wrangler.js` e lo spegnimento con `process.kill(-pid)` non esiste (serve `taskkill /T`).

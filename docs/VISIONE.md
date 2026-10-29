@@ -1,7 +1,7 @@
 # MAREA — Visione (revisione di Jack, 14 ott 2026)
 
 > Jack ha passato in rassegna tutto il gioco e ha deciso dove va (issue #323). Il GDD dice **com'è il gioco oggi**, questo file dice **dove va**. Quando un punto si fa, si riscrive la sezione del GDD e qui la riga diventa «fatto».
-> Legenda: **sì** = resta · **via** = si toglie per ora · **da rifare** / **da ripensare** = la direzione è decisa, la forma no · **idea** = da valutare con Jack, non si fa senza di lui.
+> Legenda: **sì** = resta · **via** = si toglie per ora · **da rifare** / **da ripensare** = la direzione è decisa, la forma no · **idea** = da valutare nel gruppo, non si fa finché il gruppo non è d'accordo.
 
 ## 0. In tre righe
 MAREA **non è una raccolta di minigiochi piccoli e scollegati**. Ogni volta che si sceglie un format gli si dà **un'isola intera**: lo si sviluppa bene, con più mappe, livelli e modalità, e lo si collega al resto del mondo con **lore, progressione e oggetti condivisi**.
@@ -84,7 +84,7 @@ Templari, Dungeon e le altre isole sono **da approfondire**: per ora valgono i l
 ## 4. Corse + Adrenalina
 - L'Isola dell'Adrenalina **probabilmente si unisce** all'Isola delle Corse.
 - L'isola delle Corse diventa più ampia: **un hub di competizioni e di movimento**, non solo guida su pista. Dentro: auto e kart, **snowboard**, **mountain bike**; poi altri mezzi, forse anche **cose che volano**.
-- Per chi lavora adesso: finché Jack non conferma l'unione, le discese restano dove sono. Però il lavoro nuovo sulle discese va pensato per poter **traslocare nell'hub delle Corse** (moduli di gioco e piste separati dall'isola, niente investimenti grossi su funivia o isola a parte).
+- Per chi lavora adesso: finché il gruppo non decide l'unione, le discese restano dove sono. Però il lavoro nuovo sulle discese va pensato per poter **traslocare nell'hub delle Corse** (moduli di gioco e piste separati dall'isola, niente investimenti grossi su funivia o isola a parte).
 
 ## 5. Prototipi vecchi (punto 88)
 Le vecchie pagine di prova servono: **usarle per accelerare lo sviluppo** (approvato). Oggi in `apps/client/`:
@@ -100,7 +100,7 @@ Prima di rifare da zero una cosa, guarda se una di queste ce l'ha già.
 5. Tabelloni dei record anche sulle isole.
 6. Meteo a nuvole che si muovono (il più grosso dei sei).
 
-**Da decidere con Jack prima di scrivere codice** (scelte A/B con screenshot):
+**Da decidere nel gruppo prima di scrivere codice** (scelte A/B con screenshot):
 - la partenza nuova (casa → barca → colonie); il giardino: **deciso** il 18 ott (spento, §2);
 - risorse, estrattori e valuta del Mercante: **deciso** il 18 ott (monete e botteghe, §2, #414);
 - l'unione di Adrenalina e Corse;
