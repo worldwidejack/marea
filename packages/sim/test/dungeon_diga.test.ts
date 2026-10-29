@@ -49,7 +49,7 @@ const leggenda = () => heroBase({
 test('diga: ruote, risacca, rottami, piloni e lanterne; sull’Isola della Tempesta, aperta a tutti, la più difficile; il capo è Vaelen', () => {
   const d = dungeonDef('diga'), m = parseDungeon(d);
   assert.deepEqual([d.stile, d.difficolta, d.richiede, d.ingresso.island], ['diga', 9, undefined, 'tempesta']);
-  assert.ok(DUNGEONS.every((x) => x.id === 'diga' || x.difficolta < d.difficolta), 'la più difficile del gioco');
+  assert.ok(DUNGEONS.every((x) => x.id === 'diga' || x.id === 'ceneri' || x.difficolta < d.difficolta), 'più difficile di tutti tranne il Santuario del Capo Ardente');
   assert.deepEqual(m.bacini.map((b) => b.n), [1, 2, 5, 6], 'la sentina, l’infermeria, il ponte mobile e i canali di scolo dell’arena');
   assert.deepEqual(m.valvole.map((v) => v.n).sort(), [1, 2, 5], 'le ruote che prosciugano (e quella del ponte)');
   assert.deepEqual(m.timoni.map((t) => t.n), [4], 'la ruota che ferma la risacca del corridoio');
@@ -62,8 +62,9 @@ test('diga: ruote, risacca, rottami, piloni e lanterne; sull’Isola della Tempe
   const s = nuovo(), capo = s.enemies.filter((e) => e.capo);
   assert.deepEqual(capo.map((e) => e.tipo), ['capitano_vaelen']);
   assert.deepEqual(DIGA.slice(0, 3).map((t) => s.enemies.filter((e) => e.tipo === t).length), [6, 8, 5]);
-  // i nemici più forti del gioco: il Capitano più di ogni altro capo, la Guardia della Paratia più di ogni altro nemico comune
-  const altri = ENEMIES.filter((e) => !DIGA.includes(e.id) && e.loot !== 'nessuno');
+  // i nemici più forti prima del Santuario del Capo Ardente
+  const CENERI = ['sentinella_braciere', 'cantore_fuliggine', 'totem_censo', 'arconte_solan'];
+  const altri = ENEMIES.filter((e) => !DIGA.includes(e.id) && !CENERI.includes(e.id) && e.loot !== 'nessuno');
   const V = enemyDef('capitano_vaelen'), G = enemyDef('guardiano_paratia');
   for (const b of altri.filter((e) => e.boss)) assert.ok(V.vita > b.vita && V.danno >= b.danno && V.armatura >= b.armatura, `Vaelen contro ${b.id}`);
   for (const n of altri.filter((e) => !e.boss)) assert.ok(G.vita > n.vita && G.danno > n.danno, `la Guardia contro ${n.id}`);

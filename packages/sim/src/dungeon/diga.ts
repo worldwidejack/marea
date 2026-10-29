@@ -20,7 +20,7 @@ export function stepRottami(s: DungeonState): void {
       const h = s.hero, c = cellOf(s.map, h.x, h.z);
       if (c < 0 || !s.map.rottami[c] || h.rottT > s.tick) return;
       h.rottT = s.tick + secToTicks(R.ogni);
-      if (h.protetto > 0) return;
+      if (h.protetto > 0 || s.runHero.armatura.vampa) return;
       ev(s, { t: 'rottami', x: r2(h.x), z: r2(h.z) });
       hitHero(s, R.danno, 'taglio', h.x, h.z);
     });

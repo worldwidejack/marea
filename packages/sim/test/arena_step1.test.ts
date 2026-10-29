@@ -204,6 +204,6 @@ describe('Arena Step 1 — Bilanciamento PvP e nuove magie di supporto', () => {
       lot = applyRpgAction({ ...lot, hero: h }, { t: 'leggi', item: libro }, 0);
       assert.ok(heroOf(lot).magie.includes(id), `leggere ${libro} insegna ${id}`);
     }
-    assert.equal(DUNGEONS.length, 9);
+    assert.equal(DUNGEONS.length, 10);
   });
 });

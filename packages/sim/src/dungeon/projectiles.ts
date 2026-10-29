@@ -9,6 +9,7 @@ import { ALTEZZA_BERSAGLIO, HZ } from './tuning.ts';
 import { spingi } from './vento.ts';
 import { effettiMagia, guidaFreccia } from './perk.ts';
 import { scoppio } from './magie.ts';
+import { caricaVampa, chiazzaVampa } from './unici.ts';
 import { tiroSuAlleato } from './contro_alleati.ts';
 import { colpisciEroe as colpoPvp, eroeToccato, eroiNelCerchio, ostile } from './pvp.ts';
 
@@ -44,6 +45,8 @@ function hitFoes(s: DungeonState, p: Proj): boolean {
   if (p.magico) {
     if (p.raggio > 0) explode(s, p);
     else hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione', caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p), ...(p.rallenta ? { rallenta: p.rallenta } : {}) });
+    if (p.vampa) chiazzaVampa(s, p.x, p.z);
+    else if (p.elemento === 'fuoco') caricaVampa(s);
     if (p.elemento) effettiMagia(s, p, first); // Combustione, Catena di fulmini
     return true;
   }
@@ -106,6 +109,7 @@ function muovi(s: DungeonState): void {
       if (p.y <= 0) { p.y = 0; fine = true; break; }
       if (isOpaque(s.map, Math.floor(p.x / s.map.tile), Math.floor(p.z / s.map.tile))) {
         if (p.magico && !p.dalNemico && p.raggio > 0) explode(s, p);
+        if (p.magico && !p.dalNemico && p.vampa) chiazzaVampa(s, p.x, p.z);
         fine = true; break;
       }
       if (p.y > ALTEZZA_BERSAGLIO) continue;

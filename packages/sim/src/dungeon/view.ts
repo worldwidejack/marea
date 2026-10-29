@@ -198,11 +198,13 @@ function inMano(s: DungeonState): { magia?: string } {
 function unici(s: DungeonState): Partial<DungeonView['hero']> {
   const h = s.hero, rh = s.runHero, t = h.arma.traits, o: Partial<DungeonView['hero']> = {};
   if (rh.armatura.barriera) o.barriera = r3(h.barr);
-  if (t.lame) o.carico = { tipo: 'pressione', n: s.tick - h.ultimoAttacco >= Math.round(t.lame.ricarica * HZ) ? t.lame.cariche : h.pressione, max: t.lame.cariche };
+  if (h.incanta && rh.armatura.vampa) o.carico = { tipo: 'vampa', n: h.vampa, max: rh.armatura.vampa.cariche };
+  else if (t.lame) o.carico = { tipo: 'pressione', n: s.tick - h.ultimoAttacco >= Math.round(t.lame.ricarica * HZ) ? t.lame.cariche : h.pressione, max: t.lame.cariche };
   else if (t.ritmo) o.carico = { tipo: 'ritmo', n: h.ritmo, max: t.ritmo.colpi, ...(h.tic >= s.tick ? { tic: r2((h.tic - s.tick) / HZ) } : {}) };
   else if (t.carillon) o.carico = { tipo: 'molla', n: h.molla, max: t.carillon.colpi };
   else if (t.poppa) o.carico = { tipo: 'brezza', n: h.brezza, max: t.poppa.cariche };
   else if (t.fresca) o.carico = { tipo: 'fresca', n: h.fresca > 0 ? 1 : 0, max: 1 };
+  else if (rh.armatura.vampa) o.carico = { tipo: 'vampa', n: h.vampa, max: rh.armatura.vampa.cariche };
   return o;
 }
 

@@ -46,7 +46,7 @@ test('baita: difficoltà 7 (più difficile dell’Isola della Regata, più facil
   for (const r of regata) assert.ok(baita.difficolta > r.difficolta, `baita (${baita.difficolta}) > ${r.id} (${r.difficolta})`);
   assert.ok(baita.difficolta < vuoto.difficolta, `baita (${baita.difficolta}) < vuoto (${vuoto.difficolta})`);
   assert.ok(vuoto.difficolta < diga.difficolta, `vuoto (${vuoto.difficolta}) < diga (${diga.difficolta})`);
-  assert.equal(DUNGEONS.length, 9);
+  assert.equal(DUNGEONS.length, 10);
 
   // Calibrazione nemici: tra il Mausoleo Cinetico e il Portale del Vuoto / Diga
   const bossMausoleo = enemyDef('custode_egida'), bossBaita = enemyDef('jean_claude'), bossVuoto = enemyDef('custode');
