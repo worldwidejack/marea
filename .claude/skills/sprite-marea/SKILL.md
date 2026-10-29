@@ -19,7 +19,7 @@ Il gruppo ha votato il **look 3**: il mondo è in 3D e il motore lo fa sembrare 
 
 ## Cosa serve
 - **Codex** (`codex login` con l'account ChatGPT) per disegnare in automatico con `genera.py`, oppure **ChatGPT** a mano (`prompt.py --stampa`).
-- **Fenaki**, il banco d'animazione di Jack: repo privato `worldwidejack/fenaki` (l'accesso lo dà Jack), installato seguendo il suo `CLAUDE.md`. Se `claude mcp list` non mostra `fenaki`, installalo prima di cominciare (o di' alla persona di chiedere l'accesso a Jack).
+- **Fenaki**, il banco d'animazione di Jack: repo privato `worldwidejack/fenaki` (Riccardo e birbasan ci sono dentro, in scrittura), installato seguendo il suo `CLAUDE.md`. Se `claude mcp list` non mostra `fenaki`, installalo prima di cominciare.
 - **Python**: quello del venv di Fenaki (`<fenaki>/.venv/bin/python`, su Windows `<fenaki>\.venv\Scripts\python.exe`), che ha già Pillow, numpy e OpenCV. Negli esempi qui sotto `PY` = quel python.
 
 ## La cartella del personaggio
