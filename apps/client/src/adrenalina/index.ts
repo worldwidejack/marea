@@ -131,7 +131,7 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
   cam0.far = 16000; cam0.near = 0.5; cam0.updateProjectionMatrix();
 
   const hud = creaHud(ctx.root, dito, BARRA.soglie);
-  const comandi = creaComandi(hud.zona);
+  const comandi = creaComandi(hud.zona, hud.bottoni);
   let regia = creaRegia(cam0, p);
   /** La montagna della pista `id` (terreno, abeti, corpo, sfondo, camera): si rifà quando in vetta si sceglie un'altra pista (partono
    *  tutte dalla stessa vetta: funivia e cartelli restano). */

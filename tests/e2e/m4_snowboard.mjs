@@ -72,6 +72,28 @@ export default async function (ctx) {
     assert(!s2.dito, 'il dito resta giù');
   });
 
+  await ctx.test('telefono: i pulsanti a schermo sterzano e saltano', async () => {
+    assert(await page.isVisible('#mzSbComandi'), 'comandi touch non visibili');
+    const btnSx = page.locator('#mzSbComandi .mz-sb-curva button').nth(0);
+    const btnDx = page.locator('#mzSbComandi .mz-sb-curva button').nth(1);
+    const btnSalto = page.locator('#mzSbBtnSalto');
+    assert(await btnDx.isVisible() && await btnSx.isVisible() && await btnSalto.isVisible(), 'pulsanti curva e salto non visibili');
+    // Curva a sinistra col pulsante
+    const l0 = (await sb(page)).lat;
+    await btnSx.dispatchEvent('pointerdown', { pointerId: 10, pointerType: 'touch', isPrimary: true });
+    await ctx.waitState(page, (st, l) => st.snowboard.lat < l - 0.3, 10000, l0).catch(() => {});
+    await btnSx.dispatchEvent('pointerup', { pointerId: 10, pointerType: 'touch', isPrimary: true });
+    const sSx = await sb(page);
+    assert(sSx.lat < l0 - 0.2, `il pulsante sx non curva: ${l0} → ${sSx.lat}`);
+    // Salto col pulsante SALTO
+    await btnSalto.dispatchEvent('pointerdown', { pointerId: 11, pointerType: 'touch', isPrimary: true });
+    await page.waitForTimeout(300);
+    await btnSalto.dispatchEvent('pointerup', { pointerId: 11, pointerType: 'touch', isPrimary: true });
+    await ctx.waitState(page, (st) => st.snowboard.aria || st.snowboard.h > 0, 3000).catch(() => {});
+    const sJ = await sb(page);
+    assert(sJ.aria || sJ.h > 0, 'il pulsante SALTO non fa saltare');
+  });
+
   // i punti delle foto, dalle zone della pista: [nome, s, ticks col pilota automatico prima dello scatto, aspetta il volo (m sopra la neve)]
   const PISTA = JSON.parse(fs.readFileSync(new URL('../../packages/content/src/adrenalina/piste/snowboard_blu.json', import.meta.url), 'utf8'));
   const Z = (id) => PISTA.zone.find((z) => z.id === id).da;
