@@ -1,6 +1,5 @@
-// Il Tempio della «Doppia Nera» (Isola dell'Adrenalina): segnaposto in codice per lo stile `baita`, i nemici del Culto della Sciolina
-// e gli oggetti di scena (Turbina Spazzaneve, Pupazzo di Neve Corazzato intero e fracassato, schegge di bastoncini in carbonio, Cancelletto
-// di Partenza dello Slalom). Gli effetti dinamici condividono diga_fx.ts.
+// Il Tempio della «Doppia Nera» (Isola dell'Adrenalina): segnaposto in codice per lo stile `baita` (pavimento di assi, pareti di baita, frangivento da slalom), per i
+// nemici del Culto della Sciolina e per la colonnina termica. Gli effetti dinamici stanno in baita_fx.ts e baita_telegrafi.ts.
 import * as THREE from 'three';
 import { M, block, merged, painted, px, strata, tex } from '../render/island_parts.ts';
 import { PAL } from '../ui/style.ts';
@@ -66,7 +65,7 @@ export function kitBaita(top: number): KitBaita {
   return kit;
 }
 
-type Forma = { corpo: THREE.BufferGeometry; luce?: THREE.BufferGeometry; portello?: THREE.BufferGeometry };
+type Forma = { corpo: THREE.BufferGeometry; luce?: THREE.BufferGeometry };
 const PELLE = PAL.legnoChiaro;
 const FORME: Record<string, () => Forma> = {
   // Acrobata del Fuoripista: snowboarder con cappellino di lana fluo, cuffie enormi, giacca larghissima e tavola agli scarponi
@@ -156,98 +155,30 @@ const FORME: Record<string, () => Forma> = {
       painted(box(0.17, 0.36, 1.4), PAL.arancio, M(0.92, 1.5, -2.5, 0.12, 0, 0)), // adesivo fiamme tribali
     ]),
   }),
-  // Alias compatibilità
-  nem_valanga: () => FORME['nem_jean_claude']!(),
-  nem_controllore: () => FORME['nem_acrobata']!(),
-  nem_maestro: () => FORME['nem_sparaneve']!(),
-  nem_cornacchia: () => FORME['nem_alchimista']!(),
 };
 
 /** Segnaposto di un nemico della Baita (null se non appartiene a questo stile). */
 export function formaBaita(model: string): THREE.Object3D | null {
   const f = FORME[model];
   if (!f) return null;
-  const { corpo, luce, portello } = f(), g = new THREE.Group(); g.name = model;
+  const { corpo, luce } = f(), g = new THREE.Group(); g.name = model;
   const m = new THREE.Mesh(corpo, colori(model).clone()); m.name = model; g.add(m);
   if (luce) { const b = new THREE.Mesh(luce, colori(model + '_luce', 0.6, PAL.acquaBassa).clone()); b.name = model + '_luce'; g.add(b); }
-  if (portello) { const p = new THREE.Mesh(portello, colori(model + '_portello').clone()); p.name = 'portello'; g.add(p); }
   return g;
 }
 
-/** Colonnina della Turbina Spazzaneve / Termostato (al posto della Ruota di Sentina). */
-export function turbinaBaseObj(): THREE.Object3D {
-  const g = new THREE.Group(); g.name = 'dng_baita_ruota';
+/** La colonnina termica: base di pietra, corpo giallo a strisce nere, la bobina che si accende (arancio) e la lampada in cima (rossa da girare, verde girata). */
+export function colonninaObj(): { g: THREE.Group; bobina: THREE.MeshLambertMaterial; lampada: THREE.MeshLambertMaterial } {
+  const g = new THREE.Group(); g.name = 'dng_baita_colonnina';
   g.add(new THREE.Mesh(merged([
-    painted(cil(0.46, 0.54, 0.22, 8), PAL.pietraScura, M(0, 0.11, 0)),
-    painted(box(0.36, 1.1, 0.36), PAL.giallo, M(0, 0.72, 0)),
-    painted(box(0.38, 0.18, 0.38), PAL.neroCaldo, M(0, 0.45, 0)), painted(box(0.38, 0.18, 0.38), PAL.neroCaldo, M(0, 0.95, 0)), // strisce di pericolo
-    painted(cil(0.24, 0.18, 0.55, 8), PAL.rosso, M(0.32, 0.35, 0, 0, 0, Math.PI / 2)), // bocchetta spazzaneve
-    painted(cil(0.14, 0.14, 0.08, 8), PAL.sabbiaChiara, M(0, 0.7, -0.19, Math.PI / 2)), // manometro
-  ]), colori('baita_turbina')));
-  return g;
-}
-/** Volantino rosso del termostato che gira a scatti quando lo azioni. */
-export function turbinaObj(): { ruota: THREE.Group; gemma: THREE.MeshLambertMaterial } {
-  const ruota = new THREE.Group(); ruota.name = 'ruota'; ruota.position.set(0, 1.45, -0.25);
-  const parti: THREE.BufferGeometry[] = [painted(anello(0.46, 0.06, 12), PAL.rosso), painted(cil(0.11, 0.11, 0.12, 6), PAL.giallo, M(0, 0, 0, Math.PI / 2))];
-  for (let k = 0; k < 3; k++) parti.push(painted(box(0.92, 0.08, 0.06), PAL.giallo, M(0, 0, 0, 0, 0, (k * Math.PI) / 3)));
-  ruota.add(new THREE.Mesh(merged(parti), colori('baita_turbina')));
-  const gemma = new THREE.MeshLambertMaterial({ color: PAL.rosso, flatShading: true, emissive: PAL.rosso, emissiveIntensity: 0.35 });
-  const gm = new THREE.Mesh(ico(0.1), gemma); gm.position.z = -0.08; ruota.add(gm);
-  return { ruota, gemma };
-}
-/** Pupazzo di Neve Corazzato dell'arena (al posto dei piloni): tre palle di neve, naso a carota, casco da sci e vecchi sci piantati ai lati. */
-export function pupazzoObj(): THREE.Object3D {
-  const g = new THREE.Group(); g.name = 'dng_baita_pilone';
-  g.add(new THREE.Mesh(merged([
-    painted(ico(0.75), PAL.sabbiaChiara, M(0, 0.65, 0)),
-    painted(ico(0.56), PAL.sabbiaChiara, M(0, 1.55, 0)),
-    painted(ico(0.4), PAL.sabbiaChiara, M(0, 2.25, 0)),
-    painted(anello(0.38, 0.08, 8), PAL.rosso, M(0, 1.95, 0, Math.PI / 2)), // sciarpa rossa
-    painted(new THREE.ConeGeometry(0.08, 0.38, 5), PAL.arancio, M(0, 2.25, -0.48, -Math.PI / 2)), // naso a carota
-    painted(cil(0.42, 0.44, 0.28, 8), PAL.acqua, M(0, 2.48, 0)), // casco da gara
-    painted(box(0.36, 0.12, 0.08), PAL.giallo, M(0, 2.36, -0.36)), // mascherina
-    painted(box(0.14, 1.9, 0.05), FUCHSIA, M(-0.68, 0.95, 0, 0, 0, 0.15)), painted(box(0.14, 1.9, 0.05), FUCHSIA, M(0.68, 0.95, 0, 0, 0, -0.15)), // sci piantati
-  ]), colori('baita_pupazzo')));
-  return g;
-}
-/** Pupazzo di Neve fracassato dalla carica di Jean-Claude: mucchio di neve schiacciata, carota e sci spezzati a terra. */
-export function pupazzoRottoObj(): THREE.Object3D {
-  const g = new THREE.Group(); g.name = 'moncone';
-  g.add(new THREE.Mesh(merged([
-    painted(cil(0.72, 0.85, 0.35, 8), PAL.sabbiaChiara, M(0, 0.18, 0)),
-    painted(ico(0.28), PAL.sabbiaChiara, M(0.45, 0.2, 0.3)), painted(ico(0.24), PAL.sabbiaChiara, M(-0.4, 0.18, -0.35)),
-    painted(new THREE.ConeGeometry(0.08, 0.36, 5), PAL.arancio, M(0.2, 0.1, -0.55, 0.2, 0.5, 1.3)), // la carota a terra
-    painted(cil(0.36, 0.38, 0.24, 8), PAL.acqua, M(-0.55, 0.16, 0.4, 0.5, 0, 0.8)), // casco ammaccato
-    painted(box(0.95, 0.06, 0.14), FUCHSIA, M(0.6, 0.06, -0.4, 0, 0.5, 0)), painted(box(0.85, 0.06, 0.14), FUCHSIA, M(-0.6, 0.06, -0.6, 0, -0.4, 0)), // sci spezzati
-  ]), colori('baita_pupazzo')));
-  return g;
-}
-/** Schegge di bastoncini da sci in carbonio e punte d'alluminio conficcate nel ghiaccio (i `rottami` della Baita). */
-export function bastonciniGeo(): THREE.BufferGeometry {
-  return merged([
-    painted(box(1.3, 0.08, 0.16), FUCHSIA, M(0, 0.08, -0.25, 0, 0.4, 0.1)), painted(box(1.1, 0.08, 0.16), PAL.acqua, M(0.2, 0.08, 0.4, 0, -0.6, -0.1)), // punte di sci rotti
-    ...[[-0.5, -0.45], [0.45, -0.2], [-0.1, 0.5], [0.55, 0.55], [-0.6, 0.2]].map(([x, z], k) =>
-      painted(cil(0.025, 0.025, 0.65, 5), k % 2 ? PAL.giallo : PAL.rosso, M(x!, 0.3, z!, 0.3 * (k - 2), 0, 0.25 * (2 - k)))), // bastoncini spezzati
-    ...[[-0.5, -0.45], [0.45, -0.2], [-0.1, 0.5]].map(([x, z]) => painted(anello(0.09, 0.02, 6), PAL.neroCaldo, M(x!, 0.12, z!, Math.PI / 2))), // rotelle da neve
-  ]);
-}
-/** Cancelletto di partenza da slalom e passerella da sci che si abbassa sul crepaccio (il `ponte` della Baita). */
-export function cancellettoObj(lungo: number, largo: number): THREE.Object3D {
-  const g = new THREE.Group(); g.name = 'dng_baita_ponte';
-  const parti: THREE.BufferGeometry[] = [];
-  for (let k = 0; k * 0.5 < largo - 0.1; k++) parti.push(painted(box(lungo, 0.12, 0.44), k % 2 ? PAL.rosso : PAL.sabbiaChiara, M(-lungo / 2, 0.06, -largo / 2 + 0.25 + k * 0.5)));
-  for (const x of [0.4, lungo / 2, lungo - 0.4]) parti.push(painted(box(0.18, 0.1, largo), PAL.acqua, M(-x, 0.15, 0)));
-  parti.push(painted(cil(0.08, 0.08, largo, 6), PAL.giallo, M(-0.05, 0.1, 0, Math.PI / 2)));
-  g.add(new THREE.Mesh(merged(parti), colori('baita_ponte')));
-  return g;
-}
-/** Folate di neve e cristalli di ghiaccio spinti dai cannoni spara-neve lungo +X. */
-export function neveVentoGeo(): THREE.BufferGeometry {
-  return merged([
-    painted(box(1.55, 0.05, 0.14), PAL.sabbiaChiara, M(-0.1, 0.05, -0.55)),
-    painted(box(1.2, 0.05, 0.12), PAL.acquaBassa, M(0.2, 0.08, 0)),
-    painted(box(1.35, 0.05, 0.14), PAL.sabbiaChiara, M(0, 0.05, 0.55)),
-    ...[[-0.75, -0.5], [0.7, 0.05], [0.55, 0.5], [-0.2, 0.2]].map(([x, z]) => painted(ico(0.11), PAL.sabbiaChiara, M(x!, 0.18, z!))),
-  ]);
+    painted(cil(0.5, 0.58, 0.22, 8), PAL.pietraScura, M(0, 0.11, 0)),
+    painted(box(0.62, 1.3, 0.62), PAL.giallo, M(0, 0.87, 0)),
+    painted(box(0.66, 0.14, 0.66), PAL.neroCaldo, M(0, 0.5, 0)), painted(box(0.66, 0.14, 0.66), PAL.neroCaldo, M(0, 1.2, 0)), // strisce di pericolo
+    painted(box(0.4, 0.3, 0.05), PAL.neroCaldo, M(0, 0.9, -0.33)), painted(box(0.3, 0.06, 0.06), PAL.acquaBassa, M(0, 0.9, -0.36)), // oblò del termostato
+  ]), colori('baita_colonnina')));
+  const bobina = new THREE.MeshLambertMaterial({ color: PAL.pietraScura, flatShading: true, emissive: PAL.neroCaldo, emissiveIntensity: 0.05 });
+  g.add(new THREE.Mesh(merged([0, 1, 2].map((k) => painted(anello(0.4, 0.07, 10), PAL.arancio, M(0, 1.62 + k * 0.2, 0, Math.PI / 2)))), bobina)); // la serpentina riscaldante
+  const lampada = new THREE.MeshLambertMaterial({ color: PAL.rosso, flatShading: true, emissive: PAL.rosso, emissiveIntensity: 0.3 });
+  const l = new THREE.Mesh(ico(0.13), lampada); l.position.y = 2.35; g.add(l);
+  return { g, bobina, lampada };
 }

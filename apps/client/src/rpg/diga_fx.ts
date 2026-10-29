@@ -8,7 +8,8 @@
 // catena gialla sulla schiena del Capitano chino sulla lancia, il fuoco fatuo azzurro sulla vela nell'Ultima Marea, e oltre la murata
 // distrutta del Ponte di Comando il mare calmo all'alba. Tutto a scatti, colori di palette; i modelli veri (dng_diga_ruota, dng_diga_pilone,
 // dng_diga_ponte) vincono sui segnaposto di diga.ts. Nel Santuario del Capo Ardente (stile `ceneri`) restano i rottami (le braci a terra) e le corsie
-// del Colosso; il resto di quel dungeon sta in ceneri_fx.ts, che questo file avvia e inoltra.
+// del Colosso; il resto di quel dungeon sta in ceneri_fx.ts, che questo file avvia e inoltra. Il Tempio della «Doppia Nera» (stile `baita`) sta tutto in baita_fx.ts: qui
+// non disegna niente, lo avvia e lo inoltra.
 import * as THREE from 'three';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
 import { M, merged, painted, px } from '../render/island_parts.ts';
@@ -17,7 +18,7 @@ import { PAL } from '../ui/style.ts';
 import { cellHash, object } from './dungeon_kit.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
 import { colori, monconeObj, piloneObj, ponteObj, rottamiGeo, ruotaBaseObj, ruotaObj } from './diga.ts';
-import { bastonciniGeo, cancellettoObj, neveVentoGeo, pupazzoObj, pupazzoRottoObj, turbinaBaseObj, turbinaObj } from './baita.ts';
+import { createBaitaFx } from './baita_fx.ts';
 import { scorieGeo } from './ceneri.ts';
 import { createCeneriFx } from './ceneri_fx.ts';
 
@@ -28,7 +29,7 @@ const MAXC = 8, MAXL = 10;
 export type DigaFx = {
   tick(v: DungeonView): void;
   update(t: number, hero: { x: number; z: number }, v: DungeonView, gioco: boolean): void;
-  counts(): { ceneri?: ReturnType<ReturnType<typeof createCeneriFx>['counts']>; ruote: number; girate: number; piloni: number; rotti: number; rottami: number; schiuma: number; corsie: number; linee: number; fisse: number; barili: number; cannonate: number; ponte: number; scudo: boolean; catena: boolean; fatuo: boolean; mare: boolean };
+  counts(): { ceneri?: ReturnType<ReturnType<typeof createCeneriFx>['counts']>; baita?: ReturnType<ReturnType<typeof createBaitaFx>['counts']>; ruote: number; girate: number; piloni: number; rotti: number; rottami: number; schiuma: number; corsie: number; linee: number; fisse: number; barili: number; cannonate: number; ponte: number; scudo: boolean; catena: boolean; fatuo: boolean; mare: boolean };
   dispose(): void;
 };
 
@@ -47,37 +48,37 @@ export function createDigaFx(o: { sc: DungeonScene; loader: Loader; say(text: st
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), p3 = new THREE.Vector3(), s3 = new THREE.Vector3(), YA = new THREE.Vector3(0, 1, 0);
   const VERSO = -Math.PI * 0.75; // la faccia −Z guarda la camera (sud-est), come gli ingressi
 
-  const cfx = isCeneri ? createCeneriFx({ sc: o.sc, loader: o.loader }) : null;
-  // ruote: le valvole (prosciugano, abbassano il ponte) e i timoni (fermano la risacca) della Diga o le Turbine della Baita
-  const ruote = [...map.valvole.map((v) => ({ ...v, tim: false })), ...map.timoni.map((t) => ({ ...t, tim: true }))].map((r) => {
+  const cfx = isCeneri ? createCeneriFx({ sc: o.sc, loader: o.loader }) : null, bfx = isBaita ? createBaitaFx(o) : null;
+  // ruote: le valvole (prosciugano, abbassano il ponte) e i timoni (fermano la risacca) della Diga (nel Tempio le colonnine sono di baita_fx.ts)
+  const ruote = (isBaita ? [] : [...map.valvole.map((v) => ({ ...v, tim: false })), ...map.timoni.map((t) => ({ ...t, tim: true }))]).map((r) => {
     const holder = new THREE.Group(); holder.position.set(r.x, fy, r.z); holder.rotation.y = VERSO; root.add(holder);
-    void object(o.loader, isBaita ? 'dng_baita_ruota' : 'dng_diga_ruota', isBaita ? turbinaBaseObj : ruotaBaseObj).then((g) => holder.add(g));
-    const w = isBaita ? turbinaObj() : ruotaObj(); holder.add(w.ruota);
+    void object(o.loader, 'dng_diga_ruota', ruotaBaseObj).then((g) => holder.add(g));
+    const w = ruotaObj(); holder.add(w.ruota);
     return { holder, ruota: w.ruota, gemma: w.gemma, n: r.n, tim: r.tim, fatto: false, girata: -1 };
   });
-  // piloni (o pupazzi di neve corazzati nella Baita): interi (modello o segnaposto) e moncone
+  // piloni: interi (modello o segnaposto) e moncone
   const piloni = map.piloni.map((p) => {
     const holder = new THREE.Group(); holder.position.set(p.x, fy, p.z); holder.rotation.y = cellHash(p.cx, p.cz, 5) * 6; root.add(holder);
     const intero = new THREE.Group(); holder.add(intero);
-    void object(o.loader, isBaita ? 'dng_baita_pilone' : 'dng_diga_pilone', isBaita ? pupazzoObj : piloneObj).then((g) => intero.add(g));
-    const moncone = isBaita ? pupazzoRottoObj() : monconeObj(); moncone.visible = false; holder.add(moncone);
+    void object(o.loader, 'dng_diga_pilone', piloneObj).then((g) => intero.add(g));
+    const moncone = monconeObj(); moncone.visible = false; holder.add(moncone);
     return { holder, intero, moncone, rotto: false, t0: -1 };
   });
-  // rottami (o bastoncini da sci spezzati, o scorie incandescenti): uno per cella, girati a caso
+  // rottami (o scorie incandescenti): uno per cella, girati a caso
   const celleR: number[] = [];
   for (let i = 0; i < map.rottami.length; i++) if (map.rottami[i]) celleR.push(i);
-  const rGeo = isCeneri ? scorieGeo() : isBaita ? bastonciniGeo() : rottamiGeo();
-  const rottami = new THREE.InstancedMesh(rGeo, colori(isCeneri ? 'ceneri_rottami' : isBaita ? 'baita_rottami' : 'rottami'), Math.max(1, celleR.length)); rottami.name = 'rottami'; rottami.frustumCulled = false; root.add(rottami);
+  const rGeo = isCeneri ? scorieGeo() : rottamiGeo();
+  const rottami = new THREE.InstancedMesh(rGeo, colori(isCeneri ? 'ceneri_rottami' : 'rottami'), Math.max(1, celleR.length)); rottami.name = 'rottami'; rottami.frustumCulled = false; root.add(rottami);
   o.sc.ritocca(rottami);
   let rottamiVisti = -1;
-  // risacca (o raffiche dei cannoni spara-neve, o soffioni di vapore): schiuma/neve/vapore per cella, una InstancedMesh per corrente
-  const sGeo = isBaita ? neveVentoGeo() : schiumaGeo();
+  // risacca (o soffioni di vapore): schiuma/vapore per cella, una InstancedMesh per corrente
+  const sGeo = schiumaGeo();
   const schiume = map.venti.map((v) => {
     const mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.6, depthWrite: false });
     const im = new THREE.InstancedMesh(sGeo, mat, v.celle.length); im.name = 'risacca_' + v.n; im.frustumCulled = false; im.renderOrder = 1; root.add(im);
     return { v, im, mat, yaw: Math.atan2(-v.dz, v.dx), chiave: '' };
   });
-  // il ponte mobile (o cancelletto di partenza da slalom): il bacino `ponte`, incernierato dalla parte della sua ruota
+  // il ponte mobile: il bacino `ponte`, incernierato dalla parte della sua ruota
   const ponteN = Object.values(def.legenda).find((l) => l.ponte !== undefined)?.ponte;
   const ponte = (() => {
     const b = ponteN !== undefined ? map.bacini.find((x) => x.n === ponteN) : undefined, r = ponteN !== undefined ? map.valvole.find((x) => x.n === ponteN) : undefined;
@@ -87,7 +88,7 @@ export function createDigaFx(o: { sc: DungeonScene; loader: Loader; say(text: st
     const est = r.x > (x0 + x1) / 2, lungo = x1 - x0, largo = z1 - z0;
     const holder = new THREE.Group(); holder.position.set(est ? x1 : x0, fy + 0.02, (z0 + z1) / 2); holder.rotation.y = est ? 0 : Math.PI; root.add(holder);
     const tavolato = new THREE.Group(); holder.add(tavolato);
-    void object(o.loader, isBaita ? 'dng_baita_ponte' : 'dng_diga_ponte', () => (isBaita ? cancellettoObj(lungo, largo) : ponteObj(lungo, largo))).then((g) => tavolato.add(g));
+    void object(o.loader, 'dng_diga_ponte', () => ponteObj(lungo, largo)).then((g) => tavolato.add(g));
     o.sc.ritocca(holder);
     return { holder, tavolato, n: ponteN };
   })();
@@ -111,13 +112,9 @@ export function createDigaFx(o: { sc: DungeonScene; loader: Loader; say(text: st
   // barili/thermos e cannonate/blocchi di ghiaccio: cerchio, disco che si riempie dal centro, quello che cade, lo scoppio
   const ringGeo = new THREE.RingGeometry(0.9, 1, 18, 1); ringGeo.rotateX(-Math.PI / 2);
   const discGeo = new THREE.CircleGeometry(1, 18); discGeo.rotateX(-Math.PI / 2);
-  const bariloGeo = isBaita
-    ? merged([painted(new THREE.CylinderGeometry(0.22, 0.22, 0.42, 8), PAL.giallo), painted(new THREE.CylinderGeometry(0.24, 0.24, 0.08, 8), PAL.sabbiaChiara, M(0, 0.2, 0))])
-    : merged([painted(new THREE.CylinderGeometry(0.24, 0.24, 0.42, 8), PAL.rosso), painted(new THREE.CylinderGeometry(0.25, 0.25, 0.05, 8), PAL.legnoScuro, M(0, 0.13, 0)), painted(new THREE.CylinderGeometry(0.25, 0.25, 0.05, 8), PAL.legnoScuro, M(0, -0.13, 0))]);
-  const pallaGeo = isBaita
-    ? merged([painted(new THREE.IcosahedronGeometry(0.32, 0), PAL.acquaBassa), painted(new THREE.IcosahedronGeometry(0.24, 0), PAL.sabbiaChiara, M(0.08, 0.12, 0))])
-    : merged([painted(new THREE.IcosahedronGeometry(0.28, 1), PAL.neroCaldo), painted(new THREE.CylinderGeometry(0.05, 0.05, 0.6, 4), PAL.sabbiaChiara, M(0, 0.45, 0))]);
-  const scoppioGeo = merged([painted(new THREE.IcosahedronGeometry(1, 0), isBaita ? PAL.acquaBassa : PAL.arancio), painted(new THREE.IcosahedronGeometry(0.65, 0), PAL.giallo, M(0, 0.15, 0)), painted(new THREE.IcosahedronGeometry(0.5, 0), isBaita ? PAL.sabbiaChiara : PAL.pietraScura, M(0.4, 0.4, 0))]);
+  const bariloGeo = merged([painted(new THREE.CylinderGeometry(0.24, 0.24, 0.42, 8), PAL.rosso), painted(new THREE.CylinderGeometry(0.25, 0.25, 0.05, 8), PAL.legnoScuro, M(0, 0.13, 0)), painted(new THREE.CylinderGeometry(0.25, 0.25, 0.05, 8), PAL.legnoScuro, M(0, -0.13, 0))]);
+  const pallaGeo = merged([painted(new THREE.IcosahedronGeometry(0.28, 1), PAL.neroCaldo), painted(new THREE.CylinderGeometry(0.05, 0.05, 0.6, 4), PAL.sabbiaChiara, M(0, 0.45, 0))]);
+  const scoppioGeo = merged([painted(new THREE.IcosahedronGeometry(1, 0), PAL.arancio), painted(new THREE.IcosahedronGeometry(0.65, 0), PAL.giallo, M(0, 0.15, 0)), painted(new THREE.IcosahedronGeometry(0.5, 0), PAL.pietraScura, M(0.4, 0.4, 0))]);
   const scoppioMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, emissive: PAL.arancio, emissiveIntensity: 0.5, transparent: true, opacity: 0.85 });
   const bombe = new Map<number, { g: THREE.Group; ring: THREE.Mesh; disc: THREE.Mesh; cade: THREE.Mesh; scoppio: THREE.Mesh; cannone: boolean }>();
   // il Capitano: lo scudo della salva, la catena sulla schiena, il fuoco fatuo sulla vela
@@ -166,7 +163,7 @@ export function createDigaFx(o: { sc: DungeonScene; loader: Loader; say(text: st
 
   return {
     tick(v) {
-      cfx?.tick(v);
+      cfx?.tick(v); bfx?.tick(v);
       const now = performance.now() / 1000;
       for (const e of v.eventi) {
         if (e.eroe !== undefined && e.eroe !== v.io) continue;
@@ -199,7 +196,7 @@ export function createDigaFx(o: { sc: DungeonScene; loader: Loader; say(text: st
       for (const [id, r] of bombe) if (!seen.has(id)) { r.g.removeFromParent(); for (const m of [r.ring, r.disc]) (m.material as THREE.Material).dispose(); bombe.delete(id); }
     },
     update(t, hero, v, gioco) {
-      cfx?.update(t, hero, v);
+      cfx?.update(t, hero, v); bfx?.update(t, hero, v, gioco);
       const lit = (x: number, z: number) => o.sc.light(x, z) > 0;
       // ruote: gemma rossa che pulsa (da girare), la ruota gira a scatti per un secondo, poi verde
       for (const r of ruote) {
@@ -270,14 +267,14 @@ export function createDigaFx(o: { sc: DungeonScene; loader: Loader; say(text: st
           l.visible = true; l.position.set(n.x, fy + 1.1, n.z); l.rotation.set(0, Math.atan2(-dz, dx), 0); l.scale.set(len, 1, 1);
           const mat = l.material as THREE.MeshBasicMaterial;
           if (n.fisso) { nF++; mat.color.set(Math.floor(t * 12) % 2 ? PAL.giallo : PAL.sabbiaChiara); l.scale.set(len, 1.6, 1.6); } else mat.color.set(PAL.rosso);
-          if (n.fisso && gioco && !fucileDetto && !o.occupato()) { fucileDetto = true; o.say(isBaita ? 'Linea gialla: il Maestro lancia la racchetta! Spostati di lato!' : 'Linea gialla: il Fuciliere spara lungo la linea. Spostati di lato!', 2800); }
+          if (n.fisso && gioco && !fucileDetto && !o.occupato()) { fucileDetto = true; o.say('Linea gialla: il Fuciliere spara lungo la linea. Spostati di lato!', 2800); }
         }
-        if (n.attacco === 'carica' && gioco && !caricaDetta && !o.occupato()) { caricaDetta = true; o.say(isBaita ? 'Jean-Claude scende a uovo: mettiti dietro un pupazzo di neve e lascialo schiantare!' : 'La freccia ti segue: mettiti dietro un pilone e lascialo sbattere contro', 3200); }
+        if (n.attacco === 'carica' && gioco && !caricaDetta && !o.occupato()) { caricaDetta = true; o.say('La freccia ti segue: mettiti dietro un pilone e lascialo sbattere contro', 3200); }
       }
       for (let k = nC; k < MAXC; k++) corsie[k]!.g.visible = false;
       for (let k = nL; k < MAXL; k++) linee[k]!.visible = false;
-      // il Capitano, Jean-Claude o l'Arconte Solan: scudo della salva davanti, bersaglio giallo sulla schiena quando è incastrato, bagliore nella fase 2
-      const k = v.nemici.find((n) => (n.tipo === 'capitano_vaelen' || n.tipo === 'jean_claude') && n.anim !== 'morto');
+      // il Capitano: scudo della salva davanti, la catena sulla schiena quando è incastrato, il fuoco fatuo nell'Ultima Marea
+      const k = v.nemici.find((n) => n.tipo === 'capitano_vaelen' && n.anim !== 'morto');
       const kv = !!k && lit(k.x, k.z), yaw = k ? Math.atan2(-k.fx, -k.fz) : 0;
       scudo.visible = kv && !!k?.scudo;
       if (k && scudo.visible) { scudo.position.set(k.x, fy + 1.3, k.z); scudo.rotation.y = yaw + Math.PI; (scudo.material as THREE.MeshBasicMaterial).opacity = Math.floor(t * 6) % 2 ? 0.7 : 0.5; }
@@ -294,16 +291,16 @@ export function createDigaFx(o: { sc: DungeonScene; loader: Loader; say(text: st
         if (!mare.g.visible && lit(mare.cx, mare.cz)) mare.g.visible = true;
         mare.tx.offset.set(Math.floor(t * 2) / 32, Math.floor(t * 1.5) / 48);
       }
-      if (consiglio && gioco && !o.occupato()) { consiglio = false; o.say(isCeneri ? 'Braci a terra: bruciano chi ci cammina sopra, gira attorno alle chiazze arancioni!' : isBaita ? 'Le raffiche ti spingono sulle racchette spezzate: riparati dietro i materassi da slalom!' : 'La risacca ti butta sui rottami: passa nella calma, o al riparo dietro un cannone', 3000); }
+      if (consiglio && gioco && !o.occupato()) { consiglio = false; o.say(isCeneri ? 'Braci a terra: bruciano chi ci cammina sopra, gira attorno alle chiazze arancioni!' : 'La risacca ti butta sui rottami: passa nella calma, o al riparo dietro un cannone', 3000); }
     },
     counts: () => ({
-      ...(cfx ? { ceneri: cfx.counts() } : {}), ruote: ruote.length, girate: ruote.filter((r) => r.fatto).length, piloni: piloni.length, rotti: piloni.filter((p) => p.rotto).length, rottami: rottamiVisti,
+      ...(cfx ? { ceneri: cfx.counts() } : {}), ...(bfx ? { baita: bfx.counts() } : {}), ruote: ruote.length, girate: ruote.filter((r) => r.fatto).length, piloni: piloni.length, rotti: piloni.filter((p) => p.rotto).length, rottami: rottamiVisti,
       schiuma: nS, corsie: nC, linee: nL, fisse: nF, barili: [...bombe.values()].filter((b) => !b.cannone).length, cannonate: [...bombe.values()].filter((b) => b.cannone).length,
       ponte: ponte ? Math.round(-ponte.tavolato.rotation.z * 100) / 100 : -1, scudo: scudo.visible, catena: catenaOn, fatuo: fatuo.visible, mare: !!mare?.g.visible,
     }),
     dispose() {
       root.removeFromParent(); rGeo.dispose(); sGeo.dispose(); piano.dispose(); punta.dispose(); ringGeo.dispose(); discGeo.dispose(); bariloGeo.dispose(); pallaGeo.dispose(); scoppioGeo.dispose();
-      rottami.dispose(); for (const s of schiume) s.im.dispose(); mare?.tx.dispose(); cfx?.dispose();
+      rottami.dispose(); for (const s of schiume) s.im.dispose(); mare?.tx.dispose(); cfx?.dispose(); bfx?.dispose();
     },
   };
 }
