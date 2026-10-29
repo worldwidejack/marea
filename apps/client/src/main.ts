@@ -55,6 +55,7 @@ import type { Arreda } from './game/arreda.ts';
 import type { Storia } from './storia/index.ts';
 import type { Negozio } from './game/negozio.ts';
 import type { Botteghe } from './game/botteghe.ts';
+import type { MercantiIsole } from './game/mercanti_isole.ts';
 import { SEZIONI, creaMete, dentro } from './avvio/mete.ts';
 import { aspettoGrafico } from './avvio/aspetto.ts';
 import { avviaRientro } from './avvio/rientro.ts';
@@ -145,9 +146,10 @@ async function boot(): Promise<void> {
   const eroe = net ? createEroe({ api: net, hud, root, ...lotto }) : null;
   const borsa = me && net ? createBorsa({ api: net, me, root, hud, ...lotto, setLook: (l) => { world.setLook(l); allegro?.setLook(l); } }) : null; // vestiti, cappelli, strumenti, insetti, mobili
   // negozio dei mobili, botteghe, ARREDA in casa tua e modifica dell'isola: chunk a parte, arrivano un attimo dopo il mondo
-  let negozio: Negozio | null = null, botteghe: Botteghe | null = null, arreda: Arreda | null = null;
+  let negozio: Negozio | null = null, botteghe: Botteghe | null = null, arreda: Arreda | null = null, mercantiIsole: MercantiIsole | null = null;
   void import('./game/negozio.ts').then((m) => { negozio = m.createNegozio({ world, renderer, loader, root, hud, velo, api: net, ...lotto }); }).catch(() => { /* senza negozio si gioca lo stesso */ });
   void import('./game/botteghe.ts').then((m) => { botteghe = m.createBotteghe({ world, loader, api: net, me, hud, root, camera: renderer.camera, canvas, ...lotto }); }).catch(() => { /* senza botteghe si gioca lo stesso */ });
+  void import('./game/mercanti_isole.ts').then((m) => { mercantiIsole = m.createMercantiIsole({ world, loader, api: net, me, hud, root, camera: renderer.camera, canvas, ...lotto, setLook: (l) => { world.setLook(l); allegro?.setLook(l); } }); }).catch(() => { /* senza mercanti isole si gioca lo stesso */ });
   if (world.slot !== null) void import('./game/arreda.ts').then((m) => { arreda = m.createArreda({ world, root, hud, api: net, lotto: mioLotto, slot: world.slot, stanza, loader, apriBaule: () => eroe?.openBuilding('forziere') }); }).catch(() => { /* senza ARREDA si gioca lo stesso */ });
   // Diario del capitano: bottone col libro e tasto J, album nel chunk ui/diario_ui.ts; targhette col nome sopra la testa degli amici
   const diario = createDiario({ root, hud, api: net, me, world, owners, ...lotto, hidden: () => reg.aperto(['gioco']),
@@ -192,6 +194,7 @@ async function boot(): Promise<void> {
     { id: 'diario', gruppo: 'pannello', aperto: () => diario.isOpen(), chiudi: () => diario.close() },
     { id: 'porto', gruppo: 'pannello', aperto: () => porto.isBusy(), chiudi: () => porto.close() },
     { id: 'botteghe', gruppo: 'pannello', aperto: () => !!botteghe?.isBusy(), chiudi: () => botteghe?.close() },
+    { id: 'mercanti_isole', gruppo: 'pannello', aperto: () => !!mercantiIsole?.isBusy(), chiudi: () => mercantiIsole?.close() },
     { id: 'record', gruppo: 'pannello', aperto: () => amici.isBusy(), chiudi: () => amici.close() },
     { id: 'libro', gruppo: 'pannello', aperto: () => libri.isBusy(), chiudi: () => libri.close() },
     { id: 'editor', gruppo: 'personale', aperto: () => !!editor?.isOpen(), chiudi: () => editor?.close() },
@@ -250,6 +253,7 @@ async function boot(): Promise<void> {
   /** Chi prende A nel mondo, in quest'ordine: chi lo prende lo toglie a quelli dopo (Porto prima dei minigiochi). */
   const PRENDONO_A: ((a: boolean, b: boolean) => boolean)[] = [
     (a, b) => arreda?.tick(a, b) ?? false, (a) => libri.tick(a), (a) => borgo.tick(a), (a) => negozio?.tick(a) ?? false, (a) => botteghe?.tick(a) ?? false,
+    (a) => mercantiIsole?.tick(a) ?? false,
     (a) => porto.tick(a), (a) => amici.tick(a),
   ];
   let last = performance.now(), acc = 0, t = 0, eqN = 0;
@@ -286,7 +290,7 @@ async function boot(): Promise<void> {
     }
     const focus = qui();
     giochi.update(t, alpha);
-    if (!sotto()) { porto.update(dt, focus); amici.update(dt, focus); libri.update(focus); borgo.update(); arreda?.update(); negozio?.update(dt); botteghe?.update(dt, focus); }
+    if (!sotto()) { porto.update(dt, focus); amici.update(dt, focus); libri.update(focus); borgo.update(); arreda?.update(); negozio?.update(dt); botteghe?.update(dt, focus); mercantiIsole?.update(dt, focus); }
     if (!sotto()) temi.update(dt, t);
     for (const lv of lots) lv.update(dt, focus);
     if (diario.isOpen() && (reg.aperto(['personale']) || porto.isBusy() || amici.isBusy())) diario.close(); // aperto un altro pannello dopo il diario
