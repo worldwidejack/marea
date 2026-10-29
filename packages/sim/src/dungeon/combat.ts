@@ -67,6 +67,7 @@ export function dannoSu(e: Enemy, src: HitSrc): number {
   let d = src.danno * bonus;
   if (src.magico) d *= 1 - (e.def.resistMagia ?? 0);
   else d -= e.def.armatura * (1 - (src.traits.penetra ?? 0));
+  if (e.assiderato !== undefined && e.assiderato > 0) d *= e.dannoPresoMolt ?? 1.2;
   return Math.max(DANNO_MIN, d);
 }
 
@@ -107,6 +108,21 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
       if (!e.aggro) wake(s, e);
       return 0;
     } else if (k <= RETRO_SCAFANDRO) retro = sc.retro;
+  }
+  // Baita: debolezza sul retro (fusticino giallo dell'Alchimista)
+  if (e.def.debolezzaRetro && src.ox !== undefined && src.oz !== undefined) {
+    const ax = src.ox - e.x, az = src.oz - e.z, l = Math.sqrt(ax * ax + az * az), k = l > 1e-6 ? (ax * e.fx + az * e.fz) / l : 0;
+    if (k <= RETRO_SCAFANDRO) {
+      retro = 2;
+      e.stordito = s.tick + secToTicks(2.5);
+      e.st = 'recupera'; e.stT = 0; e.stDur = secToTicks(2.5);
+      ev(s, { t: 'scoppio', x: r2(e.x), z: r2(e.z), r: 2 });
+    }
+  }
+  // Baita: Sparaneve ribaltato se colpito da caricato in mischia durante la ricarica
+  if (e.def.comportamento === 'sparaneve' && e.st === 'recupera' && src.caricato && src.mischia) {
+    e.ribaltato = true; e.fx = -e.fx; e.fz = -e.fz;
+    ev(s, { t: 'sfondato', x: r2(e.x), z: r2(e.z) });
   }
   const d = dannoSu(e, src) * (src.letale ? 1 : retro) * (e.spento && e.def.forgiatore ? e.def.forgiatore.vulnerabile : 1);
   const utile = Math.min(d, Math.max(0, e.vita)); // il danno oltre la vita rimasta non dà xp: un colpo enorme su un nemico debole vale quanto due piccoli

@@ -204,6 +204,7 @@ function unici(s: DungeonState): Partial<DungeonView['hero']> {
   else if (t.carillon) o.carico = { tipo: 'molla', n: h.molla, max: t.carillon.colpi };
   else if (t.poppa) o.carico = { tipo: 'brezza', n: h.brezza, max: t.poppa.cariche };
   else if (t.fresca) o.carico = { tipo: 'fresca', n: h.fresca > 0 ? 1 : 0, max: 1 };
+  else if (t.elicottero) o.carico = { tipo: 'elicottero', n: 1, max: 1 };
   else if (rh.armatura.vampa) o.carico = { tipo: 'vampa', n: h.vampa, max: rh.armatura.vampa.cariche };
   return o;
 }
@@ -247,6 +248,7 @@ function acqueHash(s: DungeonState): Record<string, unknown> {
   // Mausoleo: onde in corsa, fasi del Custode, barriere e contatori degli unici
   // Diga e Baita: piloni fracassati, rottami, Brezza e Fresca degli eroi
   if (s.map.piloni.length || s.def.rottami) o['diga'] = [s.piloni.map((b) => (b ? 1 : 0)), s.eroi.map((r) => [r.hero.rottT, r.hero.brezza, r3(r.hero.brezzaM), ...(r.hero.arma.traits.fresca ? [r.hero.fresca, r3(r.hero.frescaM)] : [])])];
+  if (s.dungeon === 'baita') o['baita'] = [s.sciolti, s.pozzanghere.map((p) => [p.id, p.fine]), s.bandierine.map((b) => [b.id, b.abbattuta ? 1 : 0])];
   if (mausoleoMappa(s)) o['mausoleo'] = [s.onde.map((x) => [x.id, r3(x.r), x.colpiti.length]), s.enemies.filter((e) => e.fase || e.colpiB).map((e) => [e.id, e.fase ?? 0, e.colpiB ?? 0]), s.eroi.map((r) => [r3(r.hero.barr), r.hero.pressione, r.hero.ritmo, r.hero.molla])];
   return o;
 }

@@ -6,27 +6,22 @@ import { DT } from '../constants.ts';
 import type { DungeonEvent, DungeonInput } from './types.ts';
 import type { DungeonState, Enemy } from './state.ts';
 import { add, ev, evocaAlleato, secToTicks } from './state.ts';
-import { buff, hitEnemy } from './combat.ts';
+import { buff, hitEnemy, rallentaNemico } from './combat.ts';
 import { lineOfSight, moveCircle } from './map.ts';
 import {
-  BEVE_TICKS, COLPI, COS_BOMBA, COS_CONO_ARCO, COS_RAGGIO, COS_SEMICERCHIO, FRECCIA_Y, GIRO_TEMPO, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y,
-  HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS,
+  BEVE_TICKS, COLPI, COS_BOMBA, COS_CONO_ARCO, COS_RAGGIO, COS_SEMICERCHIO, FRECCIA_Y, GIRO_TEMPO, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y, HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS,
 } from './tuning.ts';
 import { sweepTo, swept, swingStyle } from './swing.ts';
-import { aimDir } from './mira.ts';
-import { consuma, rebuild } from './zaino.ts';
-import { apriValvola, valvolaVicina } from './acque.ts';
-import { giraTimone, timoneVicino } from './vento.ts';
-import { alto } from './muove.ts';
-import { aimAlleato, canale, fermaCanale, isSupporto, lanciaBomba } from './magie.ts';
+import { aimDir } from './mira.ts'; import { consuma, rebuild } from './zaino.ts';
+import { apriValvola, valvolaVicina } from './acque.ts'; import { giraTimone, timoneVicino } from './vento.ts';
+import { alto } from './muove.ts'; import { aimAlleato, canale, fermaCanale, isSupporto, lanciaBomba } from './magie.ts';
 import { caricaBarriera, caricaBrezza, caricaVampa, consumaVampa, eco, fineColpo, inizioColpo, inizioPoppa, molla, moltCaricaPoppa, moltRitmo, spintaPoppa, stepUnici, stordisci } from './unici.ts';
 import { curaCompagni, lamaAria, scaricaDi, statiCaricato, terremoto, veleno } from './perk.ts';
 import { aimEroi, colpisciEroe, eroiNemici, evocazioneNemica, ostile, separaEroi } from './pvp.ts';
 
 /** Pugni quando l'arma si rompe: da RPG.pugni (balance.json), ripiego in tuning. */
 export function pugni(): RunWeapon {
-  const P = RPG.pugni;
-  const p = P ? { danno: P.danno, tempo: 1 / P.velocita, portata: P.portata, carica: P.carica, caricaMolt: P.caricaMolt } : PUGNI;
+  const P = RPG.pugni, p = P ? { danno: P.danno, tempo: 1 / P.velocita, portata: P.portata, carica: P.carica, caricaMolt: P.caricaMolt } : PUGNI;
   return { id: null, kind: 'pugni', skill: 'armiLeggere', classe: null, danno: p.danno, tempo: p.tempo, portata: p.portata, carica: p.carica, caricaMolt: p.caricaMolt, gittata: 0, traits: {} };
 }
 
@@ -34,9 +29,7 @@ export function pugni(): RunWeapon {
 const ostili = (s: DungeonState): Enemy[] => s.enemies.filter((e) => ostile(s, e));
 export const malusDi = (s: DungeonState): number => Math.max(0, Math.min(0.95, s.runHero.armatura.malus - buff(s, 'malusArmatura')));
 export function vicinoUscita(s: DungeonState): boolean {
-  if (s.pvp) return false; // in Arena non si esce dalla scala
-  const dx = s.map.exit.x - s.hero.x, dz = s.map.exit.z - s.hero.z;
-  return dx * dx + dz * dz <= RAGGIO_USCITA * RAGGIO_USCITA;
+  if (s.pvp) return false; const dx = s.map.exit.x - s.hero.x, dz = s.map.exit.z - s.hero.z; return dx * dx + dz * dz <= RAGGIO_USCITA * RAGGIO_USCITA;
 }
 
 /** Mira assistita: nemico più vicino entro `range` nel cono (coseno `cosMin`) davanti, altrimenti il più vicino entro `fallback`.
@@ -122,13 +115,37 @@ function sweepSwing(s: DungeonState): void {
       colpisciEroe(s, j, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false, ox: h.x, oz: h.z, mischia: true, ...(h.massimo ? { letale: true } : {}) });
     }
   }
+  // Baita: attacco colpisce le bandierine dello Slalom
+  if (s.bandierine?.length) {
+    for (const b of s.bandierine) {
+      if (b.abbattuta) continue;
+      const bx = b.x - h.x, bz = b.z - h.z, bd = Math.sqrt(bx * bx + bz * bz);
+      if (bd <= a.portata + 1.2) {
+        b.abbattuta = true; b.vita = 0; ev(s, { t: 'bandierina', id: b.id, n: b.n, abbattuta: true });
+      }
+    }
+  }
   if (k < 1) return;
   h.colpito = true;
-  if (h.caricato && h.colpiti.length > 0) caricaVampa(s); // Manto del Primo Lucignolo: il caricato a segno accende una carica di Vampa
-  if (h.caricato && rh.perk?.terremoto && h.colpiti.length > 0) terremoto(s); // Terremoto: il caricato a segno scuote il terreno
+  // Baita: Trick «Elicottero» (Tavola «Valanga Pro-99»)
+  const el = a.traits.elicottero;
+  if (h.caricato && h.stile === 'giro' && el && h.colpiti.length > 0) {
+    const numNemici = h.colpiti.filter((id) => id >= 0).length;
+    const bossStordito = s.enemies.some((e) => e.def.boss && h.colpiti.includes(e.id) && ((e.stordito !== undefined && e.stordito > s.tick) || e.modo === 'bilico' || e.modo === 'arbitro'));
+    if (numNemici >= 2 || bossStordito) {
+      h.stamina = Math.min(rh.max.stamina, h.stamina + rh.max.stamina * el.stamina);
+      for (const e of s.enemies) {
+        if (!h.colpiti.includes(e.id)) continue;
+        rallentaNemico(s, e, { molt: 1 - el.lento, secondi: el.secondi });
+        e.assiderato = s.tick + secToTicks(el.secondi);
+        e.dannoPresoMolt = 1 + el.dannoExtra;
+      }
+      ev(s, { t: 'elicottero', x: Math.round(h.x * 100) / 100, z: Math.round(h.z * 100) / 100 });
+    }
+  }
+  if (h.caricato && h.colpiti.length > 0) { caricaVampa(s); if (rh.perk?.terremoto) terremoto(s); }
   const fragile = a.traits.fragile ?? 0;
-  if (h.colpiti.length > 0 && fragile > 0 && a.id) {
-    h.colpiFragile++;
+  if (h.colpiti.length > 0 && fragile > 0 && a.id) { h.colpiFragile++;
     s.usura[a.id] = h.colpiFragile;
     if (h.colpiFragile >= fragile) {
       ev(s, { t: 'rotto', item: a.id });
@@ -151,14 +168,10 @@ export function mergeTraits(arco: Traits, fr: Traits): Traits {
       out.bonusVs[kk] = ab * (fb > 1 ? fb * (arco.moltArgento ?? 1) : fb);
     }
   }
-  const pen = Math.max(arco.penetra ?? 0, fr.penetra ?? 0); if (pen) out.penetra = pen;
-  const sang = (arco.sanguina ?? 0) + (fr.sanguina ?? 0); if (sang) out.sanguina = sang;
-  if (arco.sbilancia || fr.sbilancia) out.sbilancia = true;
-  if (arco.trapassa || fr.trapassa) out.trapassa = true;
-  if (arco.dropRaro || fr.dropRaro) out.dropRaro = true;
-  if (arco.noGravita || fr.noGravita) out.noGravita = true;
-  const mc = Math.max(arco.moneteColpo ?? 0, fr.moneteColpo ?? 0); if (mc) out.moneteColpo = mc;
-  const dm = (arco.dropMolt ?? 1) * (fr.dropMolt ?? 1); if (dm !== 1) out.dropMolt = dm;
+  const pen = Math.max(arco.penetra ?? 0, fr.penetra ?? 0); if (pen) out.penetra = pen; const sang = (arco.sanguina ?? 0) + (fr.sanguina ?? 0); if (sang) out.sanguina = sang;
+  if (arco.sbilancia || fr.sbilancia) out.sbilancia = true; if (arco.trapassa || fr.trapassa) out.trapassa = true;
+  if (arco.dropRaro || fr.dropRaro) out.dropRaro = true; if (arco.noGravita || fr.noGravita) out.noGravita = true;
+  const mc = Math.max(arco.moneteColpo ?? 0, fr.moneteColpo ?? 0); if (mc) out.moneteColpo = mc; const dm = (arco.dropMolt ?? 1) * (fr.dropMolt ?? 1); if (dm !== 1) out.dropMolt = dm;
   return out;
 }
 
@@ -233,20 +246,14 @@ function avviaScarica(s: DungeonState): void {
   if (!rh.perk?.scarica || !P || a.kind !== 'arco' || a.traits.carillon || h.incanta || h.cdScarica > 0 || h.raffica > 0) return;
   if (h.act !== 'idle' && h.act !== 'tende') return;
   if (!rh.frecce || h.frecce <= 0) { ev(s, { t: 'senzaFrecce' }); return; }
-  h.cdScarica = secToTicks(P.ricarica);
-  h.raffica = Math.min(P.frecce, h.frecce); h.raffT = 0;
-  h.carica = 0;
-  ev(s, { t: 'scarica' });
+  h.cdScarica = secToTicks(P.ricarica); h.raffica = Math.min(P.frecce, h.frecce); h.raffT = 0;
+  h.carica = 0; ev(s, { t: 'scarica' });
 }
 
 function drink(s: DungeonState): void {
-  const h = s.hero, rh = s.runHero;
-  const p = rh.pozione !== null ? rh.pozioni[rh.pozione] : undefined;
+  const h = s.hero, rh = s.runHero, p = rh.pozione !== null ? rh.pozioni[rh.pozione] : undefined;
   if (!p || h.pozioni <= 0) return;
-  h.pozioni--;
-  applyPotion(s, p);
-  h.act = 'beve'; h.actT = 0; h.actDur = BEVE_TICKS;
-  ev(s, { t: 'pozione', id: p.id });
+  h.pozioni--; applyPotion(s, p); h.act = 'beve'; h.actT = 0; h.actDur = BEVE_TICKS; ev(s, { t: 'pozione', id: p.id });
 }
 
 /** Azione dal menu (dungeon v8): beve una pozione qualsiasi dello zaino, non solo la rapida. null se non ce l'hai (o niente `stato`). */
@@ -262,10 +269,8 @@ export function beviNow(s: DungeonState, id: string): DungeonEvent[] | null {
 export function applyPotion(s: DungeonState, p: RunPotion): void {
   const h = s.hero, rh = s.runHero;
   consuma(s, p.id, s.usati);
-  if (p.cura.vita) { h.vita = Math.min(rh.max.vita, h.vita + p.cura.vita); curaCompagni(s, p.cura.vita); } // Medico da campo
-  if (p.cura.magicka) h.magicka = Math.min(rh.max.magicka, h.magicka + p.cura.magicka);
-  if (p.cura.stamina) h.stamina = Math.min(rh.max.stamina, h.stamina + p.cura.stamina);
-  if (p.buff) h.buffs.push({ mod: p.buff.mod, valore: p.buff.valore, fine: s.tick + secToTicks(p.buff.secondi) });
+  if (p.cura.vita) { h.vita = Math.min(rh.max.vita, h.vita + p.cura.vita); curaCompagni(s, p.cura.vita); } if (p.cura.magicka) h.magicka = Math.min(rh.max.magicka, h.magicka + p.cura.magicka);
+  if (p.cura.stamina) h.stamina = Math.min(rh.max.stamina, h.stamina + p.cura.stamina); if (p.buff) h.buffs.push({ mod: p.buff.mod, valore: p.buff.valore, fine: s.tick + secToTicks(p.buff.secondi) });
 }
 
 export function stepHero(s: DungeonState, inp: DungeonInput): void {
@@ -275,13 +280,10 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   if (h.cdMagie) for (const k in h.cdMagie) { const v = h.cdMagie[k]; if (v !== undefined && v > 0) h.cdMagie[k] = v - 1; else delete h.cdMagie[k]; }
   const curSp = magiaPronta(s);
   h.cdMagia = curSp ? (h.cdMagie?.[curSp.id] ?? 0) : 0;
-  if (h.cdScarica > 0) h.cdScarica--;
-  if (h.canale > 0 && h.act !== 'punta') { h.canale = 0; h.sovralimentata = false; } // il raggio vive solo mentre si punta
-  if (h.buffs.length) h.buffs = h.buffs.filter((b) => b.fine > s.tick);
-  if (h.lento > 0) h.lento--;
+  if (h.cdScarica > 0) h.cdScarica--; if (h.canale > 0 && h.act !== 'punta') { h.canale = 0; h.sovralimentata = false; }
+  if (h.buffs.length) h.buffs = h.buffs.filter((b) => b.fine > s.tick); if (h.lento > 0) h.lento--;
   let aDown = inp.a && !h.prevA;
-  const cDown = inp.c && !h.prevC, dDown = inp.d && !h.prevD;
-  const eDown = !!inp.e && !h.prevE;
+  const cDown = inp.c && !h.prevC, dDown = inp.d && !h.prevD, eDown = !!inp.e && !h.prevE;
   h.prevA = inp.a; h.prevC = inp.c; h.prevD = inp.d; h.prevE = !!inp.e;
   const dir = aimDir(inp.m);
   // uscita: A sulla scala vince su tutto
@@ -391,7 +393,6 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   }
   separaEroi(s); // Arena: nemmeno l'avversario si attraversa
   // rigenerazione (la stamina non torna mentre corri o tendi un arco che la consuma)
-  h.vita = Math.min(rh.max.vita, h.vita + (rh.regen.vita + buff(s, 'regenVita')) * DT);
-  h.magicka = Math.min(rh.max.magicka, h.magicka + (rh.regen.magicka + buff(s, 'regenMagicka')) * DT);
+  h.vita = Math.min(rh.max.vita, h.vita + (rh.regen.vita + buff(s, 'regenVita')) * DT); h.magicka = Math.min(rh.max.magicka, h.magicka + (rh.regen.magicka + buff(s, 'regenMagicka')) * DT);
   if (!h.running && !(h.act === 'tende' && (a.traits.staminaTeso ?? 0) > 0)) h.stamina = Math.min(rh.max.stamina, h.stamina + (rh.regen.stamina + buff(s, 'regenStamina')) * DT);
 }

@@ -69,81 +69,98 @@ export function kitBaita(top: number): KitBaita {
 type Forma = { corpo: THREE.BufferGeometry; luce?: THREE.BufferGeometry; portello?: THREE.BufferGeometry };
 const PELLE = PAL.legnoChiaro;
 const FORME: Record<string, () => Forma> = {
-  // Controllore dello Skipass: giacca a vento giallo/nera imbottita, casco con visiera a specchio, obliteratrice gigante e tornello come scudo
-  nem_controllore: () => ({
+  // Acrobata del Fuoripista: snowboarder con cappellino di lana fluo, cuffie enormi, giacca larghissima e tavola agli scarponi
+  nem_acrobata: () => ({
     corpo: merged([
-      painted(box(0.44, 0.85, 0.44), PAL.neroCaldo, M(-0.3, 0.45, 0.05)), painted(box(0.44, 0.85, 0.44), PAL.neroCaldo, M(0.3, 0.45, 0.05)), // pantaloni da sci
-      painted(box(0.52, 0.24, 0.68), PAL.rosso, M(-0.3, 0.12, -0.02)), painted(box(0.52, 0.24, 0.68), PAL.rosso, M(0.3, 0.12, -0.02)), // scarponi rigidi rossi
-      painted(box(1.2, 0.95, 0.78), PAL.giallo, M(0, 1.42, 0.05)), // piumino giallo alta visibilità
-      painted(box(1.22, 0.18, 0.8), PAL.neroCaldo, M(0, 1.15, 0.05)), painted(box(0.4, 0.96, 0.8), PAL.neroCaldo, M(0, 1.42, 0.05)), // bande nere
-      painted(box(0.38, 0.85, 0.38), PAL.giallo, M(0.8, 1.38, 0)), painted(box(0.38, 0.7, 0.38), PAL.giallo, M(-0.74, 1.45, -0.25, 0.7, 0, 0)), // braccia
-      painted(ico(0.42), PAL.rosso, M(0, 2.15, 0.05)), // casco da pista
-      painted(cil(0.06, 0.06, 1.65, 6), PAL.pietra, M(0.85, 0.95, -0.25, 0.25, 0, 0)), // asta dell'obliteratrice
-      painted(box(0.55, 0.42, 0.35), PAL.rosso, M(0.85, 0.28, -0.45)), painted(box(0.48, 0.12, 0.32), PAL.pietraChiara, M(0.85, 0.15, -0.45)), // ganasce timbra-skipass
+      painted(box(0.22, 0.7, 0.22), PAL.viola, M(-0.16, 0.35, 0)), painted(box(0.22, 0.7, 0.22), PAL.viola, M(0.16, 0.35, 0)), // pantaloni larghi
+      painted(box(0.26, 0.16, 0.38), PAL.neroCaldo, M(-0.16, 0.08, -0.04)), painted(box(0.26, 0.16, 0.38), PAL.neroCaldo, M(0.16, 0.08, -0.04)), // scarponi
+      painted(box(0.12, 0.06, 1.8), PAL.acqua, M(0, 0.03, 0)), // tavola da snowboard incollata agli scarponi
+      painted(box(0.14, 0.08, 1.84), PAL.pietraChiara, M(0, 0.03, 0)), // lamine
+      painted(box(0.68, 0.82, 0.52), PAL.arancio, M(0, 1.05, 0)), // giacca a vento larghissima fluo
+      painted(box(0.2, 0.65, 0.2), PAL.arancio, M(-0.46, 1.1, 0)), painted(box(0.2, 0.65, 0.2), PAL.arancio, M(0.46, 1.1, 0)), // maniche larghe
+      painted(box(0.26, 0.26, 0.26), PELLE, M(0, 1.58, 0)), // testa
+      painted(cil(0.18, 0.16, 0.24, 6), PAL.giallo, M(0, 1.76, 0)), // berretto di lana fluo
+      painted(box(0.36, 0.12, 0.12), PAL.neroCaldo, M(0, 1.7, 0)), // cuffie enormi (archetto)
+      painted(box(0.12, 0.16, 0.16), PAL.neroCaldo, M(-0.18, 1.58, 0)), painted(box(0.12, 0.16, 0.16), PAL.neroCaldo, M(0.18, 1.58, 0)), // padiglioni cuffie
     ]),
-    luce: merged([painted(box(0.52, 0.2, 0.14), PAL.acquaBassa, M(0, 2.15, -0.32))]), // visiera a specchio azzurra
-    portello: merged([
-      painted(box(1.35, 1.85, 0.16), PAL.pietraChiara, M(-0.25, 1.05, -0.7)), // pannello del tornello
-      painted(box(1.4, 0.28, 0.2), PAL.rosso, M(-0.25, 1.75, -0.72)), // barra "ALT SKIPASS"
-      ...[-0.15, 0.15, 0.45].map((y) => painted(cil(0.04, 0.04, 1.25, 6), PAL.pietra, M(-0.25, 0.95 + y, -0.8, 0, 0, Math.PI / 2))), // bracci del tornello
-      painted(box(0.34, 0.38, 0.06), PAL.giallo, M(-0.25, 2.18, -0.72)), painted(box(0.05, 0.3, 0.07), PAL.neroCaldo, M(-0.22, 2.18, -0.73, 0, 0, 0.3)),
-    ]),
+    luce: merged([painted(box(0.24, 0.08, 0.06), PAL.acquaBassa, M(0, 1.6, -0.14))]), // occhialini fluo
   }),
-  // Maestro della Racchetta: tuta rossa aderente con bande bianche, fascia fluo nei capelli, occhiali a specchio e racchetta da sci come fucile
-  nem_maestro: () => ({
+
+  // Alchimista del Bombardino: barista montanaro, passamontagna, grembiule, caraffe fumanti e fusto di Bombardino giallo sulle spalle (punto debole!)
+  nem_alchimista: () => ({
     corpo: merged([
-      painted(box(0.18, 0.8, 0.2), PAL.acquaProfonda, M(-0.13, 0.4, 0)), painted(box(0.18, 0.8, 0.2), PAL.acquaProfonda, M(0.13, 0.4, 0)),
-      painted(box(0.22, 0.16, 0.34), PAL.giallo, M(-0.13, 0.08, -0.05)), painted(box(0.22, 0.16, 0.34), PAL.giallo, M(0.13, 0.08, -0.05)), // scarponi gara
-      painted(cil(0.22, 0.28, 0.88, 6), PAL.rosso, M(0, 1.06, 0)), // giacca Scuola Sci
-      painted(box(0.48, 0.1, 0.36), PAL.sabbiaChiara, M(0, 1.18, 0)), // striscia bianca
-      painted(box(0.14, 0.6, 0.14), PAL.rosso, M(-0.3, 1.2, -0.2, 0.9, 0, 0.2)), painted(box(0.14, 0.6, 0.14), PAL.rosso, M(0.3, 1.25, -0.15, 0.8, 0, -0.2)),
-      painted(box(0.26, 0.28, 0.26), PELLE, M(0, 1.65, 0)), // viso abbronzatissimo
-      painted(box(0.3, 0.1, 0.3), FUCHSIA, M(0, 1.76, 0)), painted(box(0.28, 0.14, 0.28), PAL.legno, M(0, 1.88, 0)), // fascia fluo e ciuffo
-      painted(cil(0.03, 0.03, 1.65, 5), PAL.pietraChiara, M(0.05, 1.34, -0.95, Math.PI / 2)), // racchetta da sci in carbonio puntata
-      painted(cil(0.11, 0.11, 0.03, 8), PAL.neroCaldo, M(0.05, 1.34, -1.65, Math.PI / 2)), // rotella da neve
-      painted(new THREE.ConeGeometry(0.04, 0.28, 4), PAL.acquaBassa, M(0.05, 1.34, -1.85, -Math.PI / 2)), // puntale di ghiaccio
+      painted(box(0.24, 0.75, 0.24), PAL.pietraScura, M(-0.16, 0.38, 0)), painted(box(0.24, 0.75, 0.24), PAL.pietraScura, M(0.16, 0.38, 0)),
+      painted(box(0.28, 0.18, 0.38), PAL.legnoScuro, M(-0.16, 0.09, -0.05)), painted(box(0.28, 0.18, 0.38), PAL.legnoScuro, M(0.16, 0.09, -0.05)),
+      painted(box(0.62, 0.85, 0.48), PAL.legnoChiaro, M(0, 1.08, 0)), // maglione montanaro
+      painted(box(0.58, 0.7, 0.04), PAL.sabbiaChiara, M(0, 0.95, -0.26)), // grembiule sporco di zabaione
+      painted(box(0.26, 0.28, 0.26), PAL.sabbiaChiara, M(0, 1.62, 0)), // passamontagna bianco sporco
+      // Braccia protese con caraffe fumanti
+      painted(box(0.16, 0.55, 0.16), PAL.legnoChiaro, M(-0.38, 1.15, -0.25, 0.8, 0, 0)), painted(box(0.16, 0.55, 0.16), PAL.legnoChiaro, M(0.38, 1.15, -0.25, 0.8, 0, 0)),
+      painted(cil(0.12, 0.14, 0.28, 6), PAL.pietraChiara, M(-0.38, 1.15, -0.55)), painted(cil(0.12, 0.14, 0.28, 6), PAL.pietraChiara, M(0.38, 1.15, -0.55)), // caraffe
+      painted(ico(0.08), PAL.giallo, M(-0.38, 1.32, -0.55)), painted(ico(0.08), PAL.giallo, M(0.38, 1.32, -0.55)), // zabaione fumante
+      // Fusto di Bombardino giallo sulle spalle (il punto debole!)
+      painted(cil(0.22, 0.22, 0.65, 8), PAL.giallo, M(0, 1.18, 0.38, 0, 0, Math.PI / 2)),
+      painted(cil(0.04, 0.04, 0.14, 6), PAL.neroCaldo, M(0.32, 1.18, 0.38, 0, 0, Math.PI / 2)), // rubinetto spillatore
+      painted(box(0.5, 0.08, 0.45), PAL.neroCaldo, M(0, 1.35, 0.15)), // cinghie zaino
     ]),
-    luce: merged([painted(box(0.28, 0.09, 0.06), PAL.acquaBassa, M(0, 1.67, -0.14))]), // occhiali a specchio
+    luce: merged([painted(box(0.24, 0.08, 0.04), PAL.neroCaldo, M(0, 1.64, -0.14))]), // fessura occhi
   }),
-  // Cornacchia del Bombardino: pennuto nero paffuto col cappellino di lana col pon-pon e un thermos giallo bollente di Bombardino tra le zampe
-  nem_cornacchia: () => ({
+
+  // Sparaneve Automatico «Valanga-2000»: cannone cilindrico arancione su treppiede in acciaio
+  nem_sparaneve: () => ({
     corpo: merged([
-      painted(box(0.48, 0.44, 0.95), PAL.neroCaldo, M(0, 0.56, 0)), painted(box(0.38, 0.3, 0.6), PAL.pietraScura, M(0, 0.48, -0.15)), // piumaggio nero/grigio
-      painted(box(0.32, 0.32, 0.32), PAL.neroCaldo, M(0, 0.72, -0.58)), painted(box(0.12, 0.1, 0.42), PAL.giallo, M(0, 0.66, -0.92)), // testa e becco giallo
-      painted(cil(0.18, 0.22, 0.18, 6), PAL.rosso, M(0, 0.92, -0.58)), painted(ico(0.09), PAL.sabbiaChiara, M(0, 1.05, -0.58)), // berretto di lana col pon-pon
-      painted(box(1.5, 0.07, 0.45), PAL.neroCaldo, M(-0.9, 0.66, 0, 0, 0, 0.18)), painted(box(1.5, 0.07, 0.45), PAL.neroCaldo, M(0.9, 0.66, 0, 0, 0, -0.18)), // ali
-      painted(box(0.38, 0.06, 0.42), PAL.neroCaldo, M(0, 0.6, 0.6, -0.25, 0, 0)),
-      painted(cil(0.2, 0.2, 0.4, 8), PAL.giallo, M(0, 0.2, 0.05, 0, 0, Math.PI / 2)), // fusto di Bombardino
-      painted(cil(0.21, 0.21, 0.06, 8), PAL.sabbiaChiara, M(-0.18, 0.2, 0.05, 0, 0, Math.PI / 2)), // tappo di panna montata
-      painted(box(0.04, 0.24, 0.04), PAL.giallo, M(-0.1, 0.38, 0.05)), painted(box(0.04, 0.24, 0.04), PAL.giallo, M(0.1, 0.38, 0.05)),
-    ]),
-    luce: merged([painted(box(0.26, 0.08, 0.05), PAL.arancio, M(0, 0.78, -0.75))]), // mascherina da sci arancio
-  }),
-  // Jean-Claude «Valanga»: tuta intera anni '90 blu/fucsia/gialla, chioma bionda ossigenata, mascherona a specchio e la Tavola «Valanga Pro-99»
-  nem_valanga: () => ({
-    corpo: merged([
-      painted(box(0.46, 1.05, 0.48), PAL.acqua, M(-0.32, 0.55, 0)), painted(box(0.46, 1.05, 0.48), PAL.acqua, M(0.32, 0.55, 0)), // gambe tuta blu elettrico
-      painted(box(0.52, 0.24, 0.68), PAL.giallo, M(-0.32, 0.12, -0.05)), painted(box(0.52, 0.24, 0.68), PAL.giallo, M(0.32, 0.12, -0.05)), // scarponi fluo
-      painted(box(1.42, 1.15, 0.82), FUCHSIA, M(0, 1.95, 0.05)), // busto fucsia neon
-      painted(box(1.46, 0.28, 0.85), PAL.giallo, M(0, 2.25, 0.05)), // fascia pettorale gialla
-      ...[[-0.5, 2.48], [0.5, 2.48]].map(([x, y]) => painted(box(0.48, 0.18, 0.55), PAL.acquaBassa, M(x!, y!, 0.05))), // spalline imbottite anni '90
-      painted(cil(0.16, 0.16, 0.06, 8), PAL.giallo, M(0, 2.05, -0.38, Math.PI / 2)), // medaglione d'oro "CAMPIONE APRÈS-SKI"
-      painted(box(0.46, 0.48, 0.46), PELLE, M(0, 2.82, 0.05)), // faccia col sorrisone
-      painted(box(0.32, 0.08, 0.04), PAL.sabbiaChiara, M(0, 2.68, -0.19)), // sorriso smagliante
-      painted(box(0.54, 0.26, 0.54), PAL.giallo, M(0, 3.12, 0.08)), painted(box(0.48, 0.45, 0.22), PAL.giallo, M(0, 2.8, 0.32)), // chioma bionda a mullet
-      painted(box(0.4, 1.0, 0.4), PAL.acqua, M(-0.86, 1.98, 0.05)), // braccio sinistro
-      painted(box(0.4, 0.9, 0.4), PAL.acqua, M(0.86, 2.08, -0.2, 0.5, 0, 0)), // braccio destro
-      // La Tavola «Valanga Pro-99» impugnata come spadone/lancia gigante
-      painted(box(0.14, 0.58, 4.2), FUCHSIA, M(0.92, 1.65, -1.25, 0.12, 0, 0)), // corpo della tavola da snowboard
-      painted(box(0.16, 0.62, 4.24), PAL.pietraChiara, M(0.92, 1.65, -1.25, 0.12, 0, 0)), // lamine d'acciaio affilate
-      painted(cil(0.28, 0.28, 0.14, 8), FUCHSIA, M(0.92, 1.4, -3.35, 0.12, 0, Math.PI / 2)), // punta arrotondata della tavola
-      painted(box(0.22, 0.32, 0.28), PAL.neroCaldo, M(0.92, 1.72, -0.65)), painted(box(0.22, 0.32, 0.28), PAL.neroCaldo, M(0.92, 1.56, -1.95)), // attacchi degli scarponi
+      // Treppiede in acciaio
+      painted(cil(0.05, 0.05, 1.1, 5), PAL.pietraScura, M(-0.4, 0.5, -0.25, 0.3, 0, -0.3)),
+      painted(cil(0.05, 0.05, 1.1, 5), PAL.pietraScura, M(0.4, 0.5, -0.25, 0.3, 0, 0.3)),
+      painted(cil(0.05, 0.05, 1.1, 5), PAL.pietraScura, M(0, 0.5, 0.45, -0.35, 0, 0)),
+      painted(box(0.45, 0.25, 0.45), PAL.pietraScura, M(0, 1.0, 0)), // giunto centrale
+      // Cannone cilindrico arancione
+      painted(cil(0.4, 0.48, 1.6, 8), PAL.arancio, M(0, 1.25, 0, Math.PI / 2)),
+      painted(cil(0.48, 0.52, 0.2, 8), PAL.neroCaldo, M(0, 1.25, -0.75, Math.PI / 2)), // bocchettone di lancio
+      painted(cil(0.36, 0.36, 0.1, 8), PAL.pietraScura, M(0, 1.25, 0.8, Math.PI / 2)), // griglia ventola posteriore
+      painted(box(0.12, 0.65, 0.06), PAL.giallo, M(0, 1.25, 0.8)), // pala ventola
+      painted(box(0.65, 0.12, 0.06), PAL.giallo, M(0, 1.25, 0.8)),
     ]),
     luce: merged([
-      painted(box(0.48, 0.18, 0.08), PAL.acquaBassa, M(0, 2.86, -0.2)), // mascherona a specchio
-      painted(box(0.17, 0.36, 1.4), PAL.arancio, M(0.92, 1.5, -2.5, 0.12, 0, 0)), // adesivo di fiamme tribali sulla punta
+      painted(box(0.08, 0.08, 0.04), PAL.rosso, M(-0.18, 1.55, -0.65)),
+      painted(box(0.08, 0.08, 0.04), PAL.rosso, M(0.18, 1.55, -0.65)), // occhietti a LED rossi
     ]),
   }),
+
+  // Jean-Claude «Valanga»: fanatico del fitness abbronzatissimo, tuta viola fluo aperta sul petto nudo, corona, tavola gigante
+  nem_jean_claude: () => ({
+    corpo: merged([
+      painted(box(0.46, 1.05, 0.48), PAL.viola, M(-0.32, 0.55, 0)), painted(box(0.46, 1.05, 0.48), PAL.viola, M(0.32, 0.55, 0)), // tuta viola
+      painted(box(0.52, 0.24, 0.68), PAL.giallo, M(-0.32, 0.12, -0.05)), painted(box(0.52, 0.24, 0.68), PAL.giallo, M(0.32, 0.12, -0.05)), // scarponi fluo
+      painted(box(1.35, 1.15, 0.78), PAL.viola, M(0, 1.95, 0.05)), // tuta viola
+      painted(box(0.62, 0.95, 0.8), PELLE, M(0, 1.85, 0.05)), // petto nudo scolpito e abbronzatissimo!
+      painted(box(0.46, 0.48, 0.46), PELLE, M(0, 2.82, 0.05)), // viso abbronzato
+      painted(box(0.32, 0.08, 0.04), PAL.sabbiaChiara, M(0, 2.68, -0.19)), // sorriso smagliante
+      // Capelli biondi a punte rigide stile PS1
+      painted(box(0.54, 0.32, 0.54), PAL.giallo, M(0, 3.15, 0.05)),
+      painted(new THREE.ConeGeometry(0.1, 0.35, 4), PAL.giallo, M(-0.16, 3.38, 0)),
+      painted(new THREE.ConeGeometry(0.12, 0.42, 4), PAL.giallo, M(0, 3.42, 0)),
+      painted(new THREE.ConeGeometry(0.1, 0.35, 4), PAL.giallo, M(0.16, 3.38, 0)),
+      // Corona gialla da Re dello Sciolino
+      painted(box(0.52, 0.12, 0.52), PAL.giallo, M(0, 3.12, 0.05)),
+      painted(box(0.4, 1.0, 0.4), PAL.viola, M(-0.86, 1.98, 0.05)), // braccio sinistro
+      painted(box(0.4, 0.9, 0.4), PAL.viola, M(0.86, 2.08, -0.2, 0.5, 0, 0)), // braccio destro
+      // La gigantesca Tavola «Valanga Pro-99» impugnata come arma
+      painted(box(0.14, 0.58, 4.2), PAL.viola, M(0.92, 1.65, -1.25, 0.12, 0, 0)), // corpo tavola
+      painted(box(0.16, 0.62, 4.24), PAL.pietraChiara, M(0.92, 1.65, -1.25, 0.12, 0, 0)), // lamine affilate
+      painted(cil(0.28, 0.28, 0.14, 8), PAL.viola, M(0.92, 1.4, -3.35, 0.12, 0, Math.PI / 2)), // punta
+      painted(box(0.22, 0.32, 0.28), PAL.neroCaldo, M(0.92, 1.72, -0.65)), painted(box(0.22, 0.32, 0.28), PAL.neroCaldo, M(0.92, 1.56, -1.95)), // attacchi
+    ]),
+    luce: merged([
+      painted(box(0.48, 0.18, 0.08), PAL.arancio, M(0, 2.86, -0.2)), // mascherina arancione a specchio
+      painted(box(0.17, 0.36, 1.4), PAL.arancio, M(0.92, 1.5, -2.5, 0.12, 0, 0)), // adesivo fiamme tribali
+    ]),
+  }),
+  // Alias compatibilità
+  nem_valanga: () => FORME['nem_jean_claude']!(),
+  nem_controllore: () => FORME['nem_acrobata']!(),
+  nem_maestro: () => FORME['nem_sparaneve']!(),
+  nem_cornacchia: () => FORME['nem_alchimista']!(),
 };
 
 /** Segnaposto di un nemico della Baita (null se non appartiene a questo stile). */

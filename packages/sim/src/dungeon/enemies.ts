@@ -27,6 +27,8 @@ import { stepAnello, stepAstrolabio } from './astrolabio.ts';
 import { stepForgiatore } from './forgiatore.ts';
 import { stepCustode } from './custode.ts';
 import { stepVaelen } from './vaelen.ts';
+import { stepAcrobata, stepAlchimista, stepSparaneve } from './baita.ts';
+import { stepJeanClaude } from './jean_claude.ts';
 import { areaSuAlleati, colpoSuAlleato, passoContro, puntato, scegliAlleato } from './contro_alleati.ts';
 import { giraVerso, girata, moveToward, potenza, setState } from './passi.ts';
 import { colpoCorsia, corsiaFino } from './diga.ts';
@@ -294,6 +296,7 @@ function fearful(s: DungeonState, e: Enemy): boolean {
 
 function stepFoe(s: DungeonState, e: Enemy): void {
   const h = s.hero, rh = s.runHero, def = e.def;
+  if (e.assiderato && e.assiderato <= s.tick) { e.assiderato = 0; e.dannoPresoMolt = 1; }
   const dx = h.x - e.x, dz = h.z - e.z, d = Math.sqrt(dx * dx + dz * dz);
   // Mausoleo: stordito dal Rintocco della Grande Lancetta, sta fermo
   if (e.stordito !== undefined && e.stordito > s.tick) return;
@@ -303,6 +306,10 @@ function stepFoe(s: DungeonState, e: Enemy): void {
   if (def.comportamento === 'forgiatore' && e.st !== 'dorme' && e.st !== 'veglia') { stepForgiatore(s, e); return; }
   if (def.comportamento === 'custode' && e.st !== 'dorme' && e.st !== 'veglia') { stepCustode(s, e); return; }
   if (def.comportamento === 'vaelen' && e.st !== 'dorme' && e.st !== 'veglia') { stepVaelen(s, e); return; }
+  if (def.comportamento === 'acrobata' && e.st !== 'dorme' && e.st !== 'veglia') { stepAcrobata(s, e); return; }
+  if (def.comportamento === 'alchimista' && e.st !== 'dorme' && e.st !== 'veglia') { stepAlchimista(s, e); return; }
+  if (def.comportamento === 'sparaneve' && e.st !== 'dorme' && e.st !== 'veglia') { stepSparaneve(s, e); return; }
+  if (def.comportamento === 'jean_claude' && e.st !== 'dorme' && e.st !== 'veglia') { stepJeanClaude(s, e); return; }
   if (def.comportamento === 'fuciliere' && (e.st === 'insegue' || e.modo === 'fucile') && !fearful(s, e)) { stepFuciliere(s, e); return; }
   if (def.comportamento === 'chierico' && e.st === 'insegue') { if (!fearful(s, e)) { stepChierico(s, e); return; } }
   switch (e.st) {

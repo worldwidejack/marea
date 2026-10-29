@@ -132,6 +132,20 @@ export type DungeonEvent = (
   | { t: 'valanga'; x: number; z: number }
   | { t: 'vampa'; n: number }
   | { t: 'sovralimentata'; x: number; z: number }
+  /** Tempio della «Doppia Nera» (Baita): scivolamento su Ghiaccio Vivo, stanza scongelata, pozzanghere di Sciolina/Bombardino,
+   *  capogiro dell'Acrobata, bandierine di slalom, Jean-Claude che urla all'arbitro, frenata, salto, bilico, lamina, Trick Elicottero, assideramento. */
+  | { t: 'scivolata'; x: number; z: number }
+  | { t: 'scongelato'; n: number }
+  | { t: 'pozzanghera'; x: number; z: number; tipo: 'sciolina' | 'bombardino' }
+  | { t: 'capogiro'; id: number; x: number; z: number }
+  | { t: 'bandierina'; id: number; n: number; abbattuta: boolean }
+  | { t: 'arbitro'; x: number; z: number; urlo?: string }
+  | { t: 'frenata'; x: number; z: number }
+  | { t: 'salto'; x: number; z: number }
+  | { t: 'bilico'; x: number; z: number }
+  | { t: 'lamina'; x: number; z: number }
+  | { t: 'elicottero'; x: number; z: number }
+  | { t: 'assiderato'; id?: number; x: number; z: number }
 ) & { eroe?: number };
 
 export type DungeonView = {
@@ -170,7 +184,7 @@ export type DungeonView = {
     /** Mausoleo, gli unici addosso: carica della Barriera Cinetica (0..1, 1 = pronta); il contatore dell'arma (pressione del Fendiflutti,
      *  ritmo della Grande Lancetta con `tic` = secondi al prossimo tic, colpi dell'Arco Carillon). */
     barriera?: number;
-    carico?: { tipo: 'pressione' | 'ritmo' | 'molla' | 'brezza' | 'fresca' | 'vampa'; n: number; max: number; tic?: number };
+    carico?: { tipo: 'pressione' | 'ritmo' | 'molla' | 'brezza' | 'fresca' | 'vampa' | 'elicottero'; n: number; max: number; tic?: number };
   };
   nemici: { id: number; tipo: string; model: string; x: number; z: number; fx: number; fz: number; anim: EnemyAnim; t: number; vita: number; max: number; alleato: boolean; sanguina: boolean; boss: boolean;
     /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. */
@@ -186,7 +200,8 @@ export type DungeonView = {
     alto?: boolean; grata?: boolean; molla?: boolean; schermo?: boolean;
     /** Fucina, il Mastro Forgiatore: attacco in corso (per la carica `mira` = dove arriva, solo durante l'avviso) e spento dalla cascata. */
     attacco?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo' | 'cura' | 'ondata' | 'fendenti' | 'scatto' | 'geyser' | 'colpo' | 'cambio'
-      | 'affondo' | 'spazzata' | 'salva' | 'incastrato' | 'detriti' | 'sbilanciato' | 'fucile' | 'schiacciata'; mira?: [number, number]; spento?: boolean;
+      | 'affondo' | 'spazzata' | 'salva' | 'incastrato' | 'detriti' | 'sbilanciato' | 'fucile' | 'schiacciata'
+      | 'trottola' | 'frenata' | 'salto' | 'bilico' | 'slalom' | 'arbitro' | 'lamina'; mira?: [number, number]; spento?: boolean;
     /** Mausoleo: potenziato da un Chierico, scudo sfondato (Sentinella), stordito dal Rintocco; il Custode: fase (0 acqua, 1 vapore, 2 moto)
      *  e, nella terza, colpi presi verso la scarica (`cariche` su `colpi`). `mira`: per la cura chi ripara, per lo scatto dove ricompare. */
     potenziato?: boolean; rotto?: boolean; stordito?: boolean; fase?: number; cariche?: number; colpi?: number;

@@ -75,7 +75,7 @@ body.mz-sotto .mz-labels, body.mz-sotto #mzPlay, body.mz-sotto #mzEmoteRow, body
 `;
 /** Il contatore dell'arma unica (Mausoleo): pressione del Fendiflutti, ritmo della Grande Lancetta, molle dell'Arco Carillon; la Brezza
  *  dell'Albero della «Stella del Mattino» (Diga). */
-const CARICO = { pressione: 'PRESS.', ritmo: 'RITMO', molla: 'MOLLE', brezza: 'BREZZA', fresca: 'FRESCA', vampa: 'VAMPA' } as const;
+const CARICO = { pressione: 'PRESS.', ritmo: 'RITMO', molla: 'MOLLE', brezza: 'BREZZA', fresca: 'FRESCA', vampa: 'VAMPA', elicottero: 'TRICK' } as const;
 const nome = (id: string) => (hasItem(id) ? itemDef(id).nome : id);
 const fmt = (s: number) => { const m = Math.floor(s / 60); return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
 
