@@ -48,9 +48,11 @@ export type Traits = {
    *  `metri` m corsi (al massimo `cariche`). Piene, il prossimo attacco caricato si carica in `carica` del tempo, le consuma e libera
    *  un'onda d'urto marina: danno + `danno` (frazione), chi prendi vola via di `spinta` m (i capi no) e ogni scudo nel giro si sfonda. */
   poppa?: { metri: number; cariche: number; carica: number; danno: number; spinta: number };
-  /** Tempio della «Doppia Nera», la Tavola «Valanga Pro-99» (Carica in Scivolata): correndo per `metri` m entri «In Fresca» per `durata` s.
-   *  Qualsiasi attacco in mischia mentre sei «In Fresca» solleva un'onda di neve: danno + `danno` (frazione) e `rallenta` chi colpisce. */
+  /** Tempio della «Doppia Nera» (compatibilità fresca): */
   fresca?: { metri: number; durata: number; danno: number; rallenta: { molt: number; secondi: number } };
+  /** Tempio della «Doppia Nera», la Tavola «Valanga Pro-99» (Trick "Elicottero"): l'Attacco Caricato a 360° che colpisce almeno 2 nemici
+   *  (o un Boss stordito/scoperto) rimborsa il `stamina` (frazione) della Stamina e infligge Assideramento per `secondi` s (-`lento` frazione velocità, +`dannoExtra` frazione danno subìto da attacchi base). */
+  elicottero?: { stamina: number; secondi: number; lento: number; dannoExtra: number };
   /** Santuario del Capo Ardente, il Manto del Primo Lucignolo (Sovralimentazione della Brace): immune al fuoco a terra e alle scorie;
    *  ogni magia di Fuoco a segno o colpo caricato in mischia accende una carica di Vampa (al massimo `cariche`). A `cariche`, la prossima
    *  magia di Fuoco le consuma: raggio/larghezza × `raggioMolt`, danno + `danno` (frazione) e lascia a terra una `chiazza` di brace ardente. */
@@ -134,7 +136,7 @@ export type EnemyDef = {
    *  Archivio: `bombardiere` (Aerostato-Spia) sta a qualche metro dall'eroe e sgancia `bomba`; `astrolabio` è il capo con `astrolabio`;
    *  `anello` sono gli anelli-scudo che il capo stacca a metà vita (non hanno IA: girano attorno a lui).
    *  Fucina: `forgiatore` è il capo con `forgiatore`. */
-  comportamento: 'mischia' | 'arciere' | 'mago' | 'torretta' | 'bombardiere' | 'astrolabio' | 'anello' | 'forgiatore' | 'chierico' | 'custode' | 'fuciliere' | 'vaelen';
+  comportamento: 'mischia' | 'arciere' | 'mago' | 'torretta' | 'bombardiere' | 'astrolabio' | 'anello' | 'forgiatore' | 'chierico' | 'custode' | 'fuciliere' | 'vaelen' | 'acrobata' | 'alchimista' | 'sparaneve' | 'jean_claude';
   /** Dove si muove (Archivio). `grate`: anche sulle grate (Drone Idro-Ragno), dove l'eroe non sale. `vola`: sopra acqua, grate e vuoto,
    *  non sopra muri e scaffali; il vento non lo sposta e in mischia lo prendi solo quando scende (prepara, colpisce, recupera).
    *  `asciutto` (Fucina, il Mastro Forgiatore): camminando gira attorno alle cascate d'acqua (`getto`), non ci entra mai da sé. */
@@ -209,13 +211,17 @@ export type EnemyDef = {
    *  lo sfonda, barcolla `rotto` s e la salva finisce); `ondate` ondate di `n` cannonate, una ogni `ogni` s: cerchio di `raggio` m per
    *  `caduta` s, poi `danno` (la prima dove sei, le altre attorno a `sparpaglia` m). */
   vaelen?: {
-    soglia: number; cambio: number; pausa: number[];
-    cicli: ('affondo' | 'spazzata' | 'carica' | 'salva')[][];
-    affondo: { n: number; lungo: number; largo: number; avviso: number; danno: number };
-    spazzata: { incastrato: number; retro: number };
-    carica: { avviso: number; blocca: number; velocita: number; gittata: number; largo: number; danno: number; spinta: number; stordito: number };
-    salva: { durata: number; ondate: number; ogni: number; n: number; raggio: number; caduta: number; danno: number; sparpaglia: number; scudo: number; rotto: number };
+    soglia: number; cambio: number; pausa: number[]; cicli: ('affondo' | 'spazzata' | 'carica' | 'salva')[][];
+    affondo: { n: number; lungo: number; largo: number; avviso: number; danno: number }; spazzata: { incastrato: number; retro: number };
+    carica: { avviso: number; blocca: number; velocita: number; gittata: number; largo: number; danno: number; spinta: number; stordito: number }; salva: { durata: number; ondate: number; ogni: number; n: number; raggio: number; caduta: number; danno: number; sparpaglia: number; scudo: number; rotto: number };
   };
+  trottola?: { durata: number; danno: number; raggio: number; capogiro: number };
+  fiasche?: { distanza: number; caduta: number; raggio: number; sciolina: { lento: number; secondi: number }; bombardino: { dps: number; secondi: number } };
+  debolezzaRetro?: { cono: number; dannoMolt: number; stordisce: number };
+  torretta?: boolean;
+  raffica?: { n: number; angolo: number; velocita: number; danno: number; spinta: number; ricarica: number; avviso: number };
+  fase1?: { frenata: { avviso: number; danno: number; spinta: number; apertura: number }; salto: { volo: number; blocco: number; danno: number; lato: number; stordito: number } };
+  fase2?: { soglia: number; bandierine: number; palettiHp: number; corsaDanno: number; urloArbitro: number; doppiaLamina: { avviso: number; danno: number; lato: number } };
   /** Il suo colpo in mischia rallenta l'eroe: velocità × `molt` per `secondi` (Tubo-strisciante). */
   rallenta?: { molt: number; secondi: number };
   /** Colpo ad area ogni `ogni` attacchi: `raggio` m attorno a sé, danno × `danno`, preparazione × `prep` (sbuffo di vapore
@@ -296,7 +302,7 @@ export type DungeonDef = {
    *  acuminati (pavimento, fanno male: `rottami` del dungeon); `ponte: n` il ponte mobile alzato sopra l'acqua, un bacino come `acqua: n`
    *  (la ruota lo abbassa); `pilone` bitta di legno: solida come una colonna, ma la carica del capo la fracassa.
    *  Arena: `erba` erba alta (pavimento): chi ci sta dentro non lo vedono gli avversari (sim/dungeon/erba.ts). */
-  legenda: Record<string, { erba?: boolean; nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number; vento?: number; timone?: number; grata?: boolean; ferme?: number[]; lava?: number; colata?: number; chiusa?: number; getto?: boolean; cancello?: number; carica?: number; sarcofago?: boolean; ruota?: number; risacca?: number; rottami?: boolean; ponte?: number; pilone?: boolean }>;
+  legenda: Record<string, { erba?: boolean; nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number; vento?: number; timone?: number; grata?: boolean; ferme?: number[]; lava?: number; colata?: number; chiusa?: number; getto?: boolean; cancello?: number; carica?: number; sarcofago?: boolean; ruota?: number; risacca?: number; rottami?: boolean; ponte?: number; pilone?: boolean; tornello?: number; colonnina?: number; ghiaccio?: number }>;
   /** Dove sta l'ingresso nel mondo: cella di un'isola di islands.json (il modello è `prop_ingresso_<stile>`). */
   ingresso: { island: string; at: [number, number] };
   /** Lore dentro il dungeon (docs/RPG.md §2c): solo testo per il client, la sim non lo vede. */

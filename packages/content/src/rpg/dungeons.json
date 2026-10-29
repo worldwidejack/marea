@@ -1,569 +1,1870 @@
 [
-  {"id":"grotta","nome":"Grotta della Marea","descr":"Grotte umide sotto le rocce del Porto: banditi accampati, lupi e ragni. Bronzo, ferro, monete, erbe.","stile":"grotta","difficolta":1,"tile":2,"legenda":{"u":{"libro":"libro_fuoco_continuo"},"b":{"nemico":"bandito"},"a":{"nemico":"bandito_arciere"},"l":{"nemico":"lupo"},"s":{"nemico":"ragno"},"c":{"forziere":"comune"},"R":{"forziere":"raro"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"C":{"nemico":"capo_banditi","capo":true}},"ingresso":{"island":"porto","at":[54,35]},
-   "rows": [
-    "                                        ",
-    "  ######  ################              ",
-    " ##....## #...a......a...##             ",
-    " #..c...# #.............R.#             ",
-    " #.....## #..o..b...b..o..#             ",
-    " ##...##  #......t.......##             ",
-    "  ##.##   #..b.........C.#  #######     ",
-    "   #.##   ##......##....## ##.....##    ",
-    "   #..#    ##....####..## ##...s...##   ",
-    "   ##.##    ##..##  ##..###..s...o..##  ",
-    "    #..#    ##..##   ##..#......#....#  ",
-    "    ##.##  ##....##   ##...........c.#  ",
-    "     #..# ##..l...###  #####.....s...#  ",
-    "    ###.###.........##    ##.##....###  ",
-    "   ##......t...o.....#   ##..###..##    ",
-    "  ##....l.........l..#  ##A.## #..#     ",
-    "  #...l.....##.......# ##..##  #..#     ",
-    "  #.......####.......###..##   #..##    ",
-    "  #..t...##  ##.....###..##    #...##   ",
-    "  ##....##    ##...###..##     #....##  ",
-    "   ##..##      ##.###..##      #..s..#  ",
-    "    #..##       #..#..##       #.....#  ",
-    "    ##..##      ##...##       ##..c..#  ",
-    "     ##.A##      ##.##        #..###### ",
-    "      ##..###   ##...##       #..## #R# ",
-    "       ##...#####..t..#########...###.# ",
-    "        ###..u....<......b............# ",
-    "          ######...........############ ",
-    "               #############            ",
-    "                                        "
-   ]},
-  {"id":"cripta","nome":"Cripta delle Ossa","descr":"Sotto la porta di pietra dell’Isola Selvaggia: ossari, una biblioteca dimenticata e la sala del Re delle Ossa. Argento, ossa di mostro, libri.","stile":"cripta","difficolta":2,"tile":2,"legenda":{"u":{"libro":"libro_elettro_continuo"},"s":{"nemico":"scheletro"},"a":{"nemico":"scheletro_arciere"},"n":{"nemico":"nonmorto"},"K":{"nemico":"re_ossa","capo":true},"c":{"forziere":"comune_cripta"},"R":{"forziere":"raro_cripta"},"f":{"libro":"libro_fulmine"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true}},"ingresso":{"island":"selvaggia","at":[18,12]},
-   "rows": [
-    "                                            ",
-    " #######     ################      #######  ",
-    " #.....#     #...o......o...#      #.....#  ",
-    " #.c...#     #..............#     ##..R..## ",
-    " #.....#     #...o..K...o...#     #.......# ",
-    " ##.#.##     #..............#     #...n...# ",
-    "  #...#      #...o......o...#     ##.....## ",
-    "  ##.##      #.......R......#      ###.###  ",
-    " ###.####    ##............##    ####...#   ",
-    " #......#     ##...t..t...##    ##.....#### ",
-    " #.s..o.#      ####..######    ##.........# ",
-    " #......#         #..#         #..s..o..a.# ",
-    " #..s...#         #A.#         #..........# ",
-    " ###.#### #########n.#############.....#### ",
-    "  ##.##  ##.....................######.##   ",
-    "  #...####..t...o........o...t..#  ##...##  ",
-    "  #.a.......s.......nn.......s..#  #..c..#  ",
-    "  #...####......o........o......####.....#  ",
-    "  ##.#####..........................#...##  ",
-    "   #......####......####......##.......##   ",
-    "   ######.#  #......#  #......##.#######    ",
-    "     ##...#  ##A...##  ##....###.#          ",
-    "     #..f.#   ##..##    ##..## #.#####      ",
-    "     #..u.#    ##..######..##  #.....#      ",
-    "     ###.##     #..........#   ##.s..#      ",
-    "       #.#########...t....########...#      ",
-    "       #...........a..a...........n.c#      ",
-    "       ###########...........#########      ",
-    "                 #.....<.....#              ",
-    "                 #############              ",
-    "                                            "
-   ]},
-  {"id":"vuoto","nome":"Portale del Vuoto","descr":"Piattaforme sospese nel nulla oltre il portale del Borgo Marea: spettri, golem di cristallo e il Custode. Vetro, meteorite, oggetti unici.","stile":"vuoto","difficolta":8,"richiede":"unico_anello_onda","tile":2,"legenda":{"p":{"nemico":"spettro"},"g":{"nemico":"golem"},"X":{"nemico":"custode","capo":true},"c":{"forziere":"comune_vuoto"},"R":{"forziere":"raro_vuoto"},"w":{"libro":"libro_lupo_spettrale"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true}},"ingresso":{"island":"porto","at":[22,36]},
-   "rows": [
-    "                                                ",
-    "    .....         ###############               ",
-    "   .......        #......R......#       .....   ",
-    "   .c.....        #..o.......o..#      .......  ",
-    "   .......        #......X......#      ...p...  ",
-    "   ..p.o..        #.............#      .......  ",
-    "   .......        #..o.......o..#      ..g.R..  ",
-    "    .....         #....t...t....#      .......  ",
-    "      .           ######...######       .....   ",
-    "      .                  .               .      ",
-    "  .......  ......     .......     ........      ",
-    "  ..g.... ....g...  .....o.....  ......o..      ",
-    "  ....... ..o.....  ....t......  ...p.....      ",
-    "  .o...o. ...p........p.....g.............      ",
-    "  ....... .........................o......      ",
-    "     .    .....o..  ......t....  ......g..      ",
-    "     .    ........  ...........  .........      ",
-    "   ......  ......     ...A...     ...........   ",
-    "   ....p.    .          ...                 .   ",
-    "   ..w...    .          ...                 p   ",
-    "   ......    .          ...                 .   ",
-    "     .       .          .t.                 .   ",
-    "     .       A          ...                 .   ",
-    "     ................p.........p..............  ",
-    "            .           ...           .         ",
-    "         .......        ...         ......      ",
-    "         ..c....        ...         .p....      ",
-    "         ....g..        ...         ...c..      ",
-    "         .t.....     .........      ......      ",
-    "                    ...........                 ",
-    "                    ...t.<.t...                 ",
-    "                     .........                  ",
-    "                                                "
-   ]},
-  {"id":"drenaggio","nome":"Impianto di Drenaggio","descr":"Sotto l'anello della Laguna, le pompe arrugginite della civiltà degli automi: sale allagate, valvole da girare, il Collettivo Rottamautomi e il Capoturno. Ferro, argento, un po' d'oro.","stile":"drenaggio","difficolta":3,"tile":2,"legenda":{"u":{"libro":"libro_bomba_elettrica"},"f":{"nemico":"tubo_strisciante"},"w":{"nemico":"operaio_arrugginito"},"T":{"nemico":"valvola_sparavapore"},"K":{"nemico":"capoturno","capo":true},"c":{"forziere":"comune_drenaggio"},"R":{"forziere":"raro_drenaggio"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"L":{"altare":true,"asciutti":[1]},"1":{"acqua":1},"2":{"acqua":2},"3":{"acqua":3},"x":{"valvola":1},"y":{"valvola":2},"z":{"valvola":3}},"ingresso":{"island":"laguna","at":[18,45]},
-   "rows": [
-    "                    ######################## ",
-    " ####################............T.........# ",
-    " #.........t.##33333#.....t..........t....R# ",
-    " #x..........##33333#........w.............# ",
-    " #........w..##33..3#....o........K...o.f..# ",
-    " #...o...o.....33R.3#......................# ",
-    " #..........T..33..3#...f..................# ",
-    " #..w........##33333#....o............o....# ",
-    " #......fu...##33333#.t..................t.# ",
-    " #.t........c##33333#......................# ",
-    " #...........#################2222########## ",
-    " ####...######               #2222#          ",
-    "    #.A.#                    #2222#          ",
-    "    #...#           ##########2222########## ",
-    "    #.t.#           #......................# ",
-    "    #...#           #.z.t..............w..c# ",
-    "    #.f.#           #.........w............# ",
-    "    #...#           #......................# ",
-    " ####...#######     #.....o..........o.....# ",
-    " #............#     #......................# ",
-    " #.t.....f....#######..........t..........T# ",
-    " #............1111111......f...............# ",
-    " #...o....o...1111111T............w........# ",
-    " #............1111111.....o..........o.....# ",
-    " #.........w..1111111......................# ",
-    " #..f.........#######.......L......f.......# ",
-    " #..........t.#     #...................t.y# ",
-    " #c....<......#     #......................# ",
-    " ##############     ######################## ",
-    "                                             "
-   ],
-   "testi": {
-    "sottotitolo": "Pilone idraulico n. 1 · turno di notte",
-    "voci": [
-     {"id":"ingresso","zona":[2,19,13,27],"chi":"Altoparlante","testo":"…krrr… Turno di notte, giorno 41.207. Marea Ferrosa: livello ALTO. Nessun operaio lasci la postazione."},
-     {"id":"pompe","zona":[2,2,12,9],"chi":"Altoparlante","testo":"Sala pompe. Con la Marea alta le valvole restano chiuse e l’acqua resta dentro. Ordine della Regina."},
-     {"id":"capoturno","zona":[21,1,42,9],"chi":"Il Capoturno","capo":true,"testo":"Operaio fuori postazione. Il turno non è finito. IL TURNO NON FINISCE."}
-    ],
-    "letture": [
-     {"id":"registro","tipo":"libro","at":[11,27],"titolo":"Registro del turno di notte","righe":[
-       "Giorno 1. La Marea Ferrosa si è mangiata il molo est in una notte sola: il ferro delle barche è diventato polvere rossa. Le pompe reggono. Doppio turno per tutti.",
-       "Giorno 4. La pompa maestra tiene asciutte le sale basse. Ma con la Marea alta non si scarica niente: apri le valvole e il mare rosso risale dai tubi.",
-       "Giorno 6. Stanotte la Regina è scesa all’impianto, da sola. Mi ha chiesto quanta pressione possiamo dare al Pilone 1. Le ho detto: tutta. Ha sorriso come chi sa una cosa che tu non sai.",
-       "Giorno 9. Ho caricato nel Capoturno l’ordine di emergenza: finché la Marea è alta, valvole chiuse e nessun operaio lascia la postazione. Le sale basse si allagheranno. Meglio acqua nostra che la Marea.",
-       "Giorno 11. All’alba le barche partono per il giro dei piloni. Io resto alle valvole. Se la Barriera regge, qualcuno torni quaggiù a spegnere il Capoturno: quell’ordine non l’ho scritto per durare.",
-       "Giorno 12. L’acqua arriva alle ginocchia. Gli operai di ferro lavorano con l’acqua alla cintura e non si lamentano. Io sì. L’acqua è"
-     ]},
-     {"id":"targa","tipo":"incisione","at":[7,2],"titolo":"Targa d’ottone","righe":[
-       "IMPIANTO DI DRENAGGIO · PILONE 1",
-       "Dono della Corona alla gente della Laguna.",
-       "FINCHÉ L’ACQUA GIRA, LA MAREA NON ENTRA.",
-       "Sotto, graffiato con un chiodo: «e se l’acqua smette di girare?»"
-     ]},
-     {"id":"manuale","tipo":"libro","at":[21,27],"titolo":"Manuale dell’operaio di ferro, modello 3","righe":[
-       "Regola 1. L’operaio non lascia la postazione.",
-       "Regola 2. L’operaio non discute gli ordini del Capoturno.",
-       "Regola 3. Con la Marea alta, l’operaio chiude le valvole e le tiene chiuse.",
-       "Regola 4. Se trova una persona dove non dovrebbe stare, l’operaio la accompagna fuori. Con garbo.",
-       "Regola 5. Se il garbo non basta, vedi regola 2.",
-       "A matita, sul margine: «Il sensore della Marea si è bloccato su ALTO. Se la Barriera regge e il mare torna pulito, il Capoturno non lo saprà mai.»"
-     ]},
-     {"id":"tacche","tipo":"incisione","at":[16,2],"titolo":"Tacche nel ferro","righe":[
-       "Centinaia di tacche graffiate nella lamiera, a gruppi di cinque. Le prime sono dritte e profonde. Le ultime sono storte, fatte con qualcosa che non è più una mano.",
-       "Sotto, in piccolo: «QUANDO FINISCE IL TURNO?»"
-     ]}
+  {
+    "id": "grotta",
+    "nome": "Grotta della Marea",
+    "descr": "Grotte umide sotto le rocce del Porto: banditi accampati, lupi e ragni. Bronzo, ferro, monete, erbe.",
+    "stile": "grotta",
+    "difficolta": 1,
+    "tile": 2,
+    "legenda": {
+      "u": {
+        "libro": "libro_fuoco_continuo"
+      },
+      "b": {
+        "nemico": "bandito"
+      },
+      "a": {
+        "nemico": "bandito_arciere"
+      },
+      "l": {
+        "nemico": "lupo"
+      },
+      "s": {
+        "nemico": "ragno"
+      },
+      "c": {
+        "forziere": "comune"
+      },
+      "R": {
+        "forziere": "raro"
+      },
+      "t": {
+        "luce": true
+      },
+      "o": {
+        "colonna": true
+      },
+      "A": {
+        "altare": true
+      },
+      "C": {
+        "nemico": "capo_banditi",
+        "capo": true
+      }
+    },
+    "ingresso": {
+      "island": "porto",
+      "at": [
+        54,
+        35
+      ]
+    },
+    "rows": [
+      "                                        ",
+      "  ######  ################              ",
+      " ##....## #...a......a...##             ",
+      " #..c...# #.............R.#             ",
+      " #.....## #..o..b...b..o..#             ",
+      " ##...##  #......t.......##             ",
+      "  ##.##   #..b.........C.#  #######     ",
+      "   #.##   ##......##....## ##.....##    ",
+      "   #..#    ##....####..## ##...s...##   ",
+      "   ##.##    ##..##  ##..###..s...o..##  ",
+      "    #..#    ##..##   ##..#......#....#  ",
+      "    ##.##  ##....##   ##...........c.#  ",
+      "     #..# ##..l...###  #####.....s...#  ",
+      "    ###.###.........##    ##.##....###  ",
+      "   ##......t...o.....#   ##..###..##    ",
+      "  ##....l.........l..#  ##A.## #..#     ",
+      "  #...l.....##.......# ##..##  #..#     ",
+      "  #.......####.......###..##   #..##    ",
+      "  #..t...##  ##.....###..##    #...##   ",
+      "  ##....##    ##...###..##     #....##  ",
+      "   ##..##      ##.###..##      #..s..#  ",
+      "    #..##       #..#..##       #.....#  ",
+      "    ##..##      ##...##       ##..c..#  ",
+      "     ##.A##      ##.##        #..###### ",
+      "      ##..###   ##...##       #..## #R# ",
+      "       ##...#####..t..#########...###.# ",
+      "        ###..u....<......b............# ",
+      "          ######...........############ ",
+      "               #############            ",
+      "                                        "
     ]
-   }},
-  {"id":"archivio","nome":"Archivio Navigazionale","descr":"Sotto l'arco est della Laguna, le carte delle rotte della civiltà degli automi: gallerie del vento, archivisti a molla, droni sulle grate, aerostati e l'Astrolabio Impazzito. Argento, ferro, un po' d'oro.","stile":"archivio","difficolta":4,"richiede":"drenaggio","tile":2,"legenda":{"u":{"libro":"libro_bomba_fuoco"},"1":{"vento":1},"2":{"vento":2},"3":{"vento":3},"m":{"nemico":"archivista_molla"},"h":{"nemico":"idro_ragno","grata":true},"g":{"grata":true},"b":{"nemico":"aerostato_spia"},"B":{"nemico":"aerostato_spia","vento":1},"K":{"nemico":"astrolabio","capo":true},"c":{"forziere":"comune_archivio"},"R":{"forziere":"raro_archivio"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"L":{"altare":true,"ferme":[3]},"z":{"timone":3}},"ingresso":{"island":"laguna","at":[47,36]},
-   "venti":[{"n":1,"dir":"o","forza":4.5,"soffia":2.2,"pausa":2.4,"fase":0},{"n":2,"dir":"s","forza":4.5,"soffia":2,"pausa":2.6,"fase":1.3},{"n":3,"dir":"s","forza":9,"soffia":1,"pausa":0}],
-   "rows": [
-    "#############################################",
-    "#R.............#######.t...................R#",
-    "#.....m......z.#######......................#",
-    "#..............#######.....o.........o......#",
-    "#.......b......#######..........K...........#",
-    "#.g............#######......................#",
-    "#.h...o...o....#######.....o.........o......#",
-    "#.g..........u.#######......................#",
-    "#.g........b...#######c...................t.#",
-    "#t.............######################..######",
-    "#.............t####################t........#",
-    "####222############################........m#",
-    "####222######............t#########.L.......#",
-    "####222######.m.........b.#########.........#",
-    "####222######.....hggg....###########333#####",
-    "####222...........gggh....###########333#####",
-    "####222...................###########333#####",
-    "####222######...........m.###########333#####",
-    "####222######c............###########333#####",
-    "####222###########..######.t............gghg#",
-    "#...........######..######........b.........#",
-    "#.t......m..######..######....ghgg......t...#",
-    "#...........11111B11o11111.............m....#",
-    "#...........111o1111111111..................#",
-    "#...........11111111111o11.......m..g.......#",
-    "#...........111111o1111111...A......h.......#",
-    "#.........t.##############..........g....m..#",
-    "#....<......##############.................c#",
-    "#############################################",
-    "                                             "
-   ],
-   "testi": {
-    "sottotitolo": "Pilone idraulico n. 2 · le carte del vento",
-    "voci": [
-     {"id":"ingresso","zona":[1,20,11,27],"chi":"Archivista Capo","testo":"…tic… Segnale dal Pilone 1: l’acqua gira di nuovo. Prima volta in 41.207 notti. Ricalcolare tutte le rotte. Silenzio in sala."},
-     {"id":"galleria","zona":[12,22,25,25],"chi":"Archivista Capo","testo":"Le ventole soffiano verso l’uscita: l’aria della Marea non entra e le carte restano asciutte. Visitatori: dietro gli scaffali."},
-     {"id":"mantici","zona":[1,1,14,10],"chi":"Archivista Capo","testo":"Sala dei Mantici. Il Condotto Maestro soffia finché la Marea è alta. Il timone non si tocca. Ordine della Regina."},
-     {"id":"astrolabio","zona":[22,1,43,8],"chi":"L’Astrolabio Impazzito","capo":true,"testo":"Stella polare: NON TROVATA. Cielo: CHIUSO. Rotta: NON TROVATA. Ricalcolo. Ricalcolo. RICALCOLO."}
-    ],
-    "letture": [
-     {"id":"diario","tipo":"libro","at":[2,24],"titolo":"Diario di bordo della prima Regata","righe":[
-       "Notte prima della partenza. La Regina ha voluto dall’Archivio tutte le rotte: correnti, venti, secche. Dodici archivisti a molla hanno copiato per tre giorni senza fermarsi.",
-       "Alba. Si parte dal molo con il vento contro, come aveva detto l’Astrolabio: a remi fino al Pilone 1. Il Capoturno ci ha salutato col martello. Non so se ci ha riconosciuti.",
-       "Pilone 2, l’Archivio. Qui il vento gira sempre dove dice l’Astrolabio. Abbiamo issato le vele all’istante giusto e il pilone si è caricato da solo, come un respiro.",
-       "La Marea ci segue. Dalla poppa si vede: una striscia rossa che si mangia il riflesso delle stelle. La Regina dice di non guardarla. Lei la guarda sempre.",
-       "Pilone 3. Fa caldo, l’acqua fuma. Scrivo poco.",
-       "Ultima pagina, un’altra mano: «Il giro è chiuso. La Barriera è su e il cielo si è fatto di vetro. La Regina non è tornata a bordo.»"
-     ]},
-     {"id":"carta","tipo":"incisione","at":[16,12],"titolo":"Carta delle correnti","righe":[
-       "LA ROTTA DEI QUATTRO PILONI",
-       "Un anello d’acqua inciso nel muro, con quattro tacche: DRENAGGIO · ARCHIVIO · FUCINA · SANTUARIO.",
-       "Sotto, più piccolo: «Si parte dal molo e si torna al molo. Chi salta un pilone, ricomincia da capo.»",
-       "Qualcuno ha cerchiato la quarta tacca, più e più volte, finché il ferro non si è consumato."
-     ]},
-     {"id":"registro","tipo":"libro","at":[3,2],"titolo":"Registro dell’Archivista a Molla n. 12","righe":[
-       "Archivista n. 12. Carica: piena. Compito: ricopiare le carte prima che l’umidità della Marea le mangi.",
-       "Regola 1. Una carta copiata è una carta salvata. Regola 2. Un archivista che si ferma va ricaricato. Regola 3. Chi tocca le carte senza permesso va accompagnato fuori. Di corsa.",
-       "Nota. Da quando c’è la Barriera il cielo è chiuso: l’Astrolabio non vede le stelle e dice che tutte le rotte sono sbagliate. Ricopiamo tutto da capo, ogni notte.",
-       "Nota. Carte ricopiate: 41.206 volte. Carte giuste: nessuna. Carica: piena.",
-       "A matita, storto: «Se qualcuno ferma il Condotto, la Marea entra. O forse la Marea non c’è più. Non lo so. Qui sotto non ci sono finestre.»"
-     ]},
-     {"id":"lettera","tipo":"incisione","at":[41,10],"titolo":"Lettera della Regina","righe":[
-       "Una lastra d’ottone avvitata storta, incisa in fretta.",
-       "«All’Astrolabio. Quando alzerò la Barriera il cielo si chiuderà e per un po’ non vedrai più le stelle. Non avere paura. Continua a girare.»",
-       "«Un giorno qualcuno tornerà a fare il giro per davvero. Mostragli la rotta. Io sarò dove la rotta finisce.»",
-       "Al posto della firma, un sigillo a forma di onda."
-     ]}
+  },
+  {
+    "id": "cripta",
+    "nome": "Cripta delle Ossa",
+    "descr": "Sotto la porta di pietra dell’Isola Selvaggia: ossari, una biblioteca dimenticata e la sala del Re delle Ossa. Argento, ossa di mostro, libri.",
+    "stile": "cripta",
+    "difficolta": 2,
+    "tile": 2,
+    "legenda": {
+      "u": {
+        "libro": "libro_elettro_continuo"
+      },
+      "s": {
+        "nemico": "scheletro"
+      },
+      "a": {
+        "nemico": "scheletro_arciere"
+      },
+      "n": {
+        "nemico": "nonmorto"
+      },
+      "K": {
+        "nemico": "re_ossa",
+        "capo": true
+      },
+      "c": {
+        "forziere": "comune_cripta"
+      },
+      "R": {
+        "forziere": "raro_cripta"
+      },
+      "f": {
+        "libro": "libro_fulmine"
+      },
+      "t": {
+        "luce": true
+      },
+      "o": {
+        "colonna": true
+      },
+      "A": {
+        "altare": true
+      }
+    },
+    "ingresso": {
+      "island": "selvaggia",
+      "at": [
+        18,
+        12
+      ]
+    },
+    "rows": [
+      "                                            ",
+      " #######     ################      #######  ",
+      " #.....#     #...o......o...#      #.....#  ",
+      " #.c...#     #..............#     ##..R..## ",
+      " #.....#     #...o..K...o...#     #.......# ",
+      " ##.#.##     #..............#     #...n...# ",
+      "  #...#      #...o......o...#     ##.....## ",
+      "  ##.##      #.......R......#      ###.###  ",
+      " ###.####    ##............##    ####...#   ",
+      " #......#     ##...t..t...##    ##.....#### ",
+      " #.s..o.#      ####..######    ##.........# ",
+      " #......#         #..#         #..s..o..a.# ",
+      " #..s...#         #A.#         #..........# ",
+      " ###.#### #########n.#############.....#### ",
+      "  ##.##  ##.....................######.##   ",
+      "  #...####..t...o........o...t..#  ##...##  ",
+      "  #.a.......s.......nn.......s..#  #..c..#  ",
+      "  #...####......o........o......####.....#  ",
+      "  ##.#####..........................#...##  ",
+      "   #......####......####......##.......##   ",
+      "   ######.#  #......#  #......##.#######    ",
+      "     ##...#  ##A...##  ##....###.#          ",
+      "     #..f.#   ##..##    ##..## #.#####      ",
+      "     #..u.#    ##..######..##  #.....#      ",
+      "     ###.##     #..........#   ##.s..#      ",
+      "       #.#########...t....########...#      ",
+      "       #...........a..a...........n.c#      ",
+      "       ###########...........#########      ",
+      "                 #.....<.....#              ",
+      "                 #############              ",
+      "                                            "
     ]
-   }},
-  {"id":"fucina","nome":"Fucina a Pressione","descr":"Sotto l'arco nord della Laguna, la forgia degli automi che teneva caldo il Pilone 3: colate di lava che respirano, cascate di raffreddamento, fornaci semoventi, scintille, palombari e il Mastro Forgiatore. Ferro, argento, oro.","stile":"fucina","difficolta":5,"richiede":"archivio","tile":2,"legenda":{"1":{"lava":1},"2":{"lava":2},"=":{"colata":1},"x":{"chiusa":1},"w":{"getto":true},"s":{"nemico":"scintilla_vapore"},"f":{"nemico":"fornace_semovente"},"g":{"nemico":"golem_palombaro"},"K":{"nemico":"mastro_forgiatore","capo":true},"c":{"forziere":"comune_fucina"},"R":{"forziere":"raro_fucina"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"B":{"altare":true,"asciutti":[1]}},"ingresso":{"island":"laguna","at":[26,5]},
-   "lave":[{"n":1,"scorre":2.4,"crosta":2.8,"fase":0,"dps":18,"secondi":2},{"n":2,"scorre":2,"crosta":3,"fase":1.4,"dps":18,"secondi":2}],
-   "rows": [
-    "#############################################",
-    "#......t....R.#######t....................R.#",
-    "#.x...........#######......w.........w......#",
-    "#........o....#######...o...............o...#",
-    "#.....g......t#######..........K............#",
-    "#..o..........#######.......................#",
-    "#.........s...#######...o..w.........w..o...#",
-    "#...w..s......#######.......................#",
-    "#...........f.#######.t....................t#",
-    "####...##############################..######",
-    "####...############################.........#",
-    "####222#########.t.......c#########........t#",
-    "####222#########.o......o.#########..B......#",
-    "####...#########.......f..#########.......s.#",
-    "####...#########....oo....############===####",
-    "####................oo....############===####",
-    "####.w...........s......g.############===####",
-    "####...#########..........############===####",
-    "####...############..######t...............t#",
-    "#.........c.#######..######......s..o.......#",
-    "#........t..#######..######....w..........o.#",
-    "#...........#######..######..f..............#",
-    "#.......s....t.11.....11.t...........g......#",
-    "#..............11..s..11................w...#",
-    "#..............11.....11......o...A.........#",
-    "#..o...........11..f..11...............s....#",
-    "#...........###############.g....o.......f..#",
-    "#t...<......###############.........t......c#",
-    "#############################################",
-    "                                             "
-   ],
-   "testi": {
-    "sottotitolo": "Pilone idraulico n. 3 · il fuoco che aspetta",
-    "voci": [
-     {"id":"ingresso","zona":[1,19,11,27],"chi":"Fuochista Capo","testo":"…fsss… Pilone 1: acqua. Pilone 2: vento. Pilone 3: fuoco. Pressione in risalita dopo 41.207 notti. Caricare i forni!"},
-     {"id":"colate","zona":[12,22,26,25],"chi":"Fuochista Capo","testo":"Le colate respirano. Crosta scura: si passa. Crepe accese: si brucia. Gli automi non bruciano. Gli operai di carne sì."},
-     {"id":"chiusa","zona":[1,1,13,8],"chi":"Fuochista Capo","testo":"Chiusa del raffreddamento: si apre solo per ordine della Regina. La Colata Maestra tiene caldo il cuore. NON TOCCARE."},
-     {"id":"forgiatore","zona":[21,1,43,8],"chi":"Il Mastro Forgiatore","capo":true,"testo":"Il fuoco non si spegne finché Lei non torna. Ho forgiato la Sua Egida. Ho forgiato il Suo letto di ferro. NON SI SPEGNE."}
-    ],
-    "letture": [
-     {"id":"quaderno","tipo":"libro","at":[2,21],"titolo":"Quaderno del garzone di forgia","righe":[
-       "Primo giorno alla Fucina. Il Mastro Forgiatore non dorme e non mangia: ha una fornace al posto della pancia e quattro zoccoli che fanno tremare il pavimento. Mi ha detto: «Il fuoco non si lascia mai solo.»",
-       "Ho capito come funziona il Pilone 3. Il fuoco scalda l’acqua della Laguna, il vapore spinge i pistoni, i pistoni caricano il pilone. Senza fuoco niente vapore. Senza vapore niente Barriera.",
-       "La Marea Ferrosa è arrivata a ponente. Il Mastro ha messo i palombari di guardia alle chiuse: se l’acqua rossa entra nei tubi, i forni si spengono per sempre.",
-       "Notte della Regata. Le barche sono arrivate al Pilone 3 con l’acqua che fumava. Abbiamo dato tutto il vapore che avevamo. La Regina è scesa a terra ed è venuta qui, alla forgia. Ha parlato a lungo col Mastro.",
-       "Dopo, il Mastro ha spento tutti i forni tranne il suo e ci ha mandati via. Gli ho chiesto per chi lavorava, adesso. Ha detto: «Per Lei. Finché non torna.»",
-       "Ultima riga, scritta in fretta: «Il martello batte da tre giorni. Il Mastro dice che sta forgiando un letto. Per chi?»"
-     ]},
-     {"id":"targa","tipo":"incisione","at":[21,11],"titolo":"Targa dell’Altoforno","righe":[
-       "FUCINA A PRESSIONE · PILONE 3",
-       "Il fuoco scalda l’acqua. L’acqua spinge il pilone. Il pilone tiene su il cielo.",
-       "Dono della Corona alla gente della Laguna.",
-       "Sotto, graffiato con un chiodo: «e chi tiene su il fuoco?»"
-     ]},
-     {"id":"commesse","tipo":"libro","at":[11,4],"titolo":"Registro delle commesse","righe":[
-       "Commessa n. 1 · Quattro piastre per i piloni, metallo della Corona. Consegnate.",
-       "Commessa n. 7 · Dodici lame per la Guardia d’Onore, temprate nell’acqua che corre: non sono acciaio, sono acqua che non smette di correre. Consegnate.",
-       "Commessa n. 9 · Una lancetta per l’orologio della Regina. Deve battere l’ora esatta anche quando nessuno la guarda. Consegnata.",
-       "Commessa n. 12 · Il Custode dell’Egida: un guardiano che non dorma mai, con tre cuori (acqua, vapore e moto). Consegnato al Santuario.",
-       "Commessa n. 13 · Un letto di ferro, misura di una persona. Nessun ornamento. Consegna: Santuario. Al posto della firma, un sigillo a forma d’onda.",
-       "A margine, la grafia del Mastro: «L’ultima l’ho fatta piano. Non volevo finirla.»"
-     ]},
-     {"id":"impronta","tipo":"incisione","at":[41,10],"titolo":"La porta dell’Altoforno","righe":[
-       "Nel ferro della porta, lucida come il primo giorno, l’impronta di una mano piccola premuta sul metallo ancora caldo.",
-       "Accanto, inciso con la punta di un chiodo: «Tienilo acceso per me. Tornerò io a spegnerlo.»",
-       "Sotto, a colpi di martello, lettere grandi e storte: ASPETTO."
-     ]}
+  },
+  {
+    "id": "vuoto",
+    "nome": "Portale del Vuoto",
+    "descr": "Piattaforme sospese nel nulla oltre il portale del Borgo Marea: spettri, golem di cristallo e il Custode. Vetro, meteorite, oggetti unici.",
+    "stile": "vuoto",
+    "difficolta": 8,
+    "richiede": "unico_anello_onda",
+    "tile": 2,
+    "legenda": {
+      "p": {
+        "nemico": "spettro"
+      },
+      "g": {
+        "nemico": "golem"
+      },
+      "X": {
+        "nemico": "custode",
+        "capo": true
+      },
+      "c": {
+        "forziere": "comune_vuoto"
+      },
+      "R": {
+        "forziere": "raro_vuoto"
+      },
+      "w": {
+        "libro": "libro_lupo_spettrale"
+      },
+      "t": {
+        "luce": true
+      },
+      "o": {
+        "colonna": true
+      },
+      "A": {
+        "altare": true
+      }
+    },
+    "ingresso": {
+      "island": "porto",
+      "at": [
+        22,
+        36
+      ]
+    },
+    "rows": [
+      "                                                ",
+      "    .....         ###############               ",
+      "   .......        #......R......#       .....   ",
+      "   .c.....        #..o.......o..#      .......  ",
+      "   .......        #......X......#      ...p...  ",
+      "   ..p.o..        #.............#      .......  ",
+      "   .......        #..o.......o..#      ..g.R..  ",
+      "    .....         #....t...t....#      .......  ",
+      "      .           ######...######       .....   ",
+      "      .                  .               .      ",
+      "  .......  ......     .......     ........      ",
+      "  ..g.... ....g...  .....o.....  ......o..      ",
+      "  ....... ..o.....  ....t......  ...p.....      ",
+      "  .o...o. ...p........p.....g.............      ",
+      "  ....... .........................o......      ",
+      "     .    .....o..  ......t....  ......g..      ",
+      "     .    ........  ...........  .........      ",
+      "   ......  ......     ...A...     ...........   ",
+      "   ....p.    .          ...                 .   ",
+      "   ..w...    .          ...                 p   ",
+      "   ......    .          ...                 .   ",
+      "     .       .          .t.                 .   ",
+      "     .       A          ...                 .   ",
+      "     ................p.........p..............  ",
+      "            .           ...           .         ",
+      "         .......        ...         ......      ",
+      "         ..c....        ...         .p....      ",
+      "         ....g..        ...         ...c..      ",
+      "         .t.....     .........      ......      ",
+      "                    ...........                 ",
+      "                    ...t.<.t...                 ",
+      "                     .........                  ",
+      "                                                "
     ]
-   }},
-  {"id":"mausoleo","nome":"Mausoleo Cinetico","descr":"Sotto l'arco nord-ovest della Laguna, il Santuario della Regina e l'orologio del Pilone 4: lancette giganti, chierici a ingranaggi, sentinelle con lo scudo, la Guardia d'Onore e il Custode dell'Egida. Argento, oro, gli unici della Regina.","stile":"mausoleo","difficolta":6,"richiede":"fucina","tile":2,"legenda":{"P":{"colonna":true},"=":{"cancello":1},"x":{"carica":1},"S":{"sarcofago":true},"e":{"nemico":"sentinella_egida"},"g":{"nemico":"guardia_onore"},"h":{"nemico":"chierico_ingranaggi"},"K":{"nemico":"custode_egida","capo":true},"c":{"forziere":"comune_mausoleo"},"R":{"forziere":"raro_mausoleo"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"B":{"altare":true,"asciutti":[1]}},"ingresso":{"island":"laguna","at":[8,13]},
-   "lancette":[{"n":1,"at":[5,13],"lunga":8.4,"giro":0.55,"fase":0,"largo":0.45,"danno":20,"spinta":3,"pausa":1.5},{"n":2,"at":[21,14],"lunga":10.4,"giro":0.5,"fase":0,"largo":0.45,"danno":22,"spinta":3,"pausa":1.5},{"n":3,"at":[21,14],"lunga":6.4,"giro":-0.8,"fase":3.1416,"largo":0.45,"danno":22,"spinta":3,"pausa":1.5}],
-   "rows": [
-    "#############################################",
-    "#......t....R.#######.R.........S...........#",
-    "#.x...........#######.......................#",
-    "#........o....#######.....o...........o.....#",
-    "#.....e.......#######...........K...........#",
-    "#.............#######.......................#",
-    "#..h......g...#######.....o...........o.....#",
-    "#.............#######t.....................t#",
-    "#####.#################################..####",
-    "#t........######..........t#...t..c#.......t#",
-    "#.......g.######...........#.....h.#........#",
-    "#.........######...........#.......#......B.#",
-    "#.........######...........#.o.....#........#",
-    "#....P........##...........#.....o.#........#",
-    "#.........###........P.............###...####",
-    "#.........######...........#..e....###...####",
-    "#.h.......######...........#.......###===####",
-    "#.........######...........#.......###...####",
-    "#####.##########.........g.####.######...####",
-    "#........t..####...........####.######...####",
-    "#......g..c.#########.#####.t..............t#",
-    "#...........#########.#####...g.............#",
-    "#.............t..........t.......e.......g..#",
-    "#........e.......g..........................#",
-    "#.......................e......o.......o....#",
-    "#..................................A........#",
-    "#...........###############...........h.....#",
-    "#t...<......###############................c#",
-    "#############################################",
-    "#############################################"
-   ],
-   "testi": {
-    "sottotitolo": "Pilone idraulico n. 4 · il Santuario della Regina",
-    "voci": [
-     {"id":"ingresso","zona":[1,19,11,27],"chi":"La voce della Regina","testo":"…tic, tac… Pilone 4. Se senti questa voce, i tre fuochi sono accesi e la Marea è passata. Sei arrivato tu. Non io."},
-     {"id":"quadrante","zona":[16,9,26,19],"chi":"La voce della Regina","testo":"Il Pilone 4 è un orologio: batte il moto della laguna. Le lancette non aspettano nessuno. Passa dietro di loro, mai davanti."},
-     {"id":"contrappesi","zona":[1,1,13,7],"chi":"La voce della Regina","testo":"La chiave di carica apre il Santuario. L’ho lasciata qui per chi avrebbe fatto tutto il giro. Caricala, e vieni."},
-     {"id":"custode","zona":[21,1,43,7],"chi":"Il Custode dell’Egida","capo":true,"testo":"Tre cuori. Un solo ordine: nessuno sveglia la Regina. Acqua. Vapore. Moto. NESSUNO."}
+  },
+  {
+    "id": "drenaggio",
+    "nome": "Impianto di Drenaggio",
+    "descr": "Sotto l'anello della Laguna, le pompe arrugginite della civiltà degli automi: sale allagate, valvole da girare, il Collettivo Rottamautomi e il Capoturno. Ferro, argento, un po' d'oro.",
+    "stile": "drenaggio",
+    "difficolta": 3,
+    "tile": 2,
+    "legenda": {
+      "u": {
+        "libro": "libro_bomba_elettrica"
+      },
+      "f": {
+        "nemico": "tubo_strisciante"
+      },
+      "w": {
+        "nemico": "operaio_arrugginito"
+      },
+      "T": {
+        "nemico": "valvola_sparavapore"
+      },
+      "K": {
+        "nemico": "capoturno",
+        "capo": true
+      },
+      "c": {
+        "forziere": "comune_drenaggio"
+      },
+      "R": {
+        "forziere": "raro_drenaggio"
+      },
+      "t": {
+        "luce": true
+      },
+      "o": {
+        "colonna": true
+      },
+      "A": {
+        "altare": true
+      },
+      "L": {
+        "altare": true,
+        "asciutti": [
+          1
+        ]
+      },
+      "1": {
+        "acqua": 1
+      },
+      "2": {
+        "acqua": 2
+      },
+      "3": {
+        "acqua": 3
+      },
+      "x": {
+        "valvola": 1
+      },
+      "y": {
+        "valvola": 2
+      },
+      "z": {
+        "valvola": 3
+      }
+    },
+    "ingresso": {
+      "island": "laguna",
+      "at": [
+        18,
+        45
+      ]
+    },
+    "rows": [
+      "                    ######################## ",
+      " ####################............T.........# ",
+      " #.........t.##33333#.....t..........t....R# ",
+      " #x..........##33333#........w.............# ",
+      " #........w..##33..3#....o........K...o.f..# ",
+      " #...o...o.....33R.3#......................# ",
+      " #..........T..33..3#...f..................# ",
+      " #..w........##33333#....o............o....# ",
+      " #......fu...##33333#.t..................t.# ",
+      " #.t........c##33333#......................# ",
+      " #...........#################2222########## ",
+      " ####...######               #2222#          ",
+      "    #.A.#                    #2222#          ",
+      "    #...#           ##########2222########## ",
+      "    #.t.#           #......................# ",
+      "    #...#           #.z.t..............w..c# ",
+      "    #.f.#           #.........w............# ",
+      "    #...#           #......................# ",
+      " ####...#######     #.....o..........o.....# ",
+      " #............#     #......................# ",
+      " #.t.....f....#######..........t..........T# ",
+      " #............1111111......f...............# ",
+      " #...o....o...1111111T............w........# ",
+      " #............1111111.....o..........o.....# ",
+      " #.........w..1111111......................# ",
+      " #..f.........#######.......L......f.......# ",
+      " #..........t.#     #...................t.y# ",
+      " #c....<......#     #......................# ",
+      " ##############     ######################## ",
+      "                                             "
     ],
-    "letture": [
-     {"id":"diario","tipo":"libro","at":[2,21],"titolo":"Diario di bordo della prima Regata · l’ultima tappa","righe":[
-       "Pilone 4. Siamo arrivati all’alba, con le vele annerite dal vapore della Fucina. Nessuno parlava.",
-       "La Marea Ferrosa era a un miglio. Si vedeva arrivare: rossa, lenta. Dove passava, il ferro dei moli si scioglieva come zucchero.",
-       "La Regina è scesa dalla barca da sola. Ai rematori ha detto: «Fate il giro un’altra volta. E poi un’altra. Non fermatevi finché l’acqua gira.»",
-       "È entrata nel Santuario. Il Custode le ha aperto il cancello e l’ha richiuso dietro di lei.",
-       "A mezzogiorno il cielo si è chiuso: un velo d’acqua che girava da un pilone all’altro. La Marea ci ha sbattuto contro e si è fermata.",
-       "Abbiamo fatto il giro fino a notte. Lei non è più uscita.",
-       "Ultima riga, con un’altra mano, molti anni dopo: «Lo facciamo ancora, il giro. Ogni anno, all’alba. I bambini lo chiamano la Regata.»"
-     ]},
-     {"id":"quadrante","tipo":"incisione","at":[17,9],"titolo":"Il quadrante del Pilone 4","righe":[
-       "PILONE 4 · SANTUARIO · L’OROLOGIO DELLA LAGUNA",
-       "Quattro tacche sul quadrante: acqua, vento, fuoco, moto. Quando battono insieme, la Barriera regge.",
-       "La lancetta lunga conta le correnti. La corta conta gli anni. Nessuna delle due si ferma per chi passa.",
-       "Graffiato piccolo sotto il quattro: «Tic. Tac. Aspettiamo.»"
-     ]},
-     {"id":"breviario","tipo":"libro","at":[29,10],"titolo":"Breviario del Chierico a Ingranaggi","righe":[
-       "Primo comandamento: l’olio prima della preghiera. Un ingranaggio asciutto è un ingranaggio che dubita.",
-       "Secondo comandamento: la Guardia d’Onore non si ferma mai. Dodici lame dalla Fucina, dodici guardie. Ne restano sette: le altre se le è prese il tempo.",
-       "Terzo comandamento: il Custode dell’Egida ha tre cuori. L’acqua respinge, il vapore nasconde, il moto non cade. Non si fermano mai tutti insieme.",
-       "Quarto comandamento: la Regina dorme e il Pilone 4 batte per Lei. Chi entra nel Santuario sveglia il Custode, e il Custode non perdona.",
-       "A margine, olio e ruggine: «Il Pilone 1 ha ripreso a girare. Poi il 2. Poi il 3. Qualcuno sta facendo il giro. Svegliate la Guardia.»"
-     ]},
-     {"id":"porta","tipo":"incisione","at":[37,9],"titolo":"La porta del Santuario","righe":[
-       "Sopra la porta, in lettere d’ottone: QUI RIPOSA CHI HA FERMATO IL MARE.",
-       "Sul battente, la stessa mano piccola premuta sulla porta dell’Altoforno. Più in basso, una mano enorme di ferro: il Custode.",
-       "Sotto, inciso con cura, da qualcuno che aveva tutto il tempo del mondo: «Nessuno entri. Nessuno esca. Nessuno pianga.»"
-     ]},
-     {"id":"sarcofago","tipo":"libro","at":[30,2],"dopo":"capo","titolo":"L’ultima lettera della Regina","righe":[
-       "Il coperchio è scivolato da solo. Dentro il sarcofago non c’è nessuno: un cuscino di velluto consumato, un anello e una lettera piegata in quattro.",
-       "«A chi ha fatto tutto il giro. Se leggi, i quattro piloni battono di nuovo insieme e la Marea non tornerà più. Allora posso dirtelo: io qui non ci sono.»",
-       "«Alla Barriera ho dato tutto quello che avevo: il fiato, la voce, il nome. Quello che restava di me è diventato acqua che gira. Sono nelle correnti della laguna. Ci sono sempre stata.»",
-       "«Al Custode: grazie, puoi riposare. Al Mastro: spegni pure il fuoco. Non torno, ma non serve più.»",
-       "«Alla gente che verrà: fate il giro. Non per caricare i piloni: per gioco, per vincere, per ridere. Quando qualcuno ride sull’acqua, io lo sento.»",
-       "«Tieni l’anello, era mio. Quando colpisci, sentirai l’onda.» Al posto della firma, un sigillo a forma d’onda."
-     ]}
-    ]
-   }},
-  {"id":"diga","nome":"La Diga dei Disertori","descr":"Nella Gola del Dente, sull'Isola della Tempesta: la prua della «Stella del Mattino» incastrata di traverso tra le rocce. Ruote di sentina, correnti di risacca, i Disertori del Capitano Vaelen. Oro, argento, meteorite.","stile":"diga","difficolta":9,"tile":2,"legenda":{"1":{"ruota":1},"2":{"ruota":2},"4":{"ruota":4},"5":{"ruota":5},"w":{"acqua":1},"W":{"acqua":2},"=":{"acqua":6},"_":{"ponte":5},"r":{"risacca":3},"X":{"risacca":3,"rottami":true},"R":{"risacca":4},"Y":{"risacca":4,"rottami":true},"p":{"pilone":true},"o":{"colonna":true},"t":{"luce":true},"A":{"altare":true},"B":{"altare":true,"asciutti":[5],"ferme":[4]},"g":{"nemico":"guardiano_paratia"},"f":{"nemico":"fuciliere_acquafonda"},"u":{"nemico":"albatros_pece"},"V":{"nemico":"capitano_vaelen","capo":true},"c":{"forziere":"comune_diga"},"C":{"forziere":"raro_diga"}},"ingresso":{"island":"tempesta","at":[22,20]},
-   "venti":[{"n":3,"dir":"s","forza":6,"soffia":1,"pausa":2.2,"fase":0},{"n":4,"dir":"o","forza":9,"soffia":1,"pausa":0}],
-   "rottami":{"danno":22,"ogni":0.8},
-   "rows": [
-    "##############################              #",
-    "#############t............t###              #",
-    "#t.....######........g.....###t............t#",
-    "#.c....######..f...........###............C.#",
-    "#...g..##........WWWWWW....###=............=#",
-    "#......##........WWC.WW..u.###=..p......p..=#",
-    "#......##..##....WW..WW....###=............=#",
-    "#......##..##....WWWWWW....###=.....V......=#",
-    "#wwww####..##.2.........f..###=............=#",
-    "#wwww####..##t.............###=............=#",
-    "#t..........###..#############=..p......p..=#",
-    "#.......o...##t.......########=............=#",
-    "#....1....u.##.....f..########..............#",
-    "#...........##......4.########t............t#",
-    "#......A....##........################..#####",
-    "#..........t######..##################..#####",
-    "#..f..........o.rr...o.rr.o.#######t......t##",
-    "#...............rr.....rr...#######.....g..##",
-    "####...######...ro.....or.f.#######..B.....##",
-    "####...######t..rr..g..rr..t#YYRRRR........##",
-    "#t........###...rr.....rr...#YYRRRR........##",
-    "#.........###.u.rr.....rr......g.##......f.##",
-    "#.........###...XX.f...XXu.......##........##",
-    "#......g..###c..XX.....XX...#############..##",
-    "#........t###############################..##",
-    "#.........###############################..##",
-    "#.........t........___.....c....t..........##",
-    "#.............f....___.5.........u.........##",
-    "#.<.......###################################",
-    "#############################################"
-   ],
-   "testi": {
-    "sottotitolo": "Il Relitto della «Stella del Mattino»",
-    "voci": [
-     {"id":"falla","zona":[1,20,9,28],"chi":"Eco della Stella del Mattino","testo":"«Le scialuppe sono fuori portata, Capitano!» «Bene. Inchiodate il timone: da questo varco non passerà nemmeno il mare.»"},
-     {"id":"batteria","zona":[13,16,27,23],"chi":"Eco della Stella del Mattino","testo":"«Ho finito la polvere, Vaelen…» «Usa i rottami, fratello. Ogni minuto che compriamo è un miglio di vita per i nostri figli.»"},
-     {"id":"infermeria","zona":[13,1,26,9],"chi":"Eco della Stella del Mattino","testo":"«Non piangete per chi resta sul fondo. Noi siamo l’ancora che ha permesso al futuro di prendere il largo.»"},
-     {"id":"timone","zona":[35,16,42,22],"chi":"Il nostromo e il Capitano Vaelen","capo":true,"testo":"«Sono passati cent’anni, Capitano. I bambini sono salvi.» «E allora perché stringo ancora quest’albero, vecchio amico?»"}
+    "testi": {
+      "sottotitolo": "Pilone idraulico n. 1 · turno di notte",
+      "voci": [
+        {
+          "id": "ingresso",
+          "zona": [
+            2,
+            19,
+            13,
+            27
+          ],
+          "chi": "Altoparlante",
+          "testo": "…krrr… Turno di notte, giorno 41.207. Marea Ferrosa: livello ALTO. Nessun operaio lasci la postazione."
+        },
+        {
+          "id": "pompe",
+          "zona": [
+            2,
+            2,
+            12,
+            9
+          ],
+          "chi": "Altoparlante",
+          "testo": "Sala pompe. Con la Marea alta le valvole restano chiuse e l’acqua resta dentro. Ordine della Regina."
+        },
+        {
+          "id": "capoturno",
+          "zona": [
+            21,
+            1,
+            42,
+            9
+          ],
+          "chi": "Il Capoturno",
+          "capo": true,
+          "testo": "Operaio fuori postazione. Il turno non è finito. IL TURNO NON FINISCE."
+        }
+      ],
+      "letture": [
+        {
+          "id": "registro",
+          "tipo": "libro",
+          "at": [
+            11,
+            27
+          ],
+          "titolo": "Registro del turno di notte",
+          "righe": [
+            "Giorno 1. La Marea Ferrosa si è mangiata il molo est in una notte sola: il ferro delle barche è diventato polvere rossa. Le pompe reggono. Doppio turno per tutti.",
+            "Giorno 4. La pompa maestra tiene asciutte le sale basse. Ma con la Marea alta non si scarica niente: apri le valvole e il mare rosso risale dai tubi.",
+            "Giorno 6. Stanotte la Regina è scesa all’impianto, da sola. Mi ha chiesto quanta pressione possiamo dare al Pilone 1. Le ho detto: tutta. Ha sorriso come chi sa una cosa che tu non sai.",
+            "Giorno 9. Ho caricato nel Capoturno l’ordine di emergenza: finché la Marea è alta, valvole chiuse e nessun operaio lascia la postazione. Le sale basse si allagheranno. Meglio acqua nostra che la Marea.",
+            "Giorno 11. All’alba le barche partono per il giro dei piloni. Io resto alle valvole. Se la Barriera regge, qualcuno torni quaggiù a spegnere il Capoturno: quell’ordine non l’ho scritto per durare.",
+            "Giorno 12. L’acqua arriva alle ginocchia. Gli operai di ferro lavorano con l’acqua alla cintura e non si lamentano. Io sì. L’acqua è"
+          ]
+        },
+        {
+          "id": "targa",
+          "tipo": "incisione",
+          "at": [
+            7,
+            2
+          ],
+          "titolo": "Targa d’ottone",
+          "righe": [
+            "IMPIANTO DI DRENAGGIO · PILONE 1",
+            "Dono della Corona alla gente della Laguna.",
+            "FINCHÉ L’ACQUA GIRA, LA MAREA NON ENTRA.",
+            "Sotto, graffiato con un chiodo: «e se l’acqua smette di girare?»"
+          ]
+        },
+        {
+          "id": "manuale",
+          "tipo": "libro",
+          "at": [
+            21,
+            27
+          ],
+          "titolo": "Manuale dell’operaio di ferro, modello 3",
+          "righe": [
+            "Regola 1. L’operaio non lascia la postazione.",
+            "Regola 2. L’operaio non discute gli ordini del Capoturno.",
+            "Regola 3. Con la Marea alta, l’operaio chiude le valvole e le tiene chiuse.",
+            "Regola 4. Se trova una persona dove non dovrebbe stare, l’operaio la accompagna fuori. Con garbo.",
+            "Regola 5. Se il garbo non basta, vedi regola 2.",
+            "A matita, sul margine: «Il sensore della Marea si è bloccato su ALTO. Se la Barriera regge e il mare torna pulito, il Capoturno non lo saprà mai.»"
+          ]
+        },
+        {
+          "id": "tacche",
+          "tipo": "incisione",
+          "at": [
+            16,
+            2
+          ],
+          "titolo": "Tacche nel ferro",
+          "righe": [
+            "Centinaia di tacche graffiate nella lamiera, a gruppi di cinque. Le prime sono dritte e profonde. Le ultime sono storte, fatte con qualcosa che non è più una mano.",
+            "Sotto, in piccolo: «QUANDO FINISCE IL TURNO?»"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "archivio",
+    "nome": "Archivio Navigazionale",
+    "descr": "Sotto l'arco est della Laguna, le carte delle rotte della civiltà degli automi: gallerie del vento, archivisti a molla, droni sulle grate, aerostati e l'Astrolabio Impazzito. Argento, ferro, un po' d'oro.",
+    "stile": "archivio",
+    "difficolta": 4,
+    "richiede": "drenaggio",
+    "tile": 2,
+    "legenda": {
+      "u": {
+        "libro": "libro_bomba_fuoco"
+      },
+      "1": {
+        "vento": 1
+      },
+      "2": {
+        "vento": 2
+      },
+      "3": {
+        "vento": 3
+      },
+      "m": {
+        "nemico": "archivista_molla"
+      },
+      "h": {
+        "nemico": "idro_ragno",
+        "grata": true
+      },
+      "g": {
+        "grata": true
+      },
+      "b": {
+        "nemico": "aerostato_spia"
+      },
+      "B": {
+        "nemico": "aerostato_spia",
+        "vento": 1
+      },
+      "K": {
+        "nemico": "astrolabio",
+        "capo": true
+      },
+      "c": {
+        "forziere": "comune_archivio"
+      },
+      "R": {
+        "forziere": "raro_archivio"
+      },
+      "t": {
+        "luce": true
+      },
+      "o": {
+        "colonna": true
+      },
+      "A": {
+        "altare": true
+      },
+      "L": {
+        "altare": true,
+        "ferme": [
+          3
+        ]
+      },
+      "z": {
+        "timone": 3
+      }
+    },
+    "ingresso": {
+      "island": "laguna",
+      "at": [
+        47,
+        36
+      ]
+    },
+    "venti": [
+      {
+        "n": 1,
+        "dir": "o",
+        "forza": 4.5,
+        "soffia": 2.2,
+        "pausa": 2.4,
+        "fase": 0
+      },
+      {
+        "n": 2,
+        "dir": "s",
+        "forza": 4.5,
+        "soffia": 2,
+        "pausa": 2.6,
+        "fase": 1.3
+      },
+      {
+        "n": 3,
+        "dir": "s",
+        "forza": 9,
+        "soffia": 1,
+        "pausa": 0
+      }
     ],
-    "letture": [
-     {"id":"editto","tipo":"incisione","at":[8,20],"titolo":"Editto della Flotta Reale · targa di bronzo sul boccaporto","righe":[
-       "Anno 412 della Corona.",
-       "Si dichiara traditore l’ex Ammiraglio Vaelen, reo di aver sottratto l’ammiraglia «Stella del Mattino» e liberato trecento condannati dalle prigioni del porto.",
-       "L’ordine per la Squadra d’Assalto è di affondare il vascello nella Gola del Dente: nessun superstite dovrà raggiungere le terre libere oltre la nebbia."
-     ]},
-     {"id":"diario","tipo":"libro","at":[16,13],"titolo":"L’ultima pagina del diario di bordo","righe":[
-       "Non siamo pirati per sete d’oro.",
-       "Abbiamo cucito quel teschio nero sulle vele perché la Corona avesse paura di avvicinarsi alle scialuppe con le nostre famiglie.",
-       "Ora le barche piccole sono oltre la barriera corallina, ma le fregate reali ci sono addosso.",
-       "Vaelen ha ordinato di calare le ancore a prua e a poppa, intraversando la nave per chiudere il canale col nostro stesso scafo.",
-       "Trenta uomini hanno scelto di restare a bordo con lui. Che il mare ci sia lieve."
-     ]}
-    ]
-   }},
-  {"id":"baita","nome":"Il Tempio della «Doppia Nera»","descr":"Sulle pendici rocciose dell'Isola dell'Adrenalina: il megacomplesso del noleggio sci dove la setta degli «Assi della Pista» custodisce l'Ultima Lastra di Ghiaccio. Turbine spazzaneve, raffiche di tormenta, Controllori dello Skipass e Jean-Claude «Valanga». Argento, oro, meteorite.","stile":"baita","difficolta":7,"tile":2,"legenda":{"1":{"ruota":1},"2":{"ruota":2},"4":{"ruota":4},"5":{"ruota":5},"w":{"acqua":1},"W":{"acqua":2},"=":{"acqua":6},"_":{"ponte":5},"r":{"risacca":3},"X":{"risacca":3,"rottami":true},"R":{"risacca":4},"Y":{"risacca":4,"rottami":true},"p":{"pilone":true},"o":{"colonna":true},"t":{"luce":true},"A":{"altare":true},"B":{"altare":true,"asciutti":[5],"ferme":[4]},"g":{"nemico":"controllore_skipass"},"f":{"nemico":"maestro_racchetta"},"u":{"nemico":"cornacchia_bombardino"},"V":{"nemico":"jean_claude","capo":true},"c":{"forziere":"comune_baita"},"C":{"forziere":"raro_baita"}},"ingresso":{"island":"adrenalina","at":[24,20]},
-   "venti":[{"n":3,"dir":"s","forza":6,"soffia":1,"pausa":2.2,"fase":0},{"n":4,"dir":"o","forza":9,"soffia":1,"pausa":0}],
-   "rottami":{"danno":18,"ogni":0.8},
-   "rows": [
-    "##############################              #",
-    "#############t............t###              #",
-    "#t.....######........g.....###t............t#",
-    "#.c....######..f...........###............C.#",
-    "#...g..##........WWWWWW....###=............=#",
-    "#......##........WWC.WW..u.###=..p......p..=#",
-    "#......##..##....WW..WW....###=............=#",
-    "#......##..##....WWWWWW....###=.....V......=#",
-    "#wwww####..##.2.........f..###=............=#",
-    "#wwww####..##t.............###=............=#",
-    "#t..........###..#############=..p......p..=#",
-    "#.......o...##t.......########=............=#",
-    "#....1....u.##.....f..########..............#",
-    "#...........##......4.########t............t#",
-    "#......A....##........################..#####",
-    "#..........t######..##################..#####",
-    "#..f..........o.rr...o.rr.o.#######t......t##",
-    "#...............rr.....rr...#######.....g..##",
-    "####...######...ro.....or.f.#######..B.....##",
-    "####...######t..rr..g..rr..t#YYRRRR........##",
-    "#t........###...rr.....rr...#YYRRRR........##",
-    "#.........###.u.rr.....rr......g.##......f.##",
-    "#.........###...XX.f...XXu.......##........##",
-    "#......g..###c..XX.....XX...#############..##",
-    "#........t###############################..##",
-    "#.........###############################..##",
-    "#.........t........___.....c....t..........##",
-    "#.............f....___.5.........u.........##",
-    "#.<.......###################################",
-    "#############################################"
-   ],
-   "testi": {
-    "sottotitolo": "Stazione Intermedia del Culto della Sciolina",
-    "voci": [
-     {"id":"noleggio","zona":[1,20,9,28],"chi":"Altoparlante gracchiante","testo":"«Benvenuti al Noleggio! Ricordiamo che gli scarponi sono stretti di proposito: se sentite ancora le dita dei piedi, non state sciando!»"},
-     {"id":"tunnel","zona":[13,16,27,23],"chi":"Altoparlante gracchiante","testo":"«Attenzione: il vento contrario è offerto dalla Direzione per simulare i 200 km/h stando fermi! Vietato lamentarsi dei bastoncini rotti!»"},
-     {"id":"apresski","zona":[13,1,26,9],"chi":"Altoparlante gracchiante","testo":"«L’Après-Ski del Rimpianto è aperto! Oggi offerta speciale: chi sopravvive ai Maestri vince un Bombardino tiepido e un cerotto!»"},
-     {"id":"terrazza","zona":[35,16,42,22],"chi":"Jean-Claude «Valanga»","capo":true,"testo":"«Ehi, spazzaneve! Hai osato salire sulla mia Doppia Nera senza gli occhiali a specchio?! Preparati a mangiare neve gialla!»"}
+    "rows": [
+      "#############################################",
+      "#R.............#######.t...................R#",
+      "#.....m......z.#######......................#",
+      "#..............#######.....o.........o......#",
+      "#.......b......#######..........K...........#",
+      "#.g............#######......................#",
+      "#.h...o...o....#######.....o.........o......#",
+      "#.g..........u.#######......................#",
+      "#.g........b...#######c...................t.#",
+      "#t.............######################..######",
+      "#.............t####################t........#",
+      "####222############################........m#",
+      "####222######............t#########.L.......#",
+      "####222######.m.........b.#########.........#",
+      "####222######.....hggg....###########333#####",
+      "####222...........gggh....###########333#####",
+      "####222...................###########333#####",
+      "####222######...........m.###########333#####",
+      "####222######c............###########333#####",
+      "####222###########..######.t............gghg#",
+      "#...........######..######........b.........#",
+      "#.t......m..######..######....ghgg......t...#",
+      "#...........11111B11o11111.............m....#",
+      "#...........111o1111111111..................#",
+      "#...........11111111111o11.......m..g.......#",
+      "#...........111111o1111111...A......h.......#",
+      "#.........t.##############..........g....m..#",
+      "#....<......##############.................c#",
+      "#############################################",
+      "                                             "
     ],
-    "letture": [
-     {"id":"listino","tipo":"incisione","at":[8,20],"titolo":"Listino Prezzi del Noleggio · targa smaltata","righe":[
-       "Skipass Giornaliero: 500 Monete. Supplemento Ossigeno: 200 Monete. Supplemento Simpatia del Personale: Esaurito dal 1998.",
-       "Nota della Direzione: I turisti sorpresi a scendere «a spazzaneve» verranno usati come pali da slalom per gli allenamenti del pomeriggio.",
-       "In caso di valanga, mantenere una postura fotogenica per il fotografo automatico."
-     ]},
-     {"id":"comandamenti","tipo":"libro","at":[16,13],"titolo":"I Dieci Comandamenti della Sciolina","righe":[
-       "Articolo 1: Il ghiaccio si scioglie, ma lo Stile è eterno. Chi frena in curva tradisce la Montagna e merita gli scarponi di due taglie in meno.",
-       "Articolo 4: Quando la Grande Estate ha fuso i ghiacciai, noi non siamo scesi a valle a metterci i sandali coi calzini.",
-       "Abbiamo chiuso le porte della Baita, acceso i cannoni spara-neve a manetta e giurato fedeltà a Jean-Claude «Valanga».",
-       "Articolo 9: Chi tocca il termostato dei cannoni verrà condannato ad ascoltare musica techno tirolese per l’eternità."
-     ]}
-    ]
-   }},
-  {"id":"ceneri","nome":"Il Santuario del Capo Ardente","descr":"Scavato nelle viscere della caldera sull'Isola Vulcano: le fonderie liturgiche dell'Ordine dei Laternari, dove l'Arconte Solan alimenta il Primo Lucignolo col magma vivo. Ruote di chiusa termale, soffioni di vapore bollente, Sentinelle del Braciere e Totem del Censo. Oro, vetro, meteorite.","stile":"ceneri","difficolta":10,"tile":2,"legenda":{"1":{"ruota":1},"2":{"ruota":2},"4":{"ruota":4},"5":{"ruota":5},"w":{"acqua":1},"W":{"acqua":2},"=":{"acqua":6},"_":{"ponte":5},"r":{"risacca":3},"X":{"risacca":3,"rottami":true},"R":{"risacca":4},"Y":{"risacca":4,"rottami":true},"p":{"pilone":true},"o":{"colonna":true},"t":{"luce":true},"A":{"altare":true},"B":{"altare":true,"asciutti":[5],"ferme":[4]},"g":{"nemico":"sentinella_braciere"},"f":{"nemico":"cantore_fuliggine"},"u":{"nemico":"totem_censo"},"V":{"nemico":"arconte_solan","capo":true},"c":{"forziere":"comune_ceneri"},"C":{"forziere":"raro_ceneri"}},"ingresso":{"island":"vulcano","at":[15,18]},
-   "venti":[{"n":3,"dir":"s","forza":6.5,"soffia":1,"pausa":2.0,"fase":0},{"n":4,"dir":"o","forza":9.5,"soffia":1,"pausa":0}],
-   "rottami":{"danno":26,"ogni":0.8},
-   "rows": [
-    "##############################              #",
-    "#############t............t###              #",
-    "#t.....######........g.....###t............t#",
-    "#.c....######..f...........###............C.#",
-    "#...g..##........WWWWWW....###=............=#",
-    "#......##........WWC.WW..u.###=..p......p..=#",
-    "#......##..##....WW..WW....###=............=#",
-    "#......##..##....WWWWWW....###=.....V......=#",
-    "#wwww####..##.2.........f..###=............=#",
-    "#wwww####..##t.............###=............=#",
-    "#t..........###..#############=..p......p..=#",
-    "#.......o...##t.......########=............=#",
-    "#....1....u.##.....f..########..............#",
-    "#...........##......4.########t............t#",
-    "#......A....##........################..#####",
-    "#..........t######..##################..#####",
-    "#..f..........o.rr...o.rr.o.#######t......t##",
-    "#...............rr.....rr...#######.....g..##",
-    "####...######...ro.....or.f.#######..B.....##",
-    "####...######t..rr..g..rr..t#YYRRRR........##",
-    "#t........###...rr.....rr...#YYRRRR........##",
-    "#.........###.u.rr.....rr......g.##......f.##",
-    "#.........###...XX.f...XXu.......##....g...##",
-    "#......g..###c..XX.....XX...#############..##",
-    "#........t###############################..##",
-    "#.........###############################..##",
-    "#.........t........___.....c....t..........##",
-    "#.............f....___.5.........u.........##",
-    "#.<.......###################################",
-    "#############################################"
-   ],
-   "testi": {
-    "sottotitolo": "Le Fonderie Sacre di Monte Ceneri",
-    "voci": [
-     {"id":"statue","zona":[1,20,9,28],"chi":"Eco tra le colonne","testo":"«Hanno giurato di tenere acceso il mondo, anche a costo di bruciare se stessi. Ora di umano non gli è rimasta nemmeno la voce.»"},
-     {"id":"vasche","zona":[1,10,11,15],"chi":"Eco tra le colonne","testo":"«Le Ruote Termali pompano l’acqua del mare sul magma vivo. Raffredda i canali, o la roccia fusa non ti lascerà passare!»"},
-     {"id":"scoria","zona":[13,16,27,23],"chi":"Eco tra le colonne","testo":"«Attento ai soffioni del cratere! Aspetta che il vapore cali e corri dietro ai pilastri di basalto, o finirai sulle braci!»"},
-     {"id":"cratere","zona":[35,16,42,22],"chi":"Arconte Solan","capo":true,"testo":"«Chi osa portare il freddo delle acque fin dentro il Cratere?! Io sono Solan, l’ultimo Lucignolo, e tu sarai solo nuova cenere!»"}
+    "testi": {
+      "sottotitolo": "Pilone idraulico n. 2 · le carte del vento",
+      "voci": [
+        {
+          "id": "ingresso",
+          "zona": [
+            1,
+            20,
+            11,
+            27
+          ],
+          "chi": "Archivista Capo",
+          "testo": "…tic… Segnale dal Pilone 1: l’acqua gira di nuovo. Prima volta in 41.207 notti. Ricalcolare tutte le rotte. Silenzio in sala."
+        },
+        {
+          "id": "galleria",
+          "zona": [
+            12,
+            22,
+            25,
+            25
+          ],
+          "chi": "Archivista Capo",
+          "testo": "Le ventole soffiano verso l’uscita: l’aria della Marea non entra e le carte restano asciutte. Visitatori: dietro gli scaffali."
+        },
+        {
+          "id": "mantici",
+          "zona": [
+            1,
+            1,
+            14,
+            10
+          ],
+          "chi": "Archivista Capo",
+          "testo": "Sala dei Mantici. Il Condotto Maestro soffia finché la Marea è alta. Il timone non si tocca. Ordine della Regina."
+        },
+        {
+          "id": "astrolabio",
+          "zona": [
+            22,
+            1,
+            43,
+            8
+          ],
+          "chi": "L’Astrolabio Impazzito",
+          "capo": true,
+          "testo": "Stella polare: NON TROVATA. Cielo: CHIUSO. Rotta: NON TROVATA. Ricalcolo. Ricalcolo. RICALCOLO."
+        }
+      ],
+      "letture": [
+        {
+          "id": "diario",
+          "tipo": "libro",
+          "at": [
+            2,
+            24
+          ],
+          "titolo": "Diario di bordo della prima Regata",
+          "righe": [
+            "Notte prima della partenza. La Regina ha voluto dall’Archivio tutte le rotte: correnti, venti, secche. Dodici archivisti a molla hanno copiato per tre giorni senza fermarsi.",
+            "Alba. Si parte dal molo con il vento contro, come aveva detto l’Astrolabio: a remi fino al Pilone 1. Il Capoturno ci ha salutato col martello. Non so se ci ha riconosciuti.",
+            "Pilone 2, l’Archivio. Qui il vento gira sempre dove dice l’Astrolabio. Abbiamo issato le vele all’istante giusto e il pilone si è caricato da solo, come un respiro.",
+            "La Marea ci segue. Dalla poppa si vede: una striscia rossa che si mangia il riflesso delle stelle. La Regina dice di non guardarla. Lei la guarda sempre.",
+            "Pilone 3. Fa caldo, l’acqua fuma. Scrivo poco.",
+            "Ultima pagina, un’altra mano: «Il giro è chiuso. La Barriera è su e il cielo si è fatto di vetro. La Regina non è tornata a bordo.»"
+          ]
+        },
+        {
+          "id": "carta",
+          "tipo": "incisione",
+          "at": [
+            16,
+            12
+          ],
+          "titolo": "Carta delle correnti",
+          "righe": [
+            "LA ROTTA DEI QUATTRO PILONI",
+            "Un anello d’acqua inciso nel muro, con quattro tacche: DRENAGGIO · ARCHIVIO · FUCINA · SANTUARIO.",
+            "Sotto, più piccolo: «Si parte dal molo e si torna al molo. Chi salta un pilone, ricomincia da capo.»",
+            "Qualcuno ha cerchiato la quarta tacca, più e più volte, finché il ferro non si è consumato."
+          ]
+        },
+        {
+          "id": "registro",
+          "tipo": "libro",
+          "at": [
+            3,
+            2
+          ],
+          "titolo": "Registro dell’Archivista a Molla n. 12",
+          "righe": [
+            "Archivista n. 12. Carica: piena. Compito: ricopiare le carte prima che l’umidità della Marea le mangi.",
+            "Regola 1. Una carta copiata è una carta salvata. Regola 2. Un archivista che si ferma va ricaricato. Regola 3. Chi tocca le carte senza permesso va accompagnato fuori. Di corsa.",
+            "Nota. Da quando c’è la Barriera il cielo è chiuso: l’Astrolabio non vede le stelle e dice che tutte le rotte sono sbagliate. Ricopiamo tutto da capo, ogni notte.",
+            "Nota. Carte ricopiate: 41.206 volte. Carte giuste: nessuna. Carica: piena.",
+            "A matita, storto: «Se qualcuno ferma il Condotto, la Marea entra. O forse la Marea non c’è più. Non lo so. Qui sotto non ci sono finestre.»"
+          ]
+        },
+        {
+          "id": "lettera",
+          "tipo": "incisione",
+          "at": [
+            41,
+            10
+          ],
+          "titolo": "Lettera della Regina",
+          "righe": [
+            "Una lastra d’ottone avvitata storta, incisa in fretta.",
+            "«All’Astrolabio. Quando alzerò la Barriera il cielo si chiuderà e per un po’ non vedrai più le stelle. Non avere paura. Continua a girare.»",
+            "«Un giorno qualcuno tornerà a fare il giro per davvero. Mostragli la rotta. Io sarò dove la rotta finisce.»",
+            "Al posto della firma, un sigillo a forma di onda."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "fucina",
+    "nome": "Fucina a Pressione",
+    "descr": "Sotto l'arco nord della Laguna, la forgia degli automi che teneva caldo il Pilone 3: colate di lava che respirano, cascate di raffreddamento, fornaci semoventi, scintille, palombari e il Mastro Forgiatore. Ferro, argento, oro.",
+    "stile": "fucina",
+    "difficolta": 5,
+    "richiede": "archivio",
+    "tile": 2,
+    "legenda": {
+      "1": {
+        "lava": 1
+      },
+      "2": {
+        "lava": 2
+      },
+      "=": {
+        "colata": 1
+      },
+      "x": {
+        "chiusa": 1
+      },
+      "w": {
+        "getto": true
+      },
+      "s": {
+        "nemico": "scintilla_vapore"
+      },
+      "f": {
+        "nemico": "fornace_semovente"
+      },
+      "g": {
+        "nemico": "golem_palombaro"
+      },
+      "K": {
+        "nemico": "mastro_forgiatore",
+        "capo": true
+      },
+      "c": {
+        "forziere": "comune_fucina"
+      },
+      "R": {
+        "forziere": "raro_fucina"
+      },
+      "t": {
+        "luce": true
+      },
+      "o": {
+        "colonna": true
+      },
+      "A": {
+        "altare": true
+      },
+      "B": {
+        "altare": true,
+        "asciutti": [
+          1
+        ]
+      }
+    },
+    "ingresso": {
+      "island": "laguna",
+      "at": [
+        26,
+        5
+      ]
+    },
+    "lave": [
+      {
+        "n": 1,
+        "scorre": 2.4,
+        "crosta": 2.8,
+        "fase": 0,
+        "dps": 18,
+        "secondi": 2
+      },
+      {
+        "n": 2,
+        "scorre": 2,
+        "crosta": 3,
+        "fase": 1.4,
+        "dps": 18,
+        "secondi": 2
+      }
     ],
-    "letture": [
-     {"id":"patto","tipo":"incisione","at":[8,20],"titolo":"Il Patto del Primo Lucignolo · lastra di basalto","righe":[
-       "Quando il Sole Antico si velò dietro la Grande Caligine e i mari cominciarono a gelare, i Sette Fondatori scesero nel ventre di Monte Ceneri.",
-       "Non pregarono gli dèi del cielo: imbrigliarono il sangue della terra in condotti di bronzo e ossidiana per accendere i Fari dell’Arcipelago.",
-       "Così nacque l’Ordine dei Laternari: finché il Primo Lucignolo arde nel cratere, nessuna nave si perderà nel buio."
-     ]},
-     {"id":"giuramento","tipo":"libro","at":[16,13],"titolo":"Il Giuramento dei Laternari · codice rilegato in rame","righe":[
-       "Articolo Primo: L’Olio di Roccia non deve mai raffreddarsi. Chi lascia spegnere una vasca di decantazione verrà calato nel canale per ravvivarne la brace.",
-       "Nota dell’Arconte Solan: Da anni le isole là fuori non mandano più né novizi né tributi. Dicono che il sole è tornato e che i nostri Fari non servono più.",
-       "Mentono. La luce del cielo è tiepida e bugiarda. Ho fatto murare i cancelli e aprire tutte le chiuse del magma: se il mondo ha dimenticato il sacro fuoco, sarà il vulcano stesso a ricordarglielo."
-     ]}
-    ]
-   }}
+    "rows": [
+      "#############################################",
+      "#......t....R.#######t....................R.#",
+      "#.x...........#######......w.........w......#",
+      "#........o....#######...o...............o...#",
+      "#.....g......t#######..........K............#",
+      "#..o..........#######.......................#",
+      "#.........s...#######...o..w.........w..o...#",
+      "#...w..s......#######.......................#",
+      "#...........f.#######.t....................t#",
+      "####...##############################..######",
+      "####...############################.........#",
+      "####222#########.t.......c#########........t#",
+      "####222#########.o......o.#########..B......#",
+      "####...#########.......f..#########.......s.#",
+      "####...#########....oo....############===####",
+      "####................oo....############===####",
+      "####.w...........s......g.############===####",
+      "####...#########..........############===####",
+      "####...############..######t...............t#",
+      "#.........c.#######..######......s..o.......#",
+      "#........t..#######..######....w..........o.#",
+      "#...........#######..######..f..............#",
+      "#.......s....t.11.....11.t...........g......#",
+      "#..............11..s..11................w...#",
+      "#..............11.....11......o...A.........#",
+      "#..o...........11..f..11...............s....#",
+      "#...........###############.g....o.......f..#",
+      "#t...<......###############.........t......c#",
+      "#############################################",
+      "                                             "
+    ],
+    "testi": {
+      "sottotitolo": "Pilone idraulico n. 3 · il fuoco che aspetta",
+      "voci": [
+        {
+          "id": "ingresso",
+          "zona": [
+            1,
+            19,
+            11,
+            27
+          ],
+          "chi": "Fuochista Capo",
+          "testo": "…fsss… Pilone 1: acqua. Pilone 2: vento. Pilone 3: fuoco. Pressione in risalita dopo 41.207 notti. Caricare i forni!"
+        },
+        {
+          "id": "colate",
+          "zona": [
+            12,
+            22,
+            26,
+            25
+          ],
+          "chi": "Fuochista Capo",
+          "testo": "Le colate respirano. Crosta scura: si passa. Crepe accese: si brucia. Gli automi non bruciano. Gli operai di carne sì."
+        },
+        {
+          "id": "chiusa",
+          "zona": [
+            1,
+            1,
+            13,
+            8
+          ],
+          "chi": "Fuochista Capo",
+          "testo": "Chiusa del raffreddamento: si apre solo per ordine della Regina. La Colata Maestra tiene caldo il cuore. NON TOCCARE."
+        },
+        {
+          "id": "forgiatore",
+          "zona": [
+            21,
+            1,
+            43,
+            8
+          ],
+          "chi": "Il Mastro Forgiatore",
+          "capo": true,
+          "testo": "Il fuoco non si spegne finché Lei non torna. Ho forgiato la Sua Egida. Ho forgiato il Suo letto di ferro. NON SI SPEGNE."
+        }
+      ],
+      "letture": [
+        {
+          "id": "quaderno",
+          "tipo": "libro",
+          "at": [
+            2,
+            21
+          ],
+          "titolo": "Quaderno del garzone di forgia",
+          "righe": [
+            "Primo giorno alla Fucina. Il Mastro Forgiatore non dorme e non mangia: ha una fornace al posto della pancia e quattro zoccoli che fanno tremare il pavimento. Mi ha detto: «Il fuoco non si lascia mai solo.»",
+            "Ho capito come funziona il Pilone 3. Il fuoco scalda l’acqua della Laguna, il vapore spinge i pistoni, i pistoni caricano il pilone. Senza fuoco niente vapore. Senza vapore niente Barriera.",
+            "La Marea Ferrosa è arrivata a ponente. Il Mastro ha messo i palombari di guardia alle chiuse: se l’acqua rossa entra nei tubi, i forni si spengono per sempre.",
+            "Notte della Regata. Le barche sono arrivate al Pilone 3 con l’acqua che fumava. Abbiamo dato tutto il vapore che avevamo. La Regina è scesa a terra ed è venuta qui, alla forgia. Ha parlato a lungo col Mastro.",
+            "Dopo, il Mastro ha spento tutti i forni tranne il suo e ci ha mandati via. Gli ho chiesto per chi lavorava, adesso. Ha detto: «Per Lei. Finché non torna.»",
+            "Ultima riga, scritta in fretta: «Il martello batte da tre giorni. Il Mastro dice che sta forgiando un letto. Per chi?»"
+          ]
+        },
+        {
+          "id": "targa",
+          "tipo": "incisione",
+          "at": [
+            21,
+            11
+          ],
+          "titolo": "Targa dell’Altoforno",
+          "righe": [
+            "FUCINA A PRESSIONE · PILONE 3",
+            "Il fuoco scalda l’acqua. L’acqua spinge il pilone. Il pilone tiene su il cielo.",
+            "Dono della Corona alla gente della Laguna.",
+            "Sotto, graffiato con un chiodo: «e chi tiene su il fuoco?»"
+          ]
+        },
+        {
+          "id": "commesse",
+          "tipo": "libro",
+          "at": [
+            11,
+            4
+          ],
+          "titolo": "Registro delle commesse",
+          "righe": [
+            "Commessa n. 1 · Quattro piastre per i piloni, metallo della Corona. Consegnate.",
+            "Commessa n. 7 · Dodici lame per la Guardia d’Onore, temprate nell’acqua che corre: non sono acciaio, sono acqua che non smette di correre. Consegnate.",
+            "Commessa n. 9 · Una lancetta per l’orologio della Regina. Deve battere l’ora esatta anche quando nessuno la guarda. Consegnata.",
+            "Commessa n. 12 · Il Custode dell’Egida: un guardiano che non dorma mai, con tre cuori (acqua, vapore e moto). Consegnato al Santuario.",
+            "Commessa n. 13 · Un letto di ferro, misura di una persona. Nessun ornamento. Consegna: Santuario. Al posto della firma, un sigillo a forma d’onda.",
+            "A margine, la grafia del Mastro: «L’ultima l’ho fatta piano. Non volevo finirla.»"
+          ]
+        },
+        {
+          "id": "impronta",
+          "tipo": "incisione",
+          "at": [
+            41,
+            10
+          ],
+          "titolo": "La porta dell’Altoforno",
+          "righe": [
+            "Nel ferro della porta, lucida come il primo giorno, l’impronta di una mano piccola premuta sul metallo ancora caldo.",
+            "Accanto, inciso con la punta di un chiodo: «Tienilo acceso per me. Tornerò io a spegnerlo.»",
+            "Sotto, a colpi di martello, lettere grandi e storte: ASPETTO."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "mausoleo",
+    "nome": "Mausoleo Cinetico",
+    "descr": "Sotto l'arco nord-ovest della Laguna, il Santuario della Regina e l'orologio del Pilone 4: lancette giganti, chierici a ingranaggi, sentinelle con lo scudo, la Guardia d'Onore e il Custode dell'Egida. Argento, oro, gli unici della Regina.",
+    "stile": "mausoleo",
+    "difficolta": 6,
+    "richiede": "fucina",
+    "tile": 2,
+    "legenda": {
+      "P": {
+        "colonna": true
+      },
+      "=": {
+        "cancello": 1
+      },
+      "x": {
+        "carica": 1
+      },
+      "S": {
+        "sarcofago": true
+      },
+      "e": {
+        "nemico": "sentinella_egida"
+      },
+      "g": {
+        "nemico": "guardia_onore"
+      },
+      "h": {
+        "nemico": "chierico_ingranaggi"
+      },
+      "K": {
+        "nemico": "custode_egida",
+        "capo": true
+      },
+      "c": {
+        "forziere": "comune_mausoleo"
+      },
+      "R": {
+        "forziere": "raro_mausoleo"
+      },
+      "t": {
+        "luce": true
+      },
+      "o": {
+        "colonna": true
+      },
+      "A": {
+        "altare": true
+      },
+      "B": {
+        "altare": true,
+        "asciutti": [
+          1
+        ]
+      }
+    },
+    "ingresso": {
+      "island": "laguna",
+      "at": [
+        8,
+        13
+      ]
+    },
+    "lancette": [
+      {
+        "n": 1,
+        "at": [
+          5,
+          13
+        ],
+        "lunga": 8.4,
+        "giro": 0.55,
+        "fase": 0,
+        "largo": 0.45,
+        "danno": 20,
+        "spinta": 3,
+        "pausa": 1.5
+      },
+      {
+        "n": 2,
+        "at": [
+          21,
+          14
+        ],
+        "lunga": 10.4,
+        "giro": 0.5,
+        "fase": 0,
+        "largo": 0.45,
+        "danno": 22,
+        "spinta": 3,
+        "pausa": 1.5
+      },
+      {
+        "n": 3,
+        "at": [
+          21,
+          14
+        ],
+        "lunga": 6.4,
+        "giro": -0.8,
+        "fase": 3.1416,
+        "largo": 0.45,
+        "danno": 22,
+        "spinta": 3,
+        "pausa": 1.5
+      }
+    ],
+    "rows": [
+      "#############################################",
+      "#......t....R.#######.R.........S...........#",
+      "#.x...........#######.......................#",
+      "#........o....#######.....o...........o.....#",
+      "#.....e.......#######...........K...........#",
+      "#.............#######.......................#",
+      "#..h......g...#######.....o...........o.....#",
+      "#.............#######t.....................t#",
+      "#####.#################################..####",
+      "#t........######..........t#...t..c#.......t#",
+      "#.......g.######...........#.....h.#........#",
+      "#.........######...........#.......#......B.#",
+      "#.........######...........#.o.....#........#",
+      "#....P........##...........#.....o.#........#",
+      "#.........###........P.............###...####",
+      "#.........######...........#..e....###...####",
+      "#.h.......######...........#.......###===####",
+      "#.........######...........#.......###...####",
+      "#####.##########.........g.####.######...####",
+      "#........t..####...........####.######...####",
+      "#......g..c.#########.#####.t..............t#",
+      "#...........#########.#####...g.............#",
+      "#.............t..........t.......e.......g..#",
+      "#........e.......g..........................#",
+      "#.......................e......o.......o....#",
+      "#..................................A........#",
+      "#...........###############...........h.....#",
+      "#t...<......###############................c#",
+      "#############################################",
+      "#############################################"
+    ],
+    "testi": {
+      "sottotitolo": "Pilone idraulico n. 4 · il Santuario della Regina",
+      "voci": [
+        {
+          "id": "ingresso",
+          "zona": [
+            1,
+            19,
+            11,
+            27
+          ],
+          "chi": "La voce della Regina",
+          "testo": "…tic, tac… Pilone 4. Se senti questa voce, i tre fuochi sono accesi e la Marea è passata. Sei arrivato tu. Non io."
+        },
+        {
+          "id": "quadrante",
+          "zona": [
+            16,
+            9,
+            26,
+            19
+          ],
+          "chi": "La voce della Regina",
+          "testo": "Il Pilone 4 è un orologio: batte il moto della laguna. Le lancette non aspettano nessuno. Passa dietro di loro, mai davanti."
+        },
+        {
+          "id": "contrappesi",
+          "zona": [
+            1,
+            1,
+            13,
+            7
+          ],
+          "chi": "La voce della Regina",
+          "testo": "La chiave di carica apre il Santuario. L’ho lasciata qui per chi avrebbe fatto tutto il giro. Caricala, e vieni."
+        },
+        {
+          "id": "custode",
+          "zona": [
+            21,
+            1,
+            43,
+            7
+          ],
+          "chi": "Il Custode dell’Egida",
+          "capo": true,
+          "testo": "Tre cuori. Un solo ordine: nessuno sveglia la Regina. Acqua. Vapore. Moto. NESSUNO."
+        }
+      ],
+      "letture": [
+        {
+          "id": "diario",
+          "tipo": "libro",
+          "at": [
+            2,
+            21
+          ],
+          "titolo": "Diario di bordo della prima Regata · l’ultima tappa",
+          "righe": [
+            "Pilone 4. Siamo arrivati all’alba, con le vele annerite dal vapore della Fucina. Nessuno parlava.",
+            "La Marea Ferrosa era a un miglio. Si vedeva arrivare: rossa, lenta. Dove passava, il ferro dei moli si scioglieva come zucchero.",
+            "La Regina è scesa dalla barca da sola. Ai rematori ha detto: «Fate il giro un’altra volta. E poi un’altra. Non fermatevi finché l’acqua gira.»",
+            "È entrata nel Santuario. Il Custode le ha aperto il cancello e l’ha richiuso dietro di lei.",
+            "A mezzogiorno il cielo si è chiuso: un velo d’acqua che girava da un pilone all’altro. La Marea ci ha sbattuto contro e si è fermata.",
+            "Abbiamo fatto il giro fino a notte. Lei non è più uscita.",
+            "Ultima riga, con un’altra mano, molti anni dopo: «Lo facciamo ancora, il giro. Ogni anno, all’alba. I bambini lo chiamano la Regata.»"
+          ]
+        },
+        {
+          "id": "quadrante",
+          "tipo": "incisione",
+          "at": [
+            17,
+            9
+          ],
+          "titolo": "Il quadrante del Pilone 4",
+          "righe": [
+            "PILONE 4 · SANTUARIO · L’OROLOGIO DELLA LAGUNA",
+            "Quattro tacche sul quadrante: acqua, vento, fuoco, moto. Quando battono insieme, la Barriera regge.",
+            "La lancetta lunga conta le correnti. La corta conta gli anni. Nessuna delle due si ferma per chi passa.",
+            "Graffiato piccolo sotto il quattro: «Tic. Tac. Aspettiamo.»"
+          ]
+        },
+        {
+          "id": "breviario",
+          "tipo": "libro",
+          "at": [
+            29,
+            10
+          ],
+          "titolo": "Breviario del Chierico a Ingranaggi",
+          "righe": [
+            "Primo comandamento: l’olio prima della preghiera. Un ingranaggio asciutto è un ingranaggio che dubita.",
+            "Secondo comandamento: la Guardia d’Onore non si ferma mai. Dodici lame dalla Fucina, dodici guardie. Ne restano sette: le altre se le è prese il tempo.",
+            "Terzo comandamento: il Custode dell’Egida ha tre cuori. L’acqua respinge, il vapore nasconde, il moto non cade. Non si fermano mai tutti insieme.",
+            "Quarto comandamento: la Regina dorme e il Pilone 4 batte per Lei. Chi entra nel Santuario sveglia il Custode, e il Custode non perdona.",
+            "A margine, olio e ruggine: «Il Pilone 1 ha ripreso a girare. Poi il 2. Poi il 3. Qualcuno sta facendo il giro. Svegliate la Guardia.»"
+          ]
+        },
+        {
+          "id": "porta",
+          "tipo": "incisione",
+          "at": [
+            37,
+            9
+          ],
+          "titolo": "La porta del Santuario",
+          "righe": [
+            "Sopra la porta, in lettere d’ottone: QUI RIPOSA CHI HA FERMATO IL MARE.",
+            "Sul battente, la stessa mano piccola premuta sulla porta dell’Altoforno. Più in basso, una mano enorme di ferro: il Custode.",
+            "Sotto, inciso con cura, da qualcuno che aveva tutto il tempo del mondo: «Nessuno entri. Nessuno esca. Nessuno pianga.»"
+          ]
+        },
+        {
+          "id": "sarcofago",
+          "tipo": "libro",
+          "at": [
+            30,
+            2
+          ],
+          "dopo": "capo",
+          "titolo": "L’ultima lettera della Regina",
+          "righe": [
+            "Il coperchio è scivolato da solo. Dentro il sarcofago non c’è nessuno: un cuscino di velluto consumato, un anello e una lettera piegata in quattro.",
+            "«A chi ha fatto tutto il giro. Se leggi, i quattro piloni battono di nuovo insieme e la Marea non tornerà più. Allora posso dirtelo: io qui non ci sono.»",
+            "«Alla Barriera ho dato tutto quello che avevo: il fiato, la voce, il nome. Quello che restava di me è diventato acqua che gira. Sono nelle correnti della laguna. Ci sono sempre stata.»",
+            "«Al Custode: grazie, puoi riposare. Al Mastro: spegni pure il fuoco. Non torno, ma non serve più.»",
+            "«Alla gente che verrà: fate il giro. Non per caricare i piloni: per gioco, per vincere, per ridere. Quando qualcuno ride sull’acqua, io lo sento.»",
+            "«Tieni l’anello, era mio. Quando colpisci, sentirai l’onda.» Al posto della firma, un sigillo a forma d’onda."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "diga",
+    "nome": "La Diga dei Disertori",
+    "descr": "Nella Gola del Dente, sull'Isola della Tempesta: la prua della «Stella del Mattino» incastrata di traverso tra le rocce. Ruote di sentina, correnti di risacca, i Disertori del Capitano Vaelen. Oro, argento, meteorite.",
+    "stile": "diga",
+    "difficolta": 9,
+    "tile": 2,
+    "legenda": {
+      "1": {
+        "ruota": 1
+      },
+      "2": {
+        "ruota": 2
+      },
+      "4": {
+        "ruota": 4
+      },
+      "5": {
+        "ruota": 5
+      },
+      "w": {
+        "acqua": 1
+      },
+      "W": {
+        "acqua": 2
+      },
+      "=": {
+        "acqua": 6
+      },
+      "_": {
+        "ponte": 5
+      },
+      "r": {
+        "risacca": 3
+      },
+      "X": {
+        "risacca": 3,
+        "rottami": true
+      },
+      "R": {
+        "risacca": 4
+      },
+      "Y": {
+        "risacca": 4,
+        "rottami": true
+      },
+      "p": {
+        "pilone": true
+      },
+      "o": {
+        "colonna": true
+      },
+      "t": {
+        "luce": true
+      },
+      "A": {
+        "altare": true
+      },
+      "B": {
+        "altare": true,
+        "asciutti": [
+          5
+        ],
+        "ferme": [
+          4
+        ]
+      },
+      "g": {
+        "nemico": "guardiano_paratia"
+      },
+      "f": {
+        "nemico": "fuciliere_acquafonda"
+      },
+      "u": {
+        "nemico": "albatros_pece"
+      },
+      "V": {
+        "nemico": "capitano_vaelen",
+        "capo": true
+      },
+      "c": {
+        "forziere": "comune_diga"
+      },
+      "C": {
+        "forziere": "raro_diga"
+      }
+    },
+    "ingresso": {
+      "island": "tempesta",
+      "at": [
+        22,
+        20
+      ]
+    },
+    "venti": [
+      {
+        "n": 3,
+        "dir": "s",
+        "forza": 6,
+        "soffia": 1,
+        "pausa": 2.2,
+        "fase": 0
+      },
+      {
+        "n": 4,
+        "dir": "o",
+        "forza": 9,
+        "soffia": 1,
+        "pausa": 0
+      }
+    ],
+    "rottami": {
+      "danno": 22,
+      "ogni": 0.8
+    },
+    "rows": [
+      "##############################              #",
+      "#############t............t###              #",
+      "#t.....######........g.....###t............t#",
+      "#.c....######..f...........###............C.#",
+      "#...g..##........WWWWWW....###=............=#",
+      "#......##........WWC.WW..u.###=..p......p..=#",
+      "#......##..##....WW..WW....###=............=#",
+      "#......##..##....WWWWWW....###=.....V......=#",
+      "#wwww####..##.2.........f..###=............=#",
+      "#wwww####..##t.............###=............=#",
+      "#t..........###..#############=..p......p..=#",
+      "#.......o...##t.......########=............=#",
+      "#....1....u.##.....f..########..............#",
+      "#...........##......4.########t............t#",
+      "#......A....##........################..#####",
+      "#..........t######..##################..#####",
+      "#..f..........o.rr...o.rr.o.#######t......t##",
+      "#...............rr.....rr...#######.....g..##",
+      "####...######...ro.....or.f.#######..B.....##",
+      "####...######t..rr..g..rr..t#YYRRRR........##",
+      "#t........###...rr.....rr...#YYRRRR........##",
+      "#.........###.u.rr.....rr......g.##......f.##",
+      "#.........###...XX.f...XXu.......##........##",
+      "#......g..###c..XX.....XX...#############..##",
+      "#........t###############################..##",
+      "#.........###############################..##",
+      "#.........t........___.....c....t..........##",
+      "#.............f....___.5.........u.........##",
+      "#.<.......###################################",
+      "#############################################"
+    ],
+    "testi": {
+      "sottotitolo": "Il Relitto della «Stella del Mattino»",
+      "voci": [
+        {
+          "id": "falla",
+          "zona": [
+            1,
+            20,
+            9,
+            28
+          ],
+          "chi": "Eco della Stella del Mattino",
+          "testo": "«Le scialuppe sono fuori portata, Capitano!» «Bene. Inchiodate il timone: da questo varco non passerà nemmeno il mare.»"
+        },
+        {
+          "id": "batteria",
+          "zona": [
+            13,
+            16,
+            27,
+            23
+          ],
+          "chi": "Eco della Stella del Mattino",
+          "testo": "«Ho finito la polvere, Vaelen…» «Usa i rottami, fratello. Ogni minuto che compriamo è un miglio di vita per i nostri figli.»"
+        },
+        {
+          "id": "infermeria",
+          "zona": [
+            13,
+            1,
+            26,
+            9
+          ],
+          "chi": "Eco della Stella del Mattino",
+          "testo": "«Non piangete per chi resta sul fondo. Noi siamo l’ancora che ha permesso al futuro di prendere il largo.»"
+        },
+        {
+          "id": "timone",
+          "zona": [
+            35,
+            16,
+            42,
+            22
+          ],
+          "chi": "Il nostromo e il Capitano Vaelen",
+          "capo": true,
+          "testo": "«Sono passati cent’anni, Capitano. I bambini sono salvi.» «E allora perché stringo ancora quest’albero, vecchio amico?»"
+        }
+      ],
+      "letture": [
+        {
+          "id": "editto",
+          "tipo": "incisione",
+          "at": [
+            8,
+            20
+          ],
+          "titolo": "Editto della Flotta Reale · targa di bronzo sul boccaporto",
+          "righe": [
+            "Anno 412 della Corona.",
+            "Si dichiara traditore l’ex Ammiraglio Vaelen, reo di aver sottratto l’ammiraglia «Stella del Mattino» e liberato trecento condannati dalle prigioni del porto.",
+            "L’ordine per la Squadra d’Assalto è di affondare il vascello nella Gola del Dente: nessun superstite dovrà raggiungere le terre libere oltre la nebbia."
+          ]
+        },
+        {
+          "id": "diario",
+          "tipo": "libro",
+          "at": [
+            16,
+            13
+          ],
+          "titolo": "L’ultima pagina del diario di bordo",
+          "righe": [
+            "Non siamo pirati per sete d’oro.",
+            "Abbiamo cucito quel teschio nero sulle vele perché la Corona avesse paura di avvicinarsi alle scialuppe con le nostre famiglie.",
+            "Ora le barche piccole sono oltre la barriera corallina, ma le fregate reali ci sono addosso.",
+            "Vaelen ha ordinato di calare le ancore a prua e a poppa, intraversando la nave per chiudere il canale col nostro stesso scafo.",
+            "Trenta uomini hanno scelto di restare a bordo con lui. Che il mare ci sia lieve."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "baita",
+    "nome": "Il Tempio della «Doppia Nera»",
+    "descr": "Stazione di sosta e noleggio anni '90 abbarbicata sulla montagna dell'Adrenalina. Lastre di Ghiaccio Vivo, tornelli congelati, acrobati da snowpark e il leggendario maestro Jean-Claude.",
+    "stile": "baita",
+    "difficolta": 7,
+    "tile": 2,
+    "legenda": {
+      "1": {
+        "ghiaccio": 1
+      },
+      "2": {
+        "ghiaccio": 2
+      },
+      "3": {
+        "ghiaccio": 3
+      },
+      "x": {
+        "colonnina": 1
+      },
+      "=": {
+        "tornello": 1
+      },
+      "y": {
+        "colonnina": 2
+      },
+      "_": {
+        "tornello": 2
+      },
+      "z": {
+        "colonnina": 3
+      },
+      "/": {
+        "tornello": 3
+      },
+      "S": {
+        "colonnina": 4
+      },
+      "!": {
+        "tornello": 4
+      },
+      "A": {
+        "altare": true
+      },
+      "B": {
+        "altare": true,
+        "asciutti": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "a": {
+        "nemico": "acrobata_fuoripista"
+      },
+      "b": {
+        "nemico": "alchimista_bombardino"
+      },
+      "s": {
+        "nemico": "sparaneve_automatico"
+      },
+      "J": {
+        "nemico": "jean_claude",
+        "capo": true
+      },
+      "c": {
+        "forziere": "comune_baita"
+      },
+      "C": {
+        "forziere": "raro_baita"
+      },
+      "R": {
+        "forziere": "raro_baita"
+      },
+      "t": {
+        "luce": true
+      },
+      "o": {
+        "colonna": true
+      }
+    },
+    "ingresso": {
+      "island": "adrenalina",
+      "at": [
+        24,
+        20
+      ]
+    },
+    "rows": [
+      "#############################################",
+      "#.............#..............################",
+      "#.c...........#...s..........################",
+      "#..a.222......#.....333...z..################",
+      "#....222...y..#.....333......################",
+      "#....222......_.....333......################",
+      "#....222......#...o.333.o....################",
+      "#...o....o....#.....333......#..............#",
+      "#.............#......a.......#..............#",
+      "#.222.........#.333....333...#.......R......#",
+      "#.222..b......#.333....333.b.#..............#",
+      "#.222.........#.333....333...#..o........o..#",
+      "#.222.o.......#.333..o.333...#..............#",
+      "#.............#.333....333...#..............#",
+      "#..a......s...#.333....333...#..............#",
+      "#.............#...........C..#.......J......#",
+      "#.............#..a....s......#..............#",
+      "#######=#######..............#..............#",
+      "#.............########/#######..............#",
+      "#t............#..............#..o........o..#",
+      "#.b......o....#.t............#..............#",
+      "#...A.........#....b......S..#..............#",
+      "#..........a..#.......o......#..............#",
+      "#.c..111......#..............!..............#",
+      "#....111o.....#...B..........#..............#",
+      "#....111...x..#.........a....################",
+      "#...b.........#...........C..################",
+      "#.<...........#..............################",
+      "#.............#..............################",
+      "#############################################"
+    ],
+    "testi": {
+      "sottotitolo": "Stazione Intermedia del Culto della Sciolina",
+      "voci": [
+        {
+          "id": "noleggio",
+          "zona": [
+            1,
+            18,
+            13,
+            28
+          ],
+          "chi": "Altoparlanti del Noleggio",
+          "testo": "Alt! Niente accesso a chi scende a spazzaneve! O fai un salto mortale all'ingresso o torni al campo scuola coi principianti!"
+        },
+        {
+          "id": "tunnel",
+          "zona": [
+            1,
+            1,
+            13,
+            16
+          ],
+          "chi": "Altoparlanti del Rifugio",
+          "testo": "Quaranta monete d'oro per un panino?! Non è un furto, amico: stai pagando il privilegio di mangiare direttamente a bordo pista!"
+        },
+        {
+          "id": "apresski",
+          "zona": [
+            15,
+            1,
+            28,
+            17
+          ],
+          "chi": "Altoparlanti dell'Officina",
+          "testo": "Hai messo la sciolina al limone? Ma sei fuori?! Con quest'umidità serve il grasso di marmotta, dilettante!"
+        },
+        {
+          "id": "terrazza",
+          "zona": [
+            30,
+            7,
+            43,
+            24
+          ],
+          "chi": "Jean-Claude «Valanga»",
+          "capo": true,
+          "testo": "La funivia è riservata ai veri estremi. E no, non mi importa se fuori ci sono meno venti gradi: la tuta resta aperta!"
+        }
+      ],
+      "letture": [
+        {
+          "id": "listino",
+          "tipo": "incisione",
+          "at": [
+            9,
+            18
+          ],
+          "titolo": "Listino Prezzi «Baita del Brivido» (Targa sopra il bancone)",
+          "righe": [
+            "Acqua del rubinetto (scongelata a mano): 25 monete.",
+            "Fetta di strudel riscaldata ieri: 60 monete.",
+            "Noleggio sdraio vista impianto (15 minuti, ombra della montagna inclusa): 90 monete.",
+            "Soccorso con slitta in caso di frattura multipla: 300 monete (Sconto Simpatia del 5% se ti sei rotto l'osso sacro tentando una rotazione in aria)."
+          ]
+        },
+        {
+          "id": "comandamenti",
+          "tipo": "libro",
+          "at": [
+            3,
+            8
+          ],
+          "titolo": "I Comandamenti della Polvere Fresca (Leggio all'ingresso)",
+          "righe": [
+            "1. Chi frena in curva è un codardo che intasa la corsia di sorpasso.",
+            "2. Se cadi di faccia davanti alla fila della funivia, dai sempre e solo la colpa agli attacchi allentati o al ghiaccio vivo.",
+            "3. Gli occhiali a specchio fluo non si tolgono MAI: né dentro il noleggio, né di notte, né durante i combattimenti all'ultimo sangue."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "ceneri",
+    "nome": "Il Santuario del Capo Ardente",
+    "descr": "Scavato nelle viscere della caldera sull'Isola Vulcano: le fonderie liturgiche dell'Ordine dei Laternari, dove l'Arconte Solan alimenta il Primo Lucignolo col magma vivo. Ruote di chiusa termale, soffioni di vapore bollente, Sentinelle del Braciere e Totem del Censo. Oro, vetro, meteorite.",
+    "stile": "ceneri",
+    "difficolta": 10,
+    "tile": 2,
+    "legenda": {
+      "1": {
+        "ruota": 1
+      },
+      "2": {
+        "ruota": 2
+      },
+      "4": {
+        "ruota": 4
+      },
+      "5": {
+        "ruota": 5
+      },
+      "w": {
+        "acqua": 1
+      },
+      "W": {
+        "acqua": 2
+      },
+      "=": {
+        "acqua": 6
+      },
+      "_": {
+        "ponte": 5
+      },
+      "r": {
+        "risacca": 3
+      },
+      "X": {
+        "risacca": 3,
+        "rottami": true
+      },
+      "R": {
+        "risacca": 4
+      },
+      "Y": {
+        "risacca": 4,
+        "rottami": true
+      },
+      "p": {
+        "pilone": true
+      },
+      "o": {
+        "colonna": true
+      },
+      "t": {
+        "luce": true
+      },
+      "A": {
+        "altare": true
+      },
+      "B": {
+        "altare": true,
+        "asciutti": [
+          5
+        ],
+        "ferme": [
+          4
+        ]
+      },
+      "g": {
+        "nemico": "sentinella_braciere"
+      },
+      "f": {
+        "nemico": "cantore_fuliggine"
+      },
+      "u": {
+        "nemico": "totem_censo"
+      },
+      "V": {
+        "nemico": "arconte_solan",
+        "capo": true
+      },
+      "c": {
+        "forziere": "comune_ceneri"
+      },
+      "C": {
+        "forziere": "raro_ceneri"
+      }
+    },
+    "ingresso": {
+      "island": "vulcano",
+      "at": [
+        15,
+        18
+      ]
+    },
+    "venti": [
+      {
+        "n": 3,
+        "dir": "s",
+        "forza": 6.5,
+        "soffia": 1,
+        "pausa": 2.0,
+        "fase": 0
+      },
+      {
+        "n": 4,
+        "dir": "o",
+        "forza": 9.5,
+        "soffia": 1,
+        "pausa": 0
+      }
+    ],
+    "rottami": {
+      "danno": 26,
+      "ogni": 0.8
+    },
+    "rows": [
+      "##############################              #",
+      "#############t............t###              #",
+      "#t.....######........g.....###t............t#",
+      "#.c....######..f...........###............C.#",
+      "#...g..##........WWWWWW....###=............=#",
+      "#......##........WWC.WW..u.###=..p......p..=#",
+      "#......##..##....WW..WW....###=............=#",
+      "#......##..##....WWWWWW....###=.....V......=#",
+      "#wwww####..##.2.........f..###=............=#",
+      "#wwww####..##t.............###=............=#",
+      "#t..........###..#############=..p......p..=#",
+      "#.......o...##t.......########=............=#",
+      "#....1....u.##.....f..########..............#",
+      "#...........##......4.########t............t#",
+      "#......A....##........################..#####",
+      "#..........t######..##################..#####",
+      "#..f..........o.rr...o.rr.o.#######t......t##",
+      "#...............rr.....rr...#######.....g..##",
+      "####...######...ro.....or.f.#######..B.....##",
+      "####...######t..rr..g..rr..t#YYRRRR........##",
+      "#t........###...rr.....rr...#YYRRRR........##",
+      "#.........###.u.rr.....rr......g.##......f.##",
+      "#.........###...XX.f...XXu.......##....g...##",
+      "#......g..###c..XX.....XX...#############..##",
+      "#........t###############################..##",
+      "#.........###############################..##",
+      "#.........t........___.....c....t..........##",
+      "#.............f....___.5.........u.........##",
+      "#.<.......###################################",
+      "#############################################"
+    ],
+    "testi": {
+      "sottotitolo": "Le Fonderie Sacre di Monte Ceneri",
+      "voci": [
+        {
+          "id": "statue",
+          "zona": [
+            1,
+            20,
+            9,
+            28
+          ],
+          "chi": "Eco tra le colonne",
+          "testo": "«Hanno giurato di tenere acceso il mondo, anche a costo di bruciare se stessi. Ora di umano non gli è rimasta nemmeno la voce.»"
+        },
+        {
+          "id": "vasche",
+          "zona": [
+            1,
+            10,
+            11,
+            15
+          ],
+          "chi": "Eco tra le colonne",
+          "testo": "«Le Ruote Termali pompano l’acqua del mare sul magma vivo. Raffredda i canali, o la roccia fusa non ti lascerà passare!»"
+        },
+        {
+          "id": "scoria",
+          "zona": [
+            13,
+            16,
+            27,
+            23
+          ],
+          "chi": "Eco tra le colonne",
+          "testo": "«Attento ai soffioni del cratere! Aspetta che il vapore cali e corri dietro ai pilastri di basalto, o finirai sulle braci!»"
+        },
+        {
+          "id": "cratere",
+          "zona": [
+            35,
+            16,
+            42,
+            22
+          ],
+          "chi": "Arconte Solan",
+          "capo": true,
+          "testo": "«Chi osa portare il freddo delle acque fin dentro il Cratere?! Io sono Solan, l’ultimo Lucignolo, e tu sarai solo nuova cenere!»"
+        }
+      ],
+      "letture": [
+        {
+          "id": "patto",
+          "tipo": "incisione",
+          "at": [
+            8,
+            20
+          ],
+          "titolo": "Il Patto del Primo Lucignolo · lastra di basalto",
+          "righe": [
+            "Quando il Sole Antico si velò dietro la Grande Caligine e i mari cominciarono a gelare, i Sette Fondatori scesero nel ventre di Monte Ceneri.",
+            "Non pregarono gli dèi del cielo: imbrigliarono il sangue della terra in condotti di bronzo e ossidiana per accendere i Fari dell’Arcipelago.",
+            "Così nacque l’Ordine dei Laternari: finché il Primo Lucignolo arde nel cratere, nessuna nave si perderà nel buio."
+          ]
+        },
+        {
+          "id": "giuramento",
+          "tipo": "libro",
+          "at": [
+            16,
+            13
+          ],
+          "titolo": "Il Giuramento dei Laternari · codice rilegato in rame",
+          "righe": [
+            "Articolo Primo: L’Olio di Roccia non deve mai raffreddarsi. Chi lascia spegnere una vasca di decantazione verrà calato nel canale per ravvivarne la brace.",
+            "Nota dell’Arconte Solan: Da anni le isole là fuori non mandano più né novizi né tributi. Dicono che il sole è tornato e che i nostri Fari non servono più.",
+            "Mentono. La luce del cielo è tiepida e bugiarda. Ho fatto murare i cancelli e aprire tutte le chiuse del magma: se il mondo ha dimenticato il sacro fuoco, sarà il vulcano stesso a ricordarglielo."
+          ]
+        }
+      ]
+    }
+  }
 ]

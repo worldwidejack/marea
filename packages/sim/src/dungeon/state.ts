@@ -60,6 +60,8 @@ export type HeroRt = {
    *  Tempio della «Doppia Nera»: tick rimasti «In Fresca», metri corsi verso la carica e se il colpo in corso solleva l'onda di neve.
    *  Santuario del Capo Ardente: cariche di Vampa (Manto del Primo Lucignolo) e se il raggio di fuoco in corso è sovralimentato. */
   rottT: number; brezza: number; brezzaM: number; poppa: boolean; fresca: number; frescaM: number; ondaNeve: boolean; vampa: number; sovralimentata: boolean;
+  /** Baita: direzione di scivolamento sul Ghiaccio Vivo [dx, dz] o null; tick fino a cui dura l'assideramento. */
+  slideDir?: [number, number] | null; assiderato?: number;
 };
 export type EnemyState = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'morto';
 export type Enemy = {
@@ -88,11 +90,14 @@ export type Enemy = {
   /** Archivio, l'Astrolabio (astrolabio.ts): attacco in corso, direzione e lunghezza del raggio, salve già tirate, anelli staccati.
    *  Gli anelli: id del loro Astrolabio e versore della loro posizione attorno a lui. */
   modo?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo' | 'cura' | 'ondata' | 'fendenti' | 'scatto' | 'geyser' | 'colpo' | 'cambio'
-    | 'affondo' | 'spazzata' | 'salva' | 'incastrato' | 'detriti' | 'sbilanciato' | 'fucile' | 'schiacciata';
+    | 'affondo' | 'spazzata' | 'salva' | 'incastrato' | 'detriti' | 'sbilanciato' | 'fucile' | 'schiacciata'
+    | 'trottola' | 'frenata' | 'salto' | 'bilico' | 'slalom' | 'arbitro' | 'lamina';
   mira?: { dx: number; dz: number; len: number };
   salve?: number;
   diviso?: boolean;
   padre?: number; ux?: number; uz?: number;
+  /** Baita: torretta girata verso i nemici; assideramento (Trick Elicottero); moltiplicatore di danno subito. */
+  ribaltato?: boolean; assiderato?: number; dannoPresoMolt?: number;
   /** Fucina, il Mastro Forgiatore (forgiatore.ts): spento da una cascata (prende danni), metri già corsi nella carica, eroi già travolti.
    *  La Fornace Semovente: dove ha lasciato l'ultima chiazza di fuoco e quando. */
   spento?: boolean; corsa?: number; presi?: number[];
@@ -184,6 +189,12 @@ export const PER_EROE = [
   'hero', 'runHero', 'done', 'outcome', 'bottino', 'monete', 'xp', 'usati', 'rotti', 'usura', 'uccisi', 'danniFatti', 'danniPresi',
   'altare', 'salvato', 'cadute', 'stato', 'equip', 'buttati', 'partenza', 'uscitaLanterna',
 ] as const satisfies readonly (keyof EroeRt)[];
+
+/** Baita: pozzanghere di Sciolina (rallenta) o Bombardino (brucia) lasciate dalle fiasche dell'Alchimista. */
+export type Pozzanghera = { id: number; x: number; z: number; r: number; tipo: 'sciolina' | 'bombardino'; fine: number; tickDanno: number };
+/** Baita: bandierine da gara dello Slalom di Jean-Claude (10 HP ciascuna). */
+export type Bandierina = { id: number; n: number; x: number; z: number; cx: number; cz: number; vita: number; abbattuta: boolean };
+
 export type DungeonState = EroeRt & {
   v: 1; seed: number; dungeon: string; def: DungeonDef; map: DMap;
   tick: number; anim: HeroAnim;
@@ -213,6 +224,10 @@ export type DungeonState = EroeRt & {
   /** Arena PvP (pvp.ts, docs/ARENA.md): la squadra di ogni eroe; quelli di squadre diverse si colpiscono. `rivela[i]` = fino a che tick l'eroe i
    *  è scoperto anche nell'erba alta (erba.ts). Assente nei dungeon. Fuori dall'hash (lo mette in hash il duello). */
   pvp?: { squadre: number[]; rivela: number[] };
+  /** Baita: stanze con ghiaccio sciolto (colonnine attivate); pozzanghere attive; bandierine dello slalom. */
+  sciolti: number[];
+  pozzanghere: Pozzanghera[];
+  bandierine: Bandierina[];
 };
 
 /** Accessori dei campi dell'eroe di turno (prototipo comune a tutti gli stati). */
@@ -297,24 +312,19 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
     v: 1, seed, dungeon: def.id, def, map, tick: 0, anim: 'fermo',
     enemies: [], proj: [], loot: [], nextId: 1, bacini: map.bacini.map((b) => ({ n: b.n, aperta: false, scolo: 0 })), geyser: [],
     correnti: map.venti.map((v) => ({ n: v.n, ferma: false })), griglie: {}, flowAlt: {}, fuochi: [], onde: [], piloni: map.piloni.map(() => false),
-    flow: new Int32Array(map.w * map.h), flowTick: -999, flowCell: -1, flowKey: '', rng, eventi: [],
+    sciolti: [], pozzanghere: [], bandierine: [], flow: new Int32Array(map.w * map.h), flowTick: -999, flowCell: -1, flowKey: '', rng, eventi: [],
     eroi: eroi.map(({ hero, stato }): EroeRt => ({
       hero: {
-        x: map.spawn.x, z: map.spawn.z, fx: map.spawn.fx, fz: map.spawn.fz,
-        vita: hero.max.vita, magicka: hero.max.magicka, stamina: hero.max.stamina,
-        act: 'idle', actT: 0, actDur: 0, caricato: false, stile: 'fendente', colpiti: [], colpito: false, carica: 0,
-        moving: false, running: false, hurt: 0, protetto: 0, arma: { ...hero.arma, traits: { ...hero.arma.traits } },
-        frecce: hero.frecce ? hero.frecce.n : 0,
-        pozioni: hero.pozione !== null ? (hero.pozioni[hero.pozione]?.n ?? 0) : 0,
-        incanta: !!hero.manoMagia && hero.magia !== null,
-        cdMagia: 0, cdMagie: {}, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, spX: 0, spZ: 0, spT: 0, spUrto: 0, brucia: 0, bruciaDps: 0, bruciaAcc: 0,
+        x: map.spawn.x, z: map.spawn.z, fx: map.spawn.fx, fz: map.spawn.fz, vita: hero.max.vita, magicka: hero.max.magicka, stamina: hero.max.stamina,
+        act: 'idle', actT: 0, actDur: 0, caricato: false, stile: 'fendente', colpiti: [], colpito: false, carica: 0, moving: false, running: false, hurt: 0, protetto: 0, arma: { ...hero.arma, traits: { ...hero.arma.traits } },
+        frecce: hero.frecce ? hero.frecce.n : 0, pozioni: hero.pozione !== null ? (hero.pozioni[hero.pozione]?.n ?? 0) : 0,
+        incanta: !!hero.manoMagia && hero.magia !== null, cdMagia: 0, cdMagie: {}, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, spX: 0, spZ: 0, spT: 0, spUrto: 0, brucia: 0, bruciaDps: 0, bruciaAcc: 0,
         barr: 0, pressione: hero.arma.traits.lame?.cariche ?? 0, ultimoAttacco: -1e6, ritmo: 0, tic: -1, rintocco: false, molla: hero.arma.traits.carillon?.colpi ?? 0, mollaT: 0, ecoT: -1e6, lancT: [],
-        prevA: false, prevC: false, prevD: false, prevE: false, cdScarica: 0, raffica: 0, raffT: 0, massimaP: 0, massimo: false, canale: 0, canaleLen: 0,
-        rottT: 0, brezza: 0, brezzaM: 0, poppa: false, fresca: 0, frescaM: 0, ondaNeve: false, vampa: 0, sovralimentata: false,
+        prevA: false, prevC: false, prevD: false, prevE: false, cdScarica: 0, raffica: 0, raffT: 0, massimaP: 0, massimo: false, canale: 0, canaleLen: 0, rottT: 0, brezza: 0, brezzaM: 0, poppa: false, fresca: 0, frescaM: 0, ondaNeve: false, vampa: 0, sovralimentata: false,
+        slideDir: null, assiderato: 0,
       },
       runHero: hero, done: false, outcome: null,
-      bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0,
-      altare: -1, salvato: null, cadute: 0,
+      bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0, altare: -1, salvato: null, cadute: 0,
       stato: stato ?? null, equip: { ...(stato?.equip ?? {}) }, buttati: {}, partenza: -1, uscitaLanterna: -1,
     })),
     cur: 0,
@@ -335,12 +345,16 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
       moveCircle(map, h, -h.fz * lato - h.fx * dietro, h.fx * lato - h.fz * dietro, e.runHero.raggio);
     }
   });
-  // Drenaggio: ripartendo da una lanterna oltre l'acqua, i bacini che avevi svuotato per arrivarci sono già vuoti
-  if (daLanterna) for (const n of map.altari[p]!.asciutti ?? []) {
-    const b = s.bacini.find((x) => x.n === n);
-    if (!b) continue;
-    b.aperta = true; b.scolo = 0;
-    for (const i of map.bacini.find((x) => x.n === n)?.celle ?? []) map.solid[i] = 0;
+  // Drenaggio e Baita: ripartendo da una lanterna oltre l'acqua/tornelli, i bacini svuotati e le stanze scongelate sono già aperte
+  if (daLanterna) {
+    for (const n of map.altari[p]!.asciutti ?? []) {
+      const b = s.bacini.find((x) => x.n === n);
+      if (b) {
+        b.aperta = true; b.scolo = 0;
+        for (const i of map.bacini.find((x) => x.n === n)?.celle ?? []) map.solid[i] = 0;
+      }
+      if (!s.sciolti.includes(n)) s.sciolti.push(n);
+    }
   }
   // Archivio: ripartendo dalla lanterna oltre il Condotto, le correnti che avevi fermato per arrivarci sono già ferme
   if (daLanterna) for (const n of map.altari[p]!.ferme ?? []) { const c = s.correnti.find((x) => x.n === n); if (c) c.ferma = true; }

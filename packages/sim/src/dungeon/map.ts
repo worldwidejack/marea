@@ -50,6 +50,8 @@ export type DMap = {
   piloni: (Spawn & { x: number; z: number; i: number })[];
   /** Arena: `erba[i]` = 1 se la cella i è erba alta (pavimento: chi ci sta dentro non lo vedono gli avversari, erba.ts). Altrove vuota. */
   erba: Uint8Array;
+  /** Baita: cella di Ghiaccio Vivo della stanza n (0 = nessuno). */
+  ghiaccio: Uint8Array;
   /** Celle calpestabili (indici), per i test e l'autopilot. */
   floor: number[];
 };
@@ -71,7 +73,7 @@ export function parseDungeon(def: DungeonDef): DMap {
   const zona = new Uint8Array(w * h), grata = new Uint8Array(w * h), timoni: DMap['timoni'] = [], grate: number[] = [];
   const lava = new Uint8Array(w * h), getto = new Uint8Array(w * h), getti: DMap['getti'] = [];
   let sarcofago: DMap['sarcofago'] = null;
-  const erba = new Uint8Array(w * h);
+  const erba = new Uint8Array(w * h), ghiaccio = new Uint8Array(w * h);
   const rottami = new Uint8Array(w * h), piloni: DMap['piloni'] = [], ruote: (Spawn & { x: number; z: number; n: number })[] = [];
   for (let cz = 0; cz < h; cz++)
     for (let cx = 0; cx < w; cx++) {
@@ -90,7 +92,7 @@ export function parseDungeon(def: DungeonDef): DMap {
         if (l.sarcofago) { solid[i] = 1; sarcofago = { cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile }; continue; }
         // la Colata Maestra della Fucina e il cancello del Mausoleo sono bacini come l'acqua del Drenaggio, chiusa e chiave di carica valvole
         // (Diga: il ponte mobile alzato sopra l'acqua è un bacino anche lui; le Ruote di Sentina si smistano dopo, quando si sa cosa c'è)
-        const acqua = l.acqua ?? l.colata ?? l.cancello ?? l.ponte, valvola = l.valvola ?? l.chiusa ?? l.carica;
+        const acqua = l.acqua ?? l.colata ?? l.cancello ?? l.ponte ?? l.tornello, valvola = l.valvola ?? l.chiusa ?? l.carica ?? l.colonnina;
         if (acqua !== undefined) { solid[i] = 1; const b = bacini.get(acqua) ?? []; b.push(i); bacini.set(acqua, b); continue; }
         if (valvola !== undefined) valvole.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, n: valvola });
         if (l.nemico) nemici.push(l.capo ? { cx, cz, ch, tipo: l.nemico, capo: true } : { cx, cz, ch, tipo: l.nemico });
@@ -104,6 +106,7 @@ export function parseDungeon(def: DungeonDef): DMap {
         if (l.ruota !== undefined) ruote.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, n: l.ruota });
         if (l.rottami) rottami[i] = 1;
         if (l.erba) erba[i] = 1;
+        if (l.ghiaccio !== undefined) ghiaccio[i] = l.ghiaccio;
         if (l.timone !== undefined) timoni.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, n: l.timone });
         if (l.lava !== undefined) lava[i] = l.lava;
         if (l.getto) { getto[i] = 1; getti.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile }); }
@@ -151,7 +154,7 @@ export function parseDungeon(def: DungeonDef): DMap {
   const m: DMap = {
     id: def.id, w, h, tile, solid, opaque, exit: { ...ex, x: (ex.cx + 0.5) * tile, z: (ex.cz + 0.5) * tile }, spawn, nemici, forzieri, libri, altari, floor,
     bacini: [...bacini].sort((a, b) => a[0] - b[0]).map(([n, celle]) => ({ n, celle })), valvole, venti, zona, timoni, grate, grata,
-    lave, lava, getti, getto, lancette, sarcofago, rottami, piloni, erba,
+    lave, lava, getti, getto, lancette, sarcofago, rottami, piloni, erba, ghiaccio,
   };
   MAPS.set(def, m);
   return m;
