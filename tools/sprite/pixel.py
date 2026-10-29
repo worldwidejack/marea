@@ -41,6 +41,8 @@ def celle(im, righe, colonne):
     mozzava piatti). Ogni macchia va alla cella dove cade il suo centro; per cella si tiene la più grande e i pezzi
     attaccati a lei (via polvere e righe di velocità staccate). Per ogni cella il ritaglio RGBA e il fondo della figura."""
     rgb = np.array(im.convert('RGB'))
+    if 'A' in im.getbands() or 'transparency' in im.info:  # Codex a volte fa il fondo trasparente invece del magenta
+        rgb[np.array(im.convert('RGBA'))[..., 3] < 128] = (255, 0, 255)
     a = alfa_magenta(rgb)
     H, W = a.shape
     n, lab, st, cen = cv2.connectedComponentsWithStats((a > 0.5).astype(np.uint8), connectivity=8)

@@ -89,4 +89,5 @@ def main():
 
 
 if __name__ == '__main__':
+    sys.stdout.reconfigure(encoding='utf-8')  # su Windows la console è cp1252: ✓ e ✗ facevano cadere lo script a fine giro
     main()
