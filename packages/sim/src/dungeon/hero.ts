@@ -18,6 +18,7 @@ import { alto } from './muove.ts'; import { accendi, braciereVicino } from './br
 import { caricaBarriera, caricaBrezza, caricaVampa, consumaVampa, eco, fineColpo, inizioColpo, inizioPoppa, molla, moltCaricaPoppa, moltRitmo, spintaPoppa, stepUnici, stordisci } from './unici.ts';
 import { curaCompagni, lamaAria, scaricaDi, statiCaricato, terremoto, veleno } from './perk.ts';
 import { aimEroi, colpisciEroe, eroiNemici, evocazioneNemica, ostile, separaEroi } from './pvp.ts';
+import { colpisciBandierine } from './jean_claude.ts';
 
 /** Pugni quando l'arma si rompe: da RPG.pugni (balance.json), ripiego in tuning. */
 export function pugni(): RunWeapon {
@@ -115,16 +116,7 @@ function sweepSwing(s: DungeonState): void {
       colpisciEroe(s, j, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false, ox: h.x, oz: h.z, mischia: true, ...(h.massimo ? { letale: true } : {}) });
     }
   }
-  // Baita: attacco colpisce le bandierine dello Slalom
-  if (s.bandierine?.length) {
-    for (const b of s.bandierine) {
-      if (b.abbattuta) continue;
-      const bx = b.x - h.x, bz = b.z - h.z, bd = Math.sqrt(bx * bx + bz * bz);
-      if (bd <= a.portata + 1.2) {
-        b.abbattuta = true; b.vita = 0; ev(s, { t: 'bandierina', id: b.id, n: b.n, abbattuta: true });
-      }
-    }
-  }
+  if (s.bandierine.length) colpisciBandierine(s, a.portata); // Tempio: la lama spacca le bandierine dello Slalom
   if (k < 1) return;
   h.colpito = true;
   // Baita: Trick «Elicottero» (Tavola «Valanga Pro-99»)
@@ -367,7 +359,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   const mag = Math.sqrt(mx * mx + my * my);
   if (mag > 1) { mx /= mag; my /= mag; }
   const m = Math.min(1, mag);
-  h.moving = m > 0.1;
+  h.moving = m > 0.1 && !h.slideDir; // sul Ghiaccio Vivo chi scivola non cammina (ghiaccio.ts)
   // Arciere Mobile: con l'arco in tensione ti muovi (a passo normale, senza correre) e non ti giri verso dove cammini
   const arcoLibero = !!rh.perk?.arcoMobile && h.act === 'tende';
   const lento = !arcoLibero && h.act !== 'idle' && h.act !== 'tira' && h.act !== 'lancia';

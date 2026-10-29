@@ -196,7 +196,7 @@ export function startRun(ctx: RunCtx, o: {
       if ((phase as Phase) === 'over') { cleanup(); return; }
       hud = createDungeonHud({ root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera, hero: s.runHero, stile: sc.def.stile });
       controls = createControls({
-        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, yaw: () => ctx.renderer.diorama.yaw, insieme: !!rete, ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : sc.def.stile === 'diga' ? { valvola: 'A · Gira la ruota', timone: 'A · Gira la ruota' } : sc.def.stile === 'baita' ? { valvola: 'A · Aziona la turbina', timone: 'A · Spegni i cannoni' } : sc.def.stile === 'ceneri' ? { valvola: 'A · Accendi il braciere' } : {}),
+        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, yaw: () => ctx.renderer.diorama.yaw, insieme: !!rete, ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : sc.def.stile === 'diga' ? { valvola: 'A · Gira la ruota', timone: 'A · Gira la ruota' } : sc.def.stile === 'baita' ? { valvola: 'A · Gira la colonnina' } : sc.def.stile === 'ceneri' ? { valvola: 'A · Accendi il braciere' } : {}),
         onAbort: () => (phase === 'end' ? finish() : abort()),
         onZaino: openZaino,
         onSalva: () => { const e = act({ t: 'salva' }); if (e) ctx.hud.toast(e, 1800); },
