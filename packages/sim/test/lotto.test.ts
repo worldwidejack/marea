@@ -21,7 +21,7 @@ test('cappelli: i gratuiti sono di tutti, quelli a pagamento si comprano una vol
   const free = AVATAR.cappelli.find((h) => h.monete === 0)!;
   const oggi = vetrinaMercante(1000).cappelli;
   const paid = AVATAR.cappelli.find((h) => h.id === oggi[0])!, altro = AVATAR.cappelli.find((h) => h.id === oggi[1])!;
-  const assente = AVATAR.cappelli.find((h) => h.monete > 0 && !oggi.includes(h.id))!;
+  const assente = AVATAR.cappelli.find((h) => h.monete > 0 && !oggi.includes(h.id) && h.id !== 'casco' && h.id !== 'lanterna')!;
   let lot = senzaMonete(newLot('a', 0));
   assert.ok(ownsHat(lot, free.id));
   assert.ok(!ownsHat(lot, paid.id));
@@ -37,5 +37,11 @@ test('cappelli: i gratuiti sono di tutti, quelli a pagamento si comprano una vol
   assert.throws(() => buyHat(lot, assente.id, 3000), isErr('requisito'), 'oggi il Mercante non ce l’ha');
   lot = buyHat(lot, altro.id, 3000);
   assert.ok(ownsHat(lot, altro.id) && lot.monete === 3 + assente.monete);
+  // casco e lanterna sono sempre acquistabili ai moli delle rispettive isole anche se assenti dal Mercante
+  const casco = AVATAR.cappelli.find((h) => h.id === 'casco')!, lanterna = AVATAR.cappelli.find((h) => h.id === 'lanterna')!;
+  lot = conMonete(lot, casco.monete + lanterna.monete);
+  lot = buyHat(lot, 'casco', 3000);
+  lot = buyHat(lot, 'lanterna', 3000);
+  assert.ok(ownsHat(lot, 'casco') && ownsHat(lot, 'lanterna'));
   assert.equal(checkMonete([lot]), null);
 });

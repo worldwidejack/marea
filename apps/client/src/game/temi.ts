@@ -145,9 +145,16 @@ export function createTemi(o: {
       const f = world.mode === 'walk' ? world.avatar.state : world.boat.state;
       if (!fxLoad && vicino(f.x, f.z)) void caricaFx();
       fx?.update(dt, t, f);
-      // Vulcano (o ogni isola chiusa senza barriera): a piedi lì sopra → fumetto, poi di nuovo in barca. L'Adrenalina no: ti ferma il cancello della funivia
+      // Vulcano (o ogni isola chiusa senza barriera): a piedi lì sopra → fumetto, poi di nuovo in barca. L'Adrenalina no: ti ferma il cancello della funivia.
+      // Al molo del Vulcano (e dal mercante di lanterne) non ti cacciano: puoi comprare la lanterna prima di entrare.
       const qui = world.mode === 'walk' && !world.race.on ? arch.placeAt(world.avatar.state.x, world.avatar.state.z) : null;
-      const cacciato = qui?.tema && qui.tema.barriera <= 0 && qui.tema.sblocco.tipo !== 'funivia' && !stato[qui.island]?.aperta ? qui : null;
+      let alMolo = false;
+      if (qui?.island === 'vulcano') {
+        const cell = map.worldToCell(world.avatar.state.x, world.avatar.state.z);
+        const lx = cell.cx - qui.origin[0], lz = cell.cz - qui.origin[1], t = map.at(cell.cx, cell.cz);
+        alMolo = t === 'd' || t === 'B' || (lx >= 4 && lx <= 7 && lz >= 21 && lz <= 24);
+      }
+      const cacciato = qui?.tema && qui.tema.barriera <= 0 && qui.tema.sblocco.tipo !== 'funivia' && !stato[qui.island]?.aperta && !alMolo ? qui : null;
       if (cacciato && !caccia) { caccia = { isola: cacciato.island, t: 0 }; cacce++; fx?.caccia(cacciato.island); }
       if (caccia) {
         caccia.t += dt;
