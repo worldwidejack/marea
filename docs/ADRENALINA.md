@@ -58,10 +58,10 @@ Un pollice basta; sul PC tastiera.
 
 | | Telefono | PC |
 |---|---|---|
-| Curvare | trascini a destra e a sinistra (da dove hai toccato) | A/D o frecce |
-| Saltare (snowboard) | tieni il dito giù (ti accucci e carichi), lo alzi sul bordo del trampolino | tieni e lasci Spazio |
-| Trick in aria | un colpo veloce col dito: su = mortale avanti, giù = indietro, di lato = 360 | frecce in aria |
-| Presa (snowboard) | in aria tieni il dito fermo; lo alzi prima di toccare terra | Spazio tenuto in aria |
+| Curvare | tasti ◀ e ▶ a sinistra (o trascini sulla neve) | A/D o frecce |
+| Saltare (snowboard) | tasto SALTO a destra: tieni premuto e lasci (o tieni e alzi il dito) | tieni e lasci Spazio |
+| Trick in aria | tasti ▲ ▼ ◀ ▶ a sinistra (o colpo veloce col dito in su, giù, di lato) | frecce in aria |
+| Presa (snowboard) | tasto PRESA a destra tenuto in aria (o dito fermo); lo alzi prima di toccare terra | Spazio tenuto in aria |
 | Scatto (bici) | tocco | Spazio |
 | Paracadute | tocco = apri | Spazio |
 
