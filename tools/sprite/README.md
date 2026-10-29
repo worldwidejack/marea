@@ -13,14 +13,14 @@ Gli script della ricetta in `.claude/skills/sprite-marea/SKILL.md`: leggi quella
 | `foglio.py <cartella> [--apri]` | il foglio da guardare: per mossa le 9 viste × 4 disegni, sulla linea di terra, e il giro delle 16 direzioni |
 | `in_fenaki.py <cartella>` | gli sprite nel banco di Fenaki: ogni mossa in ogni vista e il giro delle viste, da guardare e far votare |
 
-La cartella di un personaggio è `assets/concept/sprite/<id>/` (esempio vero: `protagonista/`):
+La cartella di un personaggio sta nell'**Atelier di MAREA** (repo `worldwidejack/marea-atelier`, clonato accanto a `marea`): `<atelier>/personaggi/<id>/`, esempio vero `personaggi/f3-prova/`. Tutto si committa lì, tranne `controllo/`:
 
 ```
 scheda.json         chi è e cosa fa: descrizione in inglese, immagini approvate, altezza, mosse (si committa)
 lavori.txt          i prompt (prompt.py, si committa)
-modello/            guida e viste del modello in 5 viste (nel repo solo i .jpg)
-fogli/              i fogli di Codex: <vista>_<mossa>-<mossa>.png (restano sul computer)
-sprite/             gli sprite <vista>_<mossa>_<n>.png e elenco.json (sul computer), tavolozza.json (si committa)
-controllo/          il banco di Fenaki (sul computer)
-_FOGLIO_sprite.jpg  il foglio da guardare (si committa e va nella PR)
+modello/            guida e viste del modello in 5 viste
+fogli/              i fogli di Codex: <vista>_<mossa>-<mossa>.png, anche i bocciati, e REGISTRO.md (una riga per foglio)
+sprite/             gli sprite <vista>_<mossa>_<n>.png, elenco.json e tavolozza.json
+controllo/          il banco di Fenaki (resta sul computer)
+_FOGLIO_sprite.jpg  il foglio da guardare (lo mostra anche la galleria dell'Atelier)
 ```
