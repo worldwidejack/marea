@@ -11,7 +11,7 @@ Il gruppo ha votato il **look 3**: il mondo è in 3D e il motore lo fa sembrare 
 - **16 direzioni**: 9 viste disegnate, da davanti a dietro passando da destra (S, SSE, SE, ESE, E, ENE, NE, NNE, N), e le 7 del lato sinistro sono lo **specchio** (le fa il gioco: non si disegnano). La vista la sceglie il gioco dall'angolo fra dove guarda il personaggio e la camera, a scatti di 22,5°.
 - **4 disegni per mossa e per vista** → **36 disegni per mossa** (9 × 4). La camminata fa anche da posa ferma (il disegno 2, gambe unite).
 - **Pixel art vera**: pixel grossi e netti, niente sfumature né anti-aliasing, contorno scuro di 1 pixel, una tavolozza piccola comune a tutte le viste del personaggio. Il protagonista è alto **48 px** in piedi; testa grande (circa il 45 % dell'altezza coi capelli), corpo corto.
-- **Riferimenti approvati** (il protagonista F3), da guardare prima di cominciare e da allegare: `assets/concept/personaggio/` → `F3_design.jpg` (il disegno), `F3_5_viste.jpg` (il modello in 5 viste), `F3_vista_<S|SE|E|NE|N>.jpg`, `F3_foglio_pixel_<SE|E|NE>.jpg` (fogli a pixel approvati: lo stile da copiare per un personaggio nuovo), `F3_sprite_pixel.jpg` (tutti i 108 sprite, la misura di cosa vuol dire «fatto bene»).
+- **Riferimenti approvati** (il protagonista F3), da guardare prima di cominciare e da allegare: `assets/concept/personaggio/` → `F3_design.jpg` (il disegno), `F3_5_viste.jpg` (il modello in 5 viste), `F3_vista_<S|SE|E|NE|N>.jpg`, `F3_foglio_pixel_<SE|E|NE>.jpg` (fogli a pixel approvati: lo stile da copiare per un personaggio nuovo), `F3_sprite_pixel.jpg` (tutti i 108 sprite, la misura di cosa vuol dire «fatto bene»). Gli stessi, coi fogli Codex, gli sprite e le mosse delle armi, stanno nell'Atelier in `personaggi/f3-prova/` (e animati nella sua galleria). F3 è un riferimento, non il protagonista definitivo: quello si rifà da zero insieme (`quest/01-protagonista.md` dell'Atelier).
 - Fino all'Art Bible sul look 3, per i personaggi a sprite vale questa skill dove `docs/ART_BIBLE.md` §5 dice altro (6 teste, modello 3D, Mixamo).
 
 ## La regola
@@ -23,7 +23,7 @@ Il gruppo ha votato il **look 3**: il mondo è in 3D e il motore lo fa sembrare 
 - **Python**: quello del venv di Fenaki (`<fenaki>/.venv/bin/python`, su Windows `<fenaki>\.venv\Scripts\python.exe`), che ha già Pillow, numpy e OpenCV. Negli esempi qui sotto `PY` = quel python.
 
 ## La cartella del personaggio
-`assets/concept/sprite/<id>/`, con dentro `scheda.json`: l'esempio vero è `assets/concept/sprite/protagonista/scheda.json`. La scheda dice chi è (`descrizione` in inglese, **identica in ogni prompt**: capelli, testa, pelle, vestiti coi colori), `pronome` (he / she / it), `modello` (il disegno approvato), `viste` (le 5 viste del modello), `stile` (per un personaggio nuovo: i fogli a pixel di F3, uno per vista del giro 1), `alto` (px in piedi), `testa` (% coi capelli), `mosse` (una frase in inglese per riga del foglio: «WALK CYCLE, 4 frames: …»), `extra` (colori piccoli che devono restare, come il verde della pozione). Nel repo vanno scheda, prompt, tavolozza e i JPG; i PNG (fogli, sprite) restano sul computer (`.gitignore`). La mappa degli script è in `tools/sprite/README.md`.
+Dal 29/10/2026 i personaggi si fanno nell'**Atelier di MAREA**, il posto comune di tutto il world building: repo `worldwidejack/marea-atelier` (clonalo accanto a `marea`), galleria https://worldwidejack.github.io/marea-atelier/. **Prima di generare leggi il suo `CLAUDE.md` e `STILE.md`.** La cartella è `<atelier>/personaggi/<id>/`, con dentro `scheda.json`: l'esempio vero è `personaggi/f3-prova/scheda.json` (la vecchia `assets/concept/sprite/protagonista/` di questo repo resta solo come esempio). La scheda dice chi è (`descrizione` in inglese, **identica in ogni prompt**: capelli, testa, pelle, vestiti coi colori), `pronome` (he / she / it), `modello` (il disegno approvato), `viste` (le 5 viste del modello), `stile` (per un personaggio nuovo: i fogli a pixel di F3, uno per vista del giro 1), `alto` (px in piedi), `testa` (% coi capelli), `mosse` (una frase in inglese per riga del foglio: «WALK CYCLE, 4 frames: …»), `extra` (colori piccoli che devono restare, come il verde della pozione). Nell'Atelier va tutto: scheda, prompt, tavolozza, fogli (anche i bocciati, con una riga in `fogli/REGISTRO.md`: data · chi · generatore · allegati · esito) e sprite; resta sul computer solo `controllo/` (il banco di Fenaki). La mappa degli script è in `tools/sprite/README.md`.
 
 ## Il giro
 **0. Un personaggio nuovo comincia da un disegno solo**, scelto fra 3 varianti (A/B/C) generate col modello di F3 accanto, così sta nello stesso mondo. Poi scrivi la scheda.
@@ -77,14 +77,14 @@ Poi in **Fenaki** (`in_fenaki.py` ha preparato `controllo/`): `provino(cartella=
 
 ## Farli vedere
 1. Alla persona: il foglio aperto (`foglio.py --apri`) e la pagina di Fenaki; le scelte di gusto come A/B con le immagini.
-2. Al gruppo, nella PR della cartella del personaggio: `_FOGLIO_sprite.jpg` (e il video se serve), con scritto cosa guardare. Nel gioco entrano quando nessuno è contrario (o col voto 2 su 3): il motore degli sprite del look 3 arriverà in MAREA con una PR a parte, che leggerà `sprite/elenco.json` (lo stesso formato della prova dei look).
+2. Al gruppo: push nell'Atelier (la galleria si aggiorna da sola in un minuto) e il link nel gruppo, con scritto cosa guardare (`_FOGLIO_sprite.jpg`, il video se serve). Nel gioco entrano quando nessuno è contrario (o col voto 2 su 3): il motore degli sprite del look 3 arriverà in MAREA con una PR a parte, che leggerà `sprite/elenco.json` (lo stesso formato della prova dei look).
 
 ## Cosa NON fare
 - Partire da forme fatte da codice al posto del design: prima il disegno approvato, poi le viste. La sagoma grigia dice solo misura e angolo e sparisce sotto il disegno (se il generatore copia le forme della base, il risultato sembra un modello low-poly ridisegnato).
 - Più viste in un foglio, più di 3 mosse in un foglio, fogli senza la camminata in prima riga.
 - Saltare il giro 1 o fare il giro 2 prima dell'ok: i 6 fogli del giro 2 copiano lo stile del giro 1, anche i suoi difetti.
 - Ritoccare la tavolozza a mano o mischiare le tavolozze di due personaggi: ognuno ha la sua `sprite/tavolozza.json`.
-- Mettere i PNG nel repo (solo i JPG) o gli sprite nel gioco prima che il gruppo li abbia visti.
+- Mettere fogli e sprite in questo repo: vanno nell'Atelier; nel gioco entrano solo quando il gruppo li ha visti.
 - Fidarsi del «fatto» di Codex: apri sempre il foglio. Dopo ~40-50 immagini di fila Codex si può fermare: rilancia `genera.py`, salta i fogli già fatti.
 
 ## Tempi e costi (dalla prova)
