@@ -18,3 +18,10 @@ __pycache__/
 
 # concept art: nel repo solo i JPG, i PNG originali restano sul Mac
 assets/concept/**/*.png
+
+# sprite dei personaggi (tools/sprite): nel repo scheda, prompt, tavolozza e i fogli JPG; i fogli di Codex, gli sprite e
+# il banco di Fenaki restano sul computer di chi li fa
+assets/concept/sprite/*/fogli/
+assets/concept/sprite/*/controllo/
+assets/concept/sprite/*/modello/log/
+assets/concept/sprite/*/sprite/elenco.json

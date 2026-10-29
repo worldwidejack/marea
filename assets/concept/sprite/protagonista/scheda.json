@@ -1,0 +1,23 @@
+{
+ "nome": "il protagonista (F3)",
+ "pronome": "he",
+ "descrizione": "side-swept dark-brown hair with pointed locks, the big head about 45 % of his height on a short body, light tan skin, plain white T-shirt, deep-teal shorts, brick-red sneakers with cream soles",
+ "carattere": "He is a cool, ironic grown-up man of about 25 drawn as a caricature (big head on a small body), never a child",
+ "testa": 45,
+ "modello": "../../personaggio/F3_design.jpg",
+ "viste": {
+  "S": "../../personaggio/F3_vista_S.jpg",
+  "SE": "../../personaggio/F3_vista_SE.jpg",
+  "E": "../../personaggio/F3_vista_E.jpg",
+  "NE": "../../personaggio/F3_vista_NE.jpg",
+  "N": "../../personaggio/F3_vista_N.jpg"
+ },
+ "alto": 48,
+ "colori": 15,
+ "extra": ["#78D6B6", "#C4F6E2"],
+ "mosse": {
+  "cammina": "WALK CYCLE, 4 frames: right foot forward contact, passing pose with the legs together, left foot forward contact, passing pose with the legs together, arms swinging opposite to the legs (frame 2 is also the standing pose)",
+  "scatto": "DASH WITH A ROLL, 4 frames: crouched anticipation leaning back, explosive lunge forward stretched long and low, tucked into a ball rolling forward, landing back on his feet in a running pose",
+  "bevi": "DRINKING A POTION, 4 frames: holding a small round glass potion bottle with glowing mint liquid at chest height, raising it to his mouth, drinking with the head tilted back, lowering it with a satisfied grin"
+ }
+}
