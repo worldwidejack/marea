@@ -3,15 +3,19 @@
 import type { GameWorld } from '../game/world.ts';
 import type { Hud } from '../ui/hud.ts';
 import type { Renderer } from '../render/scene.ts';
-import { tuttoSpento } from '../render/viste.ts';
+import { leggera, tuttoSpento } from '../render/viste.ts';
 import type { Impostazioni } from '../render/viste.ts';
+import { setOmbre } from '../render/light.ts';
 import type { Aspetto } from '../render/aspetto.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
 export function aspettoGrafico(o: { renderer: Renderer; world: GameWorld; hud: Hud }): { get(): Aspetto | null; applica(s: Impostazioni): void } {
   const { renderer, world, hud } = o;
   let aspetto: Aspetto | null = null, aspettoLoad: Promise<void> | null = null, voglio: Impostazioni | null = null;
-  const applica = (s: Impostazioni) => {
+  const applica = (scelte: Impostazioni) => {
+    // grafica bassa: risoluzione e ombre non vogliono il chunk dell'aspetto; meteo, contorni e stampa arrivano all'aspetto già spenti
+    renderer.setBassa(!scelte.graficaAlta); setOmbre(scelte.graficaAlta);
+    const s = leggera(scelte);
     voglio = s;
     if (aspetto) { aspetto.set(s); return; }
     if (tuttoSpento(s)) return;
@@ -22,7 +26,7 @@ export function aspettoGrafico(o: { renderer: Renderer; world: GameWorld; hud: H
   };
   registerTestHook('ciclo', (f) => aspetto?.forzaFase(f === null || f === undefined ? null : Number(f)));
   registerTestHook('aspettoPronto', () => aspettoLoad ?? Promise.resolve());
-  registerStateProvider('aspetto', () => ({ momento: aspetto ? aspetto.momento : (renderer.alChiuso ? 'interno' : 'giorno'), post: aspetto?.attivo ?? false, caricato: !!aspetto, luci: aspetto?.luci ?? 0, meteoK: aspetto?.meteoK ?? 0, gocce: aspetto?.gocce ?? 0, chiuso: renderer.alChiuso, interno: renderer.interno }));
+  registerStateProvider('aspetto', () => ({ momento: aspetto ? aspetto.momento : (renderer.alChiuso ? 'interno' : 'giorno'), post: aspetto?.attivo ?? false, caricato: !!aspetto, luci: aspetto?.luci ?? 0, leggera: aspetto?.leggera ?? false, ombre: world.lights.sun.castShadow, meteoK: aspetto?.meteoK ?? 0, gocce: aspetto?.gocce ?? 0, chiuso: renderer.alChiuso, interno: renderer.interno }));
   // meteo: il tempo dove sei, 'sereno' | 'bianca' | 'grigia' | 'pioggia' | 'temporale' (la nuvola che hai sopra), 'spento' con l'impostazione
   // spenta; `nuvole` quante ce ne sono, quanto piove e lampeggia dove sei. Dai test: meteo(tipo, k) una nuvola sopra di te (null = l'orologio),
   // nuvole([{ tipo, dx, dz, r }]) nuvole ferme attorno a te, lampo(true) un lampo fisso nel temporale più vicino

@@ -102,4 +102,39 @@ export default async function (ctx) {
     ctx.assert(perf.drawCalls > 0 && perf.drawCalls <= MAX_DC, `draw call ${perf.drawCalls}`);
     ctx.noErrors(s, 'di serie');
   });
+  await ctx.test('grafica superiore: accesa di serie; spenta alleggerisce (risoluzione, ombre, meteo, luci), riaccesa torna uguale', async () => {
+    const st0 = await ctx.getState(s.page);
+    ctx.assert(st0.impostazioni.graficaAlta === true && st0.aspetto.ombre === true && st0.aspetto.leggera === false, `di serie: ${JSON.stringify(st0.impostazioni)} ${JSON.stringify(st0.aspetto)}`);
+    ctx.assert(st0.meteo !== 'spento', 'di serie il meteo è acceso');
+    await s.page.evaluate(() => window.__game.test.ciclo(0.78));
+    await ctx.waitState(s.page, (st) => st.aspetto.luci > 0, 10000).catch(() => {});
+    const alta = await ctx.getPerf(s.page); const luciAlta = (await ctx.getState(s.page)).aspetto.luci; ctx.log('alta', JSON.stringify(alta), 'luci', luciAlta);
+    ctx.assert(luciAlta > 0, `di notte con la grafica alta le luci vere sono accese: ${luciAlta}`);
+    await s.page.click('#mzSetBtn'); await s.page.waitForTimeout(200);
+    ctx.assert(await s.page.$('#mzSet [data-set="graficaAlta"]') && await s.page.$('#mzSet [data-set="meteo"]') && await s.page.$('#mzSet [data-set="contorni"]'), 'mancano l’interruttore o le righe grafiche');
+    await s.page.click('#mzSet [data-set="graficaAlta"]'); await s.page.waitForTimeout(200);
+    ctx.assert(!(await s.page.$('#mzSet [data-set="meteo"]')) && !(await s.page.$('#mzSet [data-set="stampa"]')) && !(await s.page.$('#mzSet [data-set="contorni"]')), 'con la grafica bassa meteo, stampa e contorni restano nel pannello');
+    await ctx.shot(s.page, 'iphone_grafica_bassa_pannello');
+    await s.page.keyboard.press('Escape');
+    await ctx.waitState(s.page, (st) => st.aspetto.leggera === true && st.aspetto.luci === 0 && st.meteo === 'spento', 10000).catch(() => {});
+    const st = await ctx.getState(s.page);
+    ctx.assert(st.impostazioni.graficaAlta === false && st.impostazioni.contorni === true && st.impostazioni.meteo === true, `le scelte singole restano salvate: ${JSON.stringify(st.impostazioni)}`);
+    ctx.assert(st.aspetto.leggera === true && st.aspetto.ombre === false, `resa non alleggerita: ${JSON.stringify(st.aspetto)}`);
+    ctx.assert(st.meteo === 'spento' && st.aspetto.luci === 0, `meteo ${st.meteo}, luci ${st.aspetto.luci}`);
+    const bassa = await ctx.getPerf(s.page); ctx.log('bassa', JSON.stringify(bassa));
+    ctx.assert(bassa.width < alta.width * 0.8 && bassa.height < alta.height * 0.8, `risoluzione non scesa: ${alta.width}×${alta.height} → ${bassa.width}×${bassa.height}`);
+    ctx.assert(bassa.drawCalls > 0 && bassa.drawCalls <= MAX_DC, `draw call ${bassa.drawCalls}`);
+    await ctx.shot(s.page, 'iphone_grafica_bassa_notte');
+    await s.page.evaluate(() => window.__game.test.ciclo(0.2)); await s.page.waitForTimeout(800);
+    await ctx.shot(s.page, 'iphone_grafica_bassa_giorno');
+    ctx.noErrors(s, 'grafica bassa'); // compila anche lo shader LITE del mare
+    await s.page.reload(); await ctx.waitReady(s.page, 20000);
+    await s.page.evaluate(() => window.__game.test.aspettoPronto());
+    ctx.assert((await ctx.getState(s.page)).impostazioni.graficaAlta === false, 'la grafica bassa non resta dopo il ricaricamento');
+    await s.page.evaluate(() => window.__game.test.impostazioni({ graficaAlta: true }));
+    await ctx.waitState(s.page, (x) => x.aspetto.leggera === false && x.aspetto.ombre === true, 10000).catch(() => {});
+    const di_nuovo = await ctx.getPerf(s.page);
+    ctx.assert(di_nuovo.width === alta.width && di_nuovo.height === alta.height, `risoluzione non tornata: ${di_nuovo.width}×${di_nuovo.height}`);
+    ctx.noErrors(s, 'grafica alta di nuovo');
+  });
 }

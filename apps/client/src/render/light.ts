@@ -13,11 +13,16 @@ export type Lights = { group: THREE.Group; update(t: number): void; sun: THREE.D
  *  gara accese insieme l'iPhone finiva la memoria e ricaricava la pagina dopo VIA. */
 export const OMBRA_HD = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches ? 1024 : 2048;
 
+/** I soli creati da createLights (mondo, Corse, Adrenalina…): la grafica bassa spegne le loro ombre tutte insieme, anche quelli nati dopo. */
+const SOLI = new Set<THREE.DirectionalLight>();
+let ombre = true;
+export function setOmbre(on: boolean): void { ombre = on; for (const s of SOLI) s.castShadow = on; }
+
 export function createLights(): Lights {
   const group = new THREE.Group();
   group.name = 'lights';
   const sun = new THREE.DirectionalLight(SUN.color, SUN.intensity);
-  sun.castShadow = true;
+  sun.castShadow = ombre; SOLI.add(sun);
   sun.shadow.mapSize.set(1024, 1024);
   const c = sun.shadow.camera;
   c.left = -SUN.half; c.right = SUN.half; c.top = SUN.half; c.bottom = -SUN.half; c.near = 5; c.far = SUN.dist + 40;

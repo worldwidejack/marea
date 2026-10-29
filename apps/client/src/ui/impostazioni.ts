@@ -1,5 +1,6 @@
 // Impostazioni (#53): ingranaggio #mzSetBtn nella barra in alto, pannello #mzSet con camera (5 viste), ciclo giorno/notte,
 // meteo (#361), stampa giapponese e contorni, volume di Musica ed Effetti (audio/ponte.ts: 4 livelli, NO … ALTA). Di serie (#59) ciclo, camera 22° e contorni; le scelte restano su questo dispositivo (localStorage).
+// «Grafica superiore», accesa di serie: spenta è la grafica low end (render/viste.ts `leggera`, avvio/aspetto.ts); meteo, stampa e contorni spariscono dal pannello.
 // Solo sui dispositivi touch (#143): «Una mano» (il joystick nasce dove tocchi) e quanti secondi resta dopo il rilascio.
 // Coi test automatici (?test=1) si parte tutto spento, così gli screenshot non dipendono dall'ora vera; ?serie=1 usa i valori di serie.
 // Il pannello non sa niente di three: chiama onChange e render/aspetto.ts fa il resto.
@@ -27,8 +28,7 @@ const CSS = `
 #mzSet .mz-set-vol { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; }
 #mzSet .mz-set-vol .mz-set-lbl { flex: 1; margin: 0; }
 #mzSet .mz-set-vol .mz-set-cam { min-width: 48px; }
-#mzSet .mz-set-pad { margin: 6px 0 0 12px; }
-#mzSetBtn .mz-ico { width: 28px; height: 28px; }
+#mzSet .mz-set-pad { margin: 6px 0 0 12px; }#mzSetBtn .mz-ico { width: 28px; height: 28px; }
 `;
 let styled = false;
 function injectStyle(): void {
@@ -63,7 +63,7 @@ export function loadImpostazioni(): Impostazioni {
     const vol = (v: unknown, d: number) => (typeof v === 'number' && v >= 0 && v <= 3 ? Math.round(v) : d); // salvate prima dell'audio: di serie
     const padSec = (PAD_SEC as readonly number[]).includes(Number(raw.padSec)) ? Number(raw.padSec) : base.padSec;
     const ciclo = FLAGS.test && !FLAGS.serie ? raw.ciclo === true : true; // sempre on (#487), non disattivabile (nei test senza ?serie=1 segue base/raw)
-    return { cam: Number(raw.cam) || 0, ciclo, stampa: raw.stampa === true, contorni: raw.contorni === true, meteo: typeof raw.meteo === 'boolean' ? raw.meteo : base.meteo, musica: vol(raw.musica, base.musica), effetti: vol(raw.effetti, base.effetti), unaMano: raw.unaMano === true, padSec };
+    return { cam: Number(raw.cam) || 0, ciclo, stampa: raw.stampa === true, contorni: raw.contorni === true, meteo: typeof raw.meteo === 'boolean' ? raw.meteo : base.meteo, musica: vol(raw.musica, base.musica), effetti: vol(raw.effetti, base.effetti), unaMano: raw.unaMano === true, padSec, graficaAlta: typeof raw.graficaAlta === 'boolean' ? raw.graficaAlta : base.graficaAlta };
   } catch { return { ...base }; }
 }
 
@@ -80,7 +80,7 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(cur)); } catch { /* navigazione privata: vale fino a fine sessione */ } };
   const change = (p: Partial<Impostazioni>) => { cur = { ...cur, ...p }; save(); o.onChange(cur); setVolumi(cur.musica, cur.effetti); render(); };
-  const toggleRow = (key: 'stampa' | 'contorni' | 'meteo' | 'unaMano', title: string, sub: string) => {
+  const toggleRow = (key: 'stampa' | 'contorni' | 'meteo' | 'unaMano' | 'graficaAlta', title: string, sub: string) => {
     const b = el('button', 'mz-set-row' + (cur[key] ? ' on' : '')); b.type = 'button'; b.dataset['set'] = key;
     const txt = el('span'); txt.append(el('span', '', title), el('span', 'q', sub));
     b.append(txt, el('span', 'sw', cur[key] ? 'Sì' : 'No'));
@@ -109,7 +109,8 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
       row.appendChild(b);
     });
     cam.appendChild(row);
-    body.append(volRow('musica', 'Musica'), volRow('effetti', 'Effetti'), cam);
+    // subito sotto i volumi: chi ha un telefono lento la cerca per prima
+    body.append(volRow('musica', 'Musica'), volRow('effetti', 'Effetti'), toggleRow('graficaAlta', 'Grafica superiore', cur.graficaAlta ? 'spegnila se il gioco va a scatti' : 'meteo, stampa e contorni sono spenti'), cam);
     if (touch) {
       body.appendChild(toggleRow('unaMano', 'Una mano', 'il joystick appare dove tocchi lo schermo'));
       if (cur.unaMano) { // quanto resta il joystick dopo il rilascio: bottoni grandi come quelli del volume
@@ -123,8 +124,8 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
         body.appendChild(r);
       }
     }
+    if (!cur.graficaAlta) return;
     body.append(
-
       toggleRow('meteo', 'Meteo', 'nuvole, pioggia e temporali: lo stesso cielo per tutti'),
       toggleRow('stampa', 'Stampa giapponese', 'colori da stampa antica, onde, carta'),
       toggleRow('contorni', 'Contorni', 'una riga scura attorno a cose e persone'));

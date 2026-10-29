@@ -49,6 +49,8 @@ export type Aspetto = {
   set(s: Impostazioni): void; update(nowMs: number, t: number, focus?: { x: number; z: number }): void; readonly momento: string; readonly attivo: boolean;
   /** Luci vere accese adesso (#60), per i test. */
   readonly luci: number;
+  /** Grafica bassa: mare semplice e niente luci vere di notte (meteo, contorni e stampa arrivano già spenti da avvio/aspetto.ts). */
+  readonly leggera: boolean;
   /** 0..1: quanto è buio (0 di giorno o col ciclo spento, 1 a notte piena): lucciole (#67). */
   readonly buio: number;
   /** Test e screenshot: fissa il momento del giro (0 giorno … 0,75 notte); null = l'orologio. */
@@ -173,6 +175,7 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
   const api: Aspetto = {
     get momento() { return o.renderer.alChiuso ? 'interno' : (imp.ciclo ? m.nome : 'giorno'); },
     get luci() { return luci?.accese ?? 0; },
+    get leggera() { return !imp.graficaAlta; },
     get buio() { return o.renderer.alChiuso ? 0 : (imp.ciclo ? m.luci : 0); },
     get attivo() { return postOn; },
     get meteo() { return imp.meteo ? met.stato : 'spento'; },
@@ -192,6 +195,7 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
         water2.set(1, ACQUA_STAMPA.c, ACQUA_STAMPA.foam, ACQUA_STAMPA.line, [0, 1, 0]);
         o.renderer.scene.add(water2.mesh);
       }
+      water2.lite(!imp.graficaAlta);
       o.water.mesh.visible = false;
       if (!imp.meteo) { met = SERENO; tutte = []; vicine = []; lampo = null; NUBI.uNubiN.value = 0; tende = 0; }
       if (imp.meteo && !pioggia) { pioggia = createPioggia(); o.renderer.scene.add(pioggia.object); }
@@ -201,6 +205,7 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
       // spenti: torna esattamente al giorno di sempre (luce, cielo, acqua, niente pioggia né suono di pioggia)
       if ((!imp.ciclo && cicloWas) || (!imp.meteo && meteoWas)) { if (!imp.ciclo) m = GIORNO; paint(); }
       if (imp.ciclo && !luci && o.scena) luci = createLuci(o.scena);
+      luci?.reali(imp.graficaAlta);
       if (luci) { if (imp.ciclo) o.renderer.scene.add(luci.group); else { luci.set(0, 0, 0, 0); luci.group.removeFromParent(); } }
       cicloWas = imp.ciclo; meteoWas = imp.meteo; nextTick = 0;
       acquaStampa();
