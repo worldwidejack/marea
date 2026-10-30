@@ -65,7 +65,13 @@ def pixel(scheda, vista, mosse, rif_viste, stile_vicino):
         chi = (f'{"Three" if scheda.get("stile") else "Two"} images are attached. The FIRST image is the character seen from the '
                'needed angle, the SECOND image is the approved character design: copy EXACTLY the same character '
                f'({desc}), only turned into pixel art.')
-        if scheda.get('stile'):
+        if scheda.get('stile') and scheda.get('stile_stesso'):
+            # una mossa nuova di un personaggio già fatto: il suo foglio approvato della stessa vista fa da metro
+            # (senza, nel giro 1 della camminata a 8 pose la vista 3/4 dietro è uscita con la testa larga il 40 % in più)
+            chi += (' The THIRD image is the APPROVED pixel art sheet of THIS SAME character in THIS SAME view: match EXACTLY '
+                    'its pixel size, palette, outline, head size and body size, the head and the body exactly as big and as '
+                    'wide as in its first row, NOT bigger, NOT chubbier.')
+        elif scheda.get('stile'):
             chi += (' The THIRD image is an existing pixel art sheet of another character of the same game: match EXACTLY its '
                     'pixel size, palette style, outline and proportions (big head, short body).')
     n = len(mosse)
@@ -79,6 +85,10 @@ def pixel(scheda, vista, mosse, rif_viste, stile_vicino):
         fine += (' The LAST attached image is an existing pixel art sheet of the SAME character from a nearby angle: match '
                  'EXACTLY its pixel size, palette, outline, proportions, head size and frame layout, so the new sheet looks drawn '
                  'by the same artist.')
+        if scheda.get('stile_stesso') and isinstance(scheda.get('stile'), dict) and scheda['stile'].get(vista):
+            fine += (' The SECOND-TO-LAST attached image is the APPROVED pixel art sheet of THIS SAME character in THIS SAME '
+                     'view: the head and the body exactly as big and as wide as in its first row, NOT bigger, NOT chubbier, '
+                     'the same palette and outline.')
     return ' '.join([STILE, view, chi, layout, righe, fine])
 
 
@@ -110,7 +120,11 @@ def righe_pixel(cartella, scheda):
                 vicino = os.path.join('fogli', nome_foglio(vicina, mosse) + '.png')
                 if not os.path.exists(os.path.join(cartella, vicino)):
                     sys.exit(f'per {v} serve prima il foglio {vicino} (giro 1, guardato e approvato)')
-                rif = [scheda['viste'].get(x) for x in da] + [vicino]
+                # una mossa nuova di un personaggio già fatto: anche il suo foglio approvato di QUESTA vista, come metro
+                # della taglia (penultimo allegato; l'ultimo resta il foglio vicino del giro 1)
+                stile = scheda.get('stile') if scheda.get('stile_stesso') else None
+                stesso = stile.get(v) if isinstance(stile, dict) else None
+                rif = [scheda['viste'].get(x) for x in da] + ([stesso] if stesso else []) + [vicino]
             if not all(rif):
                 sys.exit(f'nella scheda mancano le immagini per {v}: "viste" ({", ".join(VISTE_MODELLO)}) e "modello"')
             out.append(f"{nome_foglio(v, mosse)}|{','.join(rif)}|{pixel(scheda, v, mosse, rif, vicino)}")

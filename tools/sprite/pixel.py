@@ -197,8 +197,15 @@ def main():
         nome = f"{c['vista']}_{c['mossa']}_{c['n']}"
         Image.fromarray(tela, 'RGBA').save(os.path.join(out, nome + '.png'))
         H2, W2 = tela.shape[:2]
-        # punto d'appoggio: angolo fra due pixel (intero), al centro della figura, sulla riga sotto i piedi
-        elenco[nome] = {'w': W2, 'h': H2, 's': 19.2, 'ax': W2 // 2, 'ay': H2 - 1, 'piede': piede, 'scatola': scatola,
+        # punto d'appoggio: angolo fra due pixel (intero), sulla riga sotto i piedi; in x al centro della figura, ma nei
+        # cicli (scheda "ciclo": camminata, corsa) sotto il centro della testa: col centro del riquadro la testa saltava
+        # avanti e indietro di 2-6 px a ogni apertura delle gambe e il ciclo sembrava a scatti
+        ax = W2 // 2
+        if c['mossa'] in scheda.get('ciclo', []):
+            ys, xs = np.where(tela[..., 3] > 127)
+            testa = ys < ys.min() + 0.35 * (ys.max() - ys.min())
+            ax = int(round(xs[testa].mean() + 0.5))
+        elenco[nome] = {'w': W2, 'h': H2, 's': 19.2, 'ax': ax, 'ay': H2 - 1, 'piede': piede, 'scatola': scatola,
                         'modo': 'piano', 'avanti': 0.3}
     with open(os.path.join(out, 'elenco.json'), 'w', encoding='utf-8') as fp:
         json.dump(dict(sorted(elenco.items())), fp, indent=0)
