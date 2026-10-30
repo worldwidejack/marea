@@ -60,6 +60,7 @@ export function validateStoria(): string[] {
     if (i.gioco.tipo === 'minigioco' && !minigiochi.has(i.gioco.id)) errs.push(`storia ${i.isola}: minigioco «${i.gioco.id}» non è nel Diario`);
     if (!(i.premio >= 0) || !i.cosa) errs.push(`storia ${i.isola}: premio o cosa sbagliati`);
   }
+  for (const id of isole) if (!viste.has(id)) errs.push(`storia: l'isola «${id}» non ha una riga in isole (Remo non la dà): vedi docs/TUTORIAL.md`);
   if (!(STORIA.dungeon.premio >= 0)) errs.push('storia: premio dei dungeon sbagliato');
   const m = STORIA.missioni;
   for (const [k, r] of Object.entries({ remo: m.remo, isola: m.isola, torna: m.torna, dungeon: m.dungeon, fine: { titolo: m.fine[0], come: m.fine[1] } })) {
