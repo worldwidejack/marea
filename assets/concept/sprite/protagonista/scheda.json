@@ -18,6 +18,7 @@
  "mosse": {
   "cammina": "WALK CYCLE, 4 frames: right foot forward contact, passing pose with the legs together, left foot forward contact, passing pose with the legs together, arms swinging opposite to the legs (frame 2 is also the standing pose)",
   "scatto": "DASH WITH A ROLL, 4 frames: crouched anticipation leaning back, explosive lunge forward stretched long and low, tucked into a ball rolling forward, landing back on his feet in a running pose",
-  "bevi": "DRINKING A POTION, 4 frames: holding a small round glass potion bottle with glowing mint liquid at chest height, raising it to his mouth, drinking with the head tilted back, lowering it with a satisfied grin"
+  "bevi": "DRINKING A POTION, 4 frames: holding a small round glass potion bottle with glowing mint liquid at chest height, raising it to his mouth, drinking with the head tilted back, lowering it with a satisfied grin",
+  "salta": "JUMP STRAIGHT UP, 4 frames: crouched anticipation with the knees bent and both arms swung back, take-off pushing off the toes with the body stretched tall and the arms thrown up, at the top of the jump high in the air with the knees tucked up (this frame drawn clearly higher in its cell, the feet well above the baseline), landing crouched on both feet absorbing the impact with the arms forward for balance"
  }
 }
