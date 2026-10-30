@@ -55,7 +55,7 @@ PY tools/sprite/pixel.py <cartella>  &&  PY tools/sprite/foglio.py <cartella> --
 ```
 **4. Una mossa nuova**: una riga nuova in `mosse` della scheda, poi `prompt.py --mosse <nuova>` (la camminata entra da sola nella prima riga: fa da metro per altezza e piedi) e di nuovo giro 1 e giro 2. Al massimo 3 mosse per foglio. I fogli già approvati non si rifanno: `pixel.py` tiene la tavolozza in `sprite/tavolozza.json` e, se due fogli danno lo stesso sprite, tiene quello del foglio più vecchio.
 
-**Con ChatGPT a mano**: `prompt.py <cartella> --stampa <nome>` dice quali immagini allegare e in che ordine, il prompt da incollare e dove salvare il PNG (`fogli/<nome>.png`, a grandezza piena, almeno 1024 px di lato). Il fondo magenta pieno evita i PNG «trasparenti» finti.
+**Con ChatGPT a mano**: `prompt.py <cartella> --stampa <nome>` dice quali immagini allegare e in che ordine, il prompt da incollare e dove salvare il PNG (`fogli/<nome>.png`, a grandezza piena, almeno 1024 px di lato). Il fondo magenta pieno evita i PNG «trasparenti» finti. Con **ChatGPT free** (Riccardo, Alberto/birba) il limite è di **massimo 2 immagini allegate**: se lo script ne elenca 3, allegare solo le prime 2 (la vista di posa e il riferimento di stile/design).
 
 ## Come si scrive il prompt (lo fa `prompt.py`: non riscriverlo a mano)
 - **La riga di stile in testa** («TRUE PIXEL ART, the most important thing: …»): la cosa più importante va per prima. Nei giri del personaggio Codex ha rispettato la testa grande solo quando la frase della testa era in testa al prompt; con «ADULT body, real jawline» ignorava la sagoma e faceva proporzioni da adulto normale.
