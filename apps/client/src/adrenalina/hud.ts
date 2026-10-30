@@ -38,7 +38,7 @@ body.mz-sb #mzZoomBar, body.mz-sb #mzAvatarBtn, body.mz-sb #mzMiniMete, body.mz-
 #mzSbEsci { left: max(8px, env(safe-area-inset-left, 0px)); }
 #mzSbComandi { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); display: none; justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 15; }
 @media (min-width: 801px) and (pointer: fine) { #mzSbComandi { display: none !important; } }
-.mz-sb-curva { display: flex; pointer-events: auto; }
+.mz-sb-curva { display: flex; pointer-events: none; }
 .mz-sb-btn { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; pointer-events: auto; cursor: pointer; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: ${FONT_LIBRO}; }
 .mz-sb-btn-dir { width: 76px; height: 68px; border-radius: 16px; background: ${L.cartaChiara}; border: 2.5px solid ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px rgba(253,242,218,.6), 0 3px 0 1.5px ${L.inchiostro}; color: ${L.inchiostro}; font-size: 26px; font-weight: bold; line-height: 1; }
 .mz-sb-btn-dir small { font-size: 11px; font-weight: bold; opacity: 0.85; letter-spacing: 0.06em; margin-top: 2px; }
@@ -110,31 +110,23 @@ export function creaHud(root: HTMLElement, dito: boolean, soglie: readonly [numb
 
   comandi.append(curvaSx, curvaDx);
 
-  let sxGiu = false, dxGiu = false, inAria = false;
-  let impulsoTrick: { mx: number; my: number } | null = null;
+  let sxGiu = false, dxGiu = false;
   const tSx = tieniPremuto(btnSx, {
     ancheTouch: true, ferma: true, finestra: true, classe: 'premuto',
-    premi: () => { if (inAria) impulsoTrick = { mx: -1, my: 0 }; },
     cambia: (g) => { sxGiu = g; },
   });
   const tDx = tieniPremuto(btnDx, {
     ancheTouch: true, ferma: true, finestra: true, classe: 'premuto',
-    premi: () => { if (inAria) impulsoTrick = { mx: 1, my: 0 }; },
     cambia: (g) => { dxGiu = g; },
   });
 
-  const setAria = (aria: boolean) => {
-    if (aria === inAria) return;
-    inAria = aria;
-    lblSx.textContent = aria ? '360' : 'SX';
-    lblDx.textContent = aria ? '360' : 'DX';
-  };
+  const setAria = (_aria: boolean) => {};
 
   const bottoni: TouchBottoni = {
     get curva() { return (dxGiu ? 1 : 0) - (sxGiu ? 1 : 0); },
     get salto() { return false; },
     get attivo() { return sxGiu || dxGiu; },
-    consumaImpulso() { const imp = impulsoTrick; impulsoTrick = null; return imp; },
+    consumaImpulso() { return null; },
     setAria,
   };
 
