@@ -260,12 +260,19 @@ export default async function (ctx) {
     const d = await apri('pista=spiaggia_lungomare&bot=1', { viewport: ctx.B.DESKTOP });
     await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: true, vai: true, cam: 'dietro' }); a.avanti(60 * 4); a.set({ pausa: true }); });
     await fotogrammi(d.page, 30); // la camera raggiunge il kart (in headless i fotogrammi arrivano solo quando li si chiede)
-    const di = await d.page.evaluate(() => { const a = window.__provapiste; a.affianca(1); return a.avanti(2); }); // in pausa: gli effetti girano, la gara no
+    // in pausa: gli effetti girano, la gara no. Le scintille dell'urto nascono tutte nel fotogramma dopo e muoiono col tempo vero
+    // (0,3-0,6 s, fino a 0,1 s per fotogramma): su una macchina lenta, in un'andata e ritorno col browser ne muoiono tante. Si conta
+    // quindi nella pagina il massimo dei 4 fotogrammi dopo l'urto, meno quelle già vive prima (drift dei bot): sono quelle nate dall'urto.
+    const { st: di, prima, max } = await d.page.evaluate(() => new Promise((r) => {
+      const a = window.__provapiste, prima = a.perf().scintille;
+      a.affianca(1); const st = a.avanti(2);
+      let i = 0, max = 0;
+      const f = () => { max = Math.max(max, a.perf().scintille); if (++i >= 4) r({ st, prima, max }); else requestAnimationFrame(f); };
+      requestAnimationFrame(f);
+    }));
     assert(di.urti >= 1 && Math.abs(di.spinta) > 1, `urto di fianco: ${JSON.stringify({ urti: di.urti, spinta: di.spinta, botta: di.botta })}`);
-    await fotogrammi(d.page, 2);
-    const sc = await d.page.evaluate(() => window.__provapiste.perf().scintille);
-    assert(sc >= 8, `poche scintille dopo l'urto: ${sc}`);
-    ctx.log(`urto: ${sc} scintille`);
+    assert(max - prima >= 8, `poche scintille dall'urto: ${prima} prima, al massimo ${max} dopo`);
+    ctx.log(`urto: ${max - prima} scintille in più (${prima} → ${max})`);
     await ctx.shot(d.page, 'pc_urto_fianco');
     const ta = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ pausa: false }); a.avanti(60); const v0 = a.state().v; a.affianca(2, true); const st = a.avanti(2); a.set({ pausa: true }); return { v0, v: st.v, urti: st.urti }; });
     assert(ta.v < ta.v0 - 1, `tamponando si rallenta: ${ta.v0} → ${ta.v}`);
