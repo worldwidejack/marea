@@ -74,24 +74,25 @@ export default async function (ctx) {
 
   await ctx.test('telefono: i pulsanti a schermo sterzano e saltano', async () => {
     assert(await page.isVisible('#mzSbComandi'), 'comandi touch non visibili');
-    const btnSx = page.locator('#mzSbComandi .mz-sb-curva button').nth(0);
-    const btnDx = page.locator('#mzSbComandi .mz-sb-curva button').nth(1);
-    const btnSalto = page.locator('#mzSbBtnSalto');
-    assert(await btnDx.isVisible() && await btnSx.isVisible() && await btnSalto.isVisible(), 'pulsanti curva e salto non visibili');
-    // Curva a sinistra col pulsante
+    const btnSx = page.locator('#mzSbComandi #mzSbBtnSx');
+    const btnDx = page.locator('#mzSbComandi #mzSbBtnDx');
+    assert(await btnDx.isVisible() && await btnSx.isVisible(), 'pulsanti curva non visibili');
+    // Curva a sinistra col pulsante sinistro
     const l0 = (await sb(page)).lat;
     await btnSx.dispatchEvent('pointerdown', { pointerId: 10, pointerType: 'touch', isPrimary: true });
     await ctx.waitState(page, (st, l) => st.snowboard.lat < l - 0.3, 10000, l0).catch(() => {});
     await btnSx.dispatchEvent('pointerup', { pointerId: 10, pointerType: 'touch', isPrimary: true });
     const sSx = await sb(page);
     assert(sSx.lat < l0 - 0.2, `il pulsante sx non curva: ${l0} → ${sSx.lat}`);
-    // Salto col pulsante SALTO
-    await btnSalto.dispatchEvent('pointerdown', { pointerId: 11, pointerType: 'touch', isPrimary: true });
+    // Salto tenendo premuto fuori dai pulsanti e rilasciando
+    const box = await page.locator('#mzSbTocco').boundingBox();
+    const x = box.x + box.width / 2, y = box.y + box.height * 0.4;
+    await page.dispatchEvent('#mzSbTocco', 'pointerdown', { pointerId: 11, clientX: x, clientY: y, pointerType: 'touch', isPrimary: true });
     await page.waitForTimeout(300);
-    await btnSalto.dispatchEvent('pointerup', { pointerId: 11, pointerType: 'touch', isPrimary: true });
+    await page.dispatchEvent('#mzSbTocco', 'pointerup', { pointerId: 11, clientX: x, clientY: y, pointerType: 'touch', isPrimary: true });
     await ctx.waitState(page, (st) => st.snowboard.aria || st.snowboard.h > 0, 3000).catch(() => {});
     const sJ = await sb(page);
-    assert(sJ.aria || sJ.h > 0, 'il pulsante SALTO non fa saltare');
+    assert(sJ.aria || sJ.h > 0, 'tenere premuto fuori dai pulsanti non fa saltare');
   });
 
   // i punti delle foto, dalle zone della pista: [nome, s, ticks col pilota automatico prima dello scatto, aspetta il volo (m sopra la neve)]
@@ -163,7 +164,7 @@ export default async function (ctx) {
   // ---------------- PC ----------------
   const d = await ctx.open('?test=1&net=0&adrenalina=1', { viewport: ctx.B.DESKTOP });
   await ctx.waitReady(d.page, 20000);
-  await ctx.test('PC: dal cancello con E si scende; ← → curvano, Spazio salta, Esc torna al cancello', async () => {
+  await ctx.test('PC: A e D curvano, Spazio salta, frecce acrobazie in aria; P inverte WASD e frecce', async () => {
     await hook(d.page, 'adrenalinaCarica');
     await hook(d.page, 'adrenalinaCancello');
     await d.page.waitForTimeout(500);
@@ -172,19 +173,33 @@ export default async function (ctx) {
     await d.page.click('#mzSbPiste [data-pista="snowboard_blu"]');
     await ctx.waitState(d.page, (st) => st.snowboard && st.snowboard.fase === 'gara' && st.snowboard.frames > 20, 25000);
     const l0 = (await sb(d.page)).lat;
-    // si aspettano i passi della sim, non il tempo: su GitHub (SwiftShader) a 1280×720 la pista si disegna a meno di un fotogramma al
-    // secondo e il gioco fa al massimo 5 passi per fotogramma: in 15 s ne passavano ~20, e la curva ne vuole ~22 (lat 0 → 0,46)
-    await d.page.keyboard.down('ArrowRight');
+    // D curva a destra con la mano sinistra
+    await d.page.keyboard.down('KeyD');
     await ctx.waitState(d.page, (st, l) => st.snowboard.lat > l + 0.5, 60000, l0).catch(() => {});
-    await d.page.keyboard.up('ArrowRight');
+    await d.page.keyboard.up('KeyD');
     const l1 = (await sb(d.page)).lat;
-    assert(l1 > l0 + 0.5, `→ non curva: ${l0} → ${l1}`);
-    // Spazio tenuto per 20 passi della sim (non 400 ms: vedi sopra), lasciato = salto
+    assert(l1 > l0 + 0.5, `D non curva a destra: ${l0} → ${l1}`);
+    // P inverte i comandi (frecce per sterzare, WASD per trick)
+    await d.page.keyboard.press('KeyP');
+    await ctx.waitState(d.page, (st) => st.snowboard.invertito === true, 5000);
+    const lInvertito0 = (await sb(d.page)).lat;
+    await d.page.keyboard.down('ArrowRight');
+    await ctx.waitState(d.page, (st, l) => st.snowboard.lat > l + 0.5, 60000, lInvertito0).catch(() => {});
+    await d.page.keyboard.up('ArrowRight');
+    const lInvertito1 = (await sb(d.page)).lat;
+    assert(lInvertito1 > lInvertito0 + 0.5, `→ non curva quando invertito: ${lInvertito0} → ${lInvertito1}`);
+    // P di nuovo ripristina la modalità normale
+    await d.page.keyboard.press('KeyP');
+    await ctx.waitState(d.page, (st) => st.snowboard.invertito === false, 5000);
+    // Spazio tenuto per 20 passi della sim, lasciato = salto
     const f0 = (await sb(d.page)).frames;
     await d.page.keyboard.down('Space');
     await ctx.waitState(d.page, (st, f) => st.snowboard.frames >= f + 20, 60000, f0).catch(() => {});
     await d.page.keyboard.up('Space');
     await ctx.waitState(d.page, (st) => st.snowboard.aria, 60000);
+    // In aria freccia in su fa trick (mortale avanti)
+    await d.page.keyboard.press('ArrowUp');
+    await ctx.waitState(d.page, (st) => st.snowboard.trick >= 1 || st.snowboard.eventi?.includes('trick'), 10000).catch(() => {});
     await misura(d.page, 'desktop');
     await ctx.shot(d.page, 'desktop');
     await d.page.keyboard.press('Escape');
