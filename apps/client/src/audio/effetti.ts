@@ -133,6 +133,10 @@ export const SUONI: Record<SuonoId, Ricetta> = {
   // ---- Vulcano: Fuga dalla lava ----
   salto: (m, t) => m.tono({ f: 330 * vari(0.04), f2: 660, onda: 'impulso', t, dur: 0.09, vol: 0.06, lp: 3000 }),
   sfrigola: (m, t) => { m.soffio({ f: 5200 * vari(0.1), q: 0.8, t, dur: 0.45, vol: 0.09, a: 0.01 }); m.tono({ f: 140, f2: 70, onda: 'square', t, dur: 0.18, vol: 0.06, lp: 800 }); },
+  atterra: (m, t, k) => { m.tono({ f: 120 * vari(0.05), f2: 60, onda: 'sine', t, dur: 0.09, vol: 0.04 + 0.05 * k }); m.soffio({ tipo: 'lowpass', f: 1100, f2: 300, t, dur: 0.08, vol: 0.04 * k }); },
+  giravolta: (m, t) => m.tono({ f: 520 * vari(0.03), f2: 1000, onda: 'triangle', t, dur: 0.12, vol: 0.06 }),
+  scavalco: (m, t) => m.tono({ f: 260 * vari(0.03), f2: 560, onda: 'impulso', t, dur: 0.08, vol: 0.06, lp: 3000 }),
+  calpesta: (m, t) => { m.tono({ f: 320, f2: 90, onda: 'square', t, dur: 0.09, vol: 0.07, lp: 1800 }); m.tono({ f: 700, f2: 1150, onda: 'impulso', t: t + 0.05, dur: 0.08, vol: 0.05, lp: 3500 }); },
   // ---- Isola dei Templari ----
   // «Deus vult!» gridato da una gola morta: DE-us VULT (e, u, u), voce bassa e ruvida
   tpl_deus: (m, t, k) => {

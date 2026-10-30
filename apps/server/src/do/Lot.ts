@@ -36,6 +36,7 @@ import type { EventiMissione } from '@marea/sim/economy/missioni.ts';
 import { firmaLibro, rientra, segnaVisto } from '@marea/sim/economy/rientro.ts';
 import { MINIGAMES, getMinigame } from '@marea/sim/minigames/registry.ts';
 import '@marea/sim/corse/registra.ts'; // Corse: il server rigioca sul motore v2 (#173)
+import '@marea/sim/minigames/lava_registra.ts'; // Vulcano: la corsa senza fine della Fuga dalla lava
 import { PISTA_SNOWBOARD } from '@marea/content/adrenalina.ts';
 import '@marea/sim/adrenalina/registra.ts'; // Adrenalina: le discese dello snowboard (passo 3b)
 import { medagliaDaPosizione, posizioneDiscesa } from '@marea/sim/adrenalina/classifica.ts';

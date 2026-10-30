@@ -2,7 +2,9 @@
 // Il record lo scrive solo il replay: vedi `segnaRecordDa`.
 import { DIARIO } from '@marea/content/diario.ts';
 import type { RecordVoce } from '@marea/sim/economy/record.ts';
-import type { RispostaCollezione, RispostaRecord } from '@marea/protocol';
+import { CON_CLASSIFICA } from '@marea/sim/economy/classifica.ts';
+import type { VocePunteggio } from '@marea/sim/economy/classifica.ts';
+import type { RispostaClassifica, RispostaCollezione, RispostaRecord } from '@marea/protocol';
 import type { Env } from './env.ts';
 import { elencoPersone } from './db.ts';
 import { json } from './http.ts';
@@ -25,6 +27,19 @@ export async function recordConNomi(env: Env, sfide: Sfide): Promise<Response> {
   const { tab } = (await r.json()) as { tab: { oggi: Record<string, RecordVoce>; sempre: Record<string, RecordVoce> } };
   const { nomeDi } = await nomi(env);
   return json({ voci: DIARIO.minigiochi.map((g) => ({ minigame: g.id, nome: g.nome, oggi: voce(tab.oggi[g.id], nomeDi), sempre: voce(tab.sempre[g.id], nomeDi) })) } satisfies RispostaRecord);
+}
+type VistaGrezza = { righe: VocePunteggio[]; posto: number; totale: number };
+type ClassificaGrezza = { minigame: string; oggi: VistaGrezza; sempre: VistaGrezza; migliorato?: { oggi: boolean; sempre: boolean } };
+/** La classifica a punti dal DO Sfide con i nomi al posto degli id. */
+async function classificaCoiNomi(env: Env, g: ClassificaGrezza): Promise<RispostaClassifica> {
+  const { nomeDi } = await nomi(env), vista = (v: VistaGrezza) => ({ ...v, righe: v.righe.map((r) => ({ ...r, nome: nomeDi(r.chi) })) });
+  return { minigame: g.minigame, oggi: vista(g.oggi), sempre: vista(g.sempre), ...(g.migliorato ? { migliorato: g.migliorato } : {}) };
+}
+/** Classifica a punti di un minigioco (GET /api/classifica?minigame=), coi nomi. */
+export async function classificaConNomi(env: Env, sfide: Sfide, minigame: string): Promise<Response> {
+  const r = await sfide('classifica?minigame=' + encodeURIComponent(minigame));
+  if (!r.ok) return r;
+  return json(await classificaCoiNomi(env, (await r.json()) as ClassificaGrezza));
 }
 /** I collezionisti (GET /api/collezione): chi ha consegnato più pesci e insetti al mobiliere, tra chi ha un'isola. */
 export async function collezioneConNomi(env: Env, sfide: Sfide): Promise<Response> {
@@ -56,9 +71,10 @@ export async function segnaCollezioneDa(lotRes: Response, sfide: Sfide): Promise
 
 /**
  * Dopo una partita da solo andata a buon fine (il DO del lotto l'ha rigiocata): il punteggio vero va al tabellone. Best-effort: se il
- * tabellone non risponde la partita vale lo stesso. Risponde col corpo del lotto più `record: { oggi, sempre }` (record battuti).
+ * tabellone non risponde la partita vale lo stesso. Risponde col corpo del lotto più `record: { oggi, sempre }` (record battuti) e, per i giochi
+ * a classifica, `classifica` (RispostaClassifica con `migliorato`).
  */
-export async function segnaRecordDa(lotRes: Response, sfide: Sfide): Promise<Response> {
+export async function segnaRecordDa(lotRes: Response, sfide: Sfide, env: Env): Promise<Response> {
   if (!lotRes.ok) return lotRes;
   const d = (await lotRes.json()) as Record<string, unknown>;
   let record: unknown = null;
@@ -66,5 +82,12 @@ export async function segnaRecordDa(lotRes: Response, sfide: Sfide): Promise<Res
     const r = await sfide('record', { minigame: d['minigame'], score: d['score'], medal: d['medal'] ?? null, detail: d['detail'] });
     if (r.ok) record = await r.json(); else await r.body?.cancel();
   } catch { /* il tabellone si aggiorna alla prossima */ }
-  return json({ ...d, record });
+  let classifica: RispostaClassifica | null = null;
+  if (typeof d['minigame'] === 'string' && CON_CLASSIFICA.includes(d['minigame']) && typeof d['score'] === 'number') {
+    try {
+      const r = await sfide('punteggio', { minigame: d['minigame'], score: d['score'], detail: d['detail'] });
+      if (r.ok) classifica = await classificaCoiNomi(env, (await r.json()) as ClassificaGrezza); else await r.body?.cancel();
+    } catch { /* la classifica si aggiorna alla prossima */ }
+  }
+  return json({ ...d, record, ...(classifica ? { classifica } : {}) });
 }

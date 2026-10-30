@@ -9,6 +9,7 @@ import { diarioOf, isolaValida, registraDiscesa, registraPartita, registraVisti 
 import { MINIGAMES, getMinigame } from '../src/minigames/registry.ts';
 import '../src/adrenalina/registra.ts'; // lo snowboard e le Corse sono nel registro solo dal lato server (come lo vede il DO del lotto)
 import '../src/corse/registra.ts';
+import '../src/minigames/lava_registra.ts'; // anche la Fuga dalla lava è nel registro solo lato server
 import { createRng } from '../src/rng.ts';
 import { packInputs, quantize, replay, replayPartita } from '../src/replay.ts';
 import type { InputFrame } from '../src/types.ts';
