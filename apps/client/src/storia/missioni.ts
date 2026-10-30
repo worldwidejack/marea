@@ -1,12 +1,13 @@
 // Le missioni dopo la barca (GDD §9), sulla scheda della storia (ui/guida.ts): «Scopri le isole» e «Dungeon». Capitan Remo, al Porto, ti
 // dà un'isola alla volta (ordine di storia.json `isole`): ci vai, provi il suo gioco (una partita, anche persa: lo vede il server), torni da
-// lui e riscuoti → premio e viaggio rapido su quell'isola. La freccia e la bussola puntano il gioco dell'isola, poi Remo. Sotto, una riga
-// per il dungeon da fare (il più facile non ancora sconfitto, game/ingressi.ts): il premio lo dà il server a dungeon finito. Finite le
-// isole, il dungeon diventa il passo della scheda.
+// lui e riscuoti → premio e viaggio rapido su quell'isola. La freccia punta prima il molo dell'isola dove attraccare, poi il gioco effettivo
+// una volta a terra, poi Remo. Sotto, una riga per il dungeon da fare (il più facile non ancora sconfitto, game/ingressi.ts): il premio lo dà
+// il server a dungeon finito. Finite le isole, il dungeon diventa il passo della scheda.
 import { ISLANDS } from '@marea/content';
 import { STORIA } from '@marea/content/storia.ts';
 import type { StoriaIsola, StoriaRiga } from '@marea/content/storia.ts';
 import { isolaCorrente, isolaProvata } from '@marea/sim/economy/storia.ts';
+import { landingSpot, newBoat } from '@marea/sim';
 import type { LotState } from '@marea/sim';
 import type { Porto } from '../game/porto.ts';
 import type { GameWorld } from '../game/world.ts';
@@ -47,6 +48,25 @@ export function passiMissioni(o: {
   const torna = (i: StoriaIsola) => isolaCorrente(lot())?.isola === i.isola && isolaProvata(lot());
   const riga = (i: StoriaIsola) => riempi(torna(i) ? M.torna : M.isola, paroleIsola(i));
   const dRiga = () => riempi(M.dungeon, { dungeon: o.dungeon()?.nome ?? '', premio });
+  const moli = new Map<string, { x: number; z: number }>();
+  for (const pl of o.world.archipelago.places) {
+    const d = landingSpot(newBoat(pl.boat.x, pl.boat.z), o.world.map) ?? pl.boat;
+    moli.set(pl.island, d);
+  }
+  /** L'avatar è a terra sull'isola della missione (ha attraccato al molo). Per la Laguna la Regata si fa in barca al molo. */
+  const attraccato = (isola: string): boolean => {
+    if (o.world.mode === 'walk') {
+      const a = o.world.avatar.state;
+      return o.world.archipelago.placeAt(a.x, a.z)?.island === isola;
+    }
+    if (isola === 'laguna') {
+      const m = moli.get(isola);
+      if (!m) return false;
+      const b = o.world.boat.state;
+      return Math.hypot(b.x - m.x, b.z - m.z) < 16;
+    }
+    return false;
+  };
   const steps: GuidaStep[] = [
     { id: 'remo', titolo: M.remo.titolo, come: M.remo.come, done: () => o.sentito() || fatte().length > 0 || isolaProvata(lot()), target: () => su(o.porto.dove('remo')) },
     ...STORIA.isole.map((i): GuidaStep => ({
@@ -54,7 +74,7 @@ export function passiMissioni(o: {
       get titolo() { return riga(i).titolo; },
       get come() { return riga(i).come; },
       done: () => fatte().includes(i.isola),
-      target: () => su(torna(i) ? o.porto.dove('remo') : metaIsola(i, o.mete)),
+      target: () => su(torna(i) ? o.porto.dove('remo') : (attraccato(i.isola) ? metaIsola(i, o.mete) : (moli.get(i.isola) ?? metaIsola(i, o.mete)))),
     })),
     { id: 'dungeon', get titolo() { return dRiga().titolo; }, get come() { return dRiga().come; }, done: () => !o.dungeon(), target: () => su(o.dungeon()) },
   ];
@@ -65,7 +85,7 @@ export function passiMissioni(o: {
     meta: (passo) => {
       if (passo === 'dungeon') return o.dungeon()?.id ?? null;
       const i = STORIA.isole.find((x) => 'isola:' + x.isola === passo);
-      return i && !torna(i) ? metaIsola(i, o.mete)?.id ?? null : null;
+      return i && !torna(i) && attraccato(i.isola) ? metaIsola(i, o.mete)?.id ?? null : null;
     },
   };
 }
