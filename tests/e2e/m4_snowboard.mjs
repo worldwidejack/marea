@@ -87,6 +87,11 @@ export default async function (ctx) {
     // Salto tenendo premuto fuori dai pulsanti e rilasciando
     const box = await page.locator('#mzSbTocco').boundingBox();
     const x = box.x + box.width / 2, y = box.y + box.height * 0.4;
+    const elementoSotto = await page.evaluate(([cx, cy]) => {
+      const el = document.elementFromPoint(cx, cy);
+      return el ? (el.id || el.className) : null;
+    }, [x, y]);
+    assert(elementoSotto === 'mzSbTocco', `il punto (${x},${y}) non tocca mzSbTocco: tocca ${elementoSotto}`);
     await page.dispatchEvent('#mzSbTocco', 'pointerdown', { pointerId: 11, clientX: x, clientY: y, pointerType: 'touch', isPrimary: true });
     await page.waitForTimeout(300);
     await page.dispatchEvent('#mzSbTocco', 'pointerup', { pointerId: 11, clientX: x, clientY: y, pointerType: 'touch', isPrimary: true });

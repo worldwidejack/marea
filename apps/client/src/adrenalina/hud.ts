@@ -13,9 +13,9 @@ body.mz-sb #compass, body.mz-sb #mzTop, body.mz-sb #mzGuida, body.mz-sb #mzGuida
 body.mz-sb #mzPlay, body.mz-sb #mzEmoteRow, body.mz-sb #mzEmotes, body.mz-sb #mzSheet, body.mz-sb #mzMini, body.mz-sb #mzMetePtr, body.mz-sb #mzTarghe,
 body.mz-sb #mzTrag, body.mz-sb .mz-play, body.mz-sb #joystick, body.mz-sb #btnA, body.mz-sb #btnB, body.mz-sb #mzFunivia, body.mz-sb #mzTemaFumetto,
 body.mz-sb #mzZoomBar, body.mz-sb #mzAvatarBtn, body.mz-sb #mzMiniMete, body.mz-sb #mzTeleBtn, body.mz-sb #mzAdrenalinaVai, body.mz-sb #mzMiaBarca, body.mz-sb #mzDiarioBtn { display: none !important; }
-#mzSbTocco { position: absolute; inset: 0; z-index: 13; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
-.mz-sb-ui { position: absolute; inset: 0; z-index: 14; pointer-events: none; font-family: ui-monospace, Menlo, monospace; color: ${PAL.sabbiaChiara}; }
-.mz-sb-ui button { pointer-events: auto; }
+#ui > #mzSbTocco, #mzSbTocco { position: absolute; inset: 0; z-index: 13; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; pointer-events: auto !important; }
+#ui > .mz-sb-ui, .mz-sb-ui { position: absolute; inset: 0; z-index: 14; pointer-events: none !important; font-family: ui-monospace, Menlo, monospace; color: ${PAL.sabbiaChiara}; }
+.mz-sb-ui button, .mz-sb-ui .mz-sb-btn { pointer-events: auto !important; }
 #mzSbTesta { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 4px); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
 #mzSbPunti { font-size: 30px; font-weight: bold; text-shadow: 0 3px 0 ${PAL.neroCaldo}; line-height: 1; }
 #mzSbFant { font-size: 14px; font-weight: bold; text-shadow: 0 2px 0 ${PAL.neroCaldo}; display: none; }
@@ -36,10 +36,10 @@ body.mz-sb #mzZoomBar, body.mz-sb #mzAvatarBtn, body.mz-sb #mzMiniMete, body.mz-
 #mzSbEsci { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 8px); min-width: 44px; min-height: 40px; padding: 0 10px; background: rgba(46,30,20,.82); color: ${PAL.sabbiaChiara};
   border: 2px solid ${PAL.legno}; font: bold 13px ui-monospace, Menlo, monospace; border-radius: 6px; cursor: pointer; }
 #mzSbEsci { left: max(8px, env(safe-area-inset-left, 0px)); }
-#mzSbComandi { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); display: none; justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 15; }
+#mzSbComandi { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); display: none; justify-content: space-between; align-items: flex-end; pointer-events: none !important; z-index: 15; }
 @media (min-width: 801px) and (pointer: fine) { #mzSbComandi { display: none !important; } }
-.mz-sb-curva { display: flex; pointer-events: none; }
-.mz-sb-btn { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; pointer-events: auto; cursor: pointer; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: ${FONT_LIBRO}; }
+.mz-sb-curva { display: flex; pointer-events: none !important; }
+.mz-sb-btn { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; pointer-events: auto !important; cursor: pointer; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: ${FONT_LIBRO}; }
 .mz-sb-btn-dir { width: 76px; height: 68px; border-radius: 16px; background: ${L.cartaChiara}; border: 2.5px solid ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px rgba(253,242,218,.6), 0 3px 0 1.5px ${L.inchiostro}; color: ${L.inchiostro}; font-size: 26px; font-weight: bold; line-height: 1; }
 .mz-sb-btn-dir small { font-size: 11px; font-weight: bold; opacity: 0.85; letter-spacing: 0.06em; margin-top: 2px; }
 .mz-sb-btn-dir.premuto { transform: translateY(2px) scale(0.96); filter: brightness(1.15); box-shadow: 0 0 0 1.5px ${L.inchiostro}, 0 1px 0 1.5px ${L.inchiostro}; }
