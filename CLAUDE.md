@@ -36,6 +36,7 @@ Se la tua PR litiga su un documento archiviato (`docs/archivio/`), togli le tue 
 
 ## Dove sta cosa
 Cartelle e chi ci lavora: `docs/MAPPA.md`. Architettura e regole tecniche: `docs/TECH.md`. Messaggi tra gioco e server: `docs/PROTOCOL.md`. Lavoro in gruppo e primi passi: `docs/CONTRIBUIRE.md`. Lavori da fare: le issue su GitHub.
+**Tocchi un'isola o il minigioco di un'isola (aggiungi, togli, rinomini, cambi)? Leggi `docs/TUTORIAL.md`**: il tutorial li nomina e va aggiornato nella stessa PR.
 `docs/archivio/` (la vecchia mappa del codice e il vecchio diario delle tappe) non si legge per lavorare: i rimandi a `CONTRACTS` e `ROADMAP` nel codice e nei documenti delle modalità puntano lì.
 
 ## Repo pubblico
