@@ -34,11 +34,15 @@ type Dito = {
 
 export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti?: (inv: boolean) => void): Comandi {
   const tasti = new Set<string>();
-  const dita = new Map<number | string, Dito>();
+  const touches = new Map<number, Dito>();
+  const pointers = new Map<number, Dito>();
   let presa = false, mxDrag = 0, invertito = false;
   let impulso: { mx: number; my: number; n: number } | null = null, eraAria = false;
-  let ultimoTouch = 0;
+  let toccoRegistrato = false;
   const ora = () => performance.now();
+
+  const tutteDita = () => [...touches.values(), ...pointers.values()];
+  const haDitoGiu = () => touches.size > 0 || pointers.size > 0;
 
   const gesto = (dx: number, dy: number) => {
     impulso = Math.abs(dx) > Math.abs(dy)
@@ -60,53 +64,56 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti
     mxDrag = Math.max(-1, Math.min(1, (cx - d.x0) / CURVA_PX));
   };
 
+  const suBottone = (target: EventTarget | null) => {
+    return target instanceof Element && !!target.closest('.mz-sb-btn, #mzSbEsci');
+  };
+
   const giu = (e: PointerEvent) => {
-    if (e.pointerType === 'touch' && ora() - ultimoTouch < 1500) return;
+    if (suBottone(e.target)) return;
+    if (e.pointerType === 'touch' && touches.size > 0) return;
     e.preventDefault();
     const t = ora();
-    dita.set(e.pointerId, {
+    pointers.set(e.pointerId, {
       id: e.pointerId, x0: e.clientX, y0: e.clientY,
       ax: e.clientX, ay: e.clientY, at: t, fermoDa: t, mossoDa: t,
       cx: e.clientX, cy: e.clientY,
     });
-    presa = false;
+    presa = false; toccoRegistrato = true;
     try { zona.setPointerCapture(e.pointerId); } catch { /* pointer sintetico */ }
   };
   const muovi = (e: PointerEvent) => {
-    if (e.pointerType === 'touch' && ora() - ultimoTouch < 1500) return;
-    const d = dita.get(e.pointerId);
+    const d = pointers.get(e.pointerId);
     if (!d) return;
     e.preventDefault();
     aggiornaPos(d, e.clientX, e.clientY);
   };
   const su = (e: PointerEvent) => {
-    if (e.pointerType === 'touch' && ora() - ultimoTouch < 1500) return;
-    if (dita.delete(e.pointerId) && dita.size === 0) { presa = false; mxDrag = 0; }
+    pointers.delete(e.pointerId);
+    if (!haDitoGiu()) { presa = false; mxDrag = 0; }
   };
 
   // Supporto touch nativo per mobile (evita la duplicazione pointerId/touch e il mancato rilascio del salto)
   const touchGiu = (e: TouchEvent) => {
-    ultimoTouch = ora();
-    for (const k of dita.keys()) {
-      if (typeof k === 'number') dita.delete(k);
-    }
-    if (e.cancelable) e.preventDefault();
-    const t = ultimoTouch;
+    for (const [id] of pointers.entries()) pointers.delete(id);
+    const t = ora();
     for (let i = 0; i < e.changedTouches.length; i++) {
       const tc = e.changedTouches[i]!;
-      dita.set(`t_${tc.identifier}`, {
-        id: `t_${tc.identifier}`, x0: tc.clientX, y0: tc.clientY,
+      if (suBottone(tc.target)) continue;
+      touches.set(tc.identifier, {
+        id: tc.identifier, x0: tc.clientX, y0: tc.clientY,
         ax: tc.clientX, ay: tc.clientY, at: t, fermoDa: t, mossoDa: t,
         cx: tc.clientX, cy: tc.clientY,
       });
     }
-    presa = false;
+    if (touches.size > 0) {
+      if (e.cancelable) e.preventDefault();
+      presa = false; toccoRegistrato = true;
+    }
   };
   const touchMuovi = (e: TouchEvent) => {
-    ultimoTouch = ora();
     for (let i = 0; i < e.changedTouches.length; i++) {
       const tc = e.changedTouches[i]!;
-      const d = dita.get(`t_${tc.identifier}`);
+      const d = touches.get(tc.identifier);
       if (d) {
         if (e.cancelable) e.preventDefault();
         aggiornaPos(d, tc.clientX, tc.clientY);
@@ -114,15 +121,20 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti
     }
   };
   const touchSu = (e: TouchEvent) => {
-    ultimoTouch = ora();
     for (let i = 0; i < e.changedTouches.length; i++) {
-      dita.delete(`t_${e.changedTouches[i]!.identifier}`);
+      touches.delete(e.changedTouches[i]!.identifier);
     }
-    let rimasto = false;
-    for (let i = 0; i < e.touches.length; i++) {
-      if (dita.has(`t_${e.touches[i]!.identifier}`)) { rimasto = true; break; }
+    if (e.touches.length === 0) {
+      touches.clear();
+      presa = false; mxDrag = 0;
+    } else {
+      const vivi = new Set<number>();
+      for (let i = 0; i < e.touches.length; i++) vivi.add(e.touches[i]!.identifier);
+      for (const id of touches.keys()) {
+        if (!vivi.has(id)) touches.delete(id);
+      }
+      if (touches.size === 0) { presa = false; mxDrag = 0; }
     }
-    if (!rimasto || dita.size === 0) { dita.clear(); presa = false; mxDrag = 0; }
   };
 
   zona.addEventListener('pointerdown', giu);
@@ -135,6 +147,18 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti
   for (const ev of ['touchend', 'touchcancel']) zona.addEventListener(ev, touchSu as EventListener);
   addEventListener('touchend', touchSu as EventListener); addEventListener('touchcancel', touchSu as EventListener);
   zona.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // Rete di sicurezza per mobile: tocco fuori da zona a schermo intero
+  const winTouchGiu = (e: TouchEvent) => {
+    if (!document.body.classList.contains('mz-sb')) return;
+    touchGiu(e);
+  };
+  const winPointerGiu = (e: PointerEvent) => {
+    if (!document.body.classList.contains('mz-sb') || e.target === zona) return;
+    giu(e);
+  };
+  addEventListener('touchstart', winTouchGiu, { passive: false });
+  addEventListener('pointerdown', winPointerGiu);
 
   const inverti = () => {
     invertito = !invertito;
@@ -164,28 +188,35 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti
     }
   };
   const ku = (e: KeyboardEvent) => { tasti.delete(e.code); };
-  const via = () => { tasti.clear(); dita.clear(); presa = false; mxDrag = 0; };
+  const via = () => { tasti.clear(); touches.clear(); pointers.clear(); toccoRegistrato = false; presa = false; mxDrag = 0; };
   addEventListener('keydown', kd); addEventListener('keyup', ku); addEventListener('blur', via);
 
   return {
-    get dito() { return dita.size > 0 || !!bottoni?.attivo; },
+    get dito() { return haDitoGiu() || !!bottoni?.attivo; },
     get invertito() { return invertito; },
     inverti,
     campione(aria) {
       if (aria && !eraAria) {
         const t = ora();
-        for (const d of dita.values()) { d.fermoDa = t; d.mossoDa = t; d.at = t; d.ax = d.cx; d.ay = d.cy; }
+        for (const d of tutteDita()) { d.fermoDa = t; d.mossoDa = t; d.at = t; d.ax = d.cx; d.ay = d.cy; }
         presa = false;
       }
       eraAria = aria;
       bottoni?.setAria(aria);
       let fx = 0, fy = 0;
       if (impulso) { fx = impulso.mx; fy = impulso.my; if (--impulso.n <= 0) impulso = null; }
-      const spazio = tasti.has('Space'), toccoGiu = dita.size > 0;
+      const spazio = tasti.has('Space'), ditoAttivo = haDitoGiu();
+      let toccoGiu = ditoAttivo;
+      if (!ditoAttivo && toccoRegistrato) {
+        toccoGiu = true;
+        toccoRegistrato = false;
+      } else if (ditoAttivo) {
+        toccoRegistrato = false;
+      }
       if (aria) {
-        if (toccoGiu && !presa) {
+        if (ditoAttivo && !presa) {
           const t = ora();
-          for (const d of dita.values()) {
+          for (const d of tutteDita()) {
             if (t - d.fermoDa >= FERMO_MS && t - d.mossoDa >= FERMO_MS) { presa = true; break; }
           }
         }
@@ -205,6 +236,7 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti
       return { mx: mxOut, my: 0, a: toccoGiu || spazio, b: false };
     },
     dispose() {
+      removeEventListener('touchstart', winTouchGiu); removeEventListener('pointerdown', winPointerGiu);
       zona.removeEventListener('pointerdown', giu); zona.removeEventListener('pointermove', muovi);
       removeEventListener('pointerup', su); removeEventListener('pointercancel', su);
       zona.removeEventListener('touchstart', touchGiu); zona.removeEventListener('touchmove', touchMuovi);
