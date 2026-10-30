@@ -258,21 +258,27 @@ export default async function (ctx) {
   });
   await ctx.test('PC: urti tra veicoli (#255): affiancati si rimbalza (scintille, scossa, il kart si piega), tamponati si rallenta', async () => {
     const d = await apri('pista=spiaggia_lungomare&bot=1', { viewport: ctx.B.DESKTOP });
-    await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: true, vai: true, cam: 'dietro' }); a.avanti(60 * 4); a.set({ pausa: true }); });
+    // la gara ha un seme a caso: ci si ferma solo quando il kart non sta prendendo la botta di un altro urto (finché c'è, la sim non
+    // conta un urto nuovo e il client non fa le scintille; in pausa la botta non scende)
+    await d.page.evaluate(() => {
+      const a = window.__provapiste; a.set({ auto: true, vai: true, cam: 'dietro' }); a.avanti(60 * 4);
+      for (let i = 0; i < 600 && a.state().botta >= 1; i++) a.avanti(1);
+      a.set({ pausa: true });
+    });
     await fotogrammi(d.page, 30); // la camera raggiunge il kart (in headless i fotogrammi arrivano solo quando li si chiede)
     // in pausa: gli effetti girano, la gara no. Le scintille dell'urto nascono tutte nel fotogramma dopo e muoiono col tempo vero
     // (0,3-0,6 s, fino a 0,1 s per fotogramma): su una macchina lenta, in un'andata e ritorno col browser ne muoiono tante. Si conta
     // quindi nella pagina il massimo dei 4 fotogrammi dopo l'urto, meno quelle già vive prima (drift dei bot): sono quelle nate dall'urto.
-    // Tutti i bot si affiancano a destra: la gara ha un seme a caso, e un bot che urta da sinistra nello stesso momento annulla la spinta.
-    const { st: di, prima, max } = await d.page.evaluate(() => new Promise((r) => {
-      const a = window.__provapiste, prima = a.perf().scintille;
+    // Tutti i bot si affiancano a destra: un bot che urta da sinistra nello stesso momento annullerebbe la spinta.
+    const { st: di, urti0, prima, max } = await d.page.evaluate(() => new Promise((r) => {
+      const a = window.__provapiste, prima = a.perf().scintille, urti0 = a.state().urti;
       for (let i = a.state().bot; i >= 1; i--) a.affianca(i);
       const st = a.avanti(2);
       let i = 0, max = 0;
-      const f = () => { max = Math.max(max, a.perf().scintille); if (++i >= 4) r({ st, prima, max }); else requestAnimationFrame(f); };
+      const f = () => { max = Math.max(max, a.perf().scintille); if (++i >= 4) r({ st, urti0, prima, max }); else requestAnimationFrame(f); };
       requestAnimationFrame(f);
     }));
-    assert(di.urti >= 1 && Math.abs(di.spinta) > 1, `urto di fianco: ${JSON.stringify({ urti: di.urti, spinta: di.spinta, botta: di.botta })}`);
+    assert(di.urti > urti0 && Math.abs(di.spinta) > 1, `urto di fianco: ${JSON.stringify({ urti0, urti: di.urti, spinta: di.spinta, botta: di.botta })}`);
     assert(max - prima >= 8, `poche scintille dall'urto: ${prima} prima, al massimo ${max} dopo`);
     ctx.log(`urto: ${max - prima} scintille in più (${prima} → ${max})`);
     await ctx.shot(d.page, 'pc_urto_fianco');
