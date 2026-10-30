@@ -12,7 +12,7 @@ import { toFeedItem } from './feed.ts';
 import type { FeedRow } from './feed.ts';
 import { json } from './http.ts';
 import { avvisaZona, avvisaZonaNome, conSalvato, hatId, sincIndossa, validaLook } from './look.ts';
-import { collezioneConNomi, recordConNomi, segnaCollezioneDa, segnaRecordDa } from './porto_amici.ts';
+import { classificaConNomi, collezioneConNomi, recordConNomi, segnaCollezioneDa, segnaRecordDa } from './porto_amici.ts';
 import { disceseConNomi, giocaSolo } from './adrenalina.ts';
 
 const MAX_BODY = 4096;
@@ -168,7 +168,7 @@ const ROTTE: readonly Rotta[] = [
   // minigiochi da solo (senza posta): il DO del lotto apre la partita e la premia; il punteggio vero (dal replay) va anche al tabellone
   // dei record del Porto; le discese dell'Adrenalina passano dalla classifica a tempo (adrenalina.ts)
   { m: 'POST', via: '/api/solo/start', fa: alLotto('solo_start', ['minigame', 'opzioni']) },
-  { m: 'POST', via: '/api/solo/play', max: MAX_PLAY_BODY, fa: async (c, b) => segnaRecordDa(await giocaSolo(b, (q) => c.lotto('solo_play', q), c.sfide), c.sfide) },
+  { m: 'POST', via: '/api/solo/play', max: MAX_PLAY_BODY, fa: async (c, b) => segnaRecordDa(await giocaSolo(b, (q) => c.lotto('solo_play', q), c.sfide), c.sfide, c.env) },
   // Bacheca del Porto: le missioni di oggi le calcola anche il client dal lotto; qui solo RISCUOTI (il DO verifica e paga)
   { m: 'POST', via: '/api/missioni/riscuoti', fa: alLotto('missione', ['i']) },
   // Rientro: il DO del lotto risponde col riepilogo dell'assenza (null se mancavi da poco) e segna «visto»; qui si aggiungono le novità
@@ -226,6 +226,7 @@ const ROTTE: readonly Rotta[] = [
   // Porto tra amici: tabellone dei record e collezionisti coi nomi; le buche della pala del Borgo (stato nel DO Sfide)
   { m: 'GET', via: '/api/record', fa: (c) => recordConNomi(c.env, c.sfide) },
   { m: 'GET', via: '/api/collezione', fa: (c) => collezioneConNomi(c.env, c.sfide) },
+  { m: 'GET', via: '/api/classifica', fa: (c) => classificaConNomi(c.env, c.sfide, c.url.searchParams.get('minigame') ?? '') },
   { m: 'GET', via: '/api/borgo/buche', fa: (c) => c.sfide('buche') },
   { m: 'POST', via: '/api/borgo/buca', fa: (c, b) => c.sfide('buca', scegli(b, ['op', 'cell', 'dono'])) },
   // l'isola di un altro (sola lettura)

@@ -1,4 +1,4 @@
-// Il motore comune dei giochi a schermo da solo (Arrembaggio, Lava e Perle via ui/schermo_pixel.ts; Koi, Pinguini, Ingorgo): apertura,
+// Il motore comune dei giochi a schermo da solo (Arrembaggio e Perle via ui/schermo_pixel.ts; Lava, Koi, Pinguini, Ingorgo): apertura,
 // attesa del primo tocco o conto alla rovescia, sim a 60 Hz (accumulatore), un InputFrame quantizzato per tick, «Tempo!» a schermo
 // prima di chiudere, Esc / × = ritirati, e alla fine packInputs(frames): punteggio e medaglia li decide il server. Il pilota dei test:
 // `<id>Auto` (una partita intera in pochi secondi) e `<id>FinoA` (fino al tick dato, per le foto a metà partita).

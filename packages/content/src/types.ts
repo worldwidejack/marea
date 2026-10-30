@@ -197,7 +197,7 @@ export type CorseCfg = {
 // fine Isola delle Corse
 // Vulcano: Fuga dalla lava
 export type LavaCosa = 'ossidiana' | 'scintilla' | 'rubino';
-/** Fuga dalla lava (Isola Vulcano): corsa a scorrimento sulle colonne di basalto. Unità = pixel della schermata (192×136), per tick. */
+/** Fuga dalla lava (Isola Vulcano): corsa senza fine a scorrimento laterale. Unità = pixel del mondo (`tile` per tile), per tick; y verso l'alto è negativa, la lava sta a y = 0. */
 export type LavaCfg = {
   id: 'lava';
   nome: string;
@@ -205,24 +205,30 @@ export type LavaCfg = {
   /** Isola a tema dove si gioca (solo a isola aperta) e cella locale [x, z] del posto. */
   isola: string;
   posto: [number, number];
-  /** px per tick verso destra (costante). */
-  velocita: number;
-  /** y del pelo della lava; altezze delle cime delle colonne (alto = più su). */
-  scena: { lava: number; alto: number; basso: number };
-  /** salto = spinta verso l'alto; finché tieni premuto (max `tenutoMax` tick) la gravità è `gravitaTenuto`; coyote e anticipo in tick;
-   *  gradino = quanto può salire di colpo senza saltare (px). */
-  fisica: { gravita: number; gravitaTenuto: number; salto: number; tenutoMax: number; cadutaMax: number; coyote: number; anticipo: number; gradino: number };
-  /** Toccare la lava o un geyser: −punti (mai sotto zero), rimbalzo in su, invulnerabile per un po'. */
-  scottatura: { punti: number; rimbalzo: number; invulnerabileSecondi: number };
-  /** Le rocce che affondano: dopo `ritardoSecondi` dal primo passo scendono di `velocita` px/tick. */
-  affonda: { ritardoSecondi: number; velocita: number };
-  geyser: { periodoSecondi: [number, number]; attivoSecondi: number; avvisoSecondi: number; alto: number };
-  punti: Record<LavaCosa, number>;
-  /** Moltiplicatori per difficoltà 1/2/3: probabilità dei geyser, larghezza dei buchi. */
-  difficolta: { geyser: [number, number, number]; buchi: [number, number, number] };
+  tile: number;
+  /** Velocità di corsa (px/tick): sale da `velocitaMin` a `velocitaMax` lungo `rampaTile` tile. */
+  corsa: { velocitaMin: number; velocitaMax: number; rampaTile: number };
+  /** salto = spinta in su; gravità in salita (tenuto / lasciato) e in discesa; coyote e anticipo in tick; spin = spinta della giravolta in aria;
+   *  aggancio = quanto sotto il bordo ti tiri su (px); rimbalzo = sui nemici [tocco, tenuto]; scavalco = ostacoli bassi che passi da solo. */
+  fisica: { salto: number; gravitaSu: number; gravitaTaglio: number; gravitaGiu: number; cadutaMax: number; coyote: number; anticipo: number; spin: number; aggancio: number;
+    rimbalzo: [number, number]; scavalco: { altezzaMax: number; sopra: number; gravita: number; finestra: number; bello: number } };
+  /** Il muro di lava: vantaggio di partenza e massimo (px), e che frazione della tua velocità fa lui. */
+  muro: { margine: number; frazione: number };
+  /** Un colpo: px di vantaggio persi, rallentamento (0..1 della velocità) per `tick` tick, invulnerabilità (tick), punti persi. */
+  colpo: { margine: number; rallenta: number; tick: number; invulnerabile: number; punti: number };
+  /** Un tuffo nella lava: ti rimette in aria sopra la prossima roccia (`sopra` px), come il colpo per il resto. */
+  bagno: { margine: number; gravita: number; sopra: number; tick: number; invulnerabile: number; punti: number };
+  punti: Record<LavaCosa, number> & { scavalcoBello: number; nemico: number[] };
+  geyser: { periodoSecondi: [number, number]; attivoSecondi: number; avvisoSecondi: number; alto: [number, number] };
+  /** Pattuglia dei magmini (tile) e giro completo (s). */
+  magmino: { pattuglia: number; periodoSecondi: number };
+  /** Moltiplicatori per difficoltà 1/2/3: larghezza dei buchi, quanti ostacoli. */
+  difficolta: { buchi: [number, number, number]; ostacoli: [number, number, number] };
+  /** Ogni `ogniTile` tile entrano pezzi più difficili, fino al livello `max`. */
+  livelli: { ogniTile: number; max: number };
   medaglie: { oro: number; argento: number; bronzo: number };
   premioExtra?: PremioExtra;
-  autopilota: { orizzonte: number };
+  autopilota: { orizzonte: number; ogni: number };
 };
 // fine Vulcano
 

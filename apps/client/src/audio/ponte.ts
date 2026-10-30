@@ -17,7 +17,7 @@ export type SuonoId =
   | 'lancio' | 'plop' | 'abbocca' | 'pesce' | 'scappato'
   | 'colpo_dato' | 'colpo_critico' | 'colpo_preso' | 'schivato' | 'nemico_ko' | 'raccolto' | 'pozione' | 'magia' | 'altare' | 'vuoto' | 'goccia'
   | 'cannone' | 'tuono' // Tempesta: Arrembaggio
-  | 'salto' | 'sfrigola' // Vulcano: Fuga dalla lava
+  | 'salto' | 'sfrigola' | 'atterra' | 'giravolta' | 'scavalco' | 'calpesta' // Vulcano: Fuga dalla lava
   // Isola dei Templari (docs/TEMPLARI.md §11): versi, stacchi d'ondata, campana, corno, risata, armi, porte, power-up, cassa
   | 'tpl_deus' | 'tpl_rantolo' | 'tpl_urlo' | 'tpl_sorge' | 'tpl_asse' | 'tpl_ondata' | 'tpl_ondata_fine' | 'tpl_campana' | 'tpl_corno' | 'tpl_risata'
   | 'tpl_pistola' | 'tpl_moschetto' | 'tpl_trombone' | 'tpl_freccia' | 'tpl_fendente' | 'tpl_porta' | 'tpl_potere' | 'tpl_potere_preso'
