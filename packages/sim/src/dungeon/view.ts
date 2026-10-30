@@ -22,6 +22,7 @@ import { scudoSu } from './vaelen.ts';
 import { secToTicks } from './state.ts';
 import { HZ } from './tuning.ts';
 import { paralizzato, rallentato, sanguinante, scaricaDi } from './perk.ts';
+import { baitaMondo, baitaNemico } from './baita_vista.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 const r3 = (v: number): number => Math.round(v * 1000) / 1000;
@@ -73,13 +74,13 @@ export function viewOf(s: DungeonState): DungeonView {
       vita: h.vita, magicka: h.magicka, stamina: h.stamina, max: { ...rh.max },
       ...canaleVista(s), ricaricaMagia: h.cdMagia / HZ, ricaricaMagie: ricaricheMagie(h), ...perkVista(s), frecce: h.frecce, pozioni: h.pozioni, protetto: h.protetto > 0, arma: h.arma.id, rallentato: h.lento > 0,
       ...inMano(s),
-      ...(s.correnti.length ? { vento: !s.done && nelVento(s), riparo: !s.done && alRiparo(s) } : s.map.bracieri.length ? { riparo: !s.done && alRiparoBraciere(s, h.x, h.z) } : {}), ...(h.spT > 0 ? { spinto: true } : {}),
+      ...(s.correnti.length ? { vento: !s.done && nelVento(s), riparo: !s.done && alRiparo(s) } : s.map.bracieri.length ? { riparo: !s.done && alRiparoBraciere(s, h.x, h.z) } : {}), ...(h.spT > 0 ? { spinto: true } : {}), ...(h.slideDir ? { scivola: h.slideDir } : {}),
       ...(fucina(s) ? { brucia: h.brucia > 0, bagnato: !s.done && inGetto(s, h.x, h.z) } : {}),
       ...unici(s),
     },
     nemici: s.enemies.map((e) => {
       const a = enemyAnim(e);
-      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0 || sanguinante(s, e), boss: !!e.def.boss, ...(paralizzato(s, e) ? { paralizzato: true, stordito: true } : {}), ...(rallentato(s, e) ? { lento: true } : {}), ...(e.capo ? { capo: true } : {}), ...(e.st === 'prepara' && e.area ? { area: areaRaggio(e.def) } : {}), ...(e.st === 'prepara' && e.tiro ? { tiro: true } : {}), ...archivio(s, e), ...mausoleo(s, e), ...diga(s, e), ...ceneri(s, e), ...(evocazioneNemica(s, e) ? { avversario: true } : {}) };
+      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0 || sanguinante(s, e), boss: !!e.def.boss, ...(paralizzato(s, e) ? { paralizzato: true, stordito: true } : {}), ...(rallentato(s, e) ? { lento: true } : {}), ...(e.capo ? { capo: true } : {}), ...(e.st === 'prepara' && e.area ? { area: areaRaggio(e.def) } : {}), ...(e.st === 'prepara' && e.tiro ? { tiro: true } : {}), ...archivio(s, e), ...mausoleo(s, e), ...diga(s, e), ...ceneri(s, e), ...baitaNemico(e), ...(evocazioneNemica(s, e) ? { avversario: true } : {}) };
     }),
     proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: p.x, y: p.y, z: p.z, vx: p.vx, vz: p.vz, ...(p.mole ? { mole: p.mole } : {}), ...(p.elemento ? { el: p.elemento } : {}), ...(p.bomba ? { bomba: p.bomba, r: r2(p.raggio) } : {}) })),
     bottini: s.loot.map((l) => ({ id: l.id, x: l.x, z: l.z, tipo: l.tipo, vuoto: parte(s, l).vuoto })),
@@ -102,7 +103,7 @@ export function viewOf(s: DungeonState): DungeonView {
     piloni: s.map.piloni.map((p, k) => ({ x: p.x, z: p.z, rotto: !!s.piloni[k] })),
     bracieri: s.map.bracieri.map((b, i) => ({ x: b.x, z: b.z, n: b.n, acceso: !!s.bracieri[i] })),
     vicinoBraciere: !s.done && s.map.bracieri.length > 0 && braciereVicino(s) >= 0,
-    calore: caloreVista(s),
+    calore: caloreVista(s), ...baitaMondo(s),
     ...(s.map.sarcofago ? { sarcofago: { x: s.map.sarcofago.x, z: s.map.sarcofago.z, aperto: s.enemies.some((e) => e.capo && e.st === 'morto') } } : {}),
     zaino: { peso: r2(pesoZaino(s)), max: rh.caricoMax, monete: s.monete, bottino: { ...s.bottino } },
     eventi: s.eventi,

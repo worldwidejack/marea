@@ -79,7 +79,7 @@ export type DungeonEvent = (
   | { t: 'raffica' }
   | { t: 'raggio'; x: number; z: number }
   /** Colpo parato: dagli anelli dell'Astrolabio (senza `perche`), dallo scafandro del Golem-Palombaro, dalla fornace del Mastro acceso. */
-  | { t: 'parato'; x: number; z: number; perche?: 'scafandro' | 'fornace' | 'scudo' | 'cuore' | 'catene' | 'fumo' }
+  | { t: 'parato'; x: number; z: number; perche?: 'scafandro' | 'fornace' | 'scudo' | 'cuore' | 'catene' | 'fumo' | 'volo' }
   | { t: 'anelli' }
   /** Fucina: prendi fuoco · una cascata ti spegne · il Mastro Forgiatore spento da una cascata (prende danni) · si riaccende · parte la
    *  sua carica · una palla di magma che cade. */
@@ -185,6 +185,8 @@ export type DungeonView = {
     canale?: { len: number; el?: SpellElement };
     /** Archivio: nel vento che soffia (e ti sposta), al riparo dietro uno scaffale, spinto da fuori (arpione, raffica, bomba). */
     vento?: boolean; riparo?: boolean; spinto?: boolean;
+    /** Tempio della «Doppia Nera»: scivola sul Ghiaccio Vivo, nella direzione (asse) [dx, dz]; da qui non comandi i piedi finché non ti fermi. */
+    scivola?: [number, number];
     /** Fucina: brucia (fuoco addosso), sotto una cascata d'acqua. */
     brucia?: boolean; bagnato?: boolean;
     /** Mausoleo, gli unici addosso: carica della Barriera Cinetica (0..1, 1 = pronta); il contatore dell'arma (pressione del Fendiflutti,
@@ -207,7 +209,7 @@ export type DungeonView = {
     /** Fucina, il Mastro Forgiatore: attacco in corso (per la carica `mira` = dove arriva, solo durante l'avviso) e spento dalla cascata. */
     attacco?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo' | 'cura' | 'ondata' | 'fendenti' | 'scatto' | 'geyser' | 'colpo' | 'cambio'
       | 'affondo' | 'spazzata' | 'salva' | 'incastrato' | 'detriti' | 'sbilanciato' | 'fucile' | 'schiacciata'
-      | 'trottola' | 'frenata' | 'salto' | 'bilico' | 'slalom' | 'arbitro' | 'lamina' | 'lancia' | 'calcio' | 'evoca' | 'sputo' | 'mites' | 'onda' | 'schianto' | 'pioggia' | 'esposto'; mira?: [number, number]; spento?: boolean;
+      | 'trottola' | 'frenata' | 'salto' | 'bilico' | 'slalom' | 'arbitro' | 'lamina' | 'lancia' | 'calcio' | 'evoca' | 'sputo' | 'mites' | 'onda' | 'schianto' | 'pioggia' | 'esposto' | 'capogiro' | 'fiasca'; mira?: [number, number]; spento?: boolean;
     /** Mausoleo: potenziato da un Chierico, scudo sfondato (Sentinella), stordito dal Rintocco; il Custode: fase (0 acqua, 1 vapore, 2 moto)
      *  e, nella terza, colpi presi verso la scarica (`cariche` su `colpi`). `mira`: per la cura chi ripara, per lo scatto dove ricompare. */
     potenziato?: boolean; rotto?: boolean; stordito?: boolean; fase?: number; cariche?: number; colpi?: number;
@@ -222,6 +224,9 @@ export type DungeonView = {
     /** Santuario del Capo Ardente: lo Sciamano nascosto nel fumo (il client non lo disegna); Korok nella finestra di punizione: moltiplicatore dei colpi di
      *  mischia (il nucleo sul petto brilla). */
     invisibile?: boolean; esposto?: number;
+    /** Tempio della «Doppia Nera»: la forma a terra che sta preparando o tiene accesa (cerchio: centro e raggio; quadro e X: centro e lato; `fisso` = non ti segue più),
+     *  le linee dello Sparaneve (dove arrivano le palle), il cono della frenata di Jean-Claude (portata e coseno), Jean-Claude in aria (intoccabile). */
+    forma?: { f: 'cerchio' | 'quadro' | 'x'; x: number; z: number; r: number; fisso?: boolean; tipo?: 'sciolina' | 'bombardino' }; linee?: [number, number][]; cono?: [number, number]; volo?: boolean;
     /** Arena: evocazione dell'avversario di chi guarda (il client la tinge di rosso, non di viola). */
     avversario?: boolean }[];
   proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica' | 'palla_nemica'; x: number; y: number; z: number; vx: number; vz: number;
@@ -267,6 +272,11 @@ export type DungeonView = {
   bracieri: { x: number; z: number; n: number; acceso: boolean }[];
   vicinoBraciere: boolean;
   calore: { n: number; zona: [number, number, number, number]; stato: 'calma' | 'avviso'; t: number }[];
+  /** Tempio della «Doppia Nera» (negli altri dungeon assenti): le stanze il cui ghiaccio è sciolto (n della colonnina), le chiazze delle fiasche (`t` 0..1 da quando
+   *  sono nate a quando si asciugano) e le bandierine dello Slalom. */
+  sciolti?: number[];
+  pozze?: { id: number; x: number; z: number; r: number; tipo: 'sciolina' | 'bombardino'; t: number }[];
+  bandierine?: { id: number; n: number; x: number; z: number; r: number; abbattuta: boolean }[];
   /** Bottino e monete al sicuro all'ultimo altare (null = nessun altare toccato). */
   salvato: { bottino: Record<string, number>; monete: number } | null;
   zaino: { peso: number; max: number; monete: number; bottino: Record<string, number> };

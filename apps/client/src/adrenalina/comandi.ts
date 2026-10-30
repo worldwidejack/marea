@@ -1,7 +1,7 @@
-// Comandi dello snowboard (docs/ADRENALINA.md §5): un pollice basta, da PC la tastiera. Escono come InputFrame della sim (`mx` curva,
-// `a` accucciato/presa, in aria un gesto = un impulso di `mx`/`my` per qualche tick).
-// - Telefono: pulsanti a schermo (sterzo ◀ ▶ a sinistra, trick ▲ ▼ in aria, SALTO / PRESA a destra) oppure tocco e trascinamento sulla neve.
-// - PC: A/D o frecce curvano, Spazio tenuto carica e lasciato salta; in aria frecce/WASD = trick, Spazio tenuto = presa.
+// Comandi dello snowboard (docs/ADRENALINA.md §5): due mani da telefono o tastiera da PC.
+// - Telefono: pulsante ◀ a sinistra e ▶ a destra per sterzare; tenendo premuto fuori si carica il salto, rilasciando si salta;
+//   in aria swipe nelle 4 direzioni (su, giù, destra, sinistra) per le acrobazie, tocco fermo per la presa.
+// - PC: A/D per sterzare, Spazio per caricare e saltare (in aria = presa), frecce per le acrobazie; tasto P per invertire WASD e frecce.
 import type { InputFrame } from '@marea/sim';
 import type { TouchBottoni } from './hud.ts';
 
@@ -10,70 +10,130 @@ export type Comandi = {
   campione(aria: boolean): InputFrame;
   /** Stato per i test e per l'HUD: il dito è giù, la presa è partita. */
   readonly dito: boolean;
+  /** Se WASD e frecce sono invertiti. */
+  readonly invertito: boolean;
+  /** Inverte manualmente le funzioni di WASD e frecce. */
+  inverti(): boolean;
   dispose(): void;
 };
 
-/** px di trascinamento per la curva piena; px di un colpo che fa un trick; ms entro cui il colpo vale; ms fermo per la presa. */
-const CURVA_PX = 70, COLPO_PX = 26, COLPO_MS = 260, FERMO_MS = 140, FERMO_PX = 12;
+/** px di trascinamento per la curva piena; px di uno swipe per un trick; ms entro cui lo swipe vale; ms fermo per la presa. */
+const CURVA_PX = 70, COLPO_PX = 20, COLPO_MS = 380, FERMO_MS = 140, FERMO_PX = 10;
 /** Tick per cui dura l'impulso di un gesto (la sim sente il fronte). */
 const IMPULSO = 3;
 /** Curva dalla tastiera (il tutto a fondo frena troppo: si tiene un filo sotto). */
 const CURVA_TASTI = 0.8;
 
-export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni): Comandi {
-  const tasti = new Set<string>();
-  let dito: number | null = null, x0 = 0, ax = 0, ay = 0, at = 0, mossoDa = 0, fermoDa = 0, presa = false, mx = 0;
-  let impulso: { mx: number; my: number; n: number } | null = null, eraAria = false;
-  const ora = () => performance.now();
-  const gesto = (dx: number, dy: number) => { impulso = Math.abs(dx) > Math.abs(dy) ? { mx: dx > 0 ? 1 : -1, my: 0, n: IMPULSO } : { mx: 0, my: dy < 0 ? 1 : -1, n: IMPULSO }; };
+type Dito = {
+  id: number | string;
+  x0: number; y0: number;
+  ax: number; ay: number;
+  at: number; fermoDa: number; mossoDa: number;
+  cx: number; cy: number;
+};
 
-  const aggiornaPos = (cx: number, cy: number) => {
-    mx = Math.max(-1, Math.min(1, (cx - x0) / CURVA_PX));
-    const dx = cx - ax, dy = cy - ay, d = Math.hypot(dx, dy), t = ora();
-    if (eraAria && !presa && d > COLPO_PX && t - at < COLPO_MS) { gesto(dx, dy); ax = cx; ay = cy; at = t; }
-    else if (d > COLPO_PX) { ax = cx; ay = cy; at = t; }
-    if (d > FERMO_PX) { fermoDa = t; mossoDa = t; }
+export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti?: (inv: boolean) => void): Comandi {
+  const tasti = new Set<string>();
+  const touches = new Map<number, Dito>();
+  const pointers = new Map<number, Dito>();
+  let presa = false, mxDrag = 0, invertito = false;
+  let impulso: { mx: number; my: number; n: number } | null = null, eraAria = false;
+  let toccoRegistrato = false;
+  const ora = () => performance.now();
+
+  const tutteDita = () => [...touches.values(), ...pointers.values()];
+  const haDitoGiu = () => touches.size > 0 || pointers.size > 0;
+
+  const gesto = (dx: number, dy: number) => {
+    impulso = Math.abs(dx) > Math.abs(dy)
+      ? { mx: dx > 0 ? 1 : -1, my: 0, n: IMPULSO }
+      : { mx: 0, my: dy < 0 ? 1 : -1, n: IMPULSO };
+  };
+
+  const aggiornaPos = (d: Dito, cx: number, cy: number) => {
+    d.cx = cx; d.cy = cy;
+    const dx = cx - d.ax, dy = cy - d.ay, dist = Math.hypot(dx, dy), t = ora();
+    if (eraAria && !presa && dist >= COLPO_PX && t - d.at <= COLPO_MS) {
+      gesto(dx, dy);
+      d.ax = cx; d.ay = cy; d.at = t;
+      d.fermoDa = t; d.mossoDa = t;
+    } else if (dist >= COLPO_PX) {
+      d.ax = cx; d.ay = cy; d.at = t;
+    }
+    if (dist >= FERMO_PX) { d.fermoDa = t; d.mossoDa = t; }
+    mxDrag = Math.max(-1, Math.min(1, (cx - d.x0) / CURVA_PX));
+  };
+
+  const suBottone = (target: EventTarget | null) => {
+    return target instanceof Element && !!target.closest('.mz-sb-btn, #mzSbEsci');
   };
 
   const giu = (e: PointerEvent) => {
-    if (dito !== null) return;
+    if (suBottone(e.target)) return;
+    if (e.pointerType === 'touch' && touches.size > 0) return;
     e.preventDefault();
-    dito = e.pointerId; x0 = ax = e.clientX; ay = e.clientY; at = fermoDa = ora(); presa = false; mx = 0;
+    const t = ora();
+    pointers.set(e.pointerId, {
+      id: e.pointerId, x0: e.clientX, y0: e.clientY,
+      ax: e.clientX, ay: e.clientY, at: t, fermoDa: t, mossoDa: t,
+      cx: e.clientX, cy: e.clientY,
+    });
+    presa = false; toccoRegistrato = true;
     try { zona.setPointerCapture(e.pointerId); } catch { /* pointer sintetico */ }
   };
   const muovi = (e: PointerEvent) => {
-    if (e.pointerId !== dito) return;
+    const d = pointers.get(e.pointerId);
+    if (!d) return;
     e.preventDefault();
-    aggiornaPos(e.clientX, e.clientY);
+    aggiornaPos(d, e.clientX, e.clientY);
   };
-  const su = (e: PointerEvent) => { if (e.pointerId !== dito) return; dito = null; presa = false; mx = 0; };
+  const su = (e: PointerEvent) => {
+    pointers.delete(e.pointerId);
+    if (!haDitoGiu()) { presa = false; mxDrag = 0; }
+  };
 
-  // Supporto touch nativo per mobile (evita la soppressione dei pointer event su WebKit e Chrome)
+  // Supporto touch nativo per mobile (evita la duplicazione pointerId/touch e il mancato rilascio del salto)
   const touchGiu = (e: TouchEvent) => {
-    if (dito !== null || e.touches.length === 0) return;
-    const t0 = e.changedTouches[0];
-    if (!t0) return;
-    if (e.cancelable) e.preventDefault();
-    dito = t0.identifier; x0 = ax = t0.clientX; ay = t0.clientY; at = fermoDa = ora(); presa = false; mx = 0;
+    for (const [id] of pointers.entries()) pointers.delete(id);
+    const t = ora();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const tc = e.changedTouches[i]!;
+      if (suBottone(tc.target)) continue;
+      touches.set(tc.identifier, {
+        id: tc.identifier, x0: tc.clientX, y0: tc.clientY,
+        ax: tc.clientX, ay: tc.clientY, at: t, fermoDa: t, mossoDa: t,
+        cx: tc.clientX, cy: tc.clientY,
+      });
+    }
+    if (touches.size > 0) {
+      if (e.cancelable) e.preventDefault();
+      presa = false; toccoRegistrato = true;
+    }
   };
   const touchMuovi = (e: TouchEvent) => {
-    if (dito === null) return;
     for (let i = 0; i < e.changedTouches.length; i++) {
-      const t = e.changedTouches[i]!;
-      if (t.identifier === dito) {
+      const tc = e.changedTouches[i]!;
+      const d = touches.get(tc.identifier);
+      if (d) {
         if (e.cancelable) e.preventDefault();
-        aggiornaPos(t.clientX, t.clientY);
-        break;
+        aggiornaPos(d, tc.clientX, tc.clientY);
       }
     }
   };
   const touchSu = (e: TouchEvent) => {
-    if (dito === null) return;
     for (let i = 0; i < e.changedTouches.length; i++) {
-      if (e.changedTouches[i]!.identifier === dito) {
-        dito = null; presa = false; mx = 0;
-        break;
+      touches.delete(e.changedTouches[i]!.identifier);
+    }
+    if (e.touches.length === 0) {
+      touches.clear();
+      presa = false; mxDrag = 0;
+    } else {
+      const vivi = new Set<number>();
+      for (let i = 0; i < e.touches.length; i++) vivi.add(e.touches[i]!.identifier);
+      for (const id of touches.keys()) {
+        if (!vivi.has(id)) touches.delete(id);
       }
+      if (touches.size === 0) { presa = false; mxDrag = 0; }
     }
   };
 
@@ -88,42 +148,95 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni): Comandi 
   addEventListener('touchend', touchSu as EventListener); addEventListener('touchcancel', touchSu as EventListener);
   zona.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  const ARIA_TASTI: Record<string, [number, number]> = { ArrowUp: [0, 1], KeyW: [0, 1], ArrowDown: [0, -1], KeyS: [0, -1], ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0] };
+  // Rete di sicurezza per mobile: tocco fuori da zona a schermo intero
+  const winTouchGiu = (e: TouchEvent) => {
+    if (!document.body.classList.contains('mz-sb')) return;
+    touchGiu(e);
+  };
+  const winPointerGiu = (e: PointerEvent) => {
+    if (!document.body.classList.contains('mz-sb') || e.target === zona) return;
+    giu(e);
+  };
+  addEventListener('touchstart', winTouchGiu, { passive: false });
+  addEventListener('pointerdown', winPointerGiu);
+
+  const inverti = () => {
+    invertito = !invertito;
+    onInverti?.(invertito);
+    return invertito;
+  };
+
   const kd = (e: KeyboardEvent) => {
     if (e.repeat || e.metaKey || e.ctrlKey) return;
+    if (e.code === 'KeyP') {
+      inverti();
+      return;
+    }
     tasti.add(e.code);
-    const g = ARIA_TASTI[e.code];
-    if (g && eraAria) impulso = { mx: g[0], my: g[1], n: IMPULSO };
+    if (eraAria) {
+      if (!invertito) {
+        if (e.code === 'ArrowUp') impulso = { mx: 0, my: 1, n: IMPULSO };
+        else if (e.code === 'ArrowDown') impulso = { mx: 0, my: -1, n: IMPULSO };
+        else if (e.code === 'ArrowLeft') impulso = { mx: -1, my: 0, n: IMPULSO };
+        else if (e.code === 'ArrowRight') impulso = { mx: 1, my: 0, n: IMPULSO };
+      } else {
+        if (e.code === 'KeyW') impulso = { mx: 0, my: 1, n: IMPULSO };
+        else if (e.code === 'KeyS') impulso = { mx: 0, my: -1, n: IMPULSO };
+        else if (e.code === 'KeyA') impulso = { mx: -1, my: 0, n: IMPULSO };
+        else if (e.code === 'KeyD') impulso = { mx: 1, my: 0, n: IMPULSO };
+      }
+    }
   };
   const ku = (e: KeyboardEvent) => { tasti.delete(e.code); };
-  const via = () => { tasti.clear(); dito = null; presa = false; mx = 0; };
+  const via = () => { tasti.clear(); touches.clear(); pointers.clear(); toccoRegistrato = false; presa = false; mxDrag = 0; };
   addEventListener('keydown', kd); addEventListener('keyup', ku); addEventListener('blur', via);
 
   return {
-    get dito() { return dito !== null || !!bottoni?.attivo; },
+    get dito() { return haDitoGiu() || !!bottoni?.attivo; },
+    get invertito() { return invertito; },
+    inverti,
     campione(aria) {
-      // appena si stacca da terra il dito «riparte»: la presa vuole un dito fermo da adesso, i colpi contano da qui
-      if (aria && !eraAria) { fermoDa = at = ora(); presa = false; }
+      if (aria && !eraAria) {
+        const t = ora();
+        for (const d of tutteDita()) { d.fermoDa = t; d.mossoDa = t; d.at = t; d.ax = d.cx; d.ay = d.cy; }
+        presa = false;
+      }
       eraAria = aria;
       bottoni?.setAria(aria);
       let fx = 0, fy = 0;
       if (impulso) { fx = impulso.mx; fy = impulso.my; if (--impulso.n <= 0) impulso = null; }
-      const bImp = bottoni?.consumaImpulso();
-      if (bImp) { fx = bImp.mx; fy = bImp.my; }
-      const spazio = tasti.has('Space'), saltoGiu = !!bottoni?.salto;
+      const spazio = tasti.has('Space'), ditoAttivo = haDitoGiu();
+      let toccoGiu = ditoAttivo;
+      if (!ditoAttivo && toccoRegistrato) {
+        toccoGiu = true;
+        toccoRegistrato = false;
+      } else if (ditoAttivo) {
+        toccoRegistrato = false;
+      }
       if (aria) {
-        if (dito !== null && !presa && ora() - fermoDa >= FERMO_MS && ora() - mossoDa >= FERMO_MS) presa = true;
-        return { mx: fx, my: fy, a: presa || spazio || saltoGiu, b: false };
+        if (ditoAttivo && !presa) {
+          const t = ora();
+          for (const d of tutteDita()) {
+            if (t - d.fermoDa >= FERMO_MS && t - d.mossoDa >= FERMO_MS) { presa = true; break; }
+          }
+        }
+        return { mx: fx, my: fy, a: presa || spazio, b: false };
       }
       presa = false;
       let k = 0;
-      if (tasti.has('KeyA') || tasti.has('ArrowLeft')) k -= CURVA_TASTI;
-      if (tasti.has('KeyD') || tasti.has('ArrowRight')) k += CURVA_TASTI;
+      if (!invertito) {
+        if (tasti.has('KeyA')) k -= CURVA_TASTI;
+        if (tasti.has('KeyD')) k += CURVA_TASTI;
+      } else {
+        if (tasti.has('ArrowLeft')) k -= CURVA_TASTI;
+        if (tasti.has('ArrowRight')) k += CURVA_TASTI;
+      }
       if (bottoni && bottoni.curva !== 0) k += bottoni.curva * CURVA_TASTI;
-      const mxOut = k !== 0 ? Math.max(-1, Math.min(1, k)) : (dito !== null ? mx : 0);
-      return { mx: mxOut, my: 0, a: dito !== null || spazio || saltoGiu, b: false };
+      const mxOut = k !== 0 ? Math.max(-1, Math.min(1, k)) : (toccoGiu ? mxDrag : 0);
+      return { mx: mxOut, my: 0, a: toccoGiu || spazio, b: false };
     },
     dispose() {
+      removeEventListener('touchstart', winTouchGiu); removeEventListener('pointerdown', winPointerGiu);
       zona.removeEventListener('pointerdown', giu); zona.removeEventListener('pointermove', muovi);
       removeEventListener('pointerup', su); removeEventListener('pointercancel', su);
       zona.removeEventListener('touchstart', touchGiu); zona.removeEventListener('touchmove', touchMuovi);

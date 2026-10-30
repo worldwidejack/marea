@@ -30,6 +30,7 @@ import { inCorsia } from './diga.ts';
 import { scudoSu } from './vaelen.ts';
 import { secToTicks } from './state.ts';
 import { GEYSER_DIR, HZ } from './tuning.ts';
+import { bandierinaDaSpaccare, navGhiaccio, viaDaiPericoliBaita } from './baita_pilota.ts';
 
 type Mem = {
   field: Int32Array; fieldGoal: number; fieldTick: number;
@@ -126,6 +127,7 @@ function schivaOnda(s: DungeonState, e: Enemy): { x: number; z: number } | null 
 }
 function navDir(s: DungeonState, m: Mem, gx: number, gz: number): { x: number; z: number } | null {
   const h = s.hero, r = s.runHero.raggio + 0.05;
+  if (s.dungeon === 'baita') { const v = navGhiaccio(s, gx, gz); if (v !== undefined) return v; } // Tempio: il ghiaccio è un rompicapo
   if (clearPath(s.map, h.x, h.z, gx, gz, r)) return norm(gx - h.x, gz - h.z);
   const goal = cellOf(s.map, gx, gz);
   if (goal !== m.fieldGoal || s.tick - m.fieldTick > 120) { bfs(s.map, goal, m.field); m.fieldGoal = goal; m.fieldTick = s.tick; }
@@ -311,6 +313,11 @@ export function autopilot(s: DungeonState, rng: Rng): DungeonInput {
   if (s.map.lave.length || s.map.getti.length) { const v = viaDalFuoco(s); if (v) { o.mx = v.x; o.my = v.z; o.b = true; return finish(); } }
   // Diga: fuori dalle corsie telegrafate, dai cerchi in arrivo e dai rottami
   if (s.def.rottami) { const v = viaDalleCorsie(s) ?? viaDaiRottami(s); if (v) { o.mx = v.x; o.my = v.z; o.b = true; return finish(); } }
+  if (s.dungeon === 'baita') { // Tempio: fuori da quello che il gioco segna a terra; allo Slalom si spacca l'ultima bandierina
+    const v = viaDaiPericoliBaita(s), f = v ? null : bandierinaDaSpaccare(s, h.arma.portata), w = f && !f.vicino ? nav(s, m, f.x, f.z) : null;
+    if (v || w) { o.mx = (v ?? w)!.x; o.my = (v ?? w)!.z; o.b = true; return finish(); }
+    if (f?.vicino) { o.a = h.act === 'idle' && !m.prevA; return finish(); }
+  }
   for (const [k, until] of m.ban) if (until <= s.tick) m.ban.delete(k);
   const libero = rh.caricoMax - pesoZaino(s);
   const tempo = s.tick > 20 * 60 * HZ - 3 * 60 * HZ;

@@ -14,6 +14,7 @@ import type { DungeonDef, EnemyDef, ItemDefRaw, LootTable, MaterialDef, PerkDef,
 
 export type * from './rpg_types.ts';
 export type * from './rpg_ceneri_types.ts';
+export type * from './rpg_baita_types.ts';
 export { ATTRS, SKILLS } from './rpg_types.ts';
 
 export const RPG = balance as unknown as RpgBalance;

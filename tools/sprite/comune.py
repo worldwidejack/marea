@@ -6,7 +6,7 @@ Un personaggio a sprite sta in una cartella (di solito assets/concept/sprite/<id
   fogli/        i fogli di Codex o ChatGPT: <vista>_<mossa>-<mossa>-<mossa>.png, 4 colonne × una riga per mossa, su magenta
   sprite/       gli sprite a pixel (pixel.py): <vista>_<mossa>_<n>.png, elenco.json, tavolozza.json
   controllo/    gli sprite ingranditi e le animazioni per Fenaki (in_fenaki.py)
-  _FOGLIO_sprite.jpg  il foglio da far vedere a Jack (foglio.py, si committa: i PNG restano sul computer, .gitignore)
+  _FOGLIO_sprite.jpg  il foglio da guardare (foglio.py, si committa: i PNG restano sul computer, .gitignore)
 Le 16 direzioni del gioco: 9 viste disegnate (S → N passando da destra) e 7 specchiate (il lato sinistro).
 """
 import json

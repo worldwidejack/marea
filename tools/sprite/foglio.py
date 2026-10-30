@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MAREA — il foglio degli sprite di un personaggio, da far vedere a Jack prima che entrino nel gioco (e da allegare alla PR).
+"""MAREA — il foglio degli sprite di un personaggio, da guardare prima che entrino nel gioco (e da allegare alla PR).
 
 Per ogni mossa un blocco: le 9 viste disegnate in righe (S → N passando da destra; le 7 del lato sinistro sono lo specchio)
 e i 4 disegni in colonne, ingranditi a pixel netti, ogni riga sulla sua linea di terra (si vede se i piedi ballano o se
@@ -104,4 +104,6 @@ def main():
 
 
 if __name__ == '__main__':
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
     main()

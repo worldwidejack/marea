@@ -1,32 +1,32 @@
 ---
 name: sprite-marea
-description: Come si fanno gli sprite dei personaggi di MAREA nel look 3 votato dal gruppo (personaggio 2.5D in pixel art in un mondo 3D, 16 direzioni = 9 viste disegnate + 7 specchiate, 4 disegni per mossa, 36 per mossa). Riga di stile in testa al prompt, modello approvato e sagoma grigia allegati, una vista per foglio su fondo magenta, Codex o ChatGPT; gli script in tools/sprite (prompt, genera, pixel, foglio, in_fenaki) e il controllo con Fenaki; prima di entrare nel gioco li vede Jack. Da caricare prima di generare, preparare, controllare o mettere nel gioco un personaggio a sprite, un abitante, una mossa nuova.
+description: Come si fanno gli sprite dei personaggi di MAREA nel look 3 votato dal gruppo (personaggio 2.5D in pixel art in un mondo 3D, 16 direzioni = 9 viste disegnate + 7 specchiate, 4 disegni per mossa, 36 per mossa). Riga di stile in testa al prompt, modello approvato e sagoma grigia allegati, una vista per foglio su fondo magenta, Codex o ChatGPT; gli script in tools/sprite (prompt, genera, pixel, foglio, in_fenaki) e il controllo con Fenaki; prima di entrare nel gioco li vede il gruppo. Da caricare prima di generare, preparare, controllare o mettere nel gioco un personaggio a sprite, un abitante, una mossa nuova.
 ---
 
 # Gli sprite dei personaggi di MAREA (look 3)
 
-Il gruppo ha votato il **look 3**: il mondo è in 3D e il motore lo fa sembrare disegnato; i personaggi sono **sprite 2.5D in pixel art**. Questa ricetta è quella che nella prova dei look (`assets/concept/personaggio/`) ha dato 108 disegni buoni al primo colpo. Seguila com'è: uno sprite fatto a occhio si vede subito accanto agli altri, e Jack lo boccia.
+Il gruppo ha votato il **look 3**: il mondo è in 3D e il motore lo fa sembrare disegnato; i personaggi sono **sprite 2.5D in pixel art**. Questa ricetta è quella che nella prova dei look (`assets/concept/personaggio/`) ha dato 108 disegni buoni al primo colpo. Seguila com'è: uno sprite fatto a occhio si vede subito accanto agli altri.
 
 ## Il look 3 in numeri
 - **16 direzioni**: 9 viste disegnate, da davanti a dietro passando da destra (S, SSE, SE, ESE, E, ENE, NE, NNE, N), e le 7 del lato sinistro sono lo **specchio** (le fa il gioco: non si disegnano). La vista la sceglie il gioco dall'angolo fra dove guarda il personaggio e la camera, a scatti di 22,5°.
 - **4 disegni per mossa e per vista** → **36 disegni per mossa** (9 × 4). La camminata fa anche da posa ferma (il disegno 2, gambe unite).
 - **Pixel art vera**: pixel grossi e netti, niente sfumature né anti-aliasing, contorno scuro di 1 pixel, una tavolozza piccola comune a tutte le viste del personaggio. Il protagonista è alto **48 px** in piedi; testa grande (circa il 45 % dell'altezza coi capelli), corpo corto.
-- **Riferimenti approvati** (il protagonista F3), da guardare prima di cominciare e da allegare: `assets/concept/personaggio/` → `F3_design.jpg` (il disegno), `F3_5_viste.jpg` (il modello in 5 viste), `F3_vista_<S|SE|E|NE|N>.jpg`, `F3_foglio_pixel_<SE|E|NE>.jpg` (fogli a pixel approvati: lo stile da copiare per un personaggio nuovo), `F3_sprite_pixel.jpg` (tutti i 108 sprite, la misura di cosa vuol dire «fatto bene»).
+- **Riferimenti approvati** (il protagonista F3), da guardare prima di cominciare e da allegare: `assets/concept/personaggio/` → `F3_design.jpg` (il disegno), `F3_5_viste.jpg` (il modello in 5 viste), `F3_vista_<S|SE|E|NE|N>.jpg`, `F3_foglio_pixel_<SE|E|NE>.jpg` (fogli a pixel approvati: lo stile da copiare per un personaggio nuovo), `F3_sprite_pixel.jpg` (tutti i 108 sprite, la misura di cosa vuol dire «fatto bene»). Gli stessi, coi fogli Codex, gli sprite e le mosse delle armi, stanno nell'Atelier in `personaggi/f3-prova/` (e animati nella sua galleria). F3 è un riferimento, non il protagonista definitivo: quello si rifà da zero insieme (`quest/01-protagonista.md` dell'Atelier).
 - Fino all'Art Bible sul look 3, per i personaggi a sprite vale questa skill dove `docs/ART_BIBLE.md` §5 dice altro (6 teste, modello 3D, Mixamo).
 
 ## La regola
-**Prima di metterli nel gioco li vede Jack.** Il gusto lo decide lui, guardando immagini (il foglio, il video), mai a parole. Si va per gradini e a ogni gradino si aspetta l'ok: il modello in 5 viste, poi il giro 1 (tre viste), poi il resto. Niente produzione in serie prima dell'ok sul primo pezzo. La persona con cui lavori sceglie con A/B e immagini; Jack vede il foglio nella PR, e il merge si fa solo col suo ok. (Sul Mac di Jack le domande di gusto vanno nella Lanterna.)
+**Il gusto lo decide chi li fa**, con la persona con cui lavori, guardando immagini (il foglio, il video), mai a parole: scelte A/B. Si va per gradini e a ogni gradino si aspetta il suo ok: il modello in 5 viste, poi il giro 1 (tre viste), poi il resto. Niente produzione in serie prima dell'ok sul primo pezzo. Il protagonista e gli abitanti li vedono tutti: il foglio va nella PR, così lo guardano anche gli altri due, e se qualcuno non è d'accordo si vota 2 su 3. Nessuno è il capo: «lo deve approvare Jack» non esiste. (Sul Mac di Jack le domande di gusto vanno nella Lanterna.)
 
 ## Cosa serve
 - **Codex** (`codex login` con l'account ChatGPT) per disegnare in automatico con `genera.py`, oppure **ChatGPT** a mano (`prompt.py --stampa`).
-- **Fenaki**, il banco d'animazione di Jack: repo privato `worldwidejack/fenaki` (l'accesso lo dà Jack), installato seguendo il suo `CLAUDE.md`. Se `claude mcp list` non mostra `fenaki`, installalo prima di cominciare (o di' alla persona di chiedere l'accesso a Jack).
+- **Fenaki**, il banco d'animazione di Jack: repo privato `worldwidejack/fenaki` (Riccardo e birbasan ci sono dentro, in scrittura), installato seguendo il suo `CLAUDE.md`. Se `claude mcp list` non mostra `fenaki`, installalo prima di cominciare.
 - **Python**: quello del venv di Fenaki (`<fenaki>/.venv/bin/python`, su Windows `<fenaki>\.venv\Scripts\python.exe`), che ha già Pillow, numpy e OpenCV. Negli esempi qui sotto `PY` = quel python.
 
 ## La cartella del personaggio
-`assets/concept/sprite/<id>/`, con dentro `scheda.json`: l'esempio vero è `assets/concept/sprite/protagonista/scheda.json`. La scheda dice chi è (`descrizione` in inglese, **identica in ogni prompt**: capelli, testa, pelle, vestiti coi colori), `pronome` (he / she / it), `modello` (il disegno approvato), `viste` (le 5 viste del modello), `stile` (per un personaggio nuovo: i fogli a pixel di F3, uno per vista del giro 1), `alto` (px in piedi), `testa` (% coi capelli), `mosse` (una frase in inglese per riga del foglio: «WALK CYCLE, 4 frames: …»), `extra` (colori piccoli che devono restare, come il verde della pozione). Nel repo vanno scheda, prompt, tavolozza e i JPG; i PNG (fogli, sprite) restano sul computer (`.gitignore`). La mappa degli script è in `tools/sprite/README.md`.
+Dal 29/10/2026 i personaggi si fanno nell'**Atelier di MAREA**, il posto comune di tutto il world building: repo `worldwidejack/marea-atelier` (clonalo accanto a `marea`), galleria https://worldwidejack.github.io/marea-atelier/. **Prima di generare leggi il suo `CLAUDE.md` e `STILE.md`.** La cartella è `<atelier>/personaggi/<id>/`, con dentro `scheda.json`: l'esempio vero è `personaggi/f3-prova/scheda.json` (la vecchia `assets/concept/sprite/protagonista/` di questo repo resta solo come esempio). La scheda dice chi è (`descrizione` in inglese, **identica in ogni prompt**: capelli, testa, pelle, vestiti coi colori), `pronome` (he / she / it), `modello` (il disegno approvato), `viste` (le 5 viste del modello), `stile` (per un personaggio nuovo: i fogli a pixel di F3, uno per vista del giro 1), `alto` (px in piedi), `testa` (% coi capelli), `mosse` (una frase in inglese per riga del foglio: «WALK CYCLE, 4 frames: …»), `extra` (colori piccoli che devono restare, come il verde della pozione). Nell'Atelier va tutto: scheda, prompt, tavolozza, fogli (anche i bocciati, con una riga in `fogli/REGISTRO.md`: data · chi · generatore · allegati · esito) e sprite; resta sul computer solo `controllo/` (il banco di Fenaki). La mappa degli script è in `tools/sprite/README.md`.
 
 ## Il giro
-**0. Un personaggio nuovo comincia da un disegno solo**, scelto da Jack fra 3 varianti (A/B/C) generate col modello di F3 accanto, così sta nello stesso mondo. Poi scrivi la scheda.
+**0. Un personaggio nuovo comincia da un disegno solo**, scelto fra 3 varianti (A/B/C) generate col modello di F3 accanto, così sta nello stesso mondo. Poi scrivi la scheda.
 
 **1. Il modello in 5 viste** (davanti, 3/4 davanti, profilo, 3/4 dietro, dietro), il foglio da cui nascono tutte le viste:
 ```
@@ -45,7 +45,7 @@ PY tools/sprite/pixel.py <cartella>                # → sprite/: taglio per sag
 PY tools/sprite/foglio.py <cartella> --apri        # → _FOGLIO_sprite.jpg
 PY tools/sprite/in_fenaki.py <cartella>            # → controllo/: le mosse e il giro delle viste in Fenaki
 ```
-Controlla (sotto), poi **ok della persona e di Jack sul giro 1 prima di andare avanti**: è il gradino che decide lo stile.
+Controlla (sotto), poi **ok della persona sul giro 1 prima di andare avanti** (e del gruppo, se è il protagonista o un abitante): è il gradino che decide lo stile.
 
 **3. Giro 2: le altre sei viste** (S, SSE, ESE, ENE, NNE, N), ognuna fra due viste del modello e col foglio a pixel della vista vicina del giro 1 allegato come stile, «dello stesso artista»:
 ```
@@ -55,7 +55,7 @@ PY tools/sprite/pixel.py <cartella>  &&  PY tools/sprite/foglio.py <cartella> --
 ```
 **4. Una mossa nuova**: una riga nuova in `mosse` della scheda, poi `prompt.py --mosse <nuova>` (la camminata entra da sola nella prima riga: fa da metro per altezza e piedi) e di nuovo giro 1 e giro 2. Al massimo 3 mosse per foglio. I fogli già approvati non si rifanno: `pixel.py` tiene la tavolozza in `sprite/tavolozza.json` e, se due fogli danno lo stesso sprite, tiene quello del foglio più vecchio.
 
-**Con ChatGPT a mano**: `prompt.py <cartella> --stampa <nome>` dice quali immagini allegare e in che ordine, il prompt da incollare e dove salvare il PNG (`fogli/<nome>.png`, a grandezza piena, almeno 1024 px di lato). Il fondo magenta pieno evita i PNG «trasparenti» finti.
+**Con ChatGPT a mano**: `prompt.py <cartella> --stampa <nome>` dice quali immagini allegare e in che ordine, il prompt da incollare e dove salvare il PNG (`fogli/<nome>.png`, a grandezza piena, almeno 1024 px di lato). Il fondo magenta pieno evita i PNG «trasparenti» finti. Con **ChatGPT free** (Riccardo, Alberto/birba) il limite è di **massimo 2 immagini allegate**: se lo script ne elenca 3, allegare solo le prime 2 (la vista di posa e il riferimento di stile/design).
 
 ## Come si scrive il prompt (lo fa `prompt.py`: non riscriverlo a mano)
 - **La riga di stile in testa** («TRUE PIXEL ART, the most important thing: …»): la cosa più importante va per prima. Nei giri del personaggio Codex ha rispettato la testa grande solo quando la frase della testa era in testa al prompt; con «ADULT body, real jawline» ignorava la sagoma e faceva proporzioni da adulto normale.
@@ -77,14 +77,14 @@ Poi in **Fenaki** (`in_fenaki.py` ha preparato `controllo/`): `provino(cartella=
 
 ## Farli vedere
 1. Alla persona: il foglio aperto (`foglio.py --apri`) e la pagina di Fenaki; le scelte di gusto come A/B con le immagini.
-2. A Jack, nella PR: `_FOGLIO_sprite.jpg` (e il video se serve) nella PR della cartella del personaggio, con scritto cosa guardare. Nel gioco entrano solo dopo il suo ok: il motore degli sprite del look 3 arriverà in MAREA con una PR sua, che leggerà `sprite/elenco.json` (lo stesso formato della prova dei look).
+2. Al gruppo: push nell'Atelier (la galleria si aggiorna da sola in un minuto) e il link nel gruppo, con scritto cosa guardare (`_FOGLIO_sprite.jpg`, il video se serve). Nel gioco entrano quando nessuno è contrario (o col voto 2 su 3): il motore degli sprite del look 3 arriverà in MAREA con una PR a parte, che leggerà `sprite/elenco.json` (lo stesso formato della prova dei look).
 
 ## Cosa NON fare
 - Partire da forme fatte da codice al posto del design: prima il disegno approvato, poi le viste. La sagoma grigia dice solo misura e angolo e sparisce sotto il disegno (se il generatore copia le forme della base, il risultato sembra un modello low-poly ridisegnato).
 - Più viste in un foglio, più di 3 mosse in un foglio, fogli senza la camminata in prima riga.
 - Saltare il giro 1 o fare il giro 2 prima dell'ok: i 6 fogli del giro 2 copiano lo stile del giro 1, anche i suoi difetti.
 - Ritoccare la tavolozza a mano o mischiare le tavolozze di due personaggi: ognuno ha la sua `sprite/tavolozza.json`.
-- Mettere i PNG nel repo (solo i JPG) o gli sprite nel gioco senza l'ok di Jack.
+- Mettere fogli e sprite in questo repo: vanno nell'Atelier; nel gioco entrano solo quando il gruppo li ha visti.
 - Fidarsi del «fatto» di Codex: apri sempre il foglio. Dopo ~40-50 immagini di fila Codex si può fermare: rilancia `genera.py`, salta i fogli già fatti.
 
 ## Tempi e costi (dalla prova)
