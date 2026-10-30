@@ -18,7 +18,7 @@ export type Comandi = {
 };
 
 /** px di trascinamento per la curva piena; px di uno swipe per un trick; ms entro cui lo swipe vale; ms fermo per la presa. */
-const CURVA_PX = 70, COLPO_PX = 24, COLPO_MS = 320, FERMO_MS = 140, FERMO_PX = 10;
+const CURVA_PX = 70, COLPO_PX = 20, COLPO_MS = 380, FERMO_MS = 140, FERMO_PX = 10;
 /** Tick per cui dura l'impulso di un gesto (la sim sente il fronte). */
 const IMPULSO = 3;
 /** Curva dalla tastiera (il tutto a fondo frena troppo: si tiene un filo sotto). */
@@ -37,6 +37,7 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti
   const dita = new Map<number | string, Dito>();
   let presa = false, mxDrag = 0, invertito = false;
   let impulso: { mx: number; my: number; n: number } | null = null, eraAria = false;
+  let ultimoTouch = 0;
   const ora = () => performance.now();
 
   const gesto = (dx: number, dy: number) => {
@@ -60,6 +61,7 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti
   };
 
   const giu = (e: PointerEvent) => {
+    if (e.pointerType === 'touch' && ora() - ultimoTouch < 1500) return;
     e.preventDefault();
     const t = ora();
     dita.set(e.pointerId, {
@@ -71,19 +73,25 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti
     try { zona.setPointerCapture(e.pointerId); } catch { /* pointer sintetico */ }
   };
   const muovi = (e: PointerEvent) => {
+    if (e.pointerType === 'touch' && ora() - ultimoTouch < 1500) return;
     const d = dita.get(e.pointerId);
     if (!d) return;
     e.preventDefault();
     aggiornaPos(d, e.clientX, e.clientY);
   };
   const su = (e: PointerEvent) => {
+    if (e.pointerType === 'touch' && ora() - ultimoTouch < 1500) return;
     if (dita.delete(e.pointerId) && dita.size === 0) { presa = false; mxDrag = 0; }
   };
 
-  // Supporto touch nativo per mobile (evita la soppressione dei pointer event su WebKit e Chrome)
+  // Supporto touch nativo per mobile (evita la duplicazione pointerId/touch e il mancato rilascio del salto)
   const touchGiu = (e: TouchEvent) => {
+    ultimoTouch = ora();
+    for (const k of dita.keys()) {
+      if (typeof k === 'number') dita.delete(k);
+    }
     if (e.cancelable) e.preventDefault();
-    const t = ora();
+    const t = ultimoTouch;
     for (let i = 0; i < e.changedTouches.length; i++) {
       const tc = e.changedTouches[i]!;
       dita.set(`t_${tc.identifier}`, {
@@ -95,6 +103,7 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti
     presa = false;
   };
   const touchMuovi = (e: TouchEvent) => {
+    ultimoTouch = ora();
     for (let i = 0; i < e.changedTouches.length; i++) {
       const tc = e.changedTouches[i]!;
       const d = dita.get(`t_${tc.identifier}`);
@@ -105,10 +114,15 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti
     }
   };
   const touchSu = (e: TouchEvent) => {
+    ultimoTouch = ora();
     for (let i = 0; i < e.changedTouches.length; i++) {
       dita.delete(`t_${e.changedTouches[i]!.identifier}`);
     }
-    if (dita.size === 0) { presa = false; mxDrag = 0; }
+    let rimasto = false;
+    for (let i = 0; i < e.touches.length; i++) {
+      if (dita.has(`t_${e.touches[i]!.identifier}`)) { rimasto = true; break; }
+    }
+    if (!rimasto || dita.size === 0) { dita.clear(); presa = false; mxDrag = 0; }
   };
 
   zona.addEventListener('pointerdown', giu);
@@ -160,15 +174,13 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti
     campione(aria) {
       if (aria && !eraAria) {
         const t = ora();
-        for (const d of dita.values()) { d.fermoDa = t; d.mossoDa = t; d.at = t; }
+        for (const d of dita.values()) { d.fermoDa = t; d.mossoDa = t; d.at = t; d.ax = d.cx; d.ay = d.cy; }
         presa = false;
       }
       eraAria = aria;
       bottoni?.setAria(aria);
       let fx = 0, fy = 0;
       if (impulso) { fx = impulso.mx; fy = impulso.my; if (--impulso.n <= 0) impulso = null; }
-      const bImp = bottoni?.consumaImpulso();
-      if (bImp) { fx = bImp.mx; fy = bImp.my; }
       const spazio = tasti.has('Space'), toccoGiu = dita.size > 0;
       if (aria) {
         if (toccoGiu && !presa) {

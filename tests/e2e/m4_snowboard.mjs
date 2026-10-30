@@ -93,6 +93,19 @@ export default async function (ctx) {
     await ctx.waitState(page, (st) => st.snowboard.aria || st.snowboard.h > 0, 3000).catch(() => {});
     const sJ = await sb(page);
     assert(sJ.aria || sJ.h > 0, 'tenere premuto fuori dai pulsanti non fa saltare');
+    // In volo: il pulsante SX non fa trick e non cambia etichetta
+    assert(await btnSx.textContent() === '◀SX', 'il pulsante non deve cambiare etichetta in volo');
+    await btnSx.dispatchEvent('pointerdown', { pointerId: 12, pointerType: 'touch', isPrimary: true });
+    await btnSx.dispatchEvent('pointerup', { pointerId: 12, pointerType: 'touch', isPrimary: true });
+    const sNoTrick = await sb(page);
+    assert(sNoTrick.trick === 0, 'il pulsante non deve fare trick in volo');
+    // In volo: lo swipe sullo schermo fa acrobazie
+    if (sNoTrick.aria) {
+      await page.dispatchEvent('#mzSbTocco', 'pointerdown', { pointerId: 13, clientX: x, clientY: y, pointerType: 'touch', isPrimary: true });
+      await page.dispatchEvent('#mzSbTocco', 'pointermove', { pointerId: 13, clientX: x, clientY: y - 40, pointerType: 'touch', isPrimary: true });
+      await page.dispatchEvent('#mzSbTocco', 'pointerup', { pointerId: 13, clientX: x, clientY: y - 40, pointerType: 'touch', isPrimary: true });
+      await ctx.waitState(page, (st) => st.snowboard.trick >= 1 || st.snowboard.eventi?.includes('trick'), 2000).catch(() => {});
+    }
   });
 
   // i punti delle foto, dalle zone della pista: [nome, s, ticks col pilota automatico prima dello scatto, aspetta il volo (m sopra la neve)]
