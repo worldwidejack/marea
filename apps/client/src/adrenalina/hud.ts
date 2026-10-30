@@ -36,28 +36,18 @@ body.mz-sb #mzZoomBar, body.mz-sb #mzAvatarBtn, body.mz-sb #mzMiniMete, body.mz-
 #mzSbEsci { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 8px); min-width: 44px; min-height: 40px; padding: 0 10px; background: rgba(46,30,20,.82); color: ${PAL.sabbiaChiara};
   border: 2px solid ${PAL.legno}; font: bold 13px ui-monospace, Menlo, monospace; border-radius: 6px; cursor: pointer; }
 #mzSbEsci { left: max(8px, env(safe-area-inset-left, 0px)); }
-#mzSbComandi { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); display: none; justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 15; }
+#mzSbComandi { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); display: none; justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 15; }
 @media (min-width: 801px) and (pointer: fine) { #mzSbComandi { display: none !important; } }
-.mz-sb-sterzo { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.mz-sb-tricks { display: none; gap: 8px; justify-content: center; }
-.mz-sb-tricks.aria { display: flex; }
-.mz-sb-curva { display: flex; gap: 8px; }
+.mz-sb-curva { display: flex; pointer-events: auto; }
 .mz-sb-btn { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; pointer-events: auto; cursor: pointer; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: ${FONT_LIBRO}; }
-.mz-sb-btn-dir { width: 62px; height: 54px; border-radius: 12px; background: ${L.cartaChiara}; border: 2.5px solid ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px rgba(253,242,218,.6), 0 3px 0 1.5px ${L.inchiostro}; color: ${L.inchiostro}; font-size: 22px; font-weight: bold; line-height: 1; }
-.mz-sb-btn-dir small { font-size: 9px; font-weight: normal; opacity: 0.8; letter-spacing: 0.05em; margin-top: 1px; }
+.mz-sb-btn-dir { width: 76px; height: 68px; border-radius: 16px; background: ${L.cartaChiara}; border: 2.5px solid ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px rgba(253,242,218,.6), 0 3px 0 1.5px ${L.inchiostro}; color: ${L.inchiostro}; font-size: 26px; font-weight: bold; line-height: 1; }
+.mz-sb-btn-dir small { font-size: 11px; font-weight: bold; opacity: 0.85; letter-spacing: 0.06em; margin-top: 2px; }
 .mz-sb-btn-dir.premuto { transform: translateY(2px) scale(0.96); filter: brightness(1.15); box-shadow: 0 0 0 1.5px ${L.inchiostro}, 0 1px 0 1.5px ${L.inchiostro}; }
-.mz-sb-btn-trick { width: 56px; height: 38px; border-radius: 8px; background: ${L.carta}; border: 2px solid ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, 0 2px 0 1.5px ${L.inchiostro}; color: ${L.inchiostro}; font-size: 14px; font-weight: bold; line-height: 1; }
-.mz-sb-btn-trick small { font-size: 8px; font-weight: normal; opacity: 0.85; }
-.mz-sb-btn-trick.premuto { transform: translateY(2px) scale(0.96); filter: brightness(1.15); }
-.mz-sb-btn-salto { width: 74px; height: 74px; border-radius: 50%; background: ${L.rosso}; border: 3px solid ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 2px ${L.rossoScuro}, inset 0 -5px 0 ${L.rossoScuro}, 0 4px 0 1.5px ${L.inchiostro}; color: ${L.cartaChiara}; font-size: 16px; font-weight: bold; text-shadow: 0 2px 0 ${L.rossoScuro}; text-align: center; }
-.mz-sb-btn-salto small { font-size: 10px; font-weight: normal; opacity: 0.9; text-shadow: none; margin-top: 1px; }
-.mz-sb-btn-salto.premuto { transform: translateY(3px) scale(0.95); filter: brightness(1.15); }
-.mz-sb-btn-salto.presa { background: ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 2px ${L.oroScuro}, inset 0 -5px 0 ${L.oroScuro}, 0 4px 0 1.5px ${L.inchiostro}; color: ${L.inchiostro}; text-shadow: 0 1px 0 rgba(253,242,218,.8); }
 `;
 
 export type TouchBottoni = {
   readonly curva: number;
-  readonly salto: boolean;
+  readonly salto?: boolean;
   readonly attivo: boolean;
   consumaImpulso(): { mx: number; my: number } | null;
   setAria(aria: boolean): void;
@@ -70,6 +60,7 @@ export type HudNeve = {
   pop(testo: string, colore?: string): void;
   via(testo: string | null): void;
   aiuto(on: boolean): void;
+  impostaInvertito(inv: boolean): void;
   onEsci: () => void;
   /** In gara (3-2-1 compreso) tempo, barra e distacco; nel viaggio e ai cartelli no. */
   gara(on: boolean): void;
@@ -91,38 +82,35 @@ export function creaHud(root: HTMLElement, dito: boolean, soglie: readonly [numb
   const testa = el('div'); testa.id = 'mzSbTesta'; testa.append(punti, ora, barra);
   const pop = el('div'); pop.id = 'mzSbPop';
   const via = el('div'); via.id = 'mzSbVia';
-  const aiuto = el('div', '', dito
-    ? '◀ ▶ Curva · SALTO: tieni e lascia · In aria: Trick e PRESA'
-    : 'A/D o ←/→: curvi · Spazio: tieni e lascia sul bordo del trampolino · In aria frecce: trick · Spazio tenuto: presa'); aiuto.id = 'mzSbAiuto';
+
+  let invertito = false;
+  const testoAiuto = () => dito
+    ? '◀ SX · ▶ DX: sterzo · Schermo: tieni per saltare · In aria swipe: acrobazie'
+    : (invertito
+      ? '←/→: sterzo · Spazio: salto · In aria WASD: acrobazie · P: inverti'
+      : 'A/D: sterzo · Spazio: salto · In aria Frecce: acrobazie · P: inverti');
+  const aiuto = el('div', '', testoAiuto()); aiuto.id = 'mzSbAiuto';
   const esci = el('button', '', 'Esc ✕') as HTMLButtonElement; esci.id = 'mzSbEsci'; esci.type = 'button';
   const fant = el('div', '', ''); fant.id = 'mzSbFant';
   testa.append(fant);
 
-  // Comandi touch per mobile (docs/ADRENALINA.md §5): a sinistra sterzo ◀ ▶ e trick ▲ ▼, a destra SALTO / PRESA
+  // Comandi touch per mobile con due mani (docs/ADRENALINA.md §5): ◀ a sinistra e ▶ a destra
   const comandi = el('div'); comandi.id = 'mzSbComandi';
-  const sterzo = el('div', 'mz-sb-sterzo');
-  const tricksRow = el('div', 'mz-sb-tricks');
-  const btnSu = el('button', 'mz-sb-btn mz-sb-btn-trick') as HTMLButtonElement; btnSu.type = 'button';
-  btnSu.innerHTML = '▲<small>FLIP</small>';
-  const btnGiu = el('button', 'mz-sb-btn mz-sb-btn-trick') as HTMLButtonElement; btnGiu.type = 'button';
-  btnGiu.innerHTML = '▼<small>BACK</small>';
-  tricksRow.append(btnSu, btnGiu);
-
-  const curvaRow = el('div', 'mz-sb-curva');
-  const btnSx = el('button', 'mz-sb-btn mz-sb-btn-dir') as HTMLButtonElement; btnSx.type = 'button';
+  const curvaSx = el('div', 'mz-sb-curva mz-sb-curva-sx');
+  const btnSx = el('button', 'mz-sb-btn mz-sb-btn-dir mz-sb-btn-sx') as HTMLButtonElement;
+  btnSx.id = 'mzSbBtnSx'; btnSx.type = 'button';
   const lblSx = el('small', '', 'SX'); btnSx.append('◀', lblSx);
-  const btnDx = el('button', 'mz-sb-btn mz-sb-btn-dir') as HTMLButtonElement; btnDx.type = 'button';
+  curvaSx.append(btnSx);
+
+  const curvaDx = el('div', 'mz-sb-curva mz-sb-curva-dx');
+  const btnDx = el('button', 'mz-sb-btn mz-sb-btn-dir mz-sb-btn-dx') as HTMLButtonElement;
+  btnDx.id = 'mzSbBtnDx'; btnDx.type = 'button';
   const lblDx = el('small', '', 'DX'); btnDx.append('▶', lblDx);
-  curvaRow.append(btnSx, btnDx);
-  sterzo.append(tricksRow, curvaRow);
+  curvaDx.append(btnDx);
 
-  const btnSalto = el('button', 'mz-sb-btn mz-sb-btn-salto') as HTMLButtonElement; btnSalto.type = 'button';
-  btnSalto.id = 'mzSbBtnSalto';
-  const saltoLbl = el('span', '', 'SALTO'), saltoSub = el('small', '', 'tieni');
-  btnSalto.append(saltoLbl, saltoSub);
-  comandi.append(sterzo, btnSalto);
+  comandi.append(curvaSx, curvaDx);
 
-  let sxGiu = false, dxGiu = false, saltoGiu = false, inAria = false;
+  let sxGiu = false, dxGiu = false, inAria = false;
   let impulsoTrick: { mx: number; my: number } | null = null;
   const tSx = tieniPremuto(btnSx, {
     ancheTouch: true, ferma: true, finestra: true, classe: 'premuto',
@@ -134,34 +122,18 @@ export function creaHud(root: HTMLElement, dito: boolean, soglie: readonly [numb
     premi: () => { if (inAria) impulsoTrick = { mx: 1, my: 0 }; },
     cambia: (g) => { dxGiu = g; },
   });
-  const tSu = tieniPremuto(btnSu, {
-    ancheTouch: true, ferma: true, finestra: true, classe: 'premuto',
-    premi: () => { if (inAria) impulsoTrick = { mx: 0, my: 1 }; },
-  });
-  const tGiu = tieniPremuto(btnGiu, {
-    ancheTouch: true, ferma: true, finestra: true, classe: 'premuto',
-    premi: () => { if (inAria) impulsoTrick = { mx: 0, my: -1 }; },
-  });
-  const tSalto = tieniPremuto(btnSalto, {
-    ancheTouch: true, ferma: true, finestra: true, classe: 'premuto',
-    cambia: (g) => { saltoGiu = g; },
-  });
 
   const setAria = (aria: boolean) => {
     if (aria === inAria) return;
     inAria = aria;
-    tricksRow.classList.toggle('aria', aria);
-    btnSalto.classList.toggle('presa', aria);
-    saltoLbl.textContent = aria ? 'PRESA' : 'SALTO';
-    saltoSub.textContent = aria ? 'punti' : 'tieni';
     lblSx.textContent = aria ? '360' : 'SX';
     lblDx.textContent = aria ? '360' : 'DX';
   };
 
   const bottoni: TouchBottoni = {
     get curva() { return (dxGiu ? 1 : 0) - (sxGiu ? 1 : 0); },
-    get salto() { return saltoGiu; },
-    get attivo() { return sxGiu || dxGiu || saltoGiu; },
+    get salto() { return false; },
+    get attivo() { return sxGiu || dxGiu; },
     consumaImpulso() { const imp = impulsoTrick; impulsoTrick = null; return imp; },
     setAria,
   };
@@ -177,7 +149,6 @@ export function creaHud(root: HTMLElement, dito: boolean, soglie: readonly [numb
     gara(on) { testa.style.display = on ? 'flex' : 'none'; comandi.style.display = on ? 'flex' : 'none'; },
     aggiorna(v, ms, f) {
       setAria(v.aria);
-      // la classifica è a tempo (3b): grande il tempo, sotto gli abbuoni che i punti ti hanno dato e le porte mancate
       punti.textContent = tempo(ms);
       const ab = Math.max(0, v.punti) / SNOWBOARD.tempo.puntiAlSecondo, pen = v.mancate * SNOWBOARD.tempo.portaMancata;
       ora.textContent = `abbuoni −${ab.toFixed(1)} s${pen ? ` · +${pen} s` : ''}`;
@@ -194,8 +165,13 @@ export function creaHud(root: HTMLElement, dito: boolean, soglie: readonly [numb
     },
     via(t) { via.style.display = t ? 'block' : 'none'; via.textContent = t ?? ''; },
     aiuto(on) { aiuto.classList.toggle('on', on); },
+    impostaInvertito(inv) {
+      invertito = inv;
+      aiuto.textContent = testoAiuto();
+      h.pop(inv ? 'Frecce: sterzo · WASD: acrobazie' : 'A/D: sterzo · Frecce: acrobazie', PAL.giallo);
+    },
     dispose() {
-      tSx.dispose(); tDx.dispose(); tSu.dispose(); tGiu.dispose(); tSalto.dispose();
+      tSx.dispose(); tDx.dispose();
       zona.remove(); ui.remove(); document.body.classList.remove('mz-sb');
     },
   };

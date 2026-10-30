@@ -54,14 +54,15 @@ Nel mondo l'isola si vede in piccolo, con la funivia che sale e scende. Le **dis
 - **Cartello delle regole** di 3 s in italiano all'inizio, come ogni minigioco.
 
 ## 5. Controlli
-Un pollice basta; sul PC tastiera.
+Due mani sul telefono o tastiera da PC.
 
 | | Telefono | PC |
 |---|---|---|
-| Curvare | tasti ◀ e ▶ a sinistra (o trascini sulla neve) | A/D o frecce |
-| Saltare (snowboard) | tasto SALTO a destra: tieni premuto e lasci (o tieni e alzi il dito) | tieni e lasci Spazio |
-| Trick in aria | tasti ▲ ▼ ◀ ▶ a sinistra (o colpo veloce col dito in su, giù, di lato) | frecce in aria |
-| Presa (snowboard) | tasto PRESA a destra tenuto in aria (o dito fermo); lo alzi prima di toccare terra | Spazio tenuto in aria |
+| Curvare | tasto ◀ a sinistra e ▶ a destra (o trascini sulla neve) | A e D (oppure frecce con tasto P) |
+| Saltare (snowboard) | tieni premuto fuori dai pulsanti e lasci per saltare | tieni e lasci Spazio |
+| Trick in aria | swipe sullo schermo in 4 direzioni (su, giù, destra, sinistra) | frecce direzionali (oppure WASD con tasto P) |
+| Presa (snowboard) | tocco fermo sullo schermo in aria; lo alzi prima di atterrare | Spazio tenuto in aria |
+| Inverti comandi (snowboard) | — | tasto P (inverte compiti tra WASD e frecce) |
 | Scatto (bici) | tocco | Spazio |
 | Paracadute | tocco = apri | Spazio |
 
