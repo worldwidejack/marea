@@ -19,6 +19,12 @@ export type RecordVista = { chi: string; nome: string; score: number; medal: Med
 export type RecordRiga = { minigame: string; nome: string; oggi: RecordVista | null; sempre: RecordVista | null };
 /** GET /api/record: per minigioco il migliore di oggi e di sempre tra gli amici. */
 export type RispostaRecord = { voci: RecordRiga[] };
+/** Una riga della classifica a punti di un minigioco (Fuga dalla lava): il miglior punteggio di una persona. */
+export type RigaPunteggio = { chi: string; nome: string; score: number; detail: Record<string, number>; quando: number };
+/** Le prime righe (più la tua, se sei più giù), il tuo posto (0 = non ancora in classifica) e quanti ci sono. */
+export type VistaClassifica = { righe: RigaPunteggio[]; posto: number; totale: number };
+/** GET /api/classifica?minigame=: oggi e di sempre. Dopo una partita (POST /api/solo/play, campo `classifica`) c'è anche `migliorato`. */
+export type RispostaClassifica = { minigame: string; oggi: VistaClassifica; sempre: VistaClassifica; migliorato?: { oggi: boolean; sempre: boolean } };
 /** I collezionisti: pesci e insetti consegnati al mobiliere, chi ne ha di più prima. */
 export type CollezioneRiga = { id: string; nome: string; pesci: number; insetti: number };
 /** GET /api/collezione. */

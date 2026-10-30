@@ -2,7 +2,7 @@
 // cratere). API (wrangler locale pulito): il server rigioca gli input dell'autopilota e paga l'oro di balance.solo più il premio extra del
 // gioco; chi non gioca non prende medaglia; input oltre 60 s rifiutati. Browser (telefono 390×844): a isole chiuse i posti non sono nella
 // bussola e lì non compare GIOCA; aperte (hook temiProva) compaiono; si apre la schermata (regole, un colpo / un salto tenendo premuto,
-// metà partita), l'autopilota finisce e la scheda dà il premio. PC: E al posto, Spazio, schermata grande, Esc = ritirato.
+// metà partita), l'autopilota finisce e la scheda dà il premio (la lava: schermo intero, con la classifica tra amici). PC: E al posto, Spazio, schermata grande, Esc = ritirato.
 // Screenshot in tests/out/shots/m3_giochi_tempesta_vulcano_*.
 import fs from 'node:fs';
 import net from 'node:net';
@@ -14,8 +14,8 @@ export const timeout = 480000;
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const GIOCHI = [
-  { id: 'arrembaggio', spot: 'arrembaggio:tempesta', dom: '#mzArrembaggio', btn: '#mzArrembaggioFuoco', nome: 'ARREMBAGGIO' },
-  { id: 'lava', spot: 'lava:vulcano', dom: '#mzLava', btn: '#mzLavaSalta', nome: 'FUGA DALLA LAVA' },
+  { id: 'arrembaggio', spot: 'arrembaggio:tempesta', dom: '#mzArrembaggio', btn: '#mzArrembaggioFuoco', nome: 'ARREMBAGGIO', max: 3600 },
+  { id: 'lava', spot: 'lava:vulcano', dom: '#mzLava', btn: '', nome: 'FUGA DALLA LAVA', max: 10800 },
 ];
 
 export default async function (ctx) {
@@ -46,6 +46,7 @@ export default async function (ctx) {
     if (!up) throw new Error('wrangler dev non risponde:\n' + log.split('\n').slice(-20).join('\n'));
     const post = async (p, t, b) => { const r = await fetch(base + p, { method: 'POST', headers: { 'x-token': t, 'content-type': 'application/json' }, body: JSON.stringify(b ?? {}) }); return { status: r.status, body: await r.json() }; };
     const sim = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src/index.ts')).href);
+    await import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src/minigames/lava_registra.ts')).href); // la lava è nel registro solo lato server
     const autoplay = (id, seed, difficulty) => {
       const m = sim.getMinigame(id), s = m.create({ seed, difficulty }), rng = sim.createRng(1), frames = [];
       for (let i = 0; i < m.maxTicks && !m.result(s).done; i++) { const f = sim.quantize(m.autopilot(s, rng)); frames.push(f); m.step(s, f); }
@@ -62,18 +63,35 @@ export default async function (ctx) {
         assert(r.status === 200 && r.body.medal === 'oro' && r.body.score === local.score, `play ${g.id}: ${r.status} ${JSON.stringify(r.body).slice(0, 300)} (locale ${local.score})`);
         const oro = oroDi(g.id);
         assert(r.body.premiata && JSON.stringify(r.body.premio) === JSON.stringify(oro), `premio: ${JSON.stringify(r.body.premio)} invece di ${JSON.stringify(oro)}`);
-        ctx.log(`API ${g.id} oro: ${r.body.score}/${r.body.detail.totale} punti, ${JSON.stringify(r.body.detail)}, premio ${JSON.stringify(r.body.premio)}`);
+        ctx.log(`API ${g.id} oro: ${r.body.score} punti, ${JSON.stringify(r.body.detail)}, premio ${JSON.stringify(r.body.premio)}`);
+        if (g.id === 'lava') { // la classifica tra amici: Ugo è primo, oggi e di sempre, con il suo nome
+          const c = r.body.classifica;
+          assert(c && c.oggi.posto === 1 && c.sempre.posto === 1 && c.oggi.righe[0].nome === 'Ugo' && c.oggi.righe[0].score === r.body.score && c.migliorato.oggi && c.migliorato.sempre, 'classifica dopo la partita: ' + JSON.stringify(c).slice(0, 300));
+        }
       });
-      await ctx.test(`API ${g.id}: chi non gioca non prende medaglia (consolazione), input oltre 60 s rifiutati`, async () => {
+      await ctx.test(`API ${g.id}: chi non gioca non prende medaglia (consolazione), input oltre il tempo massimo rifiutati`, async () => {
         await post('/api/solo/start', 'tokU', { minigame: g.id });
-        const r = await post('/api/solo/play', 'tokU', { inputs: [[3600, 0, 0, 0, 0]] });
+        const r = await post('/api/solo/play', 'tokU', { inputs: [[g.max, 0, 0, 0, 0]] });
         assert(r.status === 200 && r.body.medal === null, `fermo: ${r.status} ${JSON.stringify(r.body).slice(0, 200)}`);
         assert(JSON.stringify(r.body.premio) === JSON.stringify(balance.solo.premi.nessuna), 'consolazione: ' + JSON.stringify(r.body.premio));
         await post('/api/solo/start', 'tokU', { minigame: g.id });
-        const troppo = await post('/api/solo/play', 'tokU', { inputs: [[3601, 0, 0, 1, 0]] });
-        assert(troppo.status === 400, `input oltre 60 s: ${troppo.status}`);
+        const troppo = await post('/api/solo/play', 'tokU', { inputs: [[g.max + 1, 0, 0, 1, 0]] });
+        assert(troppo.status === 400, `input oltre il tempo massimo: ${troppo.status}`);
       });
     }
+
+    await ctx.test('API classifica lava: chi gioca peggio sta sotto, il record non peggiora, i nomi arrivano dal server, gli altri giochi non hanno classifica', async () => {
+      const get = async (p, t) => { const r = await fetch(base + p, { headers: { 'x-token': t } }); return { status: r.status, body: await r.json().catch(() => ({})) }; };
+      await post('/api/solo/start', 'tokM', { minigame: 'lava' });
+      const fermo = await post('/api/solo/play', 'tokM', { inputs: [[600, 0, 0, 0, 0]] });
+      assert(fermo.status === 200 && fermo.body.classifica?.oggi.posto === 2 && fermo.body.classifica.sempre.posto === 2, 'Mia seconda: ' + JSON.stringify(fermo.body.classifica).slice(0, 300));
+      await post('/api/solo/start', 'tokU', { minigame: 'lava' });
+      const peggio = await post('/api/solo/play', 'tokU', { inputs: [[600, 0, 0, 0, 0]] });
+      assert(peggio.body.classifica.migliorato.oggi === false && peggio.body.classifica.oggi.posto === 1, 'Ugo resta primo col suo record: ' + JSON.stringify(peggio.body.classifica).slice(0, 300));
+      const c = await get('/api/classifica?minigame=lava', 'tokL');
+      assert(c.status === 200 && c.body.oggi.totale === 2 && c.body.oggi.posto === 0 && c.body.oggi.righe.map((x) => x.nome).join() === 'Ugo,Mia', 'lettura: ' + JSON.stringify(c.body).slice(0, 300));
+      assert((await get('/api/classifica?minigame=regata', 'tokL')).status === 400, 'la regata non ha classifica');
+    });
 
     // ---------- telefono ----------
     const T = await ctx.B.openPage(ctx.browser, `${base}/?t=tokL&test=1`, { viewport: ctx.B.IPHONE }); pages.push(T); ctx._pages.push(T);
@@ -115,11 +133,16 @@ export default async function (ctx) {
         await ctx.waitState(page, (s, id) => s[id] && s[id].open && s[id].intro, 20000, g.id);
         await sleep(300);
         await ctx.shot(page, `iphone_${g.id}_2_regole`);
-        const box = await page.locator(`${g.dom} .mz-gp-box`).boundingBox();
+        const box = await page.locator(g.id === 'lava' ? g.dom : `${g.dom} .mz-gp-box`).boundingBox();
         assert(box && box.x >= 0 && box.x + box.width <= 390 && box.y >= 0 && box.y + box.height <= 844, 'la schermata esce dal telefono: ' + JSON.stringify(box));
-        const b = await page.locator(g.btn).boundingBox();
+        if (g.id === 'lava') assert(box.width >= 389 && box.height >= 843, 'la lava non è a schermo intero: ' + JSON.stringify(box));
+        const b = g.id === 'lava' ? { x: 0, y: 300, width: 390, height: 400 } : await page.locator(g.btn).boundingBox();
         await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
         await page.mouse.down();
+        if (g.id === 'lava') { // il primo tocco avvia la corsa e basta: poi si salta
+          await ctx.waitState(page, (s) => !s.lava.intro, 5000);
+          await page.mouse.up(); await sleep(60); await page.mouse.down();
+        }
         if (g.id === 'arrembaggio') {
           await ctx.waitState(page, (s) => !s.arrembaggio.intro && s.arrembaggio.view.carica > 20, 5000);
           await sleep(150);
@@ -150,7 +173,7 @@ export default async function (ctx) {
         assert(r.medal === 'oro' && r.premiata && JSON.stringify(r.premio) === JSON.stringify(oro), 'esito: ' + JSON.stringify(r));
         assert(r.lot.monete >= before + r.premio, 'monete non pagate');
         const txt = await page.locator('#mzEsito').innerText();
-        assert(/\bOro\b/.test(txt) && /\d+ punti/.test(txt) && (g.id === 'lava' ? /pezzi/.test(txt) : /navi affondate/.test(txt)), 'scheda: ' + txt);
+        assert(/\bOro\b/.test(txt) && /\d+ punti/.test(txt) && (g.id === 'lava' ? /gemme/.test(txt) && /OGGI/.test(txt) : /navi affondate/.test(txt)), 'scheda: ' + txt);
         await sleep(300);
         await ctx.shot(page, `iphone_${g.id}_5_esito`);
         await hook(g.id + 'Auto', false);

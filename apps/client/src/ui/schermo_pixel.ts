@@ -1,4 +1,4 @@
-// Schermata comune dei giochi a pixel «tieni premuto» (Arrembaggio sulla Tempesta, Fuga dalla lava sul Vulcano, Perle): scena a pixel su
+// Schermata comune dei giochi a pixel «tieni premuto» (Arrembaggio sulla Tempesta, Perle): scena a pixel su
 // <canvas>, barre, cartello delle regole (il tempo parte al primo tocco), messaggio, punti, bottone grande e soglie delle medaglie.
 // Un pollice: si tiene premuto ovunque sulla schermata (o Spazio / Invio / E e i tasti del gioco); Esc o × = ritirati.
 // Giro a 60 Hz, input per il server, apertura e chiusura: ui/schermo_motore.ts. Ogni gioco dà la sua scena, il disegno e i testi

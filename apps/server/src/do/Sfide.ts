@@ -5,6 +5,7 @@
 // Porto tra amici (portoStore.ts): GET /record (tabellone) · POST /record {minigame, score, medal, detail} (dal Worker dopo il replay
 // di una partita da solo nel DO del lotto: mai dal client). Il Faro comune è stato tolto (tag archivio/spenti-faro).
 // Collezionisti: GET/POST /collezione. Buche della pala: GET /buche · POST /buca. Adrenalina: GET /discese, /fantasma · POST /discesa.
+// Classifica a punti (Fuga dalla lava): GET /classifica?minigame= · POST /punteggio {minigame, score, detail} (dal Worker, dopo il replay).
 import { DurableObject } from 'cloudflare:workers';
 import { EconomyError } from '@marea/sim/economy/types.ts';
 import { getMinigame } from '@marea/sim/minigames/registry.ts';
@@ -12,14 +13,18 @@ import { isPackedInputs } from '@marea/sim/replay.ts';
 import { nowFromHeader } from '../clock.ts';
 import { creaTabellaFeed, leggiFeed, nonLetti, scriviFeed, segnaLetti } from './feedStore.ts';
 import { creaTabellePorto, leggiCollezione, leggiTabellone, scriviCollezione, scriviTabellone } from './portoStore.ts';
-import { recordDi, segnaRecord } from '@marea/sim/economy/record.ts';
+import { detailCorto, recordDi, segnaRecord } from '@marea/sim/economy/record.ts';
 import { MINIGAMES } from '@marea/sim/minigames/registry.ts';
 import '@marea/sim/corse/registra.ts'; // Corse: il server rigioca sul motore v2 (#173)
+import '@marea/sim/minigames/lava_registra.ts'; // Vulcano: la corsa senza fine della Fuga dalla lava
 import { handleBuca, listBuche } from './bucheStore.ts';
 import '@marea/sim/adrenalina/registra.ts'; // Adrenalina: le discese nel tabellone dei record (passo 3b)
 import { SNOWBOARD_PISTE } from '@marea/content/adrenalina.ts';
 import { migliora } from '@marea/sim/adrenalina/classifica.ts';
 import { classificaDiscese, creaTabellaDiscese, fantasmaDiscesa, scriviDiscesa } from './disceseStore.ts';
+import { CON_CLASSIFICA, migliora as migliorato, ordina, posto, vetrina } from '@marea/sim/economy/classifica.ts';
+import { giornoDi } from '@marea/sim/economy/missioni.ts';
+import { creaTabellaPunteggi, leggiPunteggi, potaPunteggi, scriviPunteggio } from './punteggiStore.ts';
 import type { Env } from '../env.ts';
 import { json } from '../http.ts';
 
@@ -30,6 +35,7 @@ export class Sfide extends DurableObject<Env> {
     creaTabellaFeed(ctx.storage.sql);
     creaTabellePorto(ctx.storage.sql);
     creaTabellaDiscese(ctx.storage.sql);
+    creaTabellaPunteggi(ctx.storage.sql);
   }
 
   /** Una operazione alla volta, anche mentre si aspetta un altro DO (l'input gate non basta: le fetch in uscita lo aprono). */
@@ -60,6 +66,10 @@ export class Sfide extends DurableObject<Env> {
         if (req.method === 'GET' && act === 'feed') return json({ rows: leggiFeed(sql, me), nonLetti: nonLetti(sql, me) });
         if (req.method === 'GET' && act === 'record') return json({ tab: recordDi(leggiTabellone(sql), now) });
         if (req.method === 'GET' && act === 'collezione') return json({ collezione: leggiCollezione(sql) });
+        if (req.method === 'GET' && act === 'classifica') {
+          const mg = url.searchParams.get('minigame') ?? '';
+          return CON_CLASSIFICA.includes(mg) ? json(this.vistaClassifica(me, mg, now)) : json({ error: 'Questo gioco non ha la classifica' }, 400);
+        }
         if (req.method === 'GET' && act === 'buche') return json({ buche: listBuche(sql), now });
         // Adrenalina (passo 3b): la classifica a tempo di una pista e il fantasma del primo
         if (req.method === 'GET' && (act === 'discese' || act === 'fantasma')) {
@@ -82,6 +92,7 @@ export class Sfide extends DurableObject<Env> {
         }
         if (act === 'record') return this.record(me, body, now);
         if (act === 'collezione') return this.collezione(me, body, now);
+        if (act === 'punteggio') return this.punteggio(me, body, now);
         if (act === 'discesa') return this.discesa(me, body, now);
         if (act === 'buca') return await handleBuca(sql, me, body, now, this.env);
         return json({ error: 'Non trovato' }, 404);
@@ -108,6 +119,28 @@ export class Sfide extends DurableObject<Env> {
       });
     }
     return json({ oggi: out.oggi, sempre: out.sempre });
+  }
+
+  /** La classifica a punti di un minigioco: oggi e di sempre, le prime righe più la tua, col tuo posto. */
+  private vistaClassifica(me: string, mg: string, now: number): { minigame: string; oggi: unknown; sempre: unknown } {
+    const sql = this.ctx.storage.sql, vista = (periodo: number) => { const r = ordina(leggiPunteggi(sql, mg, periodo)); return { righe: vetrina(r, me), posto: posto(r, me), totale: r.length }; };
+    return { minigame: mg, oggi: vista(giornoDi(now)), sempre: vista(0) };
+  }
+
+  /** Partita a punti già rigiocata dal DO del lotto: se è il miglior punteggio di `me` (oggi, di sempre) entra in classifica. Dal Worker, dopo `solo_play`. */
+  private punteggio(me: string, body: Record<string, unknown>, now: number): Response {
+    const mg = body['minigame'], score = body['score'];
+    if (typeof mg !== 'string' || !CON_CLASSIFICA.includes(mg) || typeof score !== 'number' || !Number.isInteger(score) || score < 0 || score > 1_000_000) return json({ error: 'Richiesta non valida' }, 400);
+    const sql = this.ctx.storage.sql, giorno = giornoDi(now), detail = detailCorto(body['detail']), nuovo = { oggi: false, sempre: false };
+    this.ctx.storage.transactionSync(() => {
+      potaPunteggi(sql, giorno);
+      for (const [k, periodo] of [['oggi', giorno], ['sempre', 0]] as const) {
+        if (!migliorato(leggiPunteggi(sql, mg, periodo), me, score)) continue;
+        scriviPunteggio(sql, mg, periodo, { chi: me, score, quando: now, detail });
+        nuovo[k] = true;
+      }
+    });
+    return json({ ...this.vistaClassifica(me, mg, now), migliorato: nuovo });
   }
 
   /** I collezionisti (#457): dopo una consegna al mobiliere il Worker scrive qui quanti pesci e insetti ha `me` (letti dal suo lotto). */

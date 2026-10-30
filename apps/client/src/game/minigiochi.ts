@@ -16,7 +16,7 @@ import type { GameWorld } from './world.ts';
 import type { Loader } from '../render/loader.ts';
 import type { Renderer } from '../render/scene.ts'; // Isola delle Corse
 import type { Hud } from '../ui/hud.ts';
-import type { Api, SoloResult } from '../net/api.ts';
+import type { Api, RispostaClassifica, SoloResult } from '../net/api.ts';
 import { ApiError } from '../net/api.ts';
 import { runRegata } from './regata.ts';
 import { PAL, el, injectUiStyle } from '../ui/style.ts';
@@ -70,7 +70,8 @@ export type SchermoGioco = {
   /** La partita è chiusa del tutto: scheda dell'esito chiusa, o finita senza scheda (ritirato, partita non salvata). */
   esitoChiuso?(): void;
 };
-export type SchedaEsito = { medal: Medal; sub: string; /** Monete vinte (#414), null = senza premio. */ premio: number | null; note: string | null; again: HTMLButtonElement; ok: HTMLButtonElement };
+export type SchedaEsito = { medal: Medal; sub: string; /** Monete vinte (#414), null = senza premio. */ premio: number | null; note: string | null; again: HTMLButtonElement; ok: HTMLButtonElement;
+  /** Il dettaglio della partita (punti, metri…) e la classifica a punti dopo la partita (Fuga dalla lava), se il gioco ne ha una. */ detail: Record<string, number>; classifica: RispostaClassifica | null };
 /** I giochi a schermo per id del minigioco, scaricati alla prima partita (il JS iniziale ha un tetto, TECH §5). */
 const SCHERMI: Record<string, (root: HTMLElement) => Promise<SchermoGioco>> = {};
 /** Registra un gioco a schermo (dal modulo del minigioco: posto in `spots` più schermata qui). */
@@ -144,9 +145,9 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   diIsola('arrembaggio', 'arrembaggio');
   registraSchermo('arrembaggio', (root) => import('../ui/arrembaggio.ts').then((m) => m.createArrembaggio({ root })));
   // fine Tempesta
-  // Vulcano: Fuga dalla lava, tra le capanne e il cratere; schermata a pixel (ui/lava.ts) scaricata alla prima partita
+  // Vulcano: Fuga dalla lava, tra le capanne e il cratere; schermata a schermo intero (ui/lava.ts) scaricata alla prima partita
   diIsola('lava', 'lava');
-  registraSchermo('lava', (root) => import('../ui/lava.ts').then((m) => m.createLava({ root })));
+  registraSchermo('lava', (root) => import('../ui/lava.ts').then((m) => m.createLava({ root, api: o.api })));
   // fine Vulcano
   let garaSubito = false; // link «gara tra amici» (#204)
   // Isola delle Corse (docs/CORSE.md): ci si arriva a piedi e le gare partono dalle porte delle zone (decorazioni `porta_<zona>` dell'isola):
@@ -222,7 +223,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     if (['Enter', 'Space', 'Escape', 'KeyE'].includes(e.code)) { e.preventDefault(); e.stopImmediatePropagation(); closeEsito(); }
     else if (e.code === 'KeyR') { e.preventDefault(); e.stopImmediatePropagation(); const s = esitoSpot ?? spots.find((x) => x.id === last?.spot) ?? spots[0]; const sc = esitoScelte; closeEsito(); if (s) void play(s, sc); }
   };
-  function showEsito(s: Spot, medal: Medal, sub: string, premio: number | null, note: string | null): void {
+  function showEsito(s: Spot, medal: Medal, sub: string, premio: number | null, note: string | null, extra?: { detail: Record<string, number>; classifica: RispostaClassifica | null }): void {
     esitoSpot = s; // RIGIOCA (R) rigioca questo, anche se il posto è mobile (perle)
     esito.classList.remove('kart'); esito.style.borderColor = '';
     const again = el('button', 'mz-btn ghost', 'Rigioca'); again.dataset['act'] = 'rigioca';
@@ -231,7 +232,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     const ok = el('button', 'mz-btn', 'OK'); ok.dataset['act'] = 'ok';
     ok.addEventListener('click', () => closeEsito());
     const fine = () => { esito.classList.add('on'); open = true; suona(medal ? `medaglia_${medal}` : 'fine'); addEventListener('keydown', onKey, true); };
-    if (schermi.get(s.minigame)?.scheda?.(esito, { medal, sub, premio, note, again, ok })) { fine(); return; }
+    if (schermi.get(s.minigame)?.scheda?.(esito, { medal, sub, premio, note, again, ok, detail: extra?.detail ?? {}, classifica: extra?.classifica ?? null })) { fine(); return; }
     const title = el('h2', '', medal ? MEDAL_TXT[medal]! : SCHERMI[s.minigame] ? 'Finita' : 'Arrivato');
     title.style.color = medal ? MEDAL_C[medal]! : PAL.sabbiaChiara;
     esito.style.borderColor = medal ? MEDAL_C[medal]! : PAL.legnoChiaro;
@@ -296,7 +297,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
         const secs = typeof r.detail['ms'] === 'number' ? ` · ${(r.detail['ms'] / 1000).toFixed(1)} s` : '';
         const extra = schermo?.esito?.(r.detail);
         const sub = extra ? `${s.nome} · ${extra}` : `${s.nome}${secs}`;
-        showEsito(s, r.medal, sub, r.premiata ? r.premio : null, r.premiata ? null : 'Per oggi i premi sono finiti: domani si riparte');
+        showEsito(s, r.medal, sub, r.premiata ? r.premio : null, r.premiata ? null : 'Per oggi i premi sono finiti: domani si riparte', { detail: r.detail, classifica: r.classifica ?? null });
         if (r.premiata) fly(r.premio);
         o.onLot();
       } catch (e) {

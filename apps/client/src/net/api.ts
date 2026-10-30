@@ -3,14 +3,14 @@
 // Orologio: ogni risposta porta l'ora del server (`now` o `LotState.nowMs`); serverNow() la proietta con l'orologio locale
 // SOLO per animare i conti alla rovescia. L'economia la decide il server.
 import type { LotState, Mancanza, Medal, PackedInputs, Riepilogo } from '@marea/sim';
-import type { BarcaLook, CollezioneRiga, Fantasma, FeedItem, Look, Me, PersonaVista, RecordRiga, Rientro } from '@marea/protocol';
+import type { BarcaLook, CollezioneRiga, Fantasma, FeedItem, Look, Me, PersonaVista, RecordRiga, Rientro, RispostaClassifica } from '@marea/protocol';
 import type { HeroState, RpgAction, RunHero, RunResult } from '@marea/sim/rpg/types.ts';
 import type { DungeonAzioni, PackedDungeon } from '@marea/sim/dungeon/types.ts';
 import type { TAzioni, TRisultato } from '@marea/sim/templari/types.ts';
 
 export type { FeedItem };
 /** Le risposte che il Worker compone da sé: tipi comuni col server in @marea/protocol (http.ts). */
-export type { CollezioneRiga, Fantasma, Me, RecordRiga, RecordVista } from '@marea/protocol';
+export type { CollezioneRiga, Fantasma, Me, RecordRiga, RecordVista, RispostaClassifica, VistaClassifica } from '@marea/protocol';
 /** Chi abita quale slot dell'arcipelago (per le visite in sola lettura): GET /api/lots. */
 export type LotOwner = Omit<PersonaVista, 'slot' | 'look'> & { slot: number; look?: PersonaVista['look'] }; // il look può mancare (letto con tolleranza)
 export type Cell = [number, number];
@@ -22,7 +22,8 @@ export type SoloStart = { minigame: string; seed: number; difficulty: number; /*
 export type SoloResult = { score: number; medal: Medal; detail: Record<string, number>; premio: number; premiata: boolean; lot: LotState;
   /** Tabellone del Porto (#110): la partita è il migliore di oggi / di sempre tra gli amici. */ record?: { oggi: boolean; sempre: boolean } | null;
   /** Discese dell'Adrenalina (3b): posto nella classifica a tempo (0 = non arrivato), quanti c'erano, se è il tuo miglior tempo e il record. */
-  posizione?: number; classificati?: number; discesa?: { migliorato: boolean; record?: boolean } | null };
+  posizione?: number; classificati?: number; discesa?: { migliorato: boolean; record?: boolean } | null;
+  /** Classifica a punti (Fuga dalla lava) dopo la partita: oggi e di sempre, col tuo posto. */ classifica?: RispostaClassifica | null };
 
 
 /** Spedizione aperta dal server (POST /api/dungeon/start): seed e fotografia del personaggio. CONTRACTS §15. */
@@ -107,6 +108,8 @@ export type Api = {
   // ---- Porto tra amici ----
   /** Tabellone dei record: una riga per minigioco da solo. */
   record(): Promise<RecordRiga[]>;
+  /** La classifica a punti di un minigioco (Fuga dalla lava): null = non risponde. */
+  classifica(minigame: string): Promise<RispostaClassifica | null>;
   /** La classifica dei collezionisti (#457): chi ha consegnato più pesci e insetti al mobiliere, tra chi ha un'isola. */
   collezione(): Promise<CollezioneRiga[]>;
   // ---- Rientro e libro degli ospiti (#86) ----
@@ -246,13 +249,20 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       const medal = d['medal'] === 'oro' || d['medal'] === 'argento' || d['medal'] === 'bronzo' ? d['medal'] : null;
       const rec = isObj(d['record']) ? { oggi: !!d['record']['oggi'], sempre: !!d['record']['sempre'] } : null;
       const dis = isObj(d['discesa']) ? { migliorato: !!d['discesa']['migliorato'], record: !!d['discesa']['record'] } : null;
-      return { score: d['score'], medal, detail: isObj(d['detail']) ? (d['detail'] as Record<string, number>) : {}, premio: d['premio'], premiata: !!d['premiata'], lot: asLot(d['lot']), record: rec,
+      const classifica = isObj(d['classifica']) && isObj(d['classifica']['oggi']) && isObj(d['classifica']['sempre']) ? (d['classifica'] as unknown as RispostaClassifica) : null;
+      return { score: d['score'], medal, detail: isObj(d['detail']) ? (d['detail'] as Record<string, number>) : {}, premio: d['premio'], premiata: !!d['premiata'], lot: asLot(d['lot']), record: rec, classifica,
         ...(typeof d['posizione'] === 'number' ? { posizione: d['posizione'], classificati: typeof d['classificati'] === 'number' ? d['classificati'] : 0, discesa: dis } : {}) };
     },
     async record() {
       const d = await call('GET', '/api/record');
       const list = isObj(d) && Array.isArray(d['voci']) ? d['voci'] : [];
       return (list as unknown[]).filter((x): x is RecordRiga => isObj(x) && typeof x['minigame'] === 'string');
+    },
+    async classifica(minigame) {
+      try {
+        const d = await call('GET', '/api/classifica?minigame=' + encodeURIComponent(minigame));
+        return isObj(d) && isObj(d['oggi']) && isObj(d['sempre']) ? (d as unknown as RispostaClassifica) : null;
+      } catch { return null; }
     },
     async collezione() {
       const d = await call('GET', '/api/collezione');
