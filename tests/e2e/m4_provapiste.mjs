@@ -263,9 +263,11 @@ export default async function (ctx) {
     // in pausa: gli effetti girano, la gara no. Le scintille dell'urto nascono tutte nel fotogramma dopo e muoiono col tempo vero
     // (0,3-0,6 s, fino a 0,1 s per fotogramma): su una macchina lenta, in un'andata e ritorno col browser ne muoiono tante. Si conta
     // quindi nella pagina il massimo dei 4 fotogrammi dopo l'urto, meno quelle già vive prima (drift dei bot): sono quelle nate dall'urto.
+    // Tutti i bot si affiancano a destra: la gara ha un seme a caso, e un bot che urta da sinistra nello stesso momento annulla la spinta.
     const { st: di, prima, max } = await d.page.evaluate(() => new Promise((r) => {
       const a = window.__provapiste, prima = a.perf().scintille;
-      a.affianca(1); const st = a.avanti(2);
+      for (let i = a.state().bot; i >= 1; i--) a.affianca(i);
+      const st = a.avanti(2);
       let i = 0, max = 0;
       const f = () => { max = Math.max(max, a.perf().scintille); if (++i >= 4) r({ st, prima, max }); else requestAnimationFrame(f); };
       requestAnimationFrame(f);
