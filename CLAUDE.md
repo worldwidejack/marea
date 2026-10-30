@@ -35,9 +35,8 @@ Se la tua PR litiga su un documento archiviato (`docs/archivio/`), togli le tue 
 **Comandi**: `npm run dev` + `npm run dev:server` (gioco in locale) · `node tests/run.mjs static types sim boot` (test veloci, pochi minuti) · `npm test` (tutto, quasi un'ora sul Mac: lo fa GitHub su ogni PR) · `npm run build` · `npm run assets`.
 
 ## Dove sta cosa
-Cartelle e chi ci lavora: `docs/MAPPA.md`. Architettura e regole tecniche: `docs/TECH.md`. Messaggi tra gioco e server: `docs/PROTOCOL.md`. Lavoro in gruppo e primi passi: `docs/CONTRIBUIRE.md`. Lavori da fare: le issue su GitHub.
-**Tocchi un'isola o il minigioco di un'isola (aggiungi, togli, rinomini, cambi)? Leggi `docs/TUTORIAL.md`**: il tutorial li nomina e va aggiornato nella stessa PR.
-`docs/archivio/` (la vecchia mappa del codice e il vecchio diario delle tappe) non si legge per lavorare: i rimandi a `CONTRACTS` e `ROADMAP` nel codice e nei documenti delle modalità puntano lì.
+Cartelle e chi ci lavora: `docs/MAPPA.md`. Architettura e regole tecniche: `docs/TECH.md`. Messaggi tra gioco e server: `docs/PROTOCOL.md`. Lavoro in gruppo e primi passi: `docs/CONTRIBUIRE.md`. Lavori da fare: le issue su GitHub. **Tocchi un'isola o il suo minigioco? Leggi `docs/TUTORIAL.md`.**
+`docs/archivio/` non si legge per lavorare: i rimandi a `CONTRACTS` e `ROADMAP` nel codice e nei documenti delle modalità puntano lì.
 
 ## Repo pubblico
 Chiunque può leggere tutto. Mai segreti, token, codici d'invito, link personali (`?t=…`) o dati personali nei file, nelle issue e nelle PR. `_STATO.md`, `_MEMORIA.md` (il diario di Jack) e `CLAUDE.local.md` (le sue istruzioni) vivono solo sul suo Mac: mai nel repo.
