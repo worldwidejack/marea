@@ -61,7 +61,7 @@ export type HeroRt = {
    *  Santuario del Capo Ardente: cariche di Vampa (Manto del Primo Lucignolo) e se il raggio di fuoco in corso è sovralimentato. */
   rottT: number; brezza: number; brezzaM: number; poppa: boolean; fresca: number; frescaM: number; ondaNeve: boolean; vampa: number; sovralimentata: boolean;
   /** Baita: direzione di scivolamento sul Ghiaccio Vivo [dx, dz] o null; tick fino a cui dura l'assideramento. */
-  slideDir?: [number, number] | null; assiderato?: number;
+  slideDir?: [number, number] | null; slideP?: [number, number] | null; assiderato?: number;
 };
 export type EnemyState = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'morto';
 export type Enemy = {
@@ -91,7 +91,7 @@ export type Enemy = {
    *  Gli anelli: id del loro Astrolabio e versore della loro posizione attorno a lui. */
   modo?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo' | 'cura' | 'ondata' | 'fendenti' | 'scatto' | 'geyser' | 'colpo' | 'cambio'
     | 'affondo' | 'spazzata' | 'salva' | 'incastrato' | 'detriti' | 'sbilanciato' | 'fucile' | 'schiacciata'
-    | 'trottola' | 'frenata' | 'salto' | 'bilico' | 'slalom' | 'arbitro' | 'lamina' | 'lancia' | 'calcio' | 'evoca' | 'sputo' | 'mites' | 'onda' | 'schianto' | 'pioggia' | 'esposto';
+    | 'trottola' | 'frenata' | 'salto' | 'bilico' | 'slalom' | 'arbitro' | 'lamina' | 'lancia' | 'calcio' | 'evoca' | 'sputo' | 'mites' | 'onda' | 'schianto' | 'pioggia' | 'esposto' | 'capogiro' | 'fiasca';
   mira?: { dx: number; dz: number; len: number };
   salve?: number;
   diviso?: boolean;
@@ -125,7 +125,7 @@ export type Proj = {
   /** Insieme: eroe che l'ha tirato (indice in `eroi`; assente = 0). */
   da?: number;
   /** Arpione (Drone Idro-Ragno): chi è preso è tirato di `tira` m all'indietro lungo il volo in `tiraT` tick. */
-  tira?: number; tiraT?: number;
+  tira?: number; tiraT?: number; spinge?: number;
   /** Magie: fattore di Grandi Magie (assente = 1). Frecce: livello dell'Automira (assente = 0). */
   mole?: number; guida?: number;
   /** Magie: elemento (Combustione, Catena di fulmini, Cura, Furia). */

@@ -84,7 +84,7 @@ test('testi: la Baita ha sottotitolo, 4 voci ironiche (gli altoparlanti della pi
   const t = dungeonDef('baita').testi;
   assert.ok(t?.sottotitolo);
   assert.ok(t.sottotitolo.includes('Sciolina'));
-  assert.deepEqual(t.voci?.map((v) => v.id), ['noleggio', 'tunnel', 'apresski', 'terrazza']);
+  assert.deepEqual(t.voci?.map((v) => v.id), ['atrio', 'mensa', 'officina', 'terrazza']);
   assert.deepEqual(t.voci?.filter((v) => v.capo).map((v) => v.id), ['terrazza'], 'parla Jean-Claude davanti alla Terrazza VIP');
   assert.deepEqual(t.letture?.map((l) => `${l.id}:${l.tipo}`), ['listino:incisione', 'comandamenti:libro']);
 });

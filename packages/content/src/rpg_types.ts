@@ -1,6 +1,7 @@
 // Tipi dei contenuti del Mondo Sotterraneo (docs/RPG.md, CONTRACTS §15). Solo dati: le formule stanno in @marea/sim/rpg e @marea/sim/dungeon.
 // I JSON stanno in packages/content/src/rpg/; si importano da `@marea/content/rpg.ts` (MAI da index.ts: il client li carica solo nel chunk GDR).
 import type { ColossoDef, KorokDef, LanciatoreDef, MicciaDef, OndataDef, SciamanoDef } from './rpg_ceneri_types.ts';
+import type { ClaudeDef, FiascheDef, RafficaDef, RetroDef, TrottolaDef } from './rpg_baita_types.ts';
 export type SkillId = 'armiLeggere' | 'armiPesanti' | 'arceria' | 'distruzione' | 'evocazione' | 'supporto' | 'forgiatura' | 'alchimia';
 export const SKILLS: readonly SkillId[] = ['armiLeggere', 'armiPesanti', 'arceria', 'distruzione', 'evocazione', 'supporto', 'forgiatura', 'alchimia'];
 export type AttrId = 'vita' | 'magicka' | 'stamina';
@@ -215,13 +216,9 @@ export type EnemyDef = {
     affondo: { n: number; lungo: number; largo: number; avviso: number; danno: number }; spazzata: { incastrato: number; retro: number };
     carica: { avviso: number; blocca: number; velocita: number; gittata: number; largo: number; danno: number; spinta: number; stordito: number }; salva: { durata: number; ondate: number; ogni: number; n: number; raggio: number; caduta: number; danno: number; sparpaglia: number; scudo: number; rotto: number };
   };
-  trottola?: { durata: number; danno: number; raggio: number; capogiro: number };
-  fiasche?: { distanza: number; caduta: number; raggio: number; sciolina: { lento: number; secondi: number }; bombardino: { dps: number; secondi: number } };
-  debolezzaRetro?: { cono: number; dannoMolt: number; stordisce: number };
+  /** Tempio della «Doppia Nera» (docs/BAITA.md), tipi in rpg_baita_types.ts: l'Acrobata (trottola), l'Alchimista (fiasche, fusto sulla schiena), lo Sparaneve (raffica) e Jean-Claude (claude). */
+  trottola?: TrottolaDef; fiasche?: FiascheDef; debolezzaRetro?: RetroDef; raffica?: RafficaDef; claude?: ClaudeDef;
   torretta?: boolean;
-  raffica?: { n: number; angolo: number; velocita: number; danno: number; spinta: number; ricarica: number; avviso: number };
-  fase1?: { frenata: { avviso: number; danno: number; spinta: number; apertura: number }; salto: { volo: number; blocco: number; danno: number; lato: number; stordito: number } };
-  fase2?: { soglia: number; bandierine: number; palettiHp: number; corsaDanno: number; urloArbitro: number; doppiaLamina: { avviso: number; danno: number; lato: number } };
   /** Il suo colpo in mischia rallenta l'eroe: velocità × `molt` per `secondi` (Tubo-strisciante). */
   rallenta?: { molt: number; secondi: number };
   /** Colpo ad area ogni `ogni` attacchi: `raggio` m attorno a sé, danno × `danno`, preparazione × `prep` (sbuffo di vapore

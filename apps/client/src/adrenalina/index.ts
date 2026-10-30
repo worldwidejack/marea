@@ -63,13 +63,14 @@ const NOMI_CADUTA: Record<string, string> = { abete: 'Contro l’abete!', roccia
 const CASCO = AVATAR.cappelli.findIndex((h) => h.id === 'casco');
 const PANNELLI = ['mzSbPiste', 'mzSbRegole', 'mzSbFine'];
 /** Per i test: la discesa aperta adesso. */
-let corrente: { stato(): Record<string, unknown>; auto(n: number): number; metti(o: Record<string, unknown>): unknown; salta(): void; pista(id: string): boolean; fantasmaProva(): unknown; foto(k: number): string; esci(): void } | null = null;
+let corrente: { stato(): Record<string, unknown>; auto(n: number): number; metti(o: Record<string, unknown>): unknown; salta(): void; pista(id: string): boolean; fantasmaProva(): unknown; foto(k: number): string; inverti(): boolean; esci(): void } | null = null;
 registerStateProvider('snowboard', () => (corrente ? corrente.stato() : { active: false }));
 registerTestHook('snowboardAuto', (n) => corrente?.auto(Number(n ?? 1)) ?? null);
 registerTestHook('snowboardMetti', (o) => (corrente && o && typeof o === 'object' ? corrente.metti(o as Record<string, unknown>) : null));
 registerTestHook('snowboardSalta', () => { corrente?.salta(); return !!corrente; });
 registerTestHook('snowboardPista', (id) => corrente?.pista(String(id ?? PISTA_SNOWBOARD)) ?? false);
 registerTestHook('snowboardFantasmaProva', () => corrente?.fantasmaProva() ?? null);
+registerTestHook('snowboardInverti', () => corrente?.inverti() ?? false);
 registerTestHook('snowboardEsci', () => { corrente?.esci(); return true; });
 /** Prove: il modellino delle montagne da un lato (k = 0-5), per il dipinto. */
 registerTestHook('snowboardFoto', (k) => corrente?.foto(Number(k ?? 0)) ?? null);
@@ -131,7 +132,7 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
   cam0.far = 16000; cam0.near = 0.5; cam0.updateProjectionMatrix();
 
   const hud = creaHud(ctx.root, dito, BARRA.soglie);
-  const comandi = creaComandi(hud.zona, hud.bottoni);
+  const comandi = creaComandi(hud.zona, hud.bottoni, (inv) => hud.impostaInvertito(inv));
   let regia = creaRegia(cam0, p);
   /** La montagna della pista `id` (terreno, abeti, corpo, sfondo, camera): si rifà quando in vetta si sceglie un'altra pista (partono
    *  tutte dalla stessa vetta: funivia e cartelli restano). */
@@ -332,12 +333,13 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
         s: +v.s.toFixed(1), lat: +v.lat.toFixed(2), v: +v.v.toFixed(1), aria: v.aria, h: +v.h.toFixed(2), punti: v.punti, barra: +v.barra.v.toFixed(2), molt: v.molt,
         porte: v.porte, mancate: v.mancate, cadute: v.cadute, trick: v.trickFatti, salti: v.salti, caduta: v.caduta > 0, ultimaCaduta: cadutoA,
         eventi: v.eventi.map((e) => e.k), done: v.done, arrivato: v.arrivato, risultato: ultimo, scena: pista3d.numeri(), drawCalls: st.drawCalls, triangoli: st.triangles,
-        dito: comandi.dito,
+        dito: comandi.dito, invertito: comandi.invertito,
       };
     },
     auto: (n) => { auto = Math.max(0, Math.min(30, Math.round(n) || 0)); return auto; },
     salta: () => { if (fase === 'funivia') inVetta(); },
     pista: (id) => { if (fase !== 'cartello') return false; void scegli(id); return true; },
+    inverti: () => comandi.inverti(),
     /** Solo prove: un fantasma fatto dal pilota automatico (per vederlo senza server). */
     fantasmaProva: () => {
       const g = snowboard.create({ seed: 1, difficulty: 1, opzioni: { pista } }), log: InputFrame[] = [];

@@ -74,8 +74,9 @@ function colpoSuEroe(s: DungeonState, p: Proj, j: number): boolean {
 function colpisciEroe(s: DungeonState, p: Proj, x: number, z: number): void {
   const arriva = !s.done && s.hero.protetto <= 0;
   hitHero(s, p.danno, p.magico ? 'magia' : p.contundente ? 'contundente' : 'taglio', x, z);
-  if (!p.tira || !arriva || s.done) return;
   const v = Math.sqrt(p.vx * p.vx + p.vz * p.vz) || 1;
+  if (p.spinge && arriva && !s.done) spingi(s, p.vx / v, p.vz / v, p.spinge, 0.25); // palla di neve dello Sparaneve: ti spinge via nella sua direzione
+  if (!p.tira || !arriva || s.done) return;
   spingi(s, -p.vx / v, -p.vz / v, p.tira, (p.tiraT ?? 15) / HZ);
   ev(s, { t: 'arpionato' });
 }
