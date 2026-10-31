@@ -85,12 +85,14 @@ export function creaDialoghi(o: {
     if (parla) { o.porto.avanti(); return true; }
     const lot = o.getLot(), s = lot?.storia;
     if (!lot || !s) return false;
-    const p = passoCorrente(lot)?.id ?? null;
+    const passo = passoCorrente(lot), p = passo?.id ?? null;
     if (chi === 'fulvio' && p === 'attrezzo') return via('fulvio', 'Fulvio', regalo);
     if (chi === 'cantiere' && p === 'bepi') return via('bepi', 'Bepi', () => dice('bepi'), () => o.segna('bepi'));
     if (chi === 'cantiere' && !p && !s.barca) {
       return via('bepi', 'Bepi', (sc) => barca(sc, poi), async () => { if (o.getLot()?.storia?.barca) o.toast('La barca è al tuo posto del molo: vai e sali', 4000); });
     }
+    // la barca non è ancora il tuo passo: Bepi ti rimanda a quello che c'è da fare, la bottega di sempre (con «Ce l'hai») non si apre
+    if (chi === 'cantiere' && passo && !s.barca) return via('bepi', 'Bepi', () => dice('bepiPresto', { passo: passo.come }));
     if (chi === 'furetto' && p === 'vendi') { poi(righe('furetto', {}).dice[0]); return true; }
     if (chi === 'gigi' && p === 'gigi') return via('gigi', 'Gigi il Mozzo', () => dice('gigi'), () => o.segna('gigi'));
     if (chi === 'remo' && s.barca) return remo(lot, () => poi());

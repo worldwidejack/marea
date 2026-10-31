@@ -96,7 +96,7 @@ const VISTA_ORMEGGI_M = 150;
 const DEFAULT_LOOK: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 }; // avatar A (Sessione 2)
 const HEAD_Y = 1.9, BOAT_TOP_Y = 1.5; // metri sopra il piede dell'avatar / la barca, per fumetti ed etichette
 
-export async function createGameWorld(o: { renderer: Renderer; loader: Loader; flags: Flags; hud: Hud; build: string; slot?: number | null; look?: Look; barca?: BarcaLook; meId?: string; abitanti?: readonly Abitante[]; /** la storia: la barca non c'è ancora (va comprata da Bepi) */ senzaBarca?(): boolean }): Promise<GameWorld> {
+export async function createGameWorld(o: { renderer: Renderer; loader: Loader; flags: Flags; hud: Hud; build: string; slot?: number | null; look?: Look; barca?: BarcaLook; meId?: string; abitanti?: readonly Abitante[]; /** la storia: la barca non c'è ancora (va comprata da Bepi) */ senzaBarca?(): boolean; /** cosa dire a chi tocca A senza barca */ diceSenzaBarca?(): string }): Promise<GameWorld> {
   const arch = composeArchipelago(ARCHIPELAGO, ISLANDS);
   const map = arch.map;
   let slot = o.slot !== undefined ? o.slot : o.flags.slot; // senza login: ?slot=N (test)
@@ -348,7 +348,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       } else if (mode === 'walk') {
         avatar.step(input, maschera ? maschera(map) : map, solidi);
         boat.step(NO_INPUT, map);
-        if (pressA && canBoard(avatar.state, boat.state, map)) { if (o.senzaBarca?.()) o.hud.toast('Non hai una barca: Bepi al Cantiere te la vende', 3000); else { mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false; o.hud.toast('Sei in barca: A per accelerare, joystick per virare'); } }
+        if (pressA && canBoard(avatar.state, boat.state, map)) { if (o.senzaBarca?.()) o.hud.toast(o.diceSenzaBarca?.() ?? 'Non hai una barca: Bepi al Cantiere te la vende', 4000); else { mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false; o.hud.toast('Sei in barca: A per accelerare, joystick per virare'); } }
       } else {
         boat.step(input, map); dopoBarca();
         avatar.teleport(boat.state.x, boat.state.z);
