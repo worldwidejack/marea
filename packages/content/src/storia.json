@@ -75,7 +75,11 @@
       "Bepi: Costa {prezzo} monete. Non faccio credito, nemmeno alle leggende."
     ],
     "bepiPronto": "Bepi: {prezzo} monete e la barca è tua. Stessi colori, stesso nome. Affare fatto?",
-    "bepiManca": "Bepi: Ti mancano {manca} monete. Torna quando le hai: la barca non scappa. Io nemmeno.",
+    "bepiPresto": [
+      "Bepi: La barca? Non ancora, Navigante: un passo alla volta, che il mare aspetta.",
+      "Bepi: Prima c'è questo. {passo}"
+    ],
+    "bepiManca":"Bepi: Ti mancano {manca} monete. Torna quando le hai: la barca non scappa. Io nemmeno.",
     "bepiBarca": [
       "Bepi: Ecco qua, varata e asciutta. L'ho ormeggiata al tuo posto, al molo.",
       "Bepi: Capitan Remo ti cercava: dice che le isole qui intorno non si scoprono da sole."

@@ -98,6 +98,12 @@ export default async function (ctx) {
       assert(posato, 'il lume non si posa');
       await hook('lotRefresh'); await hook('esciDiCasa', slot);
       await passo('attrezzo', 30000);
+      // Bepi troppo presto: non vende e non apre la bottega («Ce l'hai»), rimanda al passo da fare
+      await parla(async () => { await hook('bottegaVai', 'cantiere', 0); await hook('bottegaApri', 'cantiere'); });
+      const presto = await page.locator('#mzDialogo.on').innerText();
+      assert(/non ancora/i.test(presto), 'Bepi troppo presto: ' + presto);
+      await sfoglia();
+      assert(await page.locator('#mzBottega.on').count() === 0, 'la bottega del Cantiere si apre prima del tempo');
       await hook('negozio', false); await sleep(800);
       const banco = (await st()).negozio.pezzi.find((p) => p.kind === 'banco');
       await hook('teleport', banco.x, banco.z); await sleep(400);

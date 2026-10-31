@@ -84,7 +84,7 @@ async function boot(): Promise<void> {
   const owners = me ? await api.lots().catch(() => []) : [];
   const net = me && api.enabled ? api : null; // le chiamate al server, solo con un link valido
   home.passo();
-  const world = await createGameWorld({ renderer, loader, flags: FLAGS, hud, build: __BUILD__, slot: me ? me.slot ?? null : undefined, ...(me ? { look: me.look, barca: barcaDi(me.look), meId: me.id } : {}), abitanti: owners, senzaBarca: () => senzaBarca() }); // senza login: ?slot=N dall'URL (test), altrimenti Porto
+  const world = await createGameWorld({ renderer, loader, flags: FLAGS, hud, build: __BUILD__, slot: me ? me.slot ?? null : undefined, ...(me ? { look: me.look, barca: barcaDi(me.look), meId: me.id } : {}), abitanti: owners, senzaBarca: () => senzaBarca(), diceSenzaBarca: () => diceSenzaBarca() }); // senza login: ?slot=N dall'URL (test), altrimenti Porto
   renderer.diorama.setZoom(1.6); // si parte larghi: l'isola e i suoi cartelli si vedono subito
   home.passo();
   const arch = world.archipelago;
@@ -112,6 +112,8 @@ async function boot(): Promise<void> {
   const lotto = { getLot: myLot, setLot: setMyLot };
   /** La storia delle prime ore (storia/) è partita e la barca non l'hai ancora comprata da Bepi: niente barca al molo, niente viaggio rapido. */
   const senzaBarca = (): boolean => { const s = myLot()?.storia; return !!s && !s.barca; };
+  /** Cosa dirgli: il passo della storia che c'è da fare (Bepi vende la barca solo alla fine del tutorial). */
+  const diceSenzaBarca = (): string => storia?.senzaBarca() ?? 'Non hai ancora la barca: segui la guida in alto a sinistra';
 
   // ——— isole e modalità, nell'ordine in cui nascono i loro bottoni ———
   const regata = await setupRegata({ world, loader, hud, root, cameraYaw: () => renderer.diorama.yaw }); // in gara la barca la muove la sim
@@ -158,7 +160,7 @@ async function boot(): Promise<void> {
   // Chunk al primo tocco
   let viaggio: ReturnType<typeof import('./storia/viaggio.ts').createViaggio> | null = null;
   const teleBtn = topButton({ root, id: 'mzTeleBtn', order: 9, label: 'TP', title: 'Viaggio rapido', onClick: () => {
-    if (senzaBarca()) { hud.toast('Senza barca non si va da nessuna parte: Bepi al Cantiere te la vende', 3000); teleBtn.setOn(false); return; }
+    if (senzaBarca()) { hud.toast(diceSenzaBarca(), 4000); teleBtn.setOn(false); return; }
     void import('./storia/viaggio.ts').then((m) => {
       viaggio ??= m.createViaggio({ root, hud, world, getLot: myLot, tutto: (FLAGS.test && !FLAGS.storia) || !!me?.admin, onClose: () => teleBtn.setOn(false) });
       if (viaggio.isOpen()) viaggio.close(); else { viaggio.open(); teleBtn.setOn(true); }
