@@ -18,7 +18,7 @@ type XZ = { x: number; z: number };
 const CONSIGLIO_S = 9;
 
 export function passiStoria(o: {
-  world: GameWorld; porto: Porto; getLot(): LotState | null; negozio(): Negozio | null; botteghe(): Botteghe | null;
+  world: GameWorld; porto: Porto; getLot(): LotState | null; negozio(): Negozio | null; botteghe(): Botteghe | null; inCasa(): boolean;
 }): GuidaStep[] {
   const { world } = o, arch = world.archipelago, T = arch.tile, borgo = arch.places.find((p) => p.role === 'porto');
   const porta = world.slot !== null ? portaDi(world, world.slot) : null;
@@ -37,7 +37,7 @@ export function passiStoria(o: {
   return [
     ...passi.map((p): GuidaStep => ({
       id: p.id, titolo: p.titolo, come: p.come, done: () => fatti().includes(p.id),
-      target: () => su(p.id === 'casa' ? porta : dove(p.chi)),
+      target: () => su(p.id === 'casa' || (p.id === 'arreda' && !o.inCasa()) ? porta : dove(p.chi)),
     })),
     {
       id: 'barca',

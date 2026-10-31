@@ -35,6 +35,8 @@ export type Storia = {
   /** In scena (il naufragio): il mondo di superficie sta fermo e la resa la fa la storia. */
   readonly attiva: boolean;
   update(dt: number): void;
+  /** Cosa dire a chi vuole la barca e non ce l'ha: il passo che c'è da fare, e solo a fine tutorial Bepi. */
+  senzaBarca(): string;
 };
 export type StoriaOpts = {
   renderer: Renderer; loader: Loader; world: GameWorld; root: HTMLElement; hud: Hud; api: Api; porto: Porto;
@@ -150,7 +152,7 @@ export function createStoria(o: StoriaOpts): Storia {
     setPrimaLaStoria(creaDialoghi({ porto: o.porto, api: o.api, nome: o.nome, getLot: o.getLot, setLot: o.setLot, segna, toast: (t, ms) => o.hud.toast(t, ms), remo }));
     if (!lot.storia?.barca) {
       const g = createGuida({
-        ...comune, steps: passiStoria({ world: o.world, porto: o.porto, getLot: o.getLot, negozio: o.negozio, botteghe: o.botteghe }),
+        ...comune, steps: passiStoria({ world: o.world, porto: o.porto, getLot: o.getLot, negozio: o.negozio, botteghe: o.botteghe, inCasa: o.inCasa }),
         nome: 'Storia', id: 'mzStoria', stato: 'storiaGuida', fine: ['La barca è tua', 'È al tuo posto del molo: sali e prendi il largo.'],
       });
       const finita = scheda(g, () => !!o.getLot()?.storia?.barca);
@@ -165,5 +167,9 @@ export function createStoria(o: StoriaOpts): Storia {
   return {
     get attiva() { return !!scena; },
     update(dt) { scena?.update(dt); },
+    senzaBarca() {
+      const p = passoCorrente(o.getLot());
+      return p ? `Non hai ancora la barca. Prima: ${p.come}` : 'Non hai una barca: Bepi al Cantiere te la vende';
+    },
   };
 }
