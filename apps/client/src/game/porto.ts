@@ -30,6 +30,7 @@ import type { PortoUi } from '../ui/porto_ui.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { primaLaStoria } from '../avvio/prima.ts';
 import type { Pagina, Scheda } from '../ui/paesani_dlg.ts';
+import { LIBRO as L } from '../ui/libro_colori.ts';
 
 export type PortoKind = 'mercante' | 'bacheca' | 'contrabbando';
 export type Porto = {
@@ -71,13 +72,11 @@ type Npc = { p: PersonaPorto; av: Avatar | null; meshes: THREE.Mesh[]; shadow: b
 
 const CSS = `
 .mz-play.on ~ .mz-porto-btn.on { top: calc(60% + 66px); }
-.mz-lbl.persona { border-color: ${P.sabbiaChiara}; font-size: 13px; }
-.mz-lbl.persona.segno { border-color: ${P.giallo}; }
+.mz-lbl.persona { border-color: ${L.inchiostro}; font-size: 13px; }
+.mz-lbl.persona.segno { border-color: ${L.acqua}; }
 .mz-lbl.persona .punto { margin-left: 2px; font-size: 16px; }
 `;
-const SHOW_M = 60, NAME_M = 13, TAP_M = 7;
-/** Entro quanti metri il nome di una persona torna pieno (#129, solo da PC): oltre, fino a NAME_M, è discreto. */
-const NAME_NEAR_M = 6;
+const SHOW_M = 60, TAP_M = 7;
 /** Draw call (TECH §5): `chr_base` fa 5 draw call a persona, il doppio con l'ombra. Le persone si disegnano solo se sono nell'inquadratura
  *  (i mesh con lo scheletro non hanno frustum culling) ed entro NPC_M m da chi gioca, e fanno ombra solo vicinissime, dove si nota. */
 const SHADOW_M = 7, NPC_M = 26;
@@ -141,7 +140,7 @@ export function createPorto(o: PortoOpts): Porto {
     const posto = GENTE.posti[id], w = at(posto.at), f = at(posto.fronte);
     geos.push((id === 'mercante' ? bancoGeometry() : id === 'contrabbando' ? loscoGeometry() : bachecaGeometry()).applyMatrix4(M(w.x, o.world.groundY(w.x, w.z), w.z, 0, posto.rot, 0)));
     const label = layer.add(() => { if (dist(f.x, f.z) < TAP_M) void open({ kind: 'posto', id, posto }); else o.hud.toast(`${posto.nome}: in piazza, al Porto`, 2200); });
-    label.set('bubble', [pixIcon(id, 16), el('span', '', posto.cartello)], 'spot'); label.el.classList.add('spot'); label.el.dataset['porto'] = id;
+    label.set('bubble', [pixIcon(id, 16)], 'spot'); label.el.setAttribute('aria-label', posto.cartello); label.el.classList.add('spot'); label.el.dataset['porto'] = id;
     posaForma(o.world.solidi, id === 'mercante' ? 'banco_mercante' : id === 'contrabbando' ? 'banco_contrabbando' : 'bacheca', w.x, w.z, posto.rot);
     return { id, posto, x: w.x, z: w.z, fx: f.x, fz: f.z, label };
   });
@@ -165,11 +164,10 @@ export function createPorto(o: PortoOpts): Porto {
     return n;
   });
 
-  /** Il nome sopra la testa; col segno (un paesano da cui devi andare per un favore) è giallo, ha il «!» e si vede da lontano. */
+  /** Sopra la testa dei paesani niente nome (sul telefono sporca la scena): solo il «!» giallo di chi devi andare a trovare per un favore, visibile da lontano. */
   function nome(n: Npc, segno: boolean): void {
-    const b = bancoDi(n.p);
     n.segno = segno;
-    n.label.set(segno ? 'full' : 'bubble', [pixIcon(b ?? 'parla', 16), el('span', '', n.p.nome), ...(segno ? [el('b', 'punto', '!')] : [])], segno ? 'segno' : 'persona');
+    n.label.set(segno ? 'full' : 'bubble', segno ? [el('b', 'punto', '!')] : [], segno ? 'segno' : 'persona'); n.label.el.setAttribute('aria-label', n.p.nome);
     n.label.el.classList.add('persona'); n.label.el.classList.toggle('segno', segno);
   }
   /** Da quale paesano devi andare adesso per il favore in corso (come economy/paesani.ts `daVedere`, senza scaricare le battute). */
@@ -338,7 +336,7 @@ export function createPorto(o: PortoOpts): Porto {
         else if (close && !bancoDi(n.p)) { n.yaw = Math.atan2(f.x - n.x, -(f.z - n.z)); if (n.cammina) n.cammina.yaw = n.yaw; } // si gira verso di te
         if (n.av) { n.av.setPose({ x: n.x, z: n.z, yaw: n.yaw, anim }); n.av.update(1, dt); scegliLod(n.meshes, o.camera, n.x, 1, n.z); }
         const p = screenOf(n.x, 2.25, n.z);
-        n.label.place(p.x, p.y, p.on && !!n.av && fd(n.x, n.z) < (n.segno ? SHOW_M : NAME_M) && !n.talk && !o.world.race.on && !bancoDi(n.p), n.segno || dist(n.x, n.z) < NAME_NEAR_M); // chi sta a un banco ha già il cartello del banco
+        n.label.place(p.x, p.y, n.segno && p.on && !!n.av && fd(n.x, n.z) < SHOW_M && !n.talk && !o.world.race.on, true);
       }
     },
   };

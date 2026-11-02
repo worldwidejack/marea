@@ -3,49 +3,50 @@
 // tinge di rosso a gradini quando ti colpiscono (niente barra della vita grande: come in COD); scritte grandi al centro (ONDATA 3, SEI CADUTO).
 import type { TView } from '@marea/sim/templari/types.ts';
 import { PAL, el, injectUiStyle } from '../ui/style.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 const TOP = 'max(10px, env(safe-area-inset-top))', LEFT = 'max(12px, env(safe-area-inset-left, 0px))';
 const CSS = `
-#mzTpl { position: absolute; inset: 0; pointer-events: none; z-index: 12; font-family: ui-monospace, Menlo, monospace; }
+#mzTpl { position: absolute; inset: 0; pointer-events: none; z-index: 12; font-family: ${FONT_LIBRO}; }
 #mzTpl .ond { position: absolute; left: ${LEFT}; top: ${TOP}; display: flex; align-items: flex-end; gap: 8px; }
-#mzTpl .ond b { font: bold 46px/1 'Press Start 2P', ui-monospace, monospace; color: ${PAL.rosso}; text-shadow: 3px 3px 0 ${PAL.neroCaldo}, -1px -1px 0 ${PAL.neroCaldo}; letter-spacing: -2px; }
-#mzTpl .ond small { font-size: 12px; font-weight: bold; color: ${PAL.sabbia}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; margin-bottom: 4px; }
-#mzTpl .pti { position: absolute; left: ${LEFT}; top: calc(${TOP} + 56px); font: bold 24px/1 ui-monospace, Menlo, monospace; color: ${PAL.giallo}; text-shadow: 2px 2px 0 ${PAL.neroCaldo}; }
+#mzTpl .ond b { font: 700 46px/1 'Press Start 2P', ui-monospace, monospace; color: ${L.rosso}; text-shadow: 3px 3px 0 ${L.inchiostro}, -1px -1px 0 ${L.inchiostro}; letter-spacing: -2px; }
+#mzTpl .ond small { font-size: 12px; font-weight: 700; color: ${L.inchiostro2}; text-shadow: 1px 1px 0 ${L.inchiostro}; margin-bottom: 4px; }
+#mzTpl .pti { position: absolute; left: ${LEFT}; top: calc(${TOP} + 56px); font: 700 24px/1 ${FONT_LIBRO}; color: ${L.acquaScura}; text-shadow: 2px 2px 0 ${L.inchiostro}; }
 #mzTpl .pti i { position: absolute; left: 100%; top: 0; margin-left: 8px; font-style: normal; font-size: 16px; white-space: nowrap; animation: mzTplSu .9s steps(6) forwards; }
-#mzTpl .pti i.neg { color: ${PAL.rosso}; }
+#mzTpl .pti i.neg { color: ${L.rosso}; }
 @keyframes mzTplSu { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-28px); opacity: 0; } }
-#mzTpl .arma { position: absolute; left: ${LEFT}; top: calc(${TOP} + 86px); font-size: 13px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; }
-#mzTpl .arma em { font-style: normal; color: ${PAL.sabbia}; }
-#mzTpl .arma b { color: ${PAL.giallo}; }
-#mzTpl .vita { position: absolute; left: ${LEFT}; top: calc(${TOP} + 106px); width: 96px; height: 7px; background: ${PAL.ombraCalda}; border: 2px solid ${PAL.neroCaldo}; }
-#mzTpl .vita i { display: block; height: 100%; background: ${PAL.rosso}; }
+#mzTpl .arma { position: absolute; left: ${LEFT}; top: calc(${TOP} + 86px); font-size: 13px; font-weight: 700; color: ${L.inchiostro}; text-shadow: 1px 1px 0 ${L.inchiostro}; }
+#mzTpl .arma em { font-style: normal; color: ${L.inchiostro2}; }
+#mzTpl .arma b { color: ${L.acquaScura}; }
+#mzTpl .vita { position: absolute; left: ${LEFT}; top: calc(${TOP} + 106px); width: 96px; height: 7px; background: ${L.cartaScura}; border: 2px solid ${L.inchiostro}; }
+#mzTpl .vita i { display: block; height: 100%; background: ${L.rosso}; }
 #mzTpl .pot { position: absolute; left: ${LEFT}; top: calc(${TOP} + 122px); display: flex; gap: 6px; }
-#mzTpl .pot span { padding: 2px 6px; background: rgba(35,32,31,.85); border: 2px solid currentColor; font-size: 12px; font-weight: bold; }
+#mzTpl .pot span { padding: 2px 6px; background: ${L.carta}; border: 2px solid currentColor; font-size: 12px; font-weight: 700; }
 #mzTpl .pot span.lamp { animation: mzTplLamp .5s steps(2) infinite; }
 #mzTpl .poz { position: absolute; left: ${LEFT}; top: calc(${TOP} + 150px); display: flex; gap: 4px; flex-wrap: wrap; max-width: 220px; }
-#mzTpl .isola { position: absolute; left: ${LEFT}; top: calc(${TOP} + 124px); display: flex; gap: 6px; font-size: 11px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; }
-#mzTpl .isola span { padding: 1px 5px; background: rgba(35,32,31,.75); border: 1px solid ${PAL.pietra}; }
-#mzTpl .isola span.ok { border-color: ${PAL.giallo}; color: ${PAL.giallo}; }
-#mzTpl .isola span i.frc { display: inline-block; margin-left: 4px; font-style: normal; color: ${PAL.giallo}; }
-#mzTpl .poz span { padding: 1px 4px; background: rgba(35,32,31,.85); border: 1px solid currentColor; font-size: 10px; font-weight: bold; }
+#mzTpl .isola { position: absolute; left: ${LEFT}; top: calc(${TOP} + 124px); display: flex; gap: 6px; font-size: 11px; font-weight: 700; color: ${L.inchiostro}; text-shadow: 1px 1px 0 ${L.inchiostro}; }
+#mzTpl .isola span { padding: 1px 5px; background: ${L.carta}; border: 1px solid ${L.inchiostro2}; }
+#mzTpl .isola span.ok { border-color: ${L.acquaScura}; color: ${L.acquaScura}; }
+#mzTpl .isola span i.frc { display: inline-block; margin-left: 4px; font-style: normal; color: ${L.acquaScura}; }
+#mzTpl .poz span { padding: 1px 4px; background: ${L.carta}; border: 1px solid currentColor; font-size: 10px; font-weight: 700; }
 @keyframes mzTplLamp { 50% { opacity: .2; } }
 #mzTpl .vign { position: absolute; inset: 0; opacity: 0; box-shadow: inset 0 0 0 10px rgba(232,67,63,.55), inset 0 0 0 22px rgba(232,67,63,.3), inset 0 0 0 40px rgba(232,67,63,.14); }
 #mzTpl .boss { position: absolute; left: 50%; top: calc(${TOP} + 34px); transform: translateX(-50%); width: min(360px, calc(100% - 140px)); display: none; text-align: center; }
 #mzTpl .boss.on { display: block; }
-#mzTpl .boss b { display: block; font-size: 13px; color: ${PAL.sabbiaChiara}; text-shadow: 2px 2px 0 ${PAL.neroCaldo}; letter-spacing: .08em; }
-#mzTpl .boss .bar { position: relative; height: 10px; margin-top: 3px; background: ${PAL.ombraCalda}; border: 2px solid ${PAL.neroCaldo}; }
-#mzTpl .boss .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: ${PAL.rosso}; }
-#mzTpl .boss .bar em { position: absolute; top: -3px; bottom: -3px; width: 2px; background: ${PAL.giallo}; }
+#mzTpl .boss b { display: block; font-size: 13px; color: ${L.inchiostro}; text-shadow: 2px 2px 0 ${L.inchiostro}; letter-spacing: .08em; }
+#mzTpl .boss .bar { position: relative; height: 10px; margin-top: 3px; background: ${L.cartaScura}; border: 2px solid ${L.inchiostro}; }
+#mzTpl .boss .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: ${L.rosso}; }
+#mzTpl .boss .bar em { position: absolute; top: -3px; bottom: -3px; width: 2px; background: ${L.acquaScura}; }
 #mzTpl .big { position: absolute; left: 50%; top: 32%; transform: translate(-50%, -50%); text-align: center; display: none; width: min(92%, 520px); }
 #mzTpl .big.on { display: block; }
-#mzTpl .big b { display: block; font: bold 34px/1.15 'Press Start 2P', ui-monospace, monospace; text-shadow: 3px 3px 0 ${PAL.neroCaldo}; }
+#mzTpl .big b { display: block; font: 700 34px/1.15 'Press Start 2P', ui-monospace, monospace; text-shadow: 3px 3px 0 ${L.inchiostro}; }
 #mzTpl .big.num b { font-size: 92px; letter-spacing: -4px; }
-#mzTpl .big span { display: block; margin-top: 10px; font-size: 15px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 2px 2px 0 ${PAL.neroCaldo}; }
-#mzTpl .msg { position: absolute; left: 50%; top: calc(${TOP} + 8px); transform: translateX(-50%); max-width: calc(100% - 200px); text-align: center; font-size: 14px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 2px 2px 0 ${PAL.neroCaldo}; }
-#mzTpl .amico { position: absolute; left: 0; top: 0; display: none; text-align: center; font-size: 12px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; white-space: nowrap; }
-#mzTpl .amico i { display: block; width: 44px; height: 5px; margin: 2px auto 0; background: ${PAL.ombraCalda}; border: 1px solid ${PAL.neroCaldo}; }
-#mzTpl .amico i b { display: block; height: 100%; background: ${PAL.erbaChiara}; }
-#mzTpl .amico.giu { color: ${PAL.rosso}; }
+#mzTpl .big span { display: block; margin-top: 10px; font-size: 15px; font-weight: 700; color: ${L.inchiostro}; text-shadow: 2px 2px 0 ${L.inchiostro}; }
+#mzTpl .msg { position: absolute; left: 50%; top: calc(${TOP} + 8px); transform: translateX(-50%); max-width: calc(100% - 200px); text-align: center; font-size: 14px; font-weight: 700; color: ${L.inchiostro}; text-shadow: 2px 2px 0 ${L.inchiostro}; }
+#mzTpl .amico { position: absolute; left: 0; top: 0; display: none; text-align: center; font-size: 12px; font-weight: 700; color: ${L.inchiostro}; text-shadow: 1px 1px 0 ${L.inchiostro}; white-space: nowrap; }
+#mzTpl .amico i { display: block; width: 44px; height: 5px; margin: 2px auto 0; background: ${L.cartaScura}; border: 1px solid ${L.inchiostro}; }
+#mzTpl .amico i b { display: block; height: 100%; background: ${L.acqua}; }
+#mzTpl .amico.giu { color: ${L.rosso}; }
 @media (max-width: 699px) { #mzTpl .big.num b { font-size: 72px; } #mzTpl .ond b { font-size: 36px; } #mzTpl .msg { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 190px); max-width: calc(100% - 24px); } #mzTpl .big b { font-size: 24px; } }
 /* come nel dungeon (rpg/dungeon_hud.ts): l'interfaccia di superficie sparisce (main.ts mette body.mz-sotto anche qui) */
 body.mz-sotto #compass, body.mz-sotto #mzTop, body.mz-sotto #mzGuida, body.mz-sotto #mzGuidaPtr, body.mz-sotto .mz-bar, body.mz-sotto .mz-work,

@@ -76,7 +76,7 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
     const bp = loc(forme.bottegaio.x, 0, forme.bottegaio.z);
     posaForma(o.world.solidi, 'bottega_' + id, w.x, w.z, ry); posaForma(o.world.solidi, 'persona', bp.x, bp.z); // la casetta e chi ci sta dietro al banco sono solidi
     const label = layer.add(() => { if (dist(f.x, f.z) < posto.raggio + 2) void apri(id); else o.hud.toast(`${b.nome}: ${posto.dove}`, 2200); });
-    label.set('bubble', [iconaBottega(id), el('span', '', b.nome)], 'spot'); label.el.classList.add('spot', 'bottega'); label.el.dataset['bottega'] = id;
+    label.set('bubble', [iconaBottega(id)], 'spot'); label.el.setAttribute('aria-label', b.nome); label.el.classList.add('spot', 'bottega'); label.el.dataset['bottega'] = id;
     return [{ id, nome: b.nome, raggio: posto.raggio, x: w.x, y, z: w.z, fx: f.x, fz: f.z, ry, bx: bp.x, bz: bp.z, label, av: null as Avatar | null, ombra: true, meshes: [] as THREE.Mesh[] }];
   });
   const vc = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });

@@ -1,15 +1,16 @@
 // Ingresso dal link di gruppo (`?invito=codice`, senza token): «Come ti chiami?» → POST /api/entra → il server crea la persona con la sua
 // isola e risponde col token → si riparte con `?t=token` (flags.ts lo salva: riaprendo il link sullo stesso telefono si rientra come sé).
 import { PAL, el, injectUiStyle } from './style.ts';
+import { FONT_LIBRO, LIBRO as L } from './libro_colori.ts';
 
 const CSS = `
 .mz-entra { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: ${PAL.abisso}; z-index: 40; }
-.mz-entra form { width: min(360px, 100%); padding: 18px 16px 14px; background: rgba(46,30,20,.97); border: 3px solid ${PAL.legnoChiaro}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; text-align: center; }
-.mz-entra h1 { margin: 0 0 4px; font-size: 34px; letter-spacing: .12em; color: ${PAL.giallo}; }
-.mz-entra p { margin: 0 0 14px; color: ${PAL.sabbia}; font-size: 14px; line-height: 1.4; }
-.mz-entra input { width: 100%; box-sizing: border-box; min-height: 52px; padding: 0 12px; background: ${PAL.sabbiaChiara}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; font: bold 20px ui-monospace, Menlo, monospace; text-align: center; -webkit-user-select: text; user-select: text; }
-.mz-entra input:focus { outline: 3px solid ${PAL.giallo}; }
-.mz-entra .err { min-height: 18px; margin: 8px 0 0; color: ${PAL.rosso}; font-size: 13px; font-weight: bold; }
+.mz-entra form { width: min(360px, 100%); padding: 18px 16px 14px; background: ${L.carta}; border: 3px solid ${L.oro}; box-shadow: 0 5px 0 ${L.inchiostro}; text-align: center; }
+.mz-entra h1 { margin: 0 0 4px; font-size: 34px; letter-spacing: .12em; color: ${L.acquaScura}; }
+.mz-entra p { margin: 0 0 14px; color: ${L.inchiostro2}; font-size: 14px; line-height: 1.4; }
+.mz-entra input { width: 100%; box-sizing: border-box; min-height: 52px; padding: 0 12px; background: ${L.inchiostro}; color: ${L.inchiostro}; border: 3px solid ${L.inchiostro}; font: 700 20px ${FONT_LIBRO}; text-align: center; -webkit-user-select: text; user-select: text; }
+.mz-entra input:focus { outline: 3px solid ${L.acquaScura}; }
+.mz-entra .err { min-height: 18px; margin: 8px 0 0; color: ${L.rosso}; font-size: 13px; font-weight: 700; }
 .mz-entra .mz-btn { justify-content: center; font-size: 18px; }
 `;
 

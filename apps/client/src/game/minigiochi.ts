@@ -30,6 +30,7 @@ import { suona } from '../audio/ponte.ts';
 import { createPostoPerle } from './perle.ts'; // Perle
 import { temaAperta } from './temi.ts'; // Ghiacci e Giardino
 import { FLAGS } from '../flags.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 /** `opzioni` = parametri della partita per il server (es. il mare della pesca); `posto` = molo dove si gioca ('porto', 'lotto:N':
  *  lo riceve il gioco); `aPiedi` = parte solo a piedi (in barca A accelera); `vista` = il cartello si vede solo entro tanti metri;
@@ -79,16 +80,16 @@ export function registraSchermo(id: string, load: (root: HTMLElement) => Promise
 const MEDAL_TXT: Record<string, string> = { oro: 'Oro', argento: 'Argento', bronzo: 'Bronzo' };
 const MEDAL_C: Record<string, string> = { oro: PAL.giallo, argento: PAL.pietraChiara, bronzo: PAL.arancio };
 const CSS = `
-.mz-play { position: absolute; left: 50%; top: 60%; transform: translateX(-50%); display: none; align-items: center; gap: 10px; min-height: 56px; padding: 0 18px; background: ${PAL.arancio}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; font: bold 18px ui-monospace, Menlo, monospace; z-index: 16; cursor: pointer; white-space: nowrap; }
+.mz-play { position: absolute; left: 50%; top: 60%; transform: translateX(-50%); display: none; align-items: center; gap: 10px; min-height: 56px; padding: 0 18px; background: ${L.oroScuro}; color: ${L.inchiostro}; border: 3px solid ${L.inchiostro}; box-shadow: 0 5px 0 ${L.inchiostro}; font: 700 18px ${FONT_LIBRO}; z-index: 16; cursor: pointer; white-space: nowrap; }
 .mz-play.on { display: flex; }
-.mz-play:active { transform: translate(-50%, 3px); box-shadow: 0 2px 0 ${PAL.neroCaldo}; }
+.mz-play:active { transform: translate(-50%, 3px); box-shadow: 0 2px 0 ${L.inchiostro}; }
 .mz-play small { font-size: 12px; opacity: .8; }
-.mz-lbl.spot { border-color: ${PAL.rosso}; font-size: 15px; min-height: 34px; }
-.mz-esito { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(340px, calc(100% - 32px)); display: none; padding: 16px; background: rgba(46,30,20,.97); border: 3px solid ${PAL.legnoChiaro}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; z-index: 22; text-align: center; }
+.mz-lbl.spot { border-color: ${L.rosso}; font-size: 15px; min-height: 34px; }
+.mz-esito { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(340px, calc(100% - 32px)); display: none; padding: 16px; background: ${L.carta}; border: 3px solid ${L.oro}; box-shadow: 0 5px 0 ${L.inchiostro}; z-index: 22; text-align: center; }
 .mz-esito.on { display: block; }
 .mz-esito h2 { margin: 0 0 4px; font-size: 34px; letter-spacing: .06em; }
-.mz-esito .sub { color: ${PAL.sabbia}; font-size: 14px; margin-bottom: 12px; }
-.mz-esito .premio { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; font-size: 20px; font-weight: bold; margin: 8px 0 4px; }
+.mz-esito .sub { color: ${L.inchiostro2}; font-size: 14px; margin-bottom: 12px; }
+.mz-esito .premio { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; font-size: 20px; font-weight: 700; margin: 8px 0 4px; }
 .mz-esito .premio span { display: inline-flex; align-items: center; gap: 6px; }
 `;
 
@@ -185,7 +186,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     if (name) void o.loader.load(name).then((g) => holder.add(g.scene)).catch(() => {});
     if (s.posto === 'porto') posaForma(o.world.solidi, 'spot_' + s.minigame, s.x, s.z); // la cassa del corriere e il barile dell'Ingorgo nel Borgo
     const label = layer.add(() => { void play(s); });
-    label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome)], 'spot');
+    label.set('bubble', [pixIcon(s.icon, 16)], 'spot'); label.el.setAttribute('aria-label', s.nome);
     label.el.classList.add('spot');
     return { s, holder, label };
   });

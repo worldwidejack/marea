@@ -14,34 +14,34 @@ body.mz-sb #mzPlay, body.mz-sb #mzEmoteRow, body.mz-sb #mzEmotes, body.mz-sb #mz
 body.mz-sb #mzTrag, body.mz-sb .mz-play, body.mz-sb #joystick, body.mz-sb #btnA, body.mz-sb #btnB, body.mz-sb #mzFunivia, body.mz-sb #mzTemaFumetto,
 body.mz-sb #mzZoomBar, body.mz-sb #mzAvatarBtn, body.mz-sb #mzMiniMete, body.mz-sb #mzTeleBtn, body.mz-sb #mzAdrenalinaVai, body.mz-sb #mzMiaBarca, body.mz-sb #mzDiarioBtn { display: none !important; }
 #ui > #mzSbTocco, #mzSbTocco { position: absolute; inset: 0; z-index: 13; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; pointer-events: auto !important; }
-#ui > .mz-sb-ui, .mz-sb-ui { position: absolute; inset: 0; z-index: 14; pointer-events: none !important; font-family: ui-monospace, Menlo, monospace; color: ${PAL.sabbiaChiara}; }
+#ui > .mz-sb-ui, .mz-sb-ui { position: absolute; inset: 0; z-index: 14; pointer-events: none !important; font-family: ${FONT_LIBRO}; color: ${L.inchiostro}; }
 .mz-sb-ui button, .mz-sb-ui .mz-sb-btn { pointer-events: auto !important; }
 #mzSbTesta { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 4px); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
-#mzSbPunti { font-size: 30px; font-weight: bold; text-shadow: 0 3px 0 ${PAL.neroCaldo}; line-height: 1; }
-#mzSbFant { font-size: 14px; font-weight: bold; text-shadow: 0 2px 0 ${PAL.neroCaldo}; display: none; }
-#mzSbTempo { font-size: 13px; text-shadow: 0 2px 0 ${PAL.neroCaldo}; }
-#mzSbBarra { position: relative; width: min(220px, 56vw); height: 16px; background: rgba(46,30,20,.85); border: 2px solid ${PAL.legnoChiaro}; box-shadow: 0 3px 0 ${PAL.neroCaldo}; }
-#mzSbBarra i { position: absolute; left: 0; top: 0; bottom: 0; background: ${PAL.arancio}; }
-#mzSbBarra.x3 i { background: ${PAL.rosso}; }
-#mzSbBarra s { position: absolute; top: 0; bottom: 0; width: 2px; background: ${PAL.neroCaldo}; text-decoration: none; }
-#mzSbBarra b { position: absolute; right: -44px; top: -5px; font-size: 18px; color: ${PAL.giallo}; text-shadow: 0 2px 0 ${PAL.neroCaldo}; }
-#mzSbBarra em { position: absolute; left: -2px; top: 18px; font-size: 10px; font-style: normal; letter-spacing: .12em; opacity: .85; text-shadow: 0 1px 0 ${PAL.neroCaldo}; }
+#mzSbPunti { font-size: 30px; font-weight: 700; text-shadow: 0 3px 0 ${L.inchiostro}; line-height: 1; }
+#mzSbFant { font-size: 14px; font-weight: 700; text-shadow: 0 2px 0 ${L.inchiostro}; display: none; }
+#mzSbTempo { font-size: 13px; text-shadow: 0 2px 0 ${L.inchiostro}; }
+#mzSbBarra { position: relative; width: min(220px, 56vw); height: 16px; background: ${L.carta}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; }
+#mzSbBarra i { position: absolute; left: 0; top: 0; bottom: 0; background: ${L.oroScuro}; }
+#mzSbBarra.x3 i { background: ${L.rosso}; }
+#mzSbBarra s { position: absolute; top: 0; bottom: 0; width: 2px; background: ${L.inchiostro}; text-decoration: none; }
+#mzSbBarra b { position: absolute; right: -44px; top: -5px; font-size: 18px; color: ${L.acquaScura}; text-shadow: 0 2px 0 ${L.inchiostro}; }
+#mzSbBarra em { position: absolute; left: -2px; top: 18px; font-size: 10px; font-style: normal; letter-spacing: .12em; opacity: .85; text-shadow: 0 1px 0 ${L.inchiostro}; }
 #mzSbPop { position: absolute; left: 0; right: 0; top: 30%; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-#mzSbPop div { font-size: 22px; font-weight: bold; text-shadow: 0 3px 0 ${PAL.neroCaldo}; white-space: nowrap; animation: mzSbSu 1.3s steps(8) forwards; }
+#mzSbPop div { font-size: 22px; font-weight: 700; text-shadow: 0 3px 0 ${L.inchiostro}; white-space: nowrap; animation: mzSbSu 1.3s steps(8) forwards; }
 @keyframes mzSbSu { 0% { transform: translateY(8px); opacity: 1; } 70% { opacity: 1; } 100% { transform: translateY(-24px); opacity: 0; } }
-#mzSbVia { position: absolute; left: 0; right: 0; top: 38%; text-align: center; font-size: 64px; font-weight: bold; color: ${PAL.giallo}; text-shadow: 0 5px 0 ${PAL.neroCaldo}; display: none; }
+#mzSbVia { position: absolute; left: 0; right: 0; top: 38%; text-align: center; font-size: 64px; font-weight: 700; color: ${L.acquaScura}; text-shadow: 0 5px 0 ${L.inchiostro}; display: none; }
 #mzSbAiuto { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 94px); text-align: center; font-size: 13px; line-height: 1.5; padding: 8px 10px;
-  background: rgba(46,30,20,.82); border: 2px solid ${PAL.legnoChiaro}; display: none; }
+  background: ${L.carta}; border: 2px solid ${L.oro}; display: none; }
 #mzSbAiuto.on { display: block; }
-#mzSbEsci { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 8px); min-width: 44px; min-height: 40px; padding: 0 10px; background: rgba(46,30,20,.82); color: ${PAL.sabbiaChiara};
-  border: 2px solid ${PAL.legno}; font: bold 13px ui-monospace, Menlo, monospace; border-radius: 6px; cursor: pointer; }
+#mzSbEsci { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 8px); min-width: 44px; min-height: 40px; padding: 0 10px; background: ${L.carta}; color: ${L.inchiostro};
+  border: 2px solid ${L.filo}; font: 700 13px ${FONT_LIBRO}; border-radius: 6px; cursor: pointer; }
 #mzSbEsci { left: max(8px, env(safe-area-inset-left, 0px)); }
 #mzSbComandi { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); display: none; justify-content: space-between; align-items: flex-end; pointer-events: none !important; z-index: 15; }
 @media (min-width: 801px) and (pointer: fine) { #mzSbComandi { display: none !important; } }
 .mz-sb-curva { display: flex; pointer-events: none !important; }
 .mz-sb-btn { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; pointer-events: auto !important; cursor: pointer; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: ${FONT_LIBRO}; }
-.mz-sb-btn-dir { width: 76px; height: 68px; border-radius: 16px; background: ${L.cartaChiara}; border: 2.5px solid ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px rgba(253,242,218,.6), 0 3px 0 1.5px ${L.inchiostro}; color: ${L.inchiostro}; font-size: 26px; font-weight: bold; line-height: 1; }
-.mz-sb-btn-dir small { font-size: 11px; font-weight: bold; opacity: 0.85; letter-spacing: 0.06em; margin-top: 2px; }
+.mz-sb-btn-dir { width: 76px; height: 68px; border-radius: 16px; background: ${L.cartaChiara}; border: 2.5px solid ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px rgba(253,242,218,.6), 0 3px 0 1.5px ${L.inchiostro}; color: ${L.inchiostro}; font-size: 26px; font-weight: 700; line-height: 1; }
+.mz-sb-btn-dir small { font-size: 11px; font-weight: 700; opacity: 0.85; letter-spacing: 0.06em; margin-top: 2px; }
 .mz-sb-btn-dir.premuto { transform: translateY(2px) scale(0.96); filter: brightness(1.15); box-shadow: 0 0 0 1.5px ${L.inchiostro}, 0 1px 0 1.5px ${L.inchiostro}; }
 `;
 

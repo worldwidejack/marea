@@ -20,6 +20,7 @@ import { insettiOf } from '@marea/sim/economy/insetti.ts';
 import { insettoCanvas } from './insetti_sprite.ts';
 import { ANIMALI_ART, ISOLA, MEDAGLIA, MED_COL, PERLE_ART, ZAMPA, artCanvas, isolaCanvas, medagliaCanvas } from './diario_disegni.ts';
 import { suona } from '../audio/ponte.ts';
+import { FONT_LIBRO, LIBRO as L } from './libro_colori.ts';
 
 const P = PAL;
 const INS_RAR_COL: Record<InsettoDef['rarita'], string> = { comune: P.pietraChiara, noncomune: P.erba, raro: P.acquaBassa, ultrararo: P.giallo };
@@ -37,36 +38,36 @@ const STYLE = `
 @media (min-width: 700px) { .mz-sheet.mz-dia { left: auto; right: 8px; top: 60px; bottom: 8px; width: 460px; max-height: none; } }
 .mz-dia .mz-head { gap: 8px; margin-bottom: 6px; }
 .mz-dia .mz-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.mz-dia .chi-t { display: flex; flex-direction: column; min-width: 0; margin-left: auto; text-align: right; font-size: 12px; font-weight: bold; color: ${P.sabbia}; line-height: 1.25; }
+.mz-dia .chi-t { display: flex; flex-direction: column; min-width: 0; margin-left: auto; text-align: right; font-size: 12px; font-weight: 700; color: ${L.inchiostro2}; line-height: 1.25; }
 .mz-dia-chi { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 6px; padding-bottom: 2px; }
-.mz-dia-chi button { flex: none; min-width: 56px; min-height: 40px; padding: 0 10px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; color: ${P.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; }
-.mz-dia-chi button[aria-pressed="true"] { border-color: ${P.giallo}; color: ${P.giallo}; }
+.mz-dia-chi button { flex: none; min-width: 56px; min-height: 40px; padding: 0 10px; background: ${L.cartaChiara}; border: 2px solid ${L.filo}; color: ${L.inchiostro}; font: 700 13px ${FONT_LIBRO}; cursor: pointer; }
+.mz-dia-chi button[aria-pressed="true"] { border-color: ${L.acqua}; color: ${L.acquaScura}; }
 .mz-dia-tabs { display: grid; grid-template-columns: repeat(var(--n, 6), 1fr); gap: 4px; margin-bottom: 6px; }
-.mz-dia-tab { position: relative; min-height: 50px; padding: 3px 0 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; color: ${P.sabbia}; font: bold 11px ui-monospace, Menlo, monospace; cursor: pointer; }
-.mz-dia-tab[aria-pressed="true"] { background: ${P.arancio}; color: ${P.neroCaldo}; border-color: ${P.neroCaldo}; box-shadow: 0 3px 0 ${P.neroCaldo}; }
-.mz-dia-pg { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 2px 0 6px; padding-bottom: 2px; border-bottom: 2px solid ${P.legno}; font-size: 13px; font-weight: bold; letter-spacing: .05em; color: ${P.sabbia}; }
-.mz-dia-pg b { color: ${P.giallo}; font-size: 15px; letter-spacing: 0; }
+.mz-dia-tab { position: relative; min-height: 50px; padding: 3px 0 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: ${L.cartaChiara}; border: 2px solid ${L.filo}; color: ${L.inchiostro2}; font: 700 11px ${FONT_LIBRO}; cursor: pointer; }
+.mz-dia-tab[aria-pressed="true"] { background: ${L.acqua}; color: ${L.cartaChiara}; border-color: ${L.inchiostro}; box-shadow: 0 3px 0 ${L.inchiostro}; }
+.mz-dia-pg { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 2px 0 6px; padding-bottom: 2px; border-bottom: 2px solid ${L.filo}; font-size: 13px; font-weight: 700; letter-spacing: .05em; color: ${L.inchiostro2}; }
+.mz-dia-pg b { color: ${L.acquaScura}; font-size: 15px; letter-spacing: 0; }
 .mz-dia-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
-.mz-dia-cell { position: relative; min-height: 92px; padding: 4px 2px 3px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 2px; background: ${P.sabbiaChiara}; border: 2px solid ${P.legnoScuro}; box-shadow: 0 3px 0 ${P.neroCaldo}; color: ${P.neroCaldo}; font: bold 11px ui-monospace, Menlo, monospace; line-height: 1.15; text-align: center; cursor: pointer; }
+.mz-dia-cell { position: relative; min-height: 92px; padding: 4px 2px 3px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 2px; background: ${L.cartaChiara}; border: 2px solid ${L.cartaChiara}; box-shadow: 0 3px 0 ${L.inchiostro}; color: ${L.inchiostro}; font: 700 11px ${FONT_LIBRO}; line-height: 1.15; text-align: center; cursor: pointer; }
 .mz-dia-cell .img { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 40px; }
 .mz-dia-cell .img canvas { image-rendering: pixelated; }
 .mz-dia-cell .nm { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
-.mz-dia-cell .n { position: absolute; top: 2px; right: 3px; color: ${P.legno}; font-size: 11px; }
+.mz-dia-cell .n { position: absolute; top: 2px; right: 3px; color: ${L.filo}; font-size: 11px; }
 .mz-dia-cell .rar { position: absolute; left: 0; right: 0; bottom: -2px; height: 4px; background: var(--r, transparent); }
-.mz-dia-cell.no { background: ${P.pietra}; border-color: ${P.pietraScura}; color: ${P.roccia}; }
-.mz-dia-cell.no .q { position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-size: 26px; color: ${P.sabbiaChiara}; text-shadow: 0 2px 0 ${P.roccia}; pointer-events: none; }
-.mz-dia-cell.tuo { background: ${P.erbaChiara}; }
-.mz-dia-cell .tuo { position: absolute; top: 2px; left: 4px; color: ${P.erbaScura}; font-size: 12px; }
-.mz-dia-cell.sel { border-color: ${P.giallo}; box-shadow: 0 3px 0 ${P.giallo}; }
-.mz-dia-cell:active { transform: translateY(2px); box-shadow: 0 1px 0 ${P.neroCaldo}; }
-.mz-dia-nota { margin-top: 8px; min-height: 44px; padding: 6px 8px; background: ${P.ombraCalda}; border: 2px dashed ${P.legno}; font-size: 13px; line-height: 1.35; color: ${P.sabbia}; }
-.mz-dia-nota b { color: ${P.sabbiaChiara}; }
-.mz-dia-nota .k { color: ${P.giallo}; }
-.mz-dia-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; min-height: 52px; padding: 3px 8px; box-sizing: border-box; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; }
-.mz-dia-row .nm { flex: 1; min-width: 0; display: flex; flex-direction: column; font-weight: bold; font-size: 14px; }
-.mz-dia-row .nm small { font-size: 12px; color: ${P.sabbia}; font-weight: normal; }
-.mz-dia-row .md { font-weight: bold; font-size: 13px; }
-.mz-dia-vuoto { margin-top: 8px; color: ${P.sabbia}; font-size: 13px; }
+.mz-dia-cell.no { background: ${L.cartaScura}; border-color: ${L.filo}; color: ${L.inchiostro2}; }
+.mz-dia-cell.no .q { position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-size: 26px; color: ${L.inchiostro2}; pointer-events: none; }
+.mz-dia-cell.tuo { background: ${L.verdeAvviso}; }
+.mz-dia-cell .tuo { position: absolute; top: 2px; left: 4px; color: ${L.acquaScura}; font-size: 12px; }
+.mz-dia-cell.sel { border-color: ${L.acqua}; box-shadow: 0 3px 0 ${L.acquaScura}; }
+.mz-dia-cell:active { transform: translateY(2px); box-shadow: 0 1px 0 ${L.inchiostro}; }
+.mz-dia-nota { margin-top: 8px; min-height: 44px; padding: 6px 8px; background: ${L.cartaScura}; border: 2px dashed ${L.filo}; font-size: 13px; line-height: 1.35; color: ${L.inchiostro2}; }
+.mz-dia-nota b { color: ${L.inchiostro}; }
+.mz-dia-nota .k { color: ${L.acquaScura}; }
+.mz-dia-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; min-height: 52px; padding: 3px 8px; box-sizing: border-box; background: ${L.cartaChiara}; border: 2px solid ${L.filo}; }
+.mz-dia-row .nm { flex: 1; min-width: 0; display: flex; flex-direction: column; font-weight: 700; font-size: 14px; }
+.mz-dia-row .nm small { font-size: 12px; color: ${L.inchiostro2}; font-weight: normal; }
+.mz-dia-row .md { font-weight: 700; font-size: 13px; }
+.mz-dia-vuoto { margin-top: 8px; color: ${L.inchiostro2}; font-size: 13px; }
 `;
 
 export function createDiarioUi(ctx: DiarioCtx) {

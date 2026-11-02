@@ -11,20 +11,21 @@ import { DI_SERIE, PAD_SEC, SPENTO, VISTE, VOLUMI } from '../render/viste.ts';
 import { setVolumi } from '../audio/ponte.ts';
 import { FLAGS } from '../flags.ts';
 import type { Impostazioni } from '../render/viste.ts';
+import { FONT_LIBRO, LIBRO as L } from './libro_colori.ts';
 
 const KEY = 'marea:impostazioni:2'; // :2 dal #59: con i nuovi valori di serie tutti ripartono da lì
 const P = PAL;
 const CSS = `
 #mzSet .mz-set-sec { margin: 4px 0 12px; }
-#mzSet .mz-set-lbl { font-size: 14px; font-weight: bold; color: ${P.sabbia}; margin-bottom: 6px; }
+#mzSet .mz-set-lbl { font-size: 14px; font-weight: 700; color: ${L.inchiostro2}; margin-bottom: 6px; }
 #mzSet .mz-set-cams { display: flex; gap: 6px; flex-wrap: wrap; }
-#mzSet .mz-set-cam { min-width: 52px; min-height: 44px; padding: 0 8px; background: ${P.legnoScuro}; border: 2px solid ${P.legnoChiaro}; color: ${P.sabbiaChiara}; font: bold 15px ui-monospace, Menlo, monospace; cursor: pointer; }
-#mzSet .mz-set-cam.on { background: ${P.giallo}; border-color: ${P.giallo}; color: ${P.neroCaldo}; }
-#mzSet .mz-set-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 52px; margin-top: 6px; padding: 6px 10px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; color: ${P.sabbiaChiara}; font: bold 15px ui-monospace, Menlo, monospace; text-align: left; cursor: pointer; }
-#mzSet .mz-set-row .q { display: block; font-size: 12px; font-weight: normal; color: ${P.pietra}; margin-top: 2px; }
-#mzSet .mz-set-row .sw { flex: none; min-width: 52px; padding: 4px 0; text-align: center; background: ${P.roccia}; border: 2px solid ${P.pietraScura}; color: ${P.pietra}; }
-#mzSet .mz-set-row.on { border-color: ${P.giallo}; }
-#mzSet .mz-set-row.on .sw { background: ${P.erba}; border-color: ${P.erbaScura}; color: ${P.neroCaldo}; }
+#mzSet .mz-set-cam { min-width: 52px; min-height: 44px; padding: 0 8px; background: ${L.cartaChiara}; border: 2px solid ${L.oro}; color: ${L.inchiostro}; font: 700 15px ${FONT_LIBRO}; cursor: pointer; }
+#mzSet .mz-set-cam.on { background: ${L.acqua}; border-color: ${L.acqua}; color: ${L.cartaChiara}; }
+#mzSet .mz-set-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 52px; margin-top: 6px; padding: 6px 10px; background: ${L.cartaChiara}; border: 2px solid ${L.filo}; color: ${L.inchiostro}; font: 700 15px ${FONT_LIBRO}; text-align: left; cursor: pointer; }
+#mzSet .mz-set-row .q { display: block; font-size: 12px; font-weight: normal; color: ${L.inchiostro2}; margin-top: 2px; }
+#mzSet .mz-set-row .sw { flex: none; min-width: 52px; padding: 4px 0; text-align: center; background: ${L.cartaScura}; border: 2px solid ${L.filo}; color: ${L.inchiostro2}; }
+#mzSet .mz-set-row.on { border-color: ${L.acqua}; }
+#mzSet .mz-set-row.on .sw { background: ${L.acqua}; border-color: ${L.acquaScura}; color: ${L.inchiostro}; }
 #mzSet .mz-set-vol { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; }
 #mzSet .mz-set-vol .mz-set-lbl { flex: 1; margin: 0; }
 #mzSet .mz-set-vol .mz-set-cam { min-width: 48px; }

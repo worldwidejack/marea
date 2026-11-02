@@ -83,7 +83,7 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
   /** I posti dove si va (cartello, bottone, bussola): il Tabellone. */
   const posti = [tab].map((s) => {
     const label = layer.add(() => { if (Math.hypot(me().x - s.fx, me().z - s.fz) < TAP_M) void open(s.id); else o.hud.toast(`${s.posto.nome}: al Porto`, 2200); });
-    label.set('bubble', [pixIcon(s.id, 16), el('span', '', s.posto.cartello)], 'spot'); label.el.classList.add('spot'); label.el.dataset['amici'] = s.id;
+    label.set('bubble', [pixIcon(s.id, 16)], 'spot'); label.el.setAttribute('aria-label', s.posto.cartello); label.el.classList.add('spot'); label.el.dataset['amici'] = s.id;
     return { ...s, label };
   });
 

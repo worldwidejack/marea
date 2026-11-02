@@ -19,6 +19,7 @@ import { el } from '../ui/style.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { armaVista } from './armi3d.ts';
 import type { TemplariCtx } from './types.ts';
+import { LIBRO as L } from '../ui/libro_colori.ts';
 
 export const EROE_KEY = 'mz-templari-eroe';
 /** L'ultimo eroe scelto (di serie il primo). */
@@ -61,7 +62,7 @@ const CSS = `
   border: 4px solid var(--scuro); font-size: 24px; box-shadow: 0 4px 0 rgba(0,0,0,.4); }
 .mz-tpl-eroi .carte { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 14px; }
 .mz-tpl-eroi .carta { width: 220px; display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 2px 10px; padding: 10px 12px; text-align: left;
-  background: rgba(35,32,31,.82); border: 4px solid #7F7568; box-shadow: 0 5px 0 rgba(0,0,0,.45); opacity: .78; transition: transform .15s, opacity .15s; }
+  background: ${L.carta}; border: 4px solid #7F7568; box-shadow: 0 5px 0 rgba(0,0,0,.45); opacity: .78; transition: transform .15s, opacity .15s; }
 .mz-tpl-eroi .carta .ico { grid-row: span 2; width: 58px; height: 58px; display: grid; place-items: center; background: #E8E1D6; color: var(--scuro); padding-bottom: 8px; box-sizing: border-box;
   clip-path: polygon(0 0, 100% 0, 100% 62%, 50% 100%, 0 62%); }
 .mz-tpl-eroi .carta b { font-weight: 400; font-size: 20px; }
@@ -71,7 +72,7 @@ const CSS = `
 .mz-tpl-eroi .carta.on .ico { background: var(--rosso); color: #fff; }
 body.mz-tpl-scelta #joystick, body.mz-tpl-scelta #btnA, body.mz-tpl-scelta #btnB, body.mz-tpl-scelta #compass, body.mz-tpl-scelta .mz-labels, body.mz-tpl-scelta #mzMete { visibility: hidden !important; }
 .mz-tpl-eroi .pannello { position: absolute; right: 24px; top: 50%; transform: translateY(-56%); width: 340px; padding: 0 0 14px; pointer-events: auto;
-  background: rgba(35,32,31,.86); border: 4px solid #F4E3C1; box-shadow: 0 6px 0 var(--scuro); }
+  background: ${L.carta}; border: 4px solid #F4E3C1; box-shadow: 0 6px 0 var(--scuro); }
 .mz-tpl-eroi .nome { background: var(--rosso); padding: 8px 16px; font-size: 28px; color: #fff; border-bottom: 4px solid #F4E3C1; }
 .mz-tpl-eroi .descr { margin: 10px 16px 8px; font: 14px/1.35 system-ui, sans-serif; color: #E8E1D6; }
 .mz-tpl-eroi .barre { display: grid; gap: 6px; margin: 4px 16px 10px; }

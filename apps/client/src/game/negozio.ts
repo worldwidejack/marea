@@ -24,7 +24,7 @@ import type { Part } from '../rpg/dungeon_kit.ts';
 import type { Api } from '../net/api.ts';
 import { M, P, merged, painted } from '../render/island_parts.ts';
 import { mobileGeo } from '../render/mobili.ts';
-import { PAL, el } from '../ui/style.ts';
+import { el } from '../ui/style.ts';
 import { pixIcon } from '../ui/icons.ts';
 import { createAvatar } from './avatar.ts';
 import type { Avatar } from './avatar.ts';
@@ -37,6 +37,7 @@ import { createInsettiBorgo } from './insetti.ts';
 import { createPescaBorgo } from './pesca.ts';
 import { createFulvio } from './fulvio.ts';
 import type { Pezzo } from './fulvio.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type Negozio = {
   tick(a: boolean): boolean; update(dt: number): void; readonly dentro: boolean;
@@ -56,7 +57,7 @@ const POSTI = Math.floor((X1 - X0 - 1) / 2), posto = (i: number): number => X0 +
 const CSS = `
 #mzNegozioBar { position: absolute; left: 8px; right: 8px; top: calc(max(8px, env(safe-area-inset-top)) + 60px); display: none; justify-content: center; z-index: 15; pointer-events: none; }
 #mzNegozioBar.on { display: flex; }
-#mzNegozioBar .t { padding: 4px 10px; background: rgba(46,30,20,.93); border: 2px solid ${PAL.legnoChiaro}; color: ${PAL.sabbiaChiara}; font: bold 14px ui-monospace, Menlo, monospace; text-align: center; }
+#mzNegozioBar .t { padding: 4px 10px; background: ${L.carta}; border: 2px solid ${L.oro}; color: ${L.inchiostro}; font: 700 14px ${FONT_LIBRO}; text-align: center; }
 `;
 
 /** La bottega vista da fuori (davanti verso +Z): muri chiari, tetto rosso, vetrina, porta, tenda a strisce, insegna (a parte, con la scritta). */

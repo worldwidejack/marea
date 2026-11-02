@@ -4,6 +4,7 @@
 // guardano gli ultimi 3 giorni. Chunk caricato con import() da main.ts, dopo la cartolina «Mentre eri via».
 // Tastiera in capture su window solo a pannello aperto, con stopPropagation (mai keyup), come feed ed editor: Esc / Invio / Spazio chiudono.
 import { PAL, el } from './style.ts';
+import { LIBRO as L } from './libro_colori.ts';
 
 export type Lavoro = { t: number; chi: string; titolo: string };
 export type NovitaOpts = {
@@ -22,13 +23,13 @@ const COLORI = [P.acquaBassa, P.rosaNeon, P.giallo, P.erbaChiara, P.arancio];
 const CSS = `
 .mz-nv-bg { position: absolute; inset: 0; z-index: 29; background: rgba(35,32,31,.6); }
 .mz-nv { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 30; box-sizing: border-box; width: min(420px, calc(100% - 24px)); max-height: calc(100% - 48px); overflow-y: auto;
-  padding: 18px 18px 16px; background: ${P.abisso}; color: ${P.sabbiaChiara}; border: 3px solid ${P.acquaBassa}; border-radius: 16px; box-shadow: 0 6px 0 ${P.neroCaldo};
+  padding: 18px 18px 16px; background: ${P.abisso}; color: ${L.inchiostro}; border: 3px solid ${P.acquaBassa}; border-radius: 16px; box-shadow: 0 6px 0 ${L.inchiostro};
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-user-select: none; user-select: none; }
-.mz-nv h2 { margin: 0; font-size: 24px; line-height: 1.1; font-weight: 900; color: ${P.giallo}; }
+.mz-nv h2 { margin: 0; font-size: 24px; line-height: 1.1; font-weight: 900; color: ${L.acquaScura}; }
 .mz-nv .sub { margin: 4px 0 14px; font-size: 13px; font-weight: 600; color: ${P.acquaBassa}; }
 .mz-nv .chi { margin: 0 0 12px; padding: 10px 12px; background: rgba(35,32,31,.35); border-radius: 12px; }
 .mz-nv .nome { font-size: 17px; font-weight: 900; }
-.mz-nv .nome small { margin-left: 6px; font-size: 12px; font-weight: 600; color: ${P.pietra}; }
+.mz-nv .nome small { margin-left: 6px; font-size: 12px; font-weight: 600; color: ${L.inchiostro2}; }
 .mz-nv .cosa { margin: 4px 0 0; font-size: 15px; line-height: 1.35; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .mz-nv .tutto { display: none; margin: 6px 0 0; padding: 0; min-height: 32px; background: none; border: 0; color: ${P.acquaBassa}; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .mz-nv .chi.lunga .tutto { display: block; }
@@ -36,9 +37,9 @@ const CSS = `
 .mz-nv .chi.aperta .cosa, .mz-nv .chi.aperta .tutto { display: none; }
 .mz-nv .chi.aperta ul { display: block; }
 .mz-nv li { margin: 3px 0; }
-.mz-nv .ok { display: block; width: 100%; min-height: 48px; margin-top: 4px; background: ${P.giallo}; color: ${P.neroCaldo}; border: 0; border-radius: 12px; box-shadow: 0 4px 0 ${P.neroCaldo};
+.mz-nv .ok { display: block; width: 100%; min-height: 48px; margin-top: 4px; background: ${L.acqua}; color: ${L.cartaChiara}; border: 0; border-radius: 12px; box-shadow: 0 4px 0 ${L.inchiostro};
   font: inherit; font-size: 18px; font-weight: 900; cursor: pointer; }
-.mz-nv .ok:active { transform: translateY(2px); box-shadow: 0 2px 0 ${P.neroCaldo}; }
+.mz-nv .ok:active { transform: translateY(2px); box-shadow: 0 2px 0 ${L.inchiostro}; }
 `;
 
 /** Una frase corta per titolo: via le parentesi, «Corse: menù…» → argomento «Corse» + prima parte; «…, passo 4» via dall'argomento. */

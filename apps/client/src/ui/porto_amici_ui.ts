@@ -10,6 +10,7 @@ import type { PortoAmiciCtx } from '../game/porto_amici.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
 import { pixIcon } from './icons.ts';
 import { tickTimers, timerSpan } from './sheet.ts';
+import { LIBRO as L } from './libro_colori.ts';
 
 export type PortoAmiciUi = {
   readonly kind: 'record' | null;
@@ -21,27 +22,27 @@ const P = PAL;
 const MED: Record<string, string> = { oro: P.giallo, argento: P.pietraChiara, bronzo: P.arancio };
 const STYLE = `
 .mz-pa .mz-head { gap: 10px; }
-.mz-pa-say { margin: 0 0 8px; color: ${P.sabbia}; font-size: 14px; line-height: 1.35; }
-.mz-pa-say b { color: ${P.giallo}; }
-.mz-pa-rec { margin-top: 6px; padding: 5px 8px 6px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; }
-.mz-pa-rec > b { display: block; font-size: 14px; color: ${P.sabbiaChiara}; margin-bottom: 3px; }
+.mz-pa-say { margin: 0 0 8px; color: ${L.inchiostro2}; font-size: 14px; line-height: 1.35; }
+.mz-pa-say b { color: ${L.acquaScura}; }
+.mz-pa-rec { margin-top: 6px; padding: 5px 8px 6px; background: ${L.cartaChiara}; border: 2px solid ${L.filo}; }
+.mz-pa-rec > b { display: block; font-size: 14px; color: ${L.inchiostro}; margin-bottom: 3px; }
 .mz-pa-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.mz-pa-cell { min-width: 0; display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 2px 6px; background: rgba(35,32,31,.45); }
-.mz-pa-cell .k { flex: none; font-size: 10px; font-weight: bold; color: ${P.sabbia}; letter-spacing: .05em; writing-mode: horizontal-tb; }
+.mz-pa-cell { min-width: 0; display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 2px 6px; background: ${L.cartaScura}; }
+.mz-pa-cell .k { flex: none; font-size: 10px; font-weight: 700; color: ${L.inchiostro2}; letter-spacing: .05em; writing-mode: horizontal-tb; }
 .mz-pa-cell .v { min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
-.mz-pa-cell .v span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: bold; }
-.mz-pa-cell .v small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: ${P.sabbiaChiara}; }
-.mz-pa-cell.io .v span { color: ${P.giallo}; }
-.mz-pa-cell.vuoto .v span { color: ${P.pietraScura}; font-weight: normal; }
-.mz-pa-med { flex: none; width: 14px; height: 14px; box-sizing: border-box; border: 2px solid ${P.neroCaldo}; }
-.mz-pa-med.no { background: ${P.roccia}; border-color: ${P.pietraScura}; }
-.mz-pa-note { margin: 6px 2px 0; color: ${P.erba}; font-size: 13px; font-weight: bold; line-height: 1.3; }
-.mz-pa-note.bad { color: ${P.arancio}; }
-.mz-pa-top { display: flex; align-items: center; gap: 8px; min-height: 30px; font-size: 14px; border-bottom: 1px solid ${P.legno}; }
-.mz-pa-top .n { width: 20px; color: ${P.giallo}; font-weight: bold; }
-.mz-pa-top .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold; }
+.mz-pa-cell .v span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 700; }
+.mz-pa-cell .v small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: ${L.inchiostro}; }
+.mz-pa-cell.io .v span { color: ${L.acquaScura}; }
+.mz-pa-cell.vuoto .v span { color: ${L.filo}; font-weight: normal; }
+.mz-pa-med { flex: none; width: 14px; height: 14px; box-sizing: border-box; border: 2px solid ${L.inchiostro}; }
+.mz-pa-med.no { background: ${L.cartaScura}; border-color: ${L.filo}; }
+.mz-pa-note { margin: 6px 2px 0; color: ${L.acqua}; font-size: 13px; font-weight: 700; line-height: 1.3; }
+.mz-pa-note.bad { color: ${L.oroScuro}; }
+.mz-pa-top { display: flex; align-items: center; gap: 8px; min-height: 30px; font-size: 14px; border-bottom: 1px solid ${L.filo}; }
+.mz-pa-top .n { width: 20px; color: ${L.acquaScura}; font-weight: 700; }
+.mz-pa-top .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
 .mz-pa-top .q { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; font-size: 13px; }
-.mz-pa-top.io .nm { color: ${P.giallo}; }
+.mz-pa-top.io .nm { color: ${L.acquaScura}; }
 `;
 
 const num = (d: Record<string, number>, k: string): number => (typeof d[k] === 'number' ? d[k] : 0);

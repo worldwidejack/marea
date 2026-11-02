@@ -4,15 +4,15 @@
 // lampo, cornice di legno a pixel con cartellino di sabbia («MAREA · 8 OTTOBRE 2026» e il posto) composta alla risoluzione a pixel del
 // gioco e ingrandita nearest (×2…×6), anteprima con SALVA (PNG marea-AAAA-MM-GG-hhmm.png) e CONDIVIDI (Web Share API, solo se il
 // browser condivide file). PC: Esc / O esce, Spazio scatta, frecce girano, + e − zoomano. Solo colori della palette (ART_BIBLE §2).
-import { PAL, el, injectUiStyle } from './style.ts';
+import { el, injectUiStyle } from './style.ts';
 import { RGBA, hash } from './pixel_kit.ts';
 import type { Col } from './pixel_kit.ts';
 import { CAM } from '../render/camera.ts';
 import { suona } from '../audio/ponte.ts';
 import { cameraIcon } from './foto.ts';
 import type { FotoCtx } from './foto.ts';
+import { FONT_LIBRO, LIBRO as L } from './libro_colori.ts';
 
-const P = PAL;
 const YAW_MAX = Math.PI / 2; // quanto si gira attorno all'avatar dalla vista di serie (oltre si vedono le facciate da dietro)
 const PITCH_GIU = (15 * Math.PI) / 180, PITCH_SU = (20 * Math.PI) / 180, PITCH_MIN = (12 * Math.PI) / 180, PITCH_MAX = (72 * Math.PI) / 180;
 const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
@@ -22,22 +22,22 @@ body.mz-foto #ui > :not(#mzFoto) { display: none !important; }
 #mzFoto { position: absolute; inset: 0; z-index: 40; display: none; touch-action: none; cursor: grab; }
 #mzFoto.on { display: block; }
 #mzFoto.drag { cursor: grabbing; }
-#mzFoto .mz-x { position: absolute; top: max(8px, env(safe-area-inset-top)); right: 8px; z-index: 3; box-shadow: 0 3px 0 ${P.neroCaldo}; }
-#mzFoto .mz-fo-hint { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 6px); left: 50%; transform: translateX(-50%); max-width: calc(100% - 132px); box-sizing: border-box; padding: 6px 10px; background: rgba(46,30,20,.92); border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; font-size: 13px; font-weight: bold; text-align: center; pointer-events: none; transition: opacity .3s steps(3); }
+#mzFoto .mz-x { position: absolute; top: max(8px, env(safe-area-inset-top)); right: 8px; z-index: 3; box-shadow: 0 3px 0 ${L.inchiostro}; }
+#mzFoto .mz-fo-hint { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 6px); left: 50%; transform: translateX(-50%); max-width: calc(100% - 132px); box-sizing: border-box; padding: 6px 10px; background: ${L.carta}; color: ${L.inchiostro}; border-radius: 999px; border: 2px solid ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, 0 3px 0 1.5px ${L.inchiostro}; font-size: 13px; font-weight: 700; text-align: center; pointer-events: none; transition: opacity .3s steps(3); }
 #mzFoto .mz-fo-hint.off { opacity: 0; }
-#mzFoto .mz-fo-scatta { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); transform: translateX(-50%); display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 0 22px; background: ${P.giallo}; color: ${P.neroCaldo}; border: 2px solid ${P.neroCaldo}; box-shadow: 0 4px 0 ${P.neroCaldo}; font: bold 20px ui-monospace, Menlo, monospace; letter-spacing: .06em; cursor: pointer; }
-#mzFoto .mz-fo-scatta:active { transform: translate(-50%, 3px); box-shadow: 0 1px 0 ${P.neroCaldo}; }
-#mzFoto .mz-fo-scatta:disabled { background: ${P.pietra}; cursor: default; }
-#mzFoto .mz-fo-lampo { position: absolute; inset: 0; z-index: 4; background: ${P.sabbiaChiara}; opacity: 0; pointer-events: none; }
+#mzFoto .mz-fo-scatta { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); transform: translateX(-50%); display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 0 22px; background: ${L.acqua}; color: ${L.cartaChiara}; border: 2px solid ${L.inchiostro}; box-shadow: 0 4px 0 ${L.inchiostro}; font: 700 20px ${FONT_LIBRO}; letter-spacing: .06em; cursor: pointer; }
+#mzFoto .mz-fo-scatta:active { transform: translate(-50%, 3px); box-shadow: 0 1px 0 ${L.inchiostro}; }
+#mzFoto .mz-fo-scatta:disabled { background: ${L.inchiostro2}; cursor: default; }
+#mzFoto .mz-fo-lampo { position: absolute; inset: 0; z-index: 4; background: ${L.cartaChiara}; opacity: 0; pointer-events: none; }
 #mzFoto .mz-fo-lampo.on { animation: mzFoLampo .3s steps(3) forwards; }
 @keyframes mzFoLampo { from { opacity: 1; } to { opacity: 0; } }
 #mzFoto .mz-fo-ant { position: absolute; inset: 0; z-index: 2; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: calc(max(8px, env(safe-area-inset-top)) + 52px) 12px calc(env(safe-area-inset-bottom, 0px) + 16px); box-sizing: border-box; background: rgba(46,30,20,.94); cursor: default; }
 #mzFoto.ant .mz-fo-ant { display: flex; }
 #mzFoto.ant .mz-fo-scatta, #mzFoto.ant .mz-fo-hint { display: none; }
-#mzFoto .mz-fo-img { flex: none; image-rendering: pixelated; box-shadow: 0 4px 0 ${P.neroCaldo}; }
+#mzFoto .mz-fo-img { flex: none; image-rendering: pixelated; box-shadow: 0 4px 0 ${L.inchiostro}; }
 #mzFoto .mz-fo-act { width: 100%; max-width: 380px; }
 #mzFoto .mz-fo-act .mz-btn { justify-content: center; margin-top: 0; min-height: 52px; font-size: 17px; }
-#mzFoto .mz-fo-note { min-height: 18px; color: ${P.sabbia}; font-size: 13px; font-weight: bold; text-align: center; }
+#mzFoto .mz-fo-note { min-height: 18px; color: ${L.inchiostro2}; font-size: 13px; font-weight: 700; text-align: center; }
 `;
 
 // ---- carattere a pixel 5×7 (maiuscole, cifre, pochi segni): il cartellino è disegnato a pixel come il resto del gioco ----

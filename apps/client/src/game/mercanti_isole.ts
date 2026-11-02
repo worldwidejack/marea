@@ -145,7 +145,7 @@ export function createMercantiIsole(o: MercantiIsoleOpts): MercantiIsole {
     let s: Spot;
     const label = layer.add(() => { if (s) apriSpot(s); });
     const emoji = def.isola === 'adrenalina' ? '🪖' : '🏮';
-    label.set('bubble', [el('span', '', `${emoji} ${def.titolo}`)], def.id);
+    label.set('bubble', [el('span', '', emoji)], def.id); label.el.setAttribute('aria-label', def.titolo);
     label.el.classList.add('spot');
 
     s = { ...def, av: null, meshes: [], label };

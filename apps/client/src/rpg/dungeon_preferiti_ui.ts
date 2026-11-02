@@ -9,26 +9,27 @@ import { tieniPremuto } from '../ui/comandi_touch.ts';
 import { iconaMagia, iconOf, itemIcon } from './items_ui.ts';
 import { N_PREFERITI, ha, inMano, leggiPreferiti, nomeDi, predefiniti, salvaPreferiti, stessi, vociDi } from './dungeon_preferiti.ts';
 import type { InMano, Preferiti, Preferito } from './dungeon_preferiti.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 const RIGHT = 'max(16px, env(safe-area-inset-right, 0px))', SAFE = 'env(safe-area-inset-bottom, 0px)';
 const LATO = 48, GAP = 4, DA_DESTRA = 78, LUNGO_MS = 450; // px: bottoni, tra l'uno e l'altro, dal bordo destro al 3; ms da tenere premuto per cambiare cosa c'è
 // in fila a sinistra della pozione (D): a 390 px stanno tra il joystick e D. Fermi anche quando compare il joystick di mira (sono i bottoni
 // con cui si passa dall'arma alla magia: non devono spostarsi sotto il dito), sopra l'anello; sopra resta posto per la lanterna
 const CSS = `
-.mz-dng-btn.f { box-sizing: border-box; width: ${LATO}px; height: ${LATO}px; bottom: calc(${SAFE} + 150px); background: rgba(46,30,20,.88); gap: 0; }
+.mz-dng-btn.f { box-sizing: border-box; width: ${LATO}px; height: ${LATO}px; bottom: calc(${SAFE} + 150px); background: ${L.carta}; gap: 0; }
 ${Array.from({ length: N_PREFERITI }, (_, n) => `.mz-dng-btn.f${n} { right: calc(${RIGHT} + ${DA_DESTRA + (N_PREFERITI - 1 - n) * (LATO + GAP)}px); }`).join('\n')}
 .mz-dng-btn.f.vuoto { border-style: dashed; opacity: .7; }
-.mz-dng-btn.f .piu { font: bold 22px ui-monospace, Menlo, monospace; line-height: 24px; color: ${PAL.sabbia}; }
+.mz-dng-btn.f .piu { font: 700 22px ${FONT_LIBRO}; line-height: 24px; color: ${L.inchiostro2}; }
 .mz-dng-btn.f small { font-size: 11px; opacity: 1; }
-.mz-dng-pick { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); width: min(320px, calc(100% - 32px)); max-height: min(76%, 560px); box-sizing: border-box; padding: 10px; display: none; flex-direction: column; background: rgba(46,30,20,.97); border: 3px solid ${PAL.giallo}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; z-index: 24; }
+.mz-dng-pick { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); width: min(320px, calc(100% - 32px)); max-height: min(76%, 560px); box-sizing: border-box; padding: 10px; display: none; flex-direction: column; background: ${L.carta}; border: 3px solid ${L.acquaScura}; box-shadow: 0 5px 0 ${L.inchiostro}; z-index: 24; }
 .mz-dng-pick.on { display: flex; }
-.mz-dng-pick b { font-size: 17px; color: ${PAL.giallo}; letter-spacing: .06em; text-align: center; }
-.mz-dng-pick .sub { margin: 3px 0 8px; font-size: 12px; color: ${PAL.sabbia}; text-align: center; }
+.mz-dng-pick b { font-size: 17px; color: ${L.acquaScura}; letter-spacing: .06em; text-align: center; }
+.mz-dng-pick .sub { margin: 3px 0 8px; font-size: 12px; color: ${L.inchiostro2}; text-align: center; }
 .mz-dng-pick .lista { flex: 1; min-height: 0; overflow-y: auto; touch-action: pan-y; }
-.mz-dng-pick button { display: flex; width: 100%; align-items: center; gap: 8px; min-height: 44px; margin: 0 0 4px; padding: 4px 8px; background: ${PAL.legnoScuro}; border: 2px solid ${PAL.legnoChiaro}; box-shadow: 0 3px 0 ${PAL.neroCaldo}; color: ${PAL.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; text-align: left; cursor: pointer; }
-.mz-dng-pick button.cur { border-color: ${PAL.giallo}; }
-.mz-dng-pick button small { margin-left: auto; color: ${PAL.sabbia}; font-size: 11px; }
-.mz-dng-pick .vuoto { margin: 4px 0; text-align: center; color: ${PAL.sabbia}; font-size: 13px; }
+.mz-dng-pick button { display: flex; width: 100%; align-items: center; gap: 8px; min-height: 44px; margin: 0 0 4px; padding: 4px 8px; background: ${L.cartaChiara}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; color: ${L.inchiostro}; font: 700 13px ${FONT_LIBRO}; text-align: left; cursor: pointer; }
+.mz-dng-pick button.cur { border-color: ${L.acquaScura}; }
+.mz-dng-pick button small { margin-left: auto; color: ${L.inchiostro2}; font-size: 11px; }
+.mz-dng-pick .vuoto { margin: 4px 0; text-align: center; color: ${L.inchiostro2}; font-size: 13px; }
 .mz-dng-pick .piede { display: flex; gap: 6px; margin-top: 6px; }
 .mz-dng-pick .piede button { margin: 0; justify-content: center; }
 `;

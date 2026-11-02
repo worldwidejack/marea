@@ -8,12 +8,13 @@ import * as THREE from 'three';
 import type { Camera } from 'three';
 import { EMOTE_IDS, type EmoteId } from '@marea/protocol';
 import type { GameWorld } from './world.ts';
-import { PAL, el } from '../ui/style.ts';
+import { el } from '../ui/style.ts';
 import { topButton } from '../ui/topbar.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { emoteIcon } from './emote_icone.ts';
 export { emoteIcon }; // la usano anche feed e libro degli ospiti
 import { suona } from '../audio/ponte.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type Emotes = {
   play(id: EmoteId): boolean; update(dt: number): void; dispose(): void;
@@ -43,33 +44,32 @@ const GESTI: Partial<Record<EmoteId, { dur: number; hops: number; h: number; spi
 };
 const isEmote = (v: unknown): v is EmoteId => typeof v === 'string' && Object.prototype.hasOwnProperty.call(EMOTE_WORDS, v);
 
-const P = PAL;
 const CSS = `
 #mzEmotes { position: absolute; inset: 0; overflow: hidden; z-index: 6; pointer-events: none !important; }
 .mz-emote { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform; }
-.mz-emote .mz-emote-b { position: relative; display: flex; align-items: center; gap: 6px; padding: 3px 9px 3px 5px; background: rgba(46,30,20,.94); border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; color: ${P.sabbiaChiara}; font: bold 15px ui-monospace, Menlo, monospace; white-space: nowrap; transform-origin: 50% 100%; animation: mzEmPop .3s steps(5) both, mzEmBob .5s steps(2) .3s 4 alternate; }
-.mz-emote[data-who="me"] .mz-emote-b { border-color: ${P.giallo}; }
-.mz-emote .mz-emote-b::before, .mz-emote .mz-emote-b::after { content: ''; position: absolute; left: 50%; background: ${P.neroCaldo}; }
+.mz-emote .mz-emote-b { position: relative; display: flex; align-items: center; gap: 6px; padding: 3px 9px 3px 5px; background: ${L.carta}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; color: ${L.inchiostro}; font: 700 15px ${FONT_LIBRO}; white-space: nowrap; transform-origin: 50% 100%; animation: mzEmPop .3s steps(5) both, mzEmBob .5s steps(2) .3s 4 alternate; }
+.mz-emote[data-who="me"] .mz-emote-b { border-color: ${L.acqua}; }
+.mz-emote .mz-emote-b::before, .mz-emote .mz-emote-b::after { content: ''; position: absolute; left: 50%; background: ${L.inchiostro}; }
 .mz-emote .mz-emote-b::before { bottom: -6px; width: 10px; height: 4px; margin-left: -5px; }
 .mz-emote .mz-emote-b::after { bottom: -${TAIL_PX + 2}px; width: 4px; height: 4px; margin-left: -2px; }
 @keyframes mzEmPop { 0% { transform: scale(.3); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
 @keyframes mzEmBob { from { transform: translateY(0); } to { transform: translateY(-3px); } }
-#mzEmoteRow { position: absolute; z-index: 15; display: none; gap: 6px; padding: 6px; background: rgba(46,30,20,.94); border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; }
+#mzEmoteRow { position: absolute; z-index: 15; display: none; gap: 6px; padding: 6px; background: ${L.carta}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; }
 #mzEmoteRow.on { display: flex; }
-.mz-emote-pick, .mz-emote-more { width: 52px; height: 52px; flex: none; padding: 0; display: flex; align-items: center; justify-content: center; background: ${P.legnoScuro}; border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; cursor: pointer; }
-.mz-emote-pick:active:not(:disabled), .mz-emote-more:active { transform: translateY(2px); box-shadow: 0 1px 0 ${P.neroCaldo}; }
-.mz-emote-pick:disabled { border-color: ${P.pietraScura}; cursor: default; }
+.mz-emote-pick, .mz-emote-more { width: 52px; height: 52px; flex: none; padding: 0; display: flex; align-items: center; justify-content: center; background: ${L.cartaChiara}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; cursor: pointer; }
+.mz-emote-pick:active:not(:disabled), .mz-emote-more:active { transform: translateY(2px); box-shadow: 0 1px 0 ${L.inchiostro}; }
+.mz-emote-pick:disabled { border-color: ${L.filo}; cursor: default; }
 .mz-emote-pick:disabled .mz-ico { opacity: .5; }
 #mzEmoteBtn { touch-action: none; -webkit-touch-callout: none; }
 #mzEmoteWheel { position: absolute; inset: 0; z-index: 16; display: none; touch-action: none; cursor: default; }
 #mzEmoteWheel.on { display: block; }
 .mz-wheel { position: absolute; left: 0; top: 0; width: 0; height: 0; }
 .mz-wheel-bg { position: absolute; left: -${WHEEL_R}px; top: -${WHEEL_R}px; width: ${WHEEL_R * 2}px; height: ${WHEEL_R * 2}px; background: rgba(46,30,20,.62); clip-path: polygon(29% 0, 71% 0, 100% 29%, 100% 71%, 71% 100%, 29% 100%, 0 71%, 0 29%); pointer-events: none; }
-.mz-wheel-t { position: absolute; width: ${TILE}px; height: ${TILE}px; margin: -${TILE / 2}px 0 0 -${TILE / 2}px; display: flex; align-items: center; justify-content: center; background: ${P.legnoScuro}; border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; box-sizing: border-box; pointer-events: none; }
-.mz-wheel-t.sel { background: ${P.legno}; border-color: ${P.giallo}; transform: scale(1.14); z-index: 1; }
-.mz-wheel-t.off { border-color: ${P.pietraScura}; } .mz-wheel-t.off .mz-ico { opacity: .5; }
-.mz-wheel-t i { position: absolute; left: 2px; top: 0; font: bold 11px ui-monospace, Menlo, monospace; font-style: normal; color: ${P.sabbia}; }
-.mz-wheel-c { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); padding: 2px 6px; background: rgba(46,30,20,.94); border: 2px solid ${P.legnoChiaro}; color: ${P.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; white-space: nowrap; pointer-events: none; }
+.mz-wheel-t { position: absolute; width: ${TILE}px; height: ${TILE}px; margin: -${TILE / 2}px 0 0 -${TILE / 2}px; display: flex; align-items: center; justify-content: center; background: ${L.cartaChiara}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; box-sizing: border-box; pointer-events: none; }
+.mz-wheel-t.sel { background: ${L.filo}; border-color: ${L.acqua}; transform: scale(1.14); z-index: 1; }
+.mz-wheel-t.off { border-color: ${L.filo}; } .mz-wheel-t.off .mz-ico { opacity: .5; }
+.mz-wheel-t i { position: absolute; left: 2px; top: 0; font: 700 11px ${FONT_LIBRO}; font-style: normal; color: ${L.inchiostro2}; }
+.mz-wheel-c { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); padding: 2px 6px; background: ${L.carta}; border: 2px solid ${L.oro}; color: ${L.inchiostro}; font: 700 13px ${FONT_LIBRO}; white-space: nowrap; pointer-events: none; }
 .mz-wheel-c:empty { display: none; }
 `;
 let styled = false;

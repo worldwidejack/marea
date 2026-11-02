@@ -21,6 +21,7 @@ import { PAL, el } from '../ui/style.ts';
 import { spezza } from '../ui/pagine_testo.ts';
 import { insettoCanvas } from '../ui/insetti_sprite.ts';
 import { pesceCanvas } from '../ui/pesci_sprite.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta' | 'banco' | 'pala' | 'retino' | 'canna'; id: string; nome: string; monete: number; x: number; z: number; fx: number; fz: number };
 export type Fulvio = {
@@ -32,12 +33,12 @@ export type Fulvio = {
 
 const CSS = `
 #mzNegozio { max-width: 560px; margin: 0 auto; }
-#mzNegozio .fv-dice { margin: 8px 0 4px; color: ${PAL.sabbiaChiara}; font-size: 16px; line-height: 1.4; }
-#mzNegozio .prezzo { margin: 8px 0; color: ${PAL.sabbia}; font-size: 14px; line-height: 1.35; }
-#mzNegozio .prezzo.manca { color: ${PAL.rosso}; font-weight: bold; }
-#mzNegozio .fv-n { margin-right: 8px; color: ${PAL.sabbia}; font-size: 13px; }
-#mzNegozio .mz-btn.attesa:disabled { background: ${PAL.arancio}; color: ${PAL.neroCaldo}; border-color: ${PAL.neroCaldo}; opacity: .55; }
-#mzNegozio h3 { margin: 12px 0 2px; color: ${PAL.giallo}; font: bold 14px ui-monospace, Menlo, monospace; }
+#mzNegozio .fv-dice { margin: 8px 0 4px; color: ${L.inchiostro}; font-size: 16px; line-height: 1.4; }
+#mzNegozio .prezzo { margin: 8px 0; color: ${L.inchiostro2}; font-size: 14px; line-height: 1.35; }
+#mzNegozio .prezzo.manca { color: ${L.rosso}; font-weight: 700; }
+#mzNegozio .fv-n { margin-right: 8px; color: ${L.inchiostro2}; font-size: 13px; }
+#mzNegozio .mz-btn.attesa:disabled { background: ${L.oroScuro}; color: ${L.inchiostro}; border-color: ${L.inchiostro}; opacity: .55; }
+#mzNegozio h3 { margin: 12px 0 2px; color: ${L.acquaScura}; font: 700 14px ${FONT_LIBRO}; }
 `;
 /** «la prima volta che ci parli» resta su questo telefono/computer. */
 const CHIAVE = 'marea.fulvio.conosciuto';

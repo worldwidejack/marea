@@ -4,6 +4,7 @@
 // un pollice basta.
 import type { TAzione, TOfferta } from '@marea/sim/templari/types.ts';
 import { PAL, el, injectUiStyle } from '../ui/style.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type BottegaUi = {
   readonly aperta: 'mercante' | 'strega' | null;
@@ -21,24 +22,24 @@ const TESTI = {
 
 const CSS = `
 #mzBottega { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 35; width: min(440px, calc(100% - 24px)); max-height: calc(100% - 140px);
-  overflow: auto; display: none; background: rgba(35,32,31,.95); border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 4px 0 ${PAL.neroCaldo}; color: ${PAL.sabbiaChiara};
-  font: bold 14px/1.25 ui-monospace, Menlo, monospace; pointer-events: auto; }
+  overflow: auto; display: none; background: ${L.carta}; border: 3px solid ${L.inchiostro}; box-shadow: 0 4px 0 ${L.inchiostro}; color: ${L.inchiostro};
+  font: 700 14px/1.25 ${FONT_LIBRO}; pointer-events: auto; }
 #mzBottega.on { display: block; }
 #mzBottega header { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border-bottom: 3px solid currentColor; }
 #mzBottega header div { flex: 1; }
-#mzBottega header b { display: block; font: bold 16px/1.2 'Press Start 2P', ui-monospace, monospace; }
-#mzBottega header small { display: block; margin-top: 4px; color: ${PAL.sabbia}; font-size: 12px; }
-#mzBottega header i { font-style: normal; color: ${PAL.giallo}; font-size: 18px; }
+#mzBottega header b { display: block; font: 700 16px/1.2 'Press Start 2P', ui-monospace, monospace; }
+#mzBottega header small { display: block; margin-top: 4px; color: ${L.inchiostro2}; font-size: 12px; }
+#mzBottega header i { font-style: normal; color: ${L.acquaScura}; font-size: 18px; }
 #mzBottega ul { list-style: none; margin: 0; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
 #mzBottega button.voce { width: 100%; min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 6px 10px; text-align: left; cursor: pointer;
-  background: ${PAL.ombraCalda}; color: ${PAL.sabbiaChiara}; border: 2px solid ${PAL.legnoScuro}; font: inherit; }
-#mzBottega button.voce:hover:not(:disabled) { border-color: ${PAL.giallo}; }
+  background: ${L.cartaScura}; color: ${L.inchiostro}; border: 2px solid ${L.cartaChiara}; font: inherit; }
+#mzBottega button.voce:hover:not(:disabled) { border-color: ${L.acquaScura}; }
 #mzBottega button.voce:disabled { opacity: .5; cursor: default; }
-#mzBottega button.voce.presa { opacity: .8; border-color: ${PAL.erba}; }
+#mzBottega button.voce.presa { opacity: .8; border-color: ${L.acqua}; }
 #mzBottega button.voce span { flex: 1; }
-#mzBottega button.voce small { display: block; font-weight: normal; color: ${PAL.sabbia}; font-size: 12px; margin-top: 2px; }
-#mzBottega button.voce em { font-style: normal; color: ${PAL.giallo}; white-space: nowrap; }
-#mzBottega button.voce.caro em { color: ${PAL.rosso}; }
+#mzBottega button.voce small { display: block; font-weight: normal; color: ${L.inchiostro2}; font-size: 12px; margin-top: 2px; }
+#mzBottega button.voce em { font-style: normal; color: ${L.acquaScura}; white-space: nowrap; }
+#mzBottega button.voce.caro em { color: ${L.rosso}; }
 `;
 
 export function createBottegaUi(root: HTMLElement, compra: (a: TAzione) => void): BottegaUi {
