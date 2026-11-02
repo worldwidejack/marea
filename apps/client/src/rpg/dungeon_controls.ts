@@ -72,7 +72,7 @@ const CSS = `
 .mz-dng-exit.on { display: flex; }
 .mz-dng-exit.valv { background: ${PAL.acquaBassa}; }
 .mz-dng-exit.tim { background: ${L.oroScuro}; }
-.mz-dng-lan { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); width: min(300px, calc(100% - 32px)); padding: 8px 10px 10px; display: none; background: ${L.carta}; border: 3px solid ${L.acquaScura}; box-shadow: 0 5px 0 ${L.inchiostro}; z-index: 16; text-align: center; }
+.mz-dng-lan { position: absolute; left: 50%; top: 52%; transform: translateX(-50%); width: min(300px, calc(100% - 32px)); padding: 8px 10px 10px; display: none; background: ${L.carta}; border: 3px solid ${L.acquaScura}; box-shadow: 0 5px 0 ${L.inchiostro}; z-index: 16; text-align: center; }
 .mz-dng-lan.on { display: block; }
 .mz-dng-lan b { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 16px; color: ${L.acquaScura}; letter-spacing: .06em; }
 .mz-dng-lan b i { display: block; width: 8px; height: 12px; background: ${L.acquaScura}; box-shadow: 0 0 0 2px ${L.oroScuro}, 0 0 10px ${L.acquaScura}; }
