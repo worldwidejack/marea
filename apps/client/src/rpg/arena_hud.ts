@@ -48,7 +48,7 @@ body.mz-arena.mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-rig
 .mz-ar-lato.lui { text-align: right; border-color: ${L.rosso}; }
 .mz-ar-lato .nome { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mz-ar-lato .eroe + .eroe { margin-top: 3px; }
-.mz-ar-lato.sq .nome { font-size: 11px; }
+.mz-ar-lato.sq .nome { font-size: 11px; line-height: 1.05; }
 .mz-ar-lato.sq .mz-ar-bar { height: 8px; margin-top: 1px; }
 .mz-ar-lato .eroe.giu { opacity: .45; }
 .mz-ar-badge { position: absolute; left: 50%; top: calc(${TOP} + 74px); transform: translateX(-50%); padding: 4px 12px; background: ${L.carta}; border: 2px solid ${L.acqua}; box-shadow: 0 3px 0 ${L.inchiostro}; font-weight: 700; font-size: 13px; z-index: 13; pointer-events: none !important; display: none; white-space: nowrap; }
