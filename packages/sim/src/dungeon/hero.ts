@@ -11,7 +11,8 @@ import { lineOfSight, moveCircle } from './map.ts';
 import {
   BEVE_TICKS, COLPI, COS_BOMBA, COS_CONO_ARCO, COS_RAGGIO, COS_SEMICERCHIO, FRECCIA_Y, GIRO_TEMPO, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y, HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS,
 } from './tuning.ts';
-import { sweepTo, swept, swingStyle } from './swing.ts';
+import { stepSchivata, velocitaSchivata } from './schivata.ts';
+import { faseSwing, sweepTo, swept, swingStyle } from './swing.ts';
 import { aimDir } from './mira.ts'; import { consuma, rebuild } from './zaino.ts';
 import { apriValvola, valvolaVicina } from './acque.ts'; import { giraTimone, timoneVicino } from './vento.ts';
 import { alto } from './muove.ts'; import { accendi, braciereVicino } from './braci.ts'; import { aimAlleato, canale, fermaCanale, isSupporto, lanciaBomba } from './magie.ts';
@@ -87,7 +88,7 @@ function startSwing(s: DungeonState, caricato: boolean): void {
  *  arco, se ha colpito qualcuno, l'arma fragile si consuma. */
 function sweepSwing(s: DungeonState): void {
   const h = s.hero, a = h.arma, rh = s.runHero;
-  const k = swept(h.stile, h.actT / h.actDur), fatto = k * COLPI[h.stile].arco;
+  const k = swept(h.stile, faseSwing(h.stile, h.actT / h.actDur, h.actDur / HZ)), fatto = k * COLPI[h.stile].arco;
   if (k > 0) {
     const mod = a.classe === 'pesante' ? 'dannoPesanti' : 'dannoLeggere';
     const danno = a.danno * (h.caricato ? a.caricaMolt : 1) * (1 + buff(s, mod)) * moltRitmo(s) * (h.poppa ? 1 + (a.traits.poppa?.danno ?? 0) : 1) * (h.ondaNeve ? 1 + (a.traits.fresca?.danno ?? 0) : 1);
@@ -277,6 +278,8 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   let aDown = inp.a && !h.prevA;
   const cDown = inp.c && !h.prevC, dDown = inp.d && !h.prevD, eDown = !!inp.e && !h.prevE;
   h.prevA = inp.a; h.prevC = inp.c; h.prevD = inp.d; h.prevE = !!inp.e;
+  stepSchivata(h, inp);
+  if (h.act === 'schiva') aDown = false;
   const dir = aimDir(inp.m);
   // uscita: A sulla scala vince su tutto
   if (aDown && vicinoUscita(s)) { s.done = true; s.outcome = 'uscito'; ev(s, { t: 'uscita' }); return; }
@@ -370,9 +373,12 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   if (h.lento > 0) v *= h.lentoMolt; // Tubo-strisciante
   v *= (1 - malusDi(s)) * rh.armatura.velocitaMolt;
   const x0 = h.x, z0 = h.z;
+  if (h.act === 'schiva') {
+    mx = h.fx; my = h.fz; v = velocitaSchivata(h); h.moving = v > 0; h.running = false;
+  }
   if (h.moving) {
     moveCircle(s.map, h, mx * v * DT, my * v * DT, rh.raggio);
-    if (h.act !== 'swing' && h.act !== 'tira' && h.act !== 'lancia' && !arcoLibero && h.canale === 0 && !(dir && (h.act === 'tende' || h.act === 'punta'))) { h.fx = mx / mag; h.fz = my / mag; }
+    if (h.act !== 'schiva' && h.act !== 'swing' && h.act !== 'tira' && h.act !== 'lancia' && !arcoLibero && h.canale === 0 && !(dir && (h.act === 'tende' || h.act === 'punta'))) { h.fx = mx / mag; h.fz = my / mag; }
   }
   caricaBarriera(s); // Mausoleo: l'Armatura del Moto Perpetuo si carica camminando
   caricaBrezza(s, x0, z0); // Diga: correndo la vela dell'Albero della «Stella del Mattino» si gonfia
@@ -387,5 +393,5 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   separaEroi(s); // Arena: nemmeno l'avversario si attraversa
   // rigenerazione (la stamina non torna mentre corri o tendi un arco che la consuma)
   h.vita = Math.min(rh.max.vita, h.vita + (rh.regen.vita + buff(s, 'regenVita')) * DT); h.magicka = Math.min(rh.max.magicka, h.magicka + (rh.regen.magicka + buff(s, 'regenMagicka')) * DT);
-  if (!h.running && !(h.act === 'tende' && (a.traits.staminaTeso ?? 0) > 0)) h.stamina = Math.min(rh.max.stamina, h.stamina + (rh.regen.stamina + buff(s, 'regenStamina')) * DT);
+  if (!h.running && !(h.rollCd && h.rollCd > 0) && !(h.act === 'tende' && (a.traits.staminaTeso ?? 0) > 0)) h.stamina = Math.min(rh.max.stamina, h.stamina + (rh.regen.stamina + buff(s, 'regenStamina')) * DT);
 }

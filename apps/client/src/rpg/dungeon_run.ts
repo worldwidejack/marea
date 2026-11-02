@@ -79,8 +79,8 @@ const vaelen = (v: DungeonView) => { const k = v.nemici.find((n) => n.tipo === '
 const mastro = (v: DungeonView) => { const k = v.nemici.find((n) => n.tipo === 'mastro_forgiatore'); return k ? { x: k.x, z: k.z, vita: k.vita, max: k.max, anim: k.anim, attacco: k.attacco ?? null, mira: k.mira ?? null, spento: !!k.spento } : null; };
 /** Insieme: tick in cuscinetto prima di ripartire dopo uno stallo, oltre cui si va a 2 tick per frame, oltre cui si recupera di corsa. */
 const CUSCINETTO = 2 * SQ_TICKS, SVELTO = 4 * SQ_TICKS, RECUPERO = 30 * SQ_TICKS;
-const bitsOf = (f: DungeonInput) => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0) | (f.e ? 16 : 0);
-const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...(x[3] ? { m: x[3] } : {}) });
+const bitsOf = (f: DungeonInput) => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0) | (f.e ? 16 : 0) | (f.roll ? 32 : 0);
+const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...((x[2] & 32) !== 0 ? { roll: true } : {}), ...(x[3] ? { m: x[3] } : {}) });
 
 type Amico = { i: number; nome: string; actor: HeroActor | null; arma: string | null; done: boolean };
 
@@ -335,7 +335,7 @@ export function startRun(ctx: RunCtx, o: {
       if (act === 'tira' || act === 'lancia') tapT = 0;
     }
     const a = f.a || c.a || aTap, m = aTap ? 0 : c.m || (a || s.hero.act === 'tende' || s.hero.act === 'punta' ? puntaMouse() : 0); // la mira solo mentre si preme (e al rilascio dell'arco): il log resta corto; il joystick di mira porta la sua
-    return { mx: f.mx, my: f.my, a, b: f.b, c: false, d: c.d, ...(c.e ? { e: true } : {}), ...(m ? { m } : {}) };
+    return { mx: f.mx, my: f.my, a, b: f.b, roll: f.roll, c: false, d: c.d, ...(c.e ? { e: true } : {}), ...(m ? { m } : {}) };
   }
 
   function tickOnce(f: InputFrame): void {

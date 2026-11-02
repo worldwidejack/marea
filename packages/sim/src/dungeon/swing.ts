@@ -5,9 +5,22 @@
 // polinomiale fatto solo di + − × ÷ (errore < 0,001°), identico su ogni motore JS.
 import type { RunWeapon } from '../rpg/types.ts';
 import { hasItem, itemDef } from '../rpg/items.ts';
+import { RPG } from '@marea/content/rpg.ts';
 import { COLPI } from './tuning.ts';
 
 export type SwingStyle = keyof typeof COLPI;
+/** Tempo reale → fase artistica comune a lama, scia e collisione. La lentezza si legge nella preparazione e nel recupero. */
+export function faseSwing(st: SwingStyle, t: number, durata: number): number {
+  const r = RPG.ritmoColpi, c = COLPI[st];
+  if (st !== 'giro' && durata <= r.sogliaPesante) return Math.max(0, Math.min(1, t));
+  const attivo = Math.min(st === 'giro' ? r.giro : r.swing, durata * (c.a - c.da));
+  const prepara = st === 'giro' ? Math.min(r.preparazioneMin, durata * c.da) : durata * r.preparazione;
+  const recupero = durata - prepara - attivo;
+  const tempo = t * durata;
+  if (tempo < prepara) return c.da * tempo / prepara;
+  if (tempo < prepara + attivo) { const p = (tempo - prepara) / attivo; return c.da + (c.a - c.da) * p * p * (3 - 2 * p); }
+  return Math.min(1, c.a + (1 - c.a) * (tempo - prepara - attivo) / recupero);
+}
 const TAU = 2 * Math.PI;
 
 /** Stile del colpo: caricato pieno = giro completo; lancia = affondo stretto; pugni = gancio; il resto = fendente largo. */

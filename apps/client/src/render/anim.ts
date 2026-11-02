@@ -8,6 +8,7 @@ export type Animator = {
   /** Passa alla clip `name` con crossfade di `fadeS` s (default 0,15). Ritorna false se la clip non esiste (nessun effetto). */
   play(name: string, fadeS?: number, opts?: PlayOpts): boolean;
   update(dt: number): void;
+  seek(phase: number): void;
   /** Nome richiesto dell'ultima clip avviata. */
   current: string;
   has(name: string): boolean;
@@ -53,6 +54,7 @@ export function createAnimator(root: THREE.Object3D, clips: THREE.AnimationClip[
       cur = next; curOnce = !!opts.once; base = r.scale; onDone = opts.onDone; applyScale();
       return true;
     },
+    seek(phase) { if (cur) { cur.time = Math.max(0, Math.min(1, phase)) * cur.getClip().duration; mixer.update(0); } },
     update: (dt) => mixer.update(dt),
   };
   return api;

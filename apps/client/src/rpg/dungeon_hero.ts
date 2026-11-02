@@ -1,14 +1,3 @@
-// Eroe nel dungeon (R-scena): l'avatar del giocatore (`createAvatar`, look di world.look) mosso dalla vista della sim; clip idle/walk/run
-// sotto e, sopra, una posa procedurale per ogni HeroAnim. La posa dice dove va il pugno (spazio del corpo) e dove punta l'arma: il braccio
-// ci arriva con un'IK a due ossa e l'arma sta sempre nel pugno. I colpi di mischia seguono l'arco della sim (swing.ts, stesso angolo della
-// lama a ogni fase: quel che si vede è quel che colpisce): fendente orizzontale da destra a sinistra, affondo della lancia, gancio dei
-// pugni, giro completo del caricato. Carica: corpo girato, gambe piegate, arma bassa dietro, mano sinistra e testa verso il bersaglio,
-// lama che si accende a gradini; al pieno lampo, tremito e lama che lampeggia. Scia, anello di carica, onda e stella in hero_fx.ts.
-// Arco: corda verso chi tira; tendendo la corda segue la mano destra con la freccia incoccata (arco.ts) e, per l'eroe di questo client,
-// una linea a trattini mostra per qualche metro dove partirà la freccia (la mira automatica della sim, se c'è un bersaglio; col mouse, sempre,
-// verso il cursore). Magia in mano (v6, `DungeonView.hero.magia`): l'arma sparisce, le due mani stanno avanti col petto e tra loro c'è la sfera
-// della magia (hero_magia.ts); al lancio le mani scattano avanti e la sfera parte.
-// Le ossa del glTF arrivano senza punti nel nome (three toglie «.» dai nomi dei nodi: UpperArm.R → UpperArmR).
 import * as THREE from 'three';
 import type { Indossa, Look } from '@marea/protocol';
 import type { RunWeapon } from '@marea/sim/rpg/types.ts';
@@ -71,7 +60,6 @@ type V3 = THREE.Vector3;
 type Kind = 'lama' | 'lancia' | 'pugni' | 'arco' | 'fuoco' | 'magia';
 const v3 = (x = 0, y = 0, z = 0): V3 => new THREE.Vector3(x, y, z);
 const X = v3(1, 0, 0), Y = v3(0, 1, 0), Z = v3(0, 0, 1);
-const UPPER = 0.2754, FOREARM = 0.27; // m: spalla → gomito (glTF), gomito → pugno
 const R_PUGNO = 0.45; // m dall'asse del corpo al pugno nei fendenti e nel giro
 const ORBE_SU = v3(0, 0.1, 0); // la sfera sta un po' sopra il punto tra i due pugni
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -128,6 +116,12 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     thighR: bone('UpperLeg.R'), thighL: bone('UpperLeg.L'), shinR: bone('LowerLeg.R'), shinL: bone('LowerLeg.L'),
   };
   const inner = avatar.object.children[0] ?? avatar.object;
+  avatar.object.updateMatrixWorld(true);
+  const upper = B.armR && B.foreR ? B.armR.getWorldPosition(v3()).distanceTo(B.foreR.getWorldPosition(v3())) : 0.2754;
+  const hand = bone('Hand.R'), lower = hand && B.foreR ? hand.getWorldPosition(v3()).distanceTo(B.foreR.getWorldPosition(v3())) : upper * 0.91;
+  const shoulderY = B.armR ? inner.worldToLocal(B.armR.getWorldPosition(v3())).y : 1.26;
+  const armScale = (upper + lower) / 0.5454, heightScale = shoulderY / 1.26;
+  let heavy = o.hero.arma.classe === 'pesante';
   // Le ossa che ritocchiamo sopra la clip. Il mixer di three riscrive un osso solo se il valore della clip cambia: da fermi (idle quasi
   // costante) non cancella le nostre rotazioni, e ogni frame se ne sommava un'altra (gambe/schiena impazzite). Quindi: prima del mixer si
   // rimette la posa pulita, dopo il mixer la si salva, e poi si applicano le rotazioni.
@@ -151,6 +145,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   let fx: HeroFx = fxFor(pugni().portata);
   /** Monta l'arma nel pugno (all'inizio e a ogni cambio dal menu); se nel frattempo ne arriva un'altra, vince l'ultima. */
   async function mount(arma: ArmaInMano): Promise<void> {
+    heavy = arma.classe === 'pesante';
     const my = ++mountN, b = arma.kind === 'arco';
     const def = arma.id && hasItem(arma.id) ? itemDef(arma.id) : null;
     let w: THREE.Object3D | null = null, mats: THREE.MeshLambertMaterial[] = [], len = 0;
@@ -205,8 +200,8 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     if (!up || !lo || !up.parent || w < 1e-3) return;
     up.getWorldPosition(S);
     D.subVectors(target, S); let d = D.length(); if (d < 1e-4) return; D.divideScalar(d);
-    d = clamp(d, 0.1, UPPER + FOREARM - 1e-3);
-    const a = (UPPER * UPPER - FOREARM * FOREARM + d * d) / (2 * d), hh = Math.sqrt(Math.max(0, UPPER * UPPER - a * a));
+    d = clamp(d, 0.1, upper + lower - 1e-3);
+    const a = (upper * upper - lower * lower + d * d) / (2 * d), hh = Math.sqrt(Math.max(0, upper * upper - a * a));
     P.copy(pole).addScaledVector(D, -pole.dot(D));
     if (P.lengthSq() < 1e-6) P.set(0, -1, 0).addScaledVector(D, D.y);
     P.normalize();
@@ -230,15 +225,16 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
       case 'fuoco': p.wR = 1; p.fR.set(0.17, 1.2, -0.34); p.dir.set(0, 0.04, -1).normalize(); p.piatto.set(0, 1, 0); p.wA = 1; p.wL = 1; p.fL.copy(p.fR).addScaledVector(p.dir, Math.min(0.32, bladeLen * 0.5)).add(tmp.set(-0.06, -0.04, 0)); break;
       default: p.dir.set(0, 1, -0.12).normalize(); p.piatto.set(0, 0, 1); p.wA = 1; // arco dritto nella sinistra, corda verso di sé, braccia della clip
     }
+    if (heavy && kind === 'lama') { p.wL = 1; p.fL.copy(p.fR).addScaledVector(p.dir, 0.16); }
   }
-  /** Fendente (lama) o gancio (pugni): presa all'indietro, arco della sim a velocità costante, accompagnamento, ritorno in guardia. */
+  /** Fendente (lama) o gancio (pugni): presa all'indietro, arco della sim con accelerazione, accompagnamento, ritorno in guardia. */
   function slash(p: Pose, st: SwingStyle, t: number): void {
     guard(p);
     const c = COLPI[st], rate = c.arco / (c.a - c.da), pg = kind === 'pugni';
     const lead = pg ? 0.5 : 0.85, follow = pg ? 0.3 : 0.5, back = c.inizio + lead;
     const tc = Math.max(0.06, c.da - lead / rate), end = c.inizio - c.arco, tf = Math.min(0.92, c.a + 0.14);
     let phi: number;
-    if (t < tc) phi = lerp(G_LAMA, back, smooth(0, tc * 0.75, t));
+    if (t < tc) phi = lerp(G_LAMA, back, smooth(0, tc, t));
     else if (t < c.da) phi = lerp(back, c.inizio, (t - tc) / (c.da - tc));
     else if (t <= c.a) phi = bladeAngle(st, t);
     else if (t < tf) phi = end - follow * easeOut((t - c.a) / (tf - c.a));
@@ -257,7 +253,9 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     }
     p.twist = clamp(0.5 * phi, -0.75, 0.95) * e;
     p.lean = (0.1 + 0.12 * Math.sin(Math.PI * clamp((t - c.da) / (c.a - c.da), 0, 1))) * e;
-    p.crouch = 0.3 * e;
+    p.crouch = (heavy ? 0.48 : 0.3) * e;
+    p.headYaw = -p.twist * 0.65;
+    if (heavy && !pg) { p.wL = 1; p.fL.copy(p.fR).addScaledVector(p.punta ? tmp.copy(p.punta).sub(p.fR).normalize() : p.dir, 0.16); }
   }
   /** Affondo della lancia: tira indietro, spinge avanti lungo l'arco stretto della sim, resta teso, torna. */
   function thrust(p: Pose, t: number): void {
@@ -352,11 +350,11 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     if (!fore) { weapon.position.copy(avatar.object.position).add(v3(0.3, 0.9, 0).applyQuaternion(avatar.object.quaternion)); weapon.quaternion.copy(avatar.object.quaternion); return; }
     fore.getWorldPosition(wrist);
     fdir.set(0, 1, 0).applyQuaternion(fore.getWorldQuaternion(qp)).normalize(); // l'osso guarda lungo +Y (convenzione Blender)
-    wrist.addScaledVector(fdir, FOREARM); // pugno
+    wrist.addScaledVector(fdir, lower); // pugno
     inner.getWorldQuaternion(qr);
     // come nelle clip: perpendicolare all'avambraccio, Rx(+90°) nello spazio del corpo
     def0.copy(fdir).applyQuaternion(qi.copy(qr).invert()).applyAxisAngle(X, Math.PI / 2).applyQuaternion(qr).normalize();
-    if (p.punta) want.copy(p.punta).applyMatrix4(inner.matrixWorld).sub(wrist).normalize();
+    if (p.punta) want.copy(p.punta).setY(p.punta.y * heightScale).applyMatrix4(inner.matrixWorld).sub(wrist).normalize();
     else want.copy(p.dir).applyQuaternion(qr);
     const yA = def0.lerp(want, p.wA).normalize();
     piatto.copy(p.piatto).applyQuaternion(qr).addScaledVector(yA, -piatto.dot(yA));
@@ -391,8 +389,8 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
       p.fR.applyAxisAngle(Y, a); p.fL.applyAxisAngle(Y, a); p.dir.applyAxisAngle(Y, a); p.piatto.applyAxisAngle(Y, a); p.punta?.applyAxisAngle(Y, a);
     }
     inner.getWorldQuaternion(qr);
-    ik(B.armR, B.foreR, wpR.copy(p.fR).applyMatrix4(inner.matrixWorld), tmp.copy(POLE_R).applyQuaternion(qr), p.wR);
-    ik(B.armL, B.foreL, wpL.copy(p.fL).applyMatrix4(inner.matrixWorld), tmp.copy(POLE_L).applyQuaternion(qr), p.wL);
+    ik(B.armR, B.foreR, wpR.copy(p.fR).multiply(tmpA.set(armScale, heightScale, armScale)).applyMatrix4(inner.matrixWorld), tmp.copy(POLE_R).applyQuaternion(qr), p.wR);
+    ik(B.armL, B.foreL, wpL.copy(p.fL).multiply(tmpA.set(armScale, heightScale, armScale)).applyMatrix4(inner.matrixWorld), tmp.copy(POLE_L).applyQuaternion(qr), p.wL);
     placeWeapon(p);
   }
 
@@ -402,7 +400,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     if (!arco || !weapon?.visible) return;
     if (h.anim !== 'tende' || !B.foreR) { arco.tendi(null, false); return; }
     B.foreR.getWorldPosition(cocca);
-    cocca.addScaledVector(fdir.set(0, 1, 0).applyQuaternion(B.foreR.getWorldQuaternion(qp)).normalize(), FOREARM);
+    cocca.addScaledVector(fdir.set(0, 1, 0).applyQuaternion(B.foreR.getWorldQuaternion(qp)).normalize(), lower);
     weapon.updateMatrixWorld(true); weapon.worldToLocal(cocca);
     cocca.z = clamp(cocca.z, 0.17, 0.8); // mai davanti alla corda a riposo, mai oltre l'allungo
     arco.tendi(cocca, true);
@@ -458,8 +456,8 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
       if (h.anim !== 'carica') pieno = false;
       const d = Math.sqrt((h.x - px) ** 2 + (h.z - pz) ** 2) * 60; px = h.x; pz = h.z;
       speed = speed * 0.7 + d * 0.3;
-      const anim = h.anim === 'morto' ? 'idle' : speed > 4.6 ? 'run' : speed > 0.4 ? 'walk' : 'idle';
-      avatar.setPose({ x: h.x, z: h.z, yaw: Math.atan2(h.fx, -h.fz), anim });
+      const anim = h.anim === 'schiva' ? 'roll' : h.anim === 'morto' ? 'idle' : speed > 4.6 ? 'run' : speed > 0.4 ? 'walk' : 'idle';
+      avatar.setPose({ x: h.x, z: h.z, yaw: Math.atan2(h.fx, -h.fz), anim, t: h.t });
       cur = h;
     },
     update(alpha, dt) {
@@ -472,8 +470,8 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
         pose(target, cur, t, c);
         blendT += dt;
         mixPose(final, from, target, smooth(0, 0.09, blendT));
-        apply(final, dt);
-        orbe.update({ pos: tmp.copy(wpR).add(wpL).multiplyScalar(0.5).add(ORBE_SU), on: !!magiaId && cur.anim !== 'morto', lancio: cur.anim === 'lancia' ? t : -1, dt });
+        if (cur.anim === 'schiva') { inner.position.set(0, 0, 0); inner.rotation.set(0, 0, 0); final.wA = 1; final.punta = null; final.dir.set(-1, 0.25, 0).normalize(); final.piatto.set(0, 0, 1); avatar.object.updateMatrixWorld(true); placeWeapon(final); } else apply(final, dt);
+        orbe.update({ pos: tmp.copy(wpR).add(wpL).multiplyScalar(0.5).add(ORBE_SU), on: !!magiaId && cur.anim !== 'morto' && cur.anim !== 'schiva', lancio: cur.anim === 'lancia' ? t : -1, dt });
         corda(cur); mira(cur, c);
         const g = glow(cur, t, c);
         for (const m of bladeMats) m.emissive.setRGB(g, g * 0.85, g * 0.3);

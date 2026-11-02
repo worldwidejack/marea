@@ -16,9 +16,9 @@ import { ALLEATO_SEGUE, HZ, P_DORME } from './tuning.ts';
 
 export type Bag = Record<string, number>;
 /** Azione in corso dell'eroe. press = A appena premuto (si decide al rilascio o dopo HOLD_TICKS). punta = magia in mano, A tenuta: si mira, la magia parte al rilascio (v8). */
-export type HeroAct = 'idle' | 'press' | 'carica' | 'swing' | 'tende' | 'punta' | 'tira' | 'lancia' | 'beve';
+export type HeroAct = 'schiva' | 'idle' | 'press' | 'carica' | 'swing' | 'tende' | 'punta' | 'tira' | 'lancia' | 'beve';
 export type HeroRt = {
-  x: number; z: number; fx: number; fz: number;
+  prevRoll?: boolean; rollCd?: number; x: number; z: number; fx: number; fz: number;
   vita: number; magicka: number; stamina: number;
   act: HeroAct; actT: number; actDur: number;
   /** Swing: caricato, stile del colpo (swing.ts), nemici già colpiti da questo swing, finestra del colpo chiusa. */

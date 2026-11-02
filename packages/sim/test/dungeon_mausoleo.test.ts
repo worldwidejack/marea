@@ -371,7 +371,9 @@ test('mausoleo: porta sigillata — senza la Fucina completata non si entra, dop
 });
 
 test('mausoleo: una partita col pilota automatico si rigioca uguale (lancette, cancello, chierici, scudi e Guardia nel replay)', () => {
-  const s = nuovo(heroForte(), 1), log: DungeonInput[] = [], rng = createRng(1);
+  // Questo test copre il replay delle meccaniche: abbastanza vita per non ritirarsi prima del cancello.
+  const hero = heroForte(); hero.max.vita = 1000;
+  const s = nuovo(hero, 1), log: DungeonInput[] = [], rng = createRng(1);
   const visti = new Set<string>();
   while (!s.done) {
     const f = quantizeDungeon(dungeon.autopilot(s, rng));
@@ -379,7 +381,7 @@ test('mausoleo: una partita col pilota automatico si rigioca uguale (lancette, c
     for (const e of s.eventi) visti.add(e.t);
   }
   assert.ok(['valvola', 'asciutto', 'lancetta', 'parato'].every((t) => visti.has(t)), [...visti].join(','));
-  const r = replayDungeon(1, 'mausoleo', heroForte(), packDungeon(log));
+  const r = replayDungeon(1, 'mausoleo', hero, packDungeon(log));
   assert.equal(r.hash, dungeon.result(s).hash, 'stesso hash nel replay');
   // il Custode, dalla lanterna dell'Anticamera, anche nel replay
   const t = nuovo(heroForte(), 2, 0), log2: DungeonInput[] = [], rng2 = createRng(2);

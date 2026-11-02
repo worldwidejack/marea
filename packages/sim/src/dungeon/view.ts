@@ -3,6 +3,7 @@
 import { evocazioneNemica } from './pvp.ts';
 import type { RunResult } from '../rpg/types.ts';
 import { hashJson } from '../hash.ts';
+import { faseSwing } from './swing.ts';
 import type { CompagnoView, DungeonView, EnemyAnim, HeroAnim } from './types.ts';
 import type { DungeonState, Enemy, HeroRt } from './state.ts';
 import { conEroe, finita, parte } from './state.ts';
@@ -38,7 +39,8 @@ export function heroAnim(s: DungeonState): { anim: HeroAnim; t: number } {
   const ph = h.actDur > 0 ? Math.min(1, h.actT / h.actDur) : 0;
   switch (h.act) {
     case 'carica': return { anim: 'carica', t: h.carica };
-    case 'swing': return { anim: 'attacca', t: ph };
+    case 'swing': return { anim: 'attacca', t: faseSwing(h.stile, ph, h.actDur / HZ) };
+    case 'schiva': return { anim: 'schiva', t: ph };
     case 'tende': return { anim: 'tende', t: h.carica };
     case 'tira': return { anim: 'tira', t: ph };
     case 'lancia': return { anim: 'lancia', t: ph };
@@ -285,7 +287,7 @@ function acqueHash(s: DungeonState): Record<string, unknown> {
 function parteHash(s: DungeonState): Record<string, unknown> {
   const h = s.hero;
   return {
-    outcome: s.outcome,
+    outcome: s.outcome, ...(h.rollCd || h.act === 'schiva' ? { roll: [h.rollCd, h.actT, h.act, h.fx, h.fz] } : {}),
     hero: [r3(h.x), r3(h.z), r3(h.vita), r3(h.magicka), r3(h.stamina), h.frecce, h.pozioni, ...(h.incanta ? [1] : [])],
     bottino: roundBag(s.bottino), monete: s.monete, uccisi: roundBag(s.uccisi), usati: roundBag(s.usati),
     danni: [r3(s.danniFatti), r3(s.danniPresi)],

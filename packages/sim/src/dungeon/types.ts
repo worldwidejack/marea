@@ -12,7 +12,7 @@ import type { SwingStyle } from './swing.ts';
  * b = corri, c = alterna arma e magia in mano (v6; fino al v5 lanciava la magia preparata), d = pozione. m = mira col mouse (mira.ts, v6):
  * indice d'angolo 1..AIM_N della direzione in cui tirare l'arco o lanciare la magia; assente = mira assistita. Il client registra un frame
  * per tick e lo quantizza con quantizeDungeon (mx, my a 1/8). A sulla scala d'uscita = esci. e = la Scarica dell'arco (perk Scarica, v9), assente = no. */
-export type DungeonInput = { mx: number; my: number; a: boolean; b: boolean; c: boolean; d: boolean; m?: number; e?: boolean };
+export type DungeonInput = { mx: number; my: number; a: boolean; b: boolean; c: boolean; d: boolean; m?: number; e?: boolean; roll?: boolean };
 export const NO_DUNGEON_INPUT: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
 /** RLE: [[ticks, mx×8, my×8, bit a|b<<1|c<<2|d<<3|e<<4, mira?], ...]; la mira (1..AIM_N) c'è solo nelle righe che ce l'hanno. */
 export type PackedDungeon = [number, number, number, number, number?][];
@@ -34,7 +34,7 @@ export type DungeonAzione =
 /** [tick, azione] con tick non decrescenti: tick = passi già fatti quando l'azione è avvenuta. */
 export type DungeonAzioni = [number, DungeonAzione][];
 
-export type HeroAnim = 'fermo' | 'cammina' | 'corre' | 'carica' | 'attacca' | 'tende' | 'tira' | 'lancia' | 'beve' | 'colpito' | 'morto';
+export type HeroAnim = 'schiva' | 'fermo' | 'cammina' | 'corre' | 'carica' | 'attacca' | 'tende' | 'tira' | 'lancia' | 'beve' | 'colpito' | 'morto';
 export type EnemyAnim = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'colpito' | 'morto';
 /** Insieme (#118) ogni evento porta `eroe`: l'indice dell'eroe a cui è successo (o che l'ha causato). Da solo non c'è. */
 export type DungeonEvent = (
