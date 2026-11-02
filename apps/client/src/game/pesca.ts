@@ -85,11 +85,11 @@ export function createPescaBorgo(o: {
   const acqua = (x: number, z: number): boolean => { const c = w.map.worldToCell(x, z), t = w.map.at(c.cx, c.cz); return t === '~' || t === ','; }; // anche l'acqua bassa
   const corpi = pennello(MAX_V, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), 'pesca');
   const ombreM = pennello(MAX_V_OMBRE, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false }), 'pesca_ombre');
-  ombreM.mesh.renderOrder = 2;
+  ombreM.mesh.renderOrder = 2; const mirinoM = pennello(200, new THREE.MeshBasicMaterial({ vertexColors: true, depthTest: false }), 'pesca_mirino'); mirinoM.mesh.renderOrder = 3; // il mirino: pieno, senza luce, sempre sopra l'acqua
   const LENZA_N = 10, lenzaPos = new Float32Array(LENZA_N * 3), lenzaG = new THREE.BufferGeometry();
   lenzaG.setAttribute('position', new THREE.BufferAttribute(lenzaPos, 3).setUsage(THREE.DynamicDrawUsage));
   const lenza = new THREE.Line(lenzaG, new THREE.LineBasicMaterial({ color: PAL.pietraChiara })); lenza.name = 'pesca_lenza'; lenza.frustumCulled = false; lenza.visible = false;
-  w.scene.add(corpi.mesh, ombreM.mesh, lenza);
+  w.scene.add(corpi.mesh, ombreM.mesh, mirinoM.mesh, lenza);
   const scuro = new THREE.Color(PAL.neroCaldo), giallo = new THREE.Color(PAL.giallo), rosso = new THREE.Color(PAL.rosso);
 
   // ——— dove sei ———
@@ -312,7 +312,7 @@ export function createPescaBorgo(o: {
   const puoImpugnare = (): boolean => w.mode === 'walk' && !w.race.on && (inBorgo() || inInterno());
   const conCanna = (): boolean => fase !== 'spento' || (w.avatar.visible && puoImpugnare() && o.inMano() === 'canna');
   const disegna = (dt: number, tempo: number) => {
-    corpi.begin(); ombreM.begin();
+    corpi.begin(); ombreM.begin(); mirinoM.begin();
     const c = centro();
     for (const a of [...ombre.values(), ...mostra]) {
       if (Math.hypot(a.x - c.x, a.z - c.z) > VISTA) continue;
@@ -324,11 +324,11 @@ export function createPescaBorgo(o: {
     const sott = fase === 'morso' ? -0.12 + Math.sin(tempo * 25) * 0.04 : -esca.dip * 0.07;
     if (fase === 'attesa' || fase === 'morso' || fase === 'volo') corpi.put(GALLEGGIANTE, esca.x, esca.y + (fase === 'volo' ? 0 : sott), esca.z, 0, 0, 0, 1.6);
     if (fase === 'mira') {
-      corpi.put(MIRINO, mira.x, 0.08, mira.z, tempo * 0.8, 0, 0, 1 + Math.sin(tempo * 5) * 0.06, mira.ok ? giallo : rosso);
+      mirinoM.put(MIRINO, mira.x, 0.15, mira.z, tempo * 0.8, 0, 0, 1 + Math.sin(tempo * 5) * 0.06, mira.ok ? giallo : rosso);
     }
     for (let i = anelli.length - 1; i >= 0; i--) { const r = anelli[i]!; r.t += dt; if (r.t > 0.8) { anelli.splice(i, 1); continue; } corpi.put(ANELLO, r.x, 0.06, r.z, 0, 0, 0, r.s * (0.25 + r.t * 1.1)); }
     for (let i = spruzzi.length - 1; i >= 0; i--) { const p = spruzzi[i]!; p.t += dt; if (p.t > 0.45) { spruzzi.splice(i, 1); continue; } corpi.put(SPRUZZO, p.x, 0.1 + p.t * 1.6 - p.t * p.t * 4, p.z, p.t * 5, 0, 0, 1.4); }
-    corpi.end(); ombreM.end();
+    corpi.end(); ombreM.end(); mirinoM.end();
     // la lenza: dalla punta della canna al galleggiante, un po' molle
     lenza.visible = fase === 'volo' || fase === 'attesa' || fase === 'morso';
     if (lenza.visible) {

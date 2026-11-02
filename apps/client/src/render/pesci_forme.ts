@@ -26,10 +26,10 @@ export const ANELLO = forma(Array.from({ length: 10 }, (_, i) => {
   const a = (i / 10) * Math.PI * 2;
   return pz(box(0.6, 0.02, 0.07), PAL.pietraChiara, mat(Math.cos(a), 0, Math.sin(a), 0, -a + Math.PI / 2));
 }));
-/** Il mirino del lancio (raggio 0,5): dodici trattini col colore 1 (giallo se si può, rosso se lì non c'è acqua). */
+/** Il mirino del lancio (raggio 0,5): dodici trattini larghi (mesh senza luce, opaca) col colore 1 (giallo se si può, rosso se lì non c'è acqua). */
 export const MIRINO = forma(Array.from({ length: 12 }, (_, i) => {
   const a = (i / 12) * Math.PI * 2;
-  return pz(box(0.16, 0.03, 0.06), 1, mat(Math.cos(a) * 0.5, 0, Math.sin(a) * 0.5, 0, -a + Math.PI / 2));
+  return pz(box(0.26, 0.04, 0.12), 1, mat(Math.cos(a) * 0.55, 0, Math.sin(a) * 0.55, 0, -a + Math.PI / 2));
 }));
 /** Uno spruzzo: tre goccioline chiare. */
 export const SPRUZZO = forma([
