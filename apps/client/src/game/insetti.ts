@@ -236,7 +236,10 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
     try { azioneBtn.setPointerCapture(e.pointerId); } catch { /* niente */ }
   });
   for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) azioneBtn.addEventListener(ev, () => { btnTenuto = false; });
-  azioneBtn.addEventListener('click', () => { if (ctx !== 'retino') agisci(); }); attrBtn.addEventListener('click', cambia);
+  azioneBtn.addEventListener('click', () => { if (ctx !== 'retino') agisci(); });
+  // il cambio parte al tocco, non al click: col joystick tenuto da un altro dito il click può non arrivare (detail 0 = da tastiera)
+  attrBtn.addEventListener('pointerdown', (e) => { if (e.button === 0) cambia(); });
+  attrBtn.addEventListener('click', (e) => { if (e.detail === 0) cambia(); });
   addEventListener('keydown', (e) => {
     if (e.code !== 'KeyQ' || e.repeat || e.altKey || e.ctrlKey || e.metaKey || !puoImpugnare() || w.frozen) return;
     const t = e.target as HTMLElement | null; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
