@@ -115,7 +115,7 @@ export default async function (ctx) {
   });
 
   // ---- (c) barca con setMode, su pagina nuova per stato pulito ----
-  const q = await ctx.open('?test=1&net=0'); await ctx.waitReady(q.page);
+  const q = await ctx.open('?test=1&net=0'); await ctx.waitReady(q.page, 30000);
   await ctx.test('(c) setMode(boat) + ArrowDown 1,5 s → boat.speed > 2', async () => {
     await q.page.evaluate(() => window.__game.test.setMode('boat'));
     await q.page.keyboard.down('ArrowDown'); await waitTicks(q.page, 90);

@@ -387,7 +387,8 @@ export default async function (ctx) {
     });
     await ctx.test('nessun errore per Ada', async () => { ctx.noErrors(P, 'Ada'); });
 
-    // ---- telefono ----
+    // ---- telefono: chiusa la scena desktop, il renderer software lavora su una sola partita ----
+    await P.close();
     const T = await ctx.B.openPage(ctx.browser, `${base}/?t=tokB&test=1`, { viewport: ctx.B.IPHONE }); ctx._pages.push(T);
     const tp = T.page;
     await ctx.waitReady(tp, 30000);

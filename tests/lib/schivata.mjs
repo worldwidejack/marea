@@ -24,7 +24,7 @@ export async function provaSchivata(ctx, page, dungeon) {
     } finally { await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await cdp.detach(); }
     await ctx.waitState(page, s => s.dungeon?.active ? s.dungeon.hero.anim === 'fermo' : s.avatar.anim === 'idle', 10000);
     if (!dungeon) {
-      await ctx.waitState(page, s => !s.avatar.rollCd, 10000);
+      await ctx.waitState(page, s => !s.avatar.rollCd && !s.avatar.prevRoll, 10000);
       await page.keyboard.down('KeyV');
       try { await ctx.waitState(page, s => s.avatar.anim === 'roll', 8000); } finally { await page.keyboard.up('KeyV'); }
       await ctx.waitState(page, s => s.avatar.anim === 'idle', 10000);
