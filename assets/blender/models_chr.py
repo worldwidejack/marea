@@ -1,5 +1,5 @@
-# Dal #287 il `chr_base` del gioco è quello fatto con l'AI (models_chr_ai.py, che da qui prende cappelli, clip e look):
-# questo è il corpo procedurale di prima, che resta come riferimento.
+# Il `chr_base` del gioco è il protagonista (models_chr_eroe.py, che da qui prende cappelli, pose e look): questo è il primo
+# corpo procedurale, che resta per le ossa, le clip e i cappelli di sempre.
 # Personaggio base: umano a 6 teste, 1,6 m, stile PS1 / FF IX. Davanti −Z, piedi a y = 0, origine ai piedi al centro.
 # Nodi (tutti SkinnedMesh sullo stesso scheletro, figli di `chr_base_rig`):
 #   chr_base            corpo: mat_pelle, mat_vestito (maschere bianche tinte dal client), mat_atlas (pantaloni, scarpe, cintura)
@@ -446,7 +446,7 @@ def _tint(mat, hexcol):
     nt = mat.node_tree
     mix = next((n for n in nt.nodes if n.name == 'tinta'), None)
     if not mix:
-        tex = next(n for n in nt.nodes if n.type == 'TEX_IMAGE')
+        tex = next(n for n in nt.nodes if n.type in ('TEX_IMAGE', 'VERTEX_COLOR'))  # texture o colori nei vertici (il protagonista)
         bsdf = next(n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED')
         mix = nt.nodes.new('ShaderNodeMix'); mix.name = 'tinta'
         mix.data_type = 'RGBA'; mix.blend_type = 'MULTIPLY'

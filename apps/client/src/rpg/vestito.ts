@@ -19,6 +19,8 @@ import { boxPart, parts } from './dungeon_kit.ts';
 import type { Part } from './dungeon_kit.ts';
 import { palColor } from './items_ui.ts';
 import { costumeTemplari } from './vestito_templari.ts';
+import { matriciCorpo } from './adatta.ts';
+import type { Corpo } from './adatta.ts';
 import { SX, avamb, lato } from './vestito_pezzi.ts';
 import type { Hue, Osso, Pz, V3 } from './vestito_pezzi.ts';
 
@@ -217,13 +219,14 @@ const SCHIENA: Record<string, PosaSchiena> = {
 // ---------- scatole pesate sulle ossa ----------
 /** Pezzi e scatole fisse → una geometria non indicizzata a colori di vertice, ogni scatola pesata al 100 % sul suo osso. Senza la faccia di sotto delle scatole dritte
  *  (la camera sta sempre sopra l'orizzonte): ~17 % di triangoli in meno. */
-function scatole(pz: Pz[], hue: Hue, extra: typeof FARETRA): THREE.BufferGeometry | null {
+function scatole(pz: Pz[], hue: Hue, extra: typeof FARETRA, adatta: Map<string, THREE.Matrix4> | null): THREE.BufferGeometry | null {
   const gs: THREE.BufferGeometry[] = [];
   const push = (os: Osso, s: V3, at: V3, col: string, r?: V3) => {
     const g = new THREE.BoxGeometry(s[0], s[1], s[2]); g.deleteAttribute('uv');
     if (!r) { const ix = Array.from(g.getIndex()!.array); g.setIndex([...ix.slice(0, 18), ...ix.slice(24)]); } // BoxGeometry: +x −x +y −y +z −z, 6 indici l'una
     else g.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(r[0], r[1], r[2])));
     g.translate(at[0], at[1], at[2]);
+    const am = adatta?.get(os); if (am) g.applyMatrix4(am); // dal manichino al protagonista (rpg/adatta.ts)
     const flat = g.toNonIndexed(); g.dispose();
     const c = new THREE.Color(col), cnt = flat.getAttribute('position').count, rgb = new Float32Array(cnt * 3), si = new Uint16Array(cnt * 4), sw = new Float32Array(cnt * 4), idx = OSSA.indexOf(os);
     for (let k = 0; k < cnt; k++) { rgb[k * 3] = c.r; rgb[k * 3 + 1] = c.g; rgb[k * 3 + 2] = c.b; si[k * 4] = idx; sw[k * 4] = 1; }
@@ -285,12 +288,14 @@ function cuoci(ps: Part[], lama: string, atlante: Pixel | null, m: THREE.Matrix4
   return out?.applyMatrix4(m) ?? null;
 }
 
-export function creaVestito(o: { loader: Loader; root: THREE.Object3D; rest: ReadonlyMap<string, THREE.Matrix4> }): Vestito {
+/** `corpo`: le ossa del protagonista e del manichino (manifest, chr_base): le scatole si portano sul protagonista. */
+export function creaVestito(o: { loader: Loader; root: THREE.Object3D; rest: ReadonlyMap<string, THREE.Matrix4>; corpo?: Corpo }): Vestito {
   const nome = (n: string) => THREE.PropertyBinding.sanitizeNodeName(n);
   const osso = (n: string) => o.root.getObjectByName(nome(n)) ?? o.root.getObjectByName(n) ?? null;
   const bones = OSSA.map((n) => osso(n) as THREE.Bone | null);
   const restOf = (n: string) => o.rest.get(nome(n)) ?? o.rest.get(n) ?? null;
   const ok = bones.every(Boolean) && OSSA.every((n) => restOf(n));
+  const adatta = matriciCorpo(o.corpo);
   const mat = new THREE.MeshLambertMaterial({ name: 'mat_indossa', vertexColors: true, flatShading: true }); // proprio: il lampo dell'eroe colpito non deve accendere gli altri
   const lista: THREE.MeshLambertMaterial[] = [mat]; // sempre la stessa lista (l'eroe la rilegge a ogni frame)
   // le tre parti (armatura, faretra, arma) sono geometrie non indicizzate pesate sulle ossa: `compone` le fonde in UNA SkinnedMesh (un draw call)
@@ -317,12 +322,12 @@ export function creaVestito(o: { loader: Loader; root: THREE.Object3D; rest: Rea
     fOpt = chiave; corpo = null;
     corpoGeo?.dispose(); corpoGeo = null;
     const cost = id ? costumeTemplari(id) : null;
-    if (cost) { corpoGeo = scatole(cost.pezzi, cost.hue, []); corpo = id!; } // i vestiti degli eroi dei Templari (non sono oggetti del GDR)
+    if (cost) { corpoGeo = scatole(cost.pezzi, cost.hue, [], adatta); corpo = id!; } // i vestiti degli eroi dei Templari (non sono oggetti del GDR)
     else if (id && hasItem(id)) {
       const it = itemDef(id), f = it.kind === 'veste' ? { f: 'veste' as Forma } : FORMA[it.materiale ?? ''] ?? { f: 'piastre' as Forma };
-      corpoGeo = scatole(pezziArmatura(f.f, f.o ?? {}), hueDi(id, it.materiale, it.colore), []); corpo = id;
+      corpoGeo = scatole(pezziArmatura(f.f, f.o ?? {}), hueDi(id, it.materiale, it.colore), [], adatta); corpo = id;
     }
-    faretraGeo?.dispose(); faretraGeo = conFaretra ? scatole([], HUE['ferro']!, FARETRA) : null;
+    faretraGeo?.dispose(); faretraGeo = conFaretra ? scatole([], HUE['ferro']!, FARETRA, adatta) : null;
     compone();
   }
 
@@ -330,7 +335,9 @@ export function creaVestito(o: { loader: Loader; root: THREE.Object3D; rest: Rea
   function posa(ps: Part[], pos: PosaSchiena): THREE.Matrix4 {
     const box = new THREE.Box3();
     for (const p of ps) { p.geo.computeBoundingBox(); box.union(p.geo.boundingBox!); }
-    const m = new THREE.Matrix4().compose(new THREE.Vector3(...pos.p), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, pos.ry ?? 0, pos.rz, 'ZYX')), new THREE.Vector3(1, 1, 1).multiplyScalar(pos.s ?? 1));
+    const p = new THREE.Vector3(...pos.p), sp = adatta?.get('Spine');
+    if (sp) p.applyMatrix4(sp); // sul protagonista si sposta solo la presa: l'arma resta lunga com'è
+    const m = new THREE.Matrix4().compose(p, new THREE.Quaternion().setFromEuler(new THREE.Euler(0, pos.ry ?? 0, pos.rz, 'ZYX')), new THREE.Vector3(1, 1, 1).multiplyScalar(pos.s ?? 1));
     if (pos.centro) m.multiply(new THREE.Matrix4().makeTranslation(0, -(box.min.y + box.max.y) / 2, 0));
     return m;
   }
