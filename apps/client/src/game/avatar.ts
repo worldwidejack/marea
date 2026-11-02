@@ -9,6 +9,7 @@ import type { Indossa, Look } from '@marea/protocol';
 import { AVATAR, BALANCE } from '@marea/content';
 import type { Corpo } from '../rpg/adatta.ts';
 import type { Loader } from '../render/loader.ts';
+import { heroClips } from './avatar_clips.ts';
 import { createAnimator } from '../render/anim.ts';
 import type { Animator } from '../render/anim.ts';
 import { registerStateProvider } from '../test/testapi.ts';
@@ -34,7 +35,7 @@ export type Avatar = {
   /** Da seduto: rema (clip/posa `row`) con la fase `phase` (rad) invece di stare fermo. */
   setRowing(on: boolean, phase?: number): void;
   /** Avatar remoto: posa dal messaggio di rete, senza sim. `anim` accetta la stringa del protocollo. */
-  setPose(p: { x: number; z: number; yaw: number; anim: string }): void;
+  setPose(p: { x: number; z: number; yaw: number; anim: string; t?: number }): void;
   /** Quota del terreno (es. `island.groundY`); senza, si deduce dal tipo di cella. */
   setGround(fn: ((x: number, z: number) => number) | null): void;
   readonly attached: boolean;
@@ -229,7 +230,7 @@ async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
   };
   const setCappello = (id: string | null) => { forzato = id; if (ultimo) setLook(ultimo); };
   const corpo = nome === 'chr_base' ? (loader.manifest.models[nome] as { corpo?: Corpo } | undefined)?.corpo : undefined; // ossa per le armature (rpg/adatta.ts)
-  return { root: scene, anim: createAnimator(scene, clips), setLook, setCappello, rest, vesti, corpo };
+  return { root: scene, anim: createAnimator(scene, nome === 'chr_base' ? heroClips(scene, clips) : clips), setLook, setCappello, rest, vesti, corpo };
 }
 
 /** Dove guarda davvero l'oggetto in assi mondo [x, z] (per i test). */
@@ -305,26 +306,28 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
     object, get state() { return state; }, get prev() { return prev; }, visible: true,
     get attached() { return attached; }, get usesModel() { return !!model; },
     passo: 1,
-    step(input, map, ost) { ticks++; lastMap = map; prev = state; state = stepAvatar(state, input, map, ost, api.passo); },
+    step(input, map, ost) { ticks++; lastMap = map; prev = state; state = stepAvatar(state, azioni.inCorso || armOverride ? { ...input, roll: false } : input, map, ost, api.passo); },
     update(alpha, dt) {
       object.visible = api.visible;
       const seated = attached;
       if (!seated) {
         const x = prev.x + (state.x - prev.x) * alpha, z = prev.z + (state.z - prev.z) * alpha, gt = ground(x, z);
         if (snap) { gy = gt; viewYaw = state.yaw; snap = false; } else { gy = lerp(gy, gt, ease(dt, 14)); viewYaw += wrapPi(state.yaw - viewYaw) * ease(dt, 16); }
+        if (state.anim === 'roll') viewYaw = state.yaw;
         object.position.set(x, gy, z); object.rotation.y = -viewYaw; // la sim usa avanti = (sin yaw, −cos yaw): three ruota al contrario
       }
       // animazione voluta, con un minimo di permanenza per non sfarfallare tra walk e run intorno alla soglia
       const want = seated ? (rowing ? 'row' : 'sit') : state.anim;
       heldFor += dt;
-      if (want !== shown && (heldFor > 0.1 || seated !== (shown === 'sit' || shown === 'row'))) { shown = want; heldFor = 0; }
+      if (want !== shown && (want === 'roll' || shown === 'roll' || heldFor > 0.1 || seated !== (shown === 'sit' || shown === 'row'))) { shown = want; heldFor = 0; }
       const speed = seated ? 0 : Math.hypot(state.vx, state.vz);
       if (model) {
         pulite.ripristina();
         const a = model.anim;
-        if (!a.play(shown, 0.15)) a.play('idle', 0.15);
+        if (!a.play(shown, shown === 'roll' ? 0.04 : 0.15)) a.play('idle', 0.15);
         a.setSpeed(shown === 'walk' ? speed / CLIP_SPEED.walk : shown === 'run' ? speed / CLIP_SPEED.run : shown === 'row' ? 0.6 + 0.4 * Math.abs(Math.cos(rowPh * 0.5)) : 1);
         a.update(dt);
+        if (shown === 'roll') a.seek(1 - lerp(prev.anim === 'roll' ? prev.rollT ?? 0 : state.rollT ?? 0, state.rollT ?? 0, alpha) / (BALANCE.avatar.schivata.durata * 60));
         if (armOverride) { pulite.salva(); armOverride(dt); }
       } else {
         poseRig(dt, speed, shown);
@@ -332,7 +335,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
       }
       azioni.update(dt);
     },
-    teleport(x, z, yaw) { azioni.interrompi(); state = { ...state, x, z, vx: 0, vz: 0, ...(yaw !== undefined ? { yaw } : {}) }; prev = state; snap = true; },
+    teleport(x, z, yaw) { azioni.interrompi(); state = { ...state, x, z, vx: 0, vz: 0, anim: 'idle', rollT: 0, rollCd: 0, ...(yaw !== undefined ? { yaw } : {}) }; prev = state; snap = true; },
     setLook: applyLook,
     setCappello(id) { model?.setCappello(id); },
     setIndossa(i, opt) {
@@ -358,8 +361,9 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
     },
     setRowing(on, phase = 0) { rowing = on; rowPh = phase; },
     setPose(p) {
-      const a = (['idle', 'walk', 'run', 'sit'] as const).find((k) => k === p.anim) ?? 'idle', s = a === 'walk' ? CLIP_SPEED.walk : a === 'run' ? CLIP_SPEED.run : 0;
-      prev = state; state = { x: p.x, z: p.z, yaw: p.yaw, vx: Math.sin(p.yaw) * s, vz: -Math.cos(p.yaw) * s, anim: a };
+      const a = (['idle', 'walk', 'run', 'roll', 'sit'] as const).find((k) => k === p.anim) ?? 'idle', s = a === 'walk' ? CLIP_SPEED.walk : a === 'run' ? CLIP_SPEED.run : 0;
+      const rollTicks = BALANCE.avatar.schivata.durata * 60;
+      prev = state; state = { x: p.x, z: p.z, yaw: p.yaw, vx: Math.sin(p.yaw) * s, vz: -Math.cos(p.yaw) * s, anim: a, ...(a === 'roll' ? { rollT: (1 - (p.t ?? (prev.anim === 'roll' ? 1 - Math.max(0, (prev.rollT ?? 0) - 6) / rollTicks : 0))) * rollTicks } : {}) };
     },
     setArmOverride(fn) {
       armOverride = fn;

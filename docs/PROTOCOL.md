@@ -29,6 +29,8 @@ Array di run-length `[[ticks, mx, my, a, b], …]` con `mx, my` quantizzati a 1/
 Sempre `{ error: string }` in italiano con lo status HTTP giusto: 400 richiesta rotta, 401 token, 403 non tuo, 404, 409 conflitto (per esempio monete che non bastano), 413 troppo grande, 429 troppi messaggi, 500 interno (mai il dettaglio tecnico al client).
 
 ## 7. Dungeon insieme
+Il comando di schivata dei dungeon usa il bit 32 di `SqInput` e `PackedDungeon` (bit validi 0–63). Il codec compatto scrive il formato 4 quando compare la schivata, conservando la lettura dei formati 1–3. La simulazione del dungeon è alla versione 11.
+
 `/ws/squadra/<dungeon>` → DO `Spedizioni`; tipi in `packages/protocol/src/squadra.ts`. È il modello dei canali a turni: aprire il socket = entrare nella squadra (fino a 4); con `via` il DO sceglie il seed e fotografa l'eroe di ognuno dal suo DO `Lot`. Ogni `SQ_TURNO_MS` (50 ms) il DO manda a tutti lo stesso turno con l'input di ciascuno, che vale `SQ_TICKS` (3) tick della sim: ogni telefono fa girare la stessa partita. Il DO non simula; alla fine ognuno chiama `POST /api/dungeon/finish` e il suo DO `Lot` rigioca il log e applica l'esito.
 
 ## 8. Corse tra amici

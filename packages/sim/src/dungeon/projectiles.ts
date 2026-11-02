@@ -1,3 +1,4 @@
+import { schivaColpo } from './schivata.ts';
 // Proiettili 2,5D: frecce con gravità (a terra o su un muro si fermano), magie dritte con esplosione, tiri dei nemici sull'eroe.
 // Archivio: l'arpione del Drone Idro-Ragno, se prende, tira l'eroe verso chi l'ha lanciato (vento.ts, spinta da fuori).
 import { DT } from '../constants.ts';
@@ -72,7 +73,7 @@ function colpoSuEroe(s: DungeonState, p: Proj, j: number): boolean {
 
 /** Tiro nemico a segno sull'eroe di turno; l'arpione lo tira all'indietro lungo il volo. */
 function colpisciEroe(s: DungeonState, p: Proj, x: number, z: number): void {
-  const arriva = !s.done && s.hero.protetto <= 0;
+  const arriva = !s.done && s.hero.protetto <= 0 && !schivaColpo(s.hero);
   hitHero(s, p.danno, p.magico ? 'magia' : p.contundente ? 'contundente' : 'taglio', x, z);
   const v = Math.sqrt(p.vx * p.vx + p.vz * p.vz) || 1;
   if (p.spinge && arriva && !s.done) spingi(s, p.vx / v, p.vz / v, p.spinge, 0.25); // palla di neve dello Sparaneve: ti spinge via nella sua direzione

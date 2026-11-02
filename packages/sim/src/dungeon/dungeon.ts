@@ -85,7 +85,8 @@ export const dungeon: DungeonModule<DungeonState> = {
   // Magie, evocazioni potenziate e Patto di sangue, e la seconda tornata); log v3 con il bit del tasto E
   // v10: magie di fuoco ed elettricità differenziate (il fuoco brucia di più, l'elettricità rallenta), Fuoco/Elettricità continua (raggio che si tiene
   // con la A, costa Magicka al secondo) e Bomba di fuoco/elettrica (lenta, scoppia dove atterra); libri nelle mappe della Grotta, Cripta, Drenaggio, Fucina
-  id: 'dungeon', version: 10, maxTicks: MAX_TICKS,
+  // v11: schivata a stamina e preparazione delle armi separata dallo swing rapido.
+  id: 'dungeon', version: 11, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
   act(s, a) {

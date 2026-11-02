@@ -356,6 +356,8 @@ export type RpgArenaBalance = {
   erba: { raggio: number; rivela: number };
 };
 export type RpgBalance = {
+  schivata: { durata: number; distanza: number; stamina: number; ricarica: number; invDa: number; invA: number; muoveDa: number; muoveA: number };
+  ritmoColpi: { swing: number; giro: number; preparazioneMin: number; sogliaPesante: number; preparazione: number };
   attributi: { base: Record<AttrId, number>; perLivello: number; regen: Record<AttrId, number> };
   livelli: { skillIniziale: number; skillMax: number; xpSkill: { base: number; perLivello: number }; xpPersonaggio: { base: number; perLivello: number }; costoRipristino?: number; skillMaxRichieste?: number; skillLivelloRipristino?: number };
   movimento: { camminata: number; corsa: number; staminaCorsa: number; raggio: number; mentreCarichi: number };

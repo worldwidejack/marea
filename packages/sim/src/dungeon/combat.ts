@@ -1,3 +1,4 @@
+import { schivaColpo } from './schivata.ts';
 // Danni: eroe → nemico (arma × tratti − armatura), nemico → eroe (difesa/(difesa+k) e moltiplicatori per tipo), morte e bottino.
 import { RPG } from '@marea/content/rpg.ts';
 import type { SkillId, Traits } from '@marea/content/rpg.ts';
@@ -179,7 +180,7 @@ export type HurtKind = 'taglio' | 'contundente' | 'magia';
  *  La Barriera Cinetica piena (Mausoleo) lo annulla. Il ritmo della Grande Lancetta si perde. true = il colpo è arrivato. */
 export function hitHero(s: DungeonState, danno: number, kind: HurtKind, x: number, z: number): boolean {
   const h = s.hero, a = s.runHero.armatura;
-  if (s.done || h.protetto > 0) return false;
+  if (s.done || (h.protetto > 0 || schivaColpo(h))) return false;
   if (a.barriera && barriera(s)) return false;
   h.ritmo = 0;
   const difesa = Math.max(0, a.difesa + buff(s, 'difesa'));
@@ -218,7 +219,7 @@ export function dannoPvp(difensore: RunArmor, src: HitSrc, difBuff = 0, resBuff 
 /** Applica un colpo PvP all'eroe `bersaglioIdx` (Arena): rispetta protezione e Barriera Cinetica, e non può mai uccidere in un colpo chi ha 100 di Vita. */
 export function hitHeroPvp(s: DungeonState, bersaglioIdx: number, src: HitSrc): number {
   const b = s.eroi[bersaglioIdx];
-  if (!b || b.done || b.hero.protetto > 0) return 0;
+  if (!b || b.done || (b.hero.protetto > 0 || schivaColpo(b.hero))) return 0;
   return conEroe(s, bersaglioIdx, () => {
     const h = s.hero, a = s.runHero.armatura;
     if (a.barriera && barriera(s)) return 0;

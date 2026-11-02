@@ -21,7 +21,7 @@
     },
     "premiateAlGiorno": 10
   },
-  "avatar": { "camminata": 3.0, "corsa": 5.0, "sogliaCorsa": 0.8, "raggio": 0.35 },
+  "avatar": { "camminata": 3.0, "corsa": 5.0, "sogliaCorsa": 0.8, "raggio": 0.35, "schivata": { "durata": 0.6, "velocita": 7, "ricarica": 0.8, "muoveDa": 0.05, "muoveA": 0.48 } },
   "barca": { "accel": 6.0, "maxSpeed": 9.0, "virata": 1.6, "attrito": 0.6, "rimbalzo": -0.3, "raggioImbarco": 3.0, "raggio": 0.8,
     "ormeggio": { "passo": 2.9, "stacco": 0.15, "dito": 3.4, "aggancio": 10 } }
 }

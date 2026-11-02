@@ -285,6 +285,7 @@ async function boot(): Promise<void> {
     emotes.update(dt); setTopbarHidden(regata.active || sotto());
     { // nel mondo B non serve (solo POSA/SPOSTA dell'arredamento); sotto A la scritta di cosa fa adesso
       const nelMondo = !regata.active && !giochi.isBusy() && !sotto() && !adr.active && !document.body.classList.contains('mz-gp');
+      input.setRoll(ingressi.active || (nelMondo && world.mode === 'walk' && !world.frozen && !arreda?.attivo()));
       input.setB(!nelMondo || !!arreda?.attivo());
       input.setAzione(nelMondo ? (negozio?.azionePesca() ?? (!world.frozen ? azioneA(world, senzaBarca()) : null)) : null);
       allegro?.update();

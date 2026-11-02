@@ -1,6 +1,7 @@
 // WP2 · input, avatar, barca. Viewport iPhone; pagina ?test=1&net=0.
 // (a) le frecce muovono nel diorama nel verso giusto (su = nord-ovest = −x −z)  (b) joystick touch con eventi pointer (anche CDP reali)
 // (c) barca: ArrowDown → speed > 2 in 1,5 s  (d) screenshot a piedi e in barca  (e) salita in barca con un tap di A + guidatore + scia.
+import { provaSchivata } from '../lib/schivata.mjs';
 export const timeout = 240000;
 export default async function (ctx) {
   const p = await ctx.open('?test=1&net=0');
@@ -28,6 +29,7 @@ export default async function (ctx) {
     ctx.assert(await page.evaluate(() => getComputedStyle(document.getElementById('joystick')).touchAction === 'none'), 'touch-action non none');
   });
 
+  await provaSchivata(ctx, page, false);
   await ctx.test('(a) frecce: ↑ → x e z diminuiscono; → x+ z−; ↓ x+ z+; ← x− z+ (assi mondo, camera a 45°)', async () => {
     await spawn(); const up = await delta(() => hold('ArrowUp', 600));
     ctx.log('ArrowUp', up.dx.toFixed(2), up.dz.toFixed(2), 'anim', up.b.anim);
@@ -113,7 +115,7 @@ export default async function (ctx) {
   });
 
   // ---- (c) barca con setMode, su pagina nuova per stato pulito ----
-  const q = await ctx.open('?test=1&net=0'); await ctx.waitReady(q.page);
+  const q = await ctx.open('?test=1&net=0'); await ctx.waitReady(q.page, 30000);
   await ctx.test('(c) setMode(boat) + ArrowDown 1,5 s → boat.speed > 2', async () => {
     await q.page.evaluate(() => window.__game.test.setMode('boat'));
     await q.page.keyboard.down('ArrowDown'); await waitTicks(q.page, 90);

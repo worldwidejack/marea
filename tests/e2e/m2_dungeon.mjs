@@ -1,12 +1,9 @@
-// M2-dungeon (R-scena, CONTRACTS §15): ingressi nel mondo (coincidono con DUNGEONS), discesa con l'hook enterDungeon, scena, HUD,
-// controlli, autopilot fino all'uscita, esito DEL SERVER e bottino nel lotto (/api/lot); Esc = Pausa (partita ferma) → Esci → «Uscire?»
-// che NON chiama finish (la spedizione resta aperta sul server); lanterna: SALVA (sul server), Esci tiene il bottino salvato («SEI RISALITO»);
-// zaino nel dungeon (cambio d'arma, Butta via, partita in pausa), ESCI dalla lanterna e ripartenza da lì; i bottoni sul telefono non si
 // sovrappongono (anche la lanterna); draw call ≤ 100 e triangoli ≤ 150k nel dungeon. Impianto di Drenaggio (#142): si entra, acqua e
 // valvole disegnate, l'autopilota gira una valvola e l'acqua scende; lore (RPG.md §2c): scritta col nome, voci dell'altoparlante (una
 // volta sola), LEGGI accanto al registro che un tocco al volo non apre e L tenuto sì (dungeon fermo), Esc chiude senza Pausa.
 // Screenshot a 1280×720 e 390×844 in tests/out/shots/m2_dungeon_*.png. Persone vere su wrangler dev locale (come m1_solo).
 import fs from 'node:fs';
+import { provaSchivata } from '../lib/schivata.mjs';
 import net from 'node:net';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
@@ -390,7 +387,8 @@ export default async function (ctx) {
     });
     await ctx.test('nessun errore per Ada', async () => { ctx.noErrors(P, 'Ada'); });
 
-    // ---- telefono ----
+    // ---- telefono: chiusa la scena desktop, il renderer software lavora su una sola partita ----
+    await P.close();
     const T = await ctx.B.openPage(ctx.browser, `${base}/?t=tokB&test=1`, { viewport: ctx.B.IPHONE }); ctx._pages.push(T);
     const tp = T.page;
     await ctx.waitReady(tp, 30000);
@@ -410,7 +408,7 @@ export default async function (ctx) {
       // con arco o magia in mano (dipende dal bottino, cioè dal caso) al posto della A c'è il joystick di mira (#210): si controlla quello
       const rects = await tp.evaluate(() => {
         const mira = !!document.querySelector('.mz-dng-aimon'), a = mira ? 'mzDngMira' : 'btnA';
-        return Object.fromEntries([a, 'btnB', 'btnD', 'btnF1', 'btnF2', 'btnF3', 'joystick', 'mzDngHud', 'mzDngZaino', 'mzDngPausaBtn'].map((id) => { const r = document.getElementById(id)?.getBoundingClientRect(); return [id, r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null]; }));
+        return Object.fromEntries([a, 'btnB', 'btnSchiva', 'btnD', 'btnF1', 'btnF2', 'btnF3', 'joystick', 'mzDngHud', 'mzDngZaino', 'mzDngPausaBtn'].map((id) => { const r = document.getElementById(id)?.getBoundingClientRect(); return [id, r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null]; }));
       });
       const ids = Object.keys(rects);
       for (const id of ids) assert(rects[id], `manca #${id}`);
@@ -421,6 +419,7 @@ export default async function (ctx) {
       for (const id of ids) { const r = rects[id]; assert(r.x >= 0 && r.y >= 0 && r.x + r.w <= 390 && r.y + r.h <= 844, `#${id} fuori schermo`); }
     });
     await ctx.shot(tp, '2_grotta_390');
+    await provaSchivata(ctx, tp, true);
     await ctx.test('telefono: un tocco sul preferito 2 mette la magia in mano, tenuto premuto sul 3 apre la scelta (dentro lo schermo, ferma la partita)', async () => {
       await thook('dungeonAutopilot', false);
       await tp.locator('#btnF2').tap();
@@ -454,7 +453,7 @@ export default async function (ctx) {
       await ctx.waitState(tp, (s, n) => s.dungeon.lanterna === n || !!s.dungeon.outcome, 120000, n);
       if ((await ctx.getState(tp)).dungeon.lanterna !== n) return; // caduto per strada (autopilot di prima): la lanterna si prova al desktop
       await tp.waitForSelector('#mzDngLanterna.on', { timeout: 3000 });
-      const rects = await tp.evaluate(() => Object.fromEntries(['btnA', 'btnB', 'btnD', 'btnF1', 'btnF2', 'btnF3', 'joystick', 'mzDngLanterna'].map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return [id, { x: r.x, y: r.y, w: r.width, h: r.height }]; })));
+      const rects = await tp.evaluate(() => Object.fromEntries(['btnA', 'btnB', 'btnSchiva', 'btnD', 'btnF1', 'btnF2', 'btnF3', 'joystick', 'mzDngLanterna'].map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return [id, { x: r.x, y: r.y, w: r.width, h: r.height }]; })));
       const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
       for (const id of ['btnA', 'btnB', 'btnD', 'btnF1', 'btnF2', 'btnF3', 'joystick']) assert(!hit(rects.mzDngLanterna, rects[id]), `la lanterna copre #${id}`);
       const L = rects.mzDngLanterna; assert(L.x >= 0 && L.x + L.w <= 390 && L.y >= 0 && L.y + L.h <= 844, 'lanterna fuori schermo');

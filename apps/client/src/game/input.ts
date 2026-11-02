@@ -6,6 +6,7 @@
 // I tocchi brevi sul canvas restano dei loro (lotto, gatti): il joystick appare e basta. Un secondo dito sul canvas (pizzico) lo lascia.
 // Aspetto «Allegro» (#417, scelto da Jack il 18 ott 2026, `assets/concept/ui/hud2_3_mario.jpg`): A rosso col bordo bianco, sotto la
 // scritta di cosa fa adesso (#btnAzione, `setAzione`); B c'è solo dove serve (`setB`: nel mondo a piedi e in barca no).
+import { creaComandoSchivata } from './schivata_input.ts';
 import type { InputFrame } from '@marea/sim';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { pomello, tieniPremuto } from '../ui/comandi_touch.ts';
@@ -19,6 +20,7 @@ export type Input = {
   setAzione(t: string | null): void;
   /** B visibile o no (main lo spegne nel mondo, dove non fa niente). Di serie acceso: le pagine di prova lo usano. */
   setB(on: boolean): void;
+  setRoll(on: boolean): void;
 };
 
 const DEAD = 0.14; // zona morta del joystick (frazione del raggio); oltre, la magnitudine riparte da 0
@@ -35,6 +37,7 @@ export function screenToWorld(sx: number, sy: number, yaw: number): { mx: number
 }
 
 export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; cameraYaw: () => number }): Input {
+  const roll = creaComandoSchivata(o.root);
   const keys = new Set<string>();
   let aLatch = false, bLatch = false;
   const CTRL_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
@@ -46,7 +49,7 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') bLatch = true;
   };
   const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
-  const releaseAll = () => { keys.clear(); tA.lascia(); tB.lascia(); aLatch = bLatch = false; endStick(); }; // blur / scheda nascosta: niente tasti incollati (anche in gara)
+  const releaseAll = () => { roll.clear(); keys.clear(); tA.lascia(); tB.lascia(); aLatch = bLatch = false; endStick(); }; // blur / scheda nascosta: niente tasti incollati (anche in gara)
   addEventListener('keydown', kd); addEventListener('keyup', ku); addEventListener('blur', releaseAll);
   const onVis = () => { if (document.hidden) releaseAll(); };
   document.addEventListener('visibilitychange', onVis);
@@ -134,6 +137,7 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
   let injected: Partial<InputFrame> | null = null;
   let last = { sx: 0, sy: 0, mag: 0, src: 'none' };
   const input: Input = {
+    setRoll: (on) => roll.set(on),
     inject: (f) => { injected = f; },
     setAzione(t) {
       if (t === azTesto) return;
@@ -171,9 +175,10 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
       const b = bLatch || tB.giu || shift;
       aLatch = bLatch = false;
       last = { sx, sy, mag: Math.hypot(sx, sy), src };
-      return { mx, my, a, b };
+      return { mx, my, a, b, ...(roll.sample() ? { roll: true } : {}) };
     },
     dispose() {
+      roll.dispose();
       removeEventListener('keydown', kd); removeEventListener('keyup', ku); removeEventListener('blur', releaseAll);
       removeEventListener('pointermove', onMove); removeEventListener('pointerup', onEnd); removeEventListener('pointercancel', onEnd); tA.dispose(); tB.dispose();
       o.canvas.removeEventListener('pointerdown', onCanvasDown); if (restT !== null) clearTimeout(restT);
