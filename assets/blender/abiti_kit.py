@@ -2,7 +2,8 @@
 # Un pezzo si indossa SOPRA il chr_base: è una SkinnedMesh sullo stesso scheletro (stesse ossa, stessa posa a riposo, braccia giù), che il
 # client lega alle ossa dell'avatar (game/abiti.ts). Il corpo sotto non si cambia: il client nasconde i triangoli del corpo coperti dal pezzo.
 # Come si cuce un vestito:
-#   - `Corpo` importa il chr_base vero (models_chr_ai: modello AI, ossa, braccia giù) e ne tiene le zone (busto, braccia, gambe, testa);
+#   - `Corpo` importa il manichino (models_chr_ai: il vecchio avatar AI, ossa, braccia giù) e ne tiene le zone (busto, braccia, gambe, testa);
+#     le ricette restano misurate su di lui e `costruisci` alla fine porta il pezzo sul protagonista (eroe_adatta.py);
 #   - gli anelli «su misura» (`anello`) nascono lanciando raggi orizzontali dal centro della zona contro la sua pelle, più uno scarto
 #     (stoffa aderente ~1,5 cm, felpa larga di più, cerata a campana): così maglie, pantaloni e maniche seguono la forma del corpo;
 #   - i pesi delle ossa vengono dalla pelle più vicina della stessa zona (il vestito si piega come il corpo sotto: niente pelle che buca);
@@ -14,7 +15,7 @@ import math
 import bpy
 from mathutils import Vector, kdtree
 from mathutils.bvhtree import BVHTree
-import models_chr_ai
+import models_chr_ai, eroe_adatta
 from gente_kit import Fig, lin
 from lib import to_blender
 
@@ -247,7 +248,7 @@ def costruisci(corpo, pezzi):
         ob.parent = corpo.rig
         mod = ob.modifiers.new('Armature', 'ARMATURE'); mod.object = corpo.rig
         out.append(ob)
-    return out
+    return [eroe_adatta.adatta(out[1:], corpo.rig)] + out[1:]  # dal manichino al protagonista, sul suo scheletro
 
 
 def nascondi_coperti(corpo, pezzi, dist=0.12):

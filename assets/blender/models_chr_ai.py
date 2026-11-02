@@ -1,7 +1,7 @@
-# Avatar fatto con l'AI 3D (#287, Jack 14 ott 2026): Hunyuan3D v3 «LowPoly» dalla vista a T dello sheet
-# (assets/concept/avatar/avatar_sheet_completo.jpg), ridotto a 3.000 triangoli → assets/ai/avatar/hunyuan_3000.glb.
-# Stesso contratto di chr_base (CONTRACTS §9): scheletro con gli stessi nomi, clip idle walk run sit row, materiali mat_pelle /
-# mat_capelli / mat_vestito tinti dal client, cappelli cappello_<id>. I capelli sono quelli del modello: niente capelli_<n>.
+# Il manichino del sarto: l'avatar fatto con l'AI 3D (#287, Jack 14 ott 2026), che è stato il chr_base fino al protagonista nuovo
+# (models_chr_eroe.py). Resta perché vestiti e cappelli del Mercante si cuciono su di lui (abiti_kit.Corpo) e poi si portano sul corpo nuovo
+# osso per osso (eroe_adatta.py). Hunyuan3D v3 «LowPoly» dalla vista a T dello sheet (assets/concept/avatar/avatar_sheet_completo.jpg),
+# ridotto a 3.000 triangoli → assets/ai/avatar/hunyuan_3000.glb.
 # Come si fa:
 #   1. il modello arriva a T, guarda verso −Y di Blender: si gira di 180° (il davanti del gioco è +Y), alto 1,68 m capelli compresi;
 #   2. ossa a T sulle misure del modello, pesi per zona (braccia, testa, gambe, busto) con passaggi morbidi alle giunture;
@@ -13,7 +13,6 @@ import bpy, bmesh
 import numpy as np
 from mathutils import Matrix, Vector
 import models_chr
-from models_chr import hat_piece, make_clips, apply_look, HATS, CLIPS, FPS
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, '..', 'ai', 'avatar', 'hunyuan_3000.glb')
@@ -218,30 +217,3 @@ def _rig(mesh_obs):
         h, t = b.head_local, b.tail_local
         models_chr.BONES[b.name] = ((h.x, h.z, -h.y), (t.x, t.z, -t.y), b.parent.name if b.parent else None)
     return rig
-
-
-DEFAULT_LOOK = {'pelle': '#D9A070', 'capelli': 0, 'coloreCapelli': '#5A3A1E', 'vestito': '#F4E3C1', 'cappello': 'nessuno'}
-VARIANTS = [
-    {'nome': 'A', 'pelle': '#D9A070', 'capelli': 0, 'coloreCapelli': '#2E1E14', 'vestito': '#E8433F', 'cappello': 'nessuno'},
-    {'nome': 'B', 'pelle': '#EFC29B', 'capelli': 0, 'coloreCapelli': '#E8433F', 'vestito': '#F2A33A', 'cappello': 'nessuno'},
-    {'nome': 'C', 'pelle': '#8C5636', 'capelli': 0, 'coloreCapelli': '#F4E3C1', 'vestito': '#3FB9C9', 'cappello': 'paglia'},
-]
-CATALOG = [{'nome': h, 'pelle': '#B8784C', 'capelli': 0, 'coloreCapelli': '#2E1E14', 'vestito': '#E8433F', 'cappello': h} for h in HATS]
-
-
-def chr_base():
-    body, conteggio = _corpo()
-    hats = [hat_piece(h).build() for h in HATS]
-    rig = _rig([body] + hats)
-    make_clips(rig)
-    tri = lambda ob: sum(len(p.vertices) - 2 for p in ob.data.polygons)
-    print('[chr_ai] facce per zona', conteggio)
-    return [rig, body] + hats, {
-        'clips': list(CLIPS), 'durate': {k: round(n / FPS, 3) for k, (_f, n) in CLIPS.items()},
-        'preview': {'walk': 4, 'run': 4, 'sit': 0, 'row': 10},
-        'tri_pezzi': {ob.name: tri(ob) for ob in [body] + hats},
-        'look_fn': apply_look, 'look': DEFAULT_LOOK, 'variants': VARIANTS, 'catalog': CATALOG,
-    }
-
-
-MODELS = {'chr_base': chr_base}

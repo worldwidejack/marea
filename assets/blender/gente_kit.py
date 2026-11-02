@@ -455,7 +455,7 @@ def make_clips(ob, bones, st):
         d['Head'] = [(X, -6 * c)]
         return d
 
-    clips = {'idle': (idle, st.get('idle_n', 90)), 'walk': (walk, 16), 'run': (run, 16), 'sit': (sit, 60), 'row': (row, 42)}
+    clips = {'idle': (idle, st.get('idle_n', 90)), 'walk': (walk, st.get('walk_n', 16)), 'run': (run, st.get('run_n', 16)), 'sit': (sit, 60), 'row': (row, 42)}
     sc = bpy.context.scene
     sc.render.fps, sc.render.fps_base = models_chr.FPS, 1.0
     ob.animation_data_create()

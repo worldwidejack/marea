@@ -6,7 +6,7 @@ import math, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [os.path.join(HERE, '..', 'assets', 'blender'), HERE]
 import bpy, mathutils
-import lib, models_chr, models_chr_ai
+import lib, models_chr_eroe
 
 argv = sys.argv[sys.argv.index('--') + 1:]
 PIXEL = '--pixel' in argv
@@ -14,11 +14,11 @@ argv = [a for a in argv if a != '--pixel']
 lib.ATLAS_PNG, OUT = os.path.abspath(argv[0]), os.path.abspath(argv[1])
 os.makedirs(OUT, exist_ok=True)
 lib.reset()
-objs, info = models_chr_ai.chr_base()
+objs, info = models_chr_eroe.chr_base()
 import json
 look = info['look'] if len(argv) < 3 else json.loads(argv[2]) if argv[2].startswith('{') else info['variants'][int(argv[2])]
 look = {**info['look'], **look}
-models_chr_ai.apply_look(objs, look)
+info['look_fn'](objs, look)
 rig = next(o for o in objs if o.type == 'ARMATURE')
 
 sc = bpy.context.scene
@@ -83,7 +83,7 @@ for i, (cl, fr) in enumerate((('walk', 4), ('run', 4), ('sit', 0))):
 clip(None, 0)
 vis = []
 for i, yaw in enumerate((0, -35, -90)):
-    f = os.path.join(tmp, f'f{i}.png'); shot(f, yaw, 1.47, 0.5, 360, 360, pitch=2); vis.append(f)
+    f = os.path.join(tmp, f'f{i}.png'); shot(f, yaw, 1.25, 0.56, 360, 360, pitch=2); vis.append(f)
 with open(os.path.join(OUT, '_pezzi.txt'), 'w') as fh:
     fh.write('\n'.join(files) + '\n#\n' + '\n'.join(vis) + '\n')
 print('[avatar_giro] fatto')

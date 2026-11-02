@@ -7,6 +7,7 @@ import { newAvatar, stepAvatar } from '@marea/sim';
 import type { AvatarState, GridMap, InputFrame, Ostacoli } from '@marea/sim';
 import type { Indossa, Look } from '@marea/protocol';
 import { AVATAR, BALANCE } from '@marea/content';
+import type { Corpo } from '../rpg/adatta.ts';
 import type { Loader } from '../render/loader.ts';
 import { createAnimator } from '../render/anim.ts';
 import type { Animator } from '../render/anim.ts';
@@ -156,7 +157,7 @@ function buildRig(look: Look): Rig {
 }
 
 // ---------- modello glTF ----------
-type ModelRig = { root: THREE.Object3D; anim: Animator; setLook(look: Look): void; setCappello(id: string | null): void; rest: Map<string, THREE.Matrix4>; vesti: { visibile(on: boolean): void; stato(): unknown } | null };
+type ModelRig = { root: THREE.Object3D; anim: Animator; setLook(look: Look): void; setCappello(id: string | null): void; rest: Map<string, THREE.Matrix4>; vesti: { visibile(on: boolean): void; stato(): unknown } | null; corpo?: Corpo };
 /** Il loader clona con Object3D.clone: gli SkinnedMesh restano legati alle ossa dell'originale. Le ricolleghiamo per nome (idempotente). */
 function rebindSkins(root: THREE.Object3D): void {
   root.traverse((n) => {
@@ -175,7 +176,7 @@ async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
   // vestiti e cappelli del Mercante (game/abiti.ts): solo sul chr_base, i paesani hanno i loro vestiti nel modello
   let caricaVesti: Promise<import('./abiti.ts').Vesti> | null = null, vistoVesti = true, statoVesti: (() => unknown) | null = null, capGlb: string | null = null;
   const conVesti = (f: (v: import('./abiti.ts').Vesti) => void) => void (caricaVesti ??= import('./abiti.ts').then((m) => { const v = m.creaVesti({ loader, root: scene, rest, dopo: (c) => { capGlb = c; if (ultimo) setLook(ultimo); } }); statoVesti = v.stato; return v; })).then(f);
-  const vesti = nome === 'chr_base' ? { visibile(on: boolean) { vistoVesti = on; if (caricaVesti) conVesti((v) => v.visibile(on)); }, stato: () => statoVesti?.() ?? null } : null;
+  const vesti = nome === 'chr_base' ? { visibile(on: boolean) { vistoVesti = on; if (caricaVesti) conVesti((v) => v.visibile(on)); if (ultimo) setLook(ultimo); }, stato: () => statoVesti?.() ?? null } : null;
   const groups: Record<'pelle' | 'capelli' | 'vestito' | 'cappello', THREE.MeshLambertMaterial[]> = { pelle: [], capelli: [], vestito: [], cappello: [] };
   const conv = (old: THREE.Material): THREE.Material => {
     const o = old as THREE.MeshStandardMaterial;
@@ -221,10 +222,14 @@ async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
     scene.traverse((n) => {
       if (n.name.startsWith('capelli_')) n.visible = n.name === `capelli_${look.capelli}` && !SOLO_EROI.includes(k.hat); // elmo e cappuccio coprono i capelli
       if (n.name.startsWith('cappello_')) n.visible = n.name === `cappello_${k.hat}` && !(glb && capGlb === glb);
+      // protagonista: le punte alte dei capelli bucherebbero il cappello; la tunica sta sotto il vestito del Mercante
+      if (n.name === 'ciuffi') n.visible = k.hat === 'nessuno';
+      if (n.name === 'tunica') n.visible = !(ab && vistoVesti);
     });
   };
   const setCappello = (id: string | null) => { forzato = id; if (ultimo) setLook(ultimo); };
-  return { root: scene, anim: createAnimator(scene, clips), setLook, setCappello, rest, vesti };
+  const corpo = nome === 'chr_base' ? (loader.manifest.models[nome] as { corpo?: Corpo } | undefined)?.corpo : undefined; // ossa per le armature (rpg/adatta.ts)
+  return { root: scene, anim: createAnimator(scene, clips), setLook, setCappello, rest, vesti, corpo };
 }
 
 /** Dove guarda davvero l'oggetto in assi mondo [x, z] (per i test). */
@@ -340,7 +345,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
       model.vesti?.visibile(!mostraCorpo);
       if (!indossa && !vestito) return;
       vestito ??= new Promise<void>((r) => (!schiena || typeof requestIdleCallback !== 'function' ? setTimeout(r, schiena ? 500 : 0) : requestIdleCallback(() => r(), { timeout: 3000 })))
-        .then(() => import('../rpg/vestito.ts')).then((m) => (vestitoOra = m.creaVestito({ loader: o.loader, root: model!.root, rest: model!.rest })));
+        .then(() => import('../rpg/vestito.ts')).then((m) => (vestitoOra = m.creaVestito({ loader: o.loader, root: model!.root, rest: model!.rest, corpo: model!.corpo })));
       void vestito.then((v) => v.set(fatto, schiena, !mostraCorpo)).catch((e) => console.warn('[marea] equipaggiamento non vestito', e));
     },
     indossaMats: () => vestitoOra?.materiali() ?? [],

@@ -24,11 +24,15 @@ async function scatta(look: Look, loader: Loader, gl: THREE.WebGLRenderer): Prom
   scena.add(new THREE.HemisphereLight(0xffffff, 0xaaccee, 2.4));
   const sole = new THREE.DirectionalLight(0xfff0d8, 2.6); sole.position.set(-2, 5, -9); scena.add(sole);
   scena.add(avatar.object); avatar.object.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(avatar.object);
-  // la sim guarda verso −z a yaw 0: la camera sta davanti, appena di lato e un filo dall'alto, sulla testa
-  const alto = box.max.y, h = alto - box.min.y, testa = alto - h * 0.1, d = h * 0.62;
+  // solo i pezzi che si vedono (cappelli spenti e punte dei capelli sotto un cappello non contano)
+  const box = new THREE.Box3();
+  avatar.object.traverseVisible((n) => { if ((n as THREE.Mesh).isMesh) box.expandByObject(n); });
+  // la sim guarda verso −z a yaw 0: la camera sta davanti, appena di lato e un filo dall'alto, sulla testa. Col modello la testa va dall'osso
+  // Head (il collo) alla cima: il protagonista ha la testa grande, un'inquadratura sull'altezza intera la taglierebbe
+  const alto = box.max.y, collo = avatar.object.getObjectByName('Head')?.getWorldPosition(new THREE.Vector3()).y;
+  const h = alto - box.min.y, testa = collo === undefined ? alto - h * 0.1 : collo + (alto - collo) * 0.48, d = collo === undefined ? h * 0.62 : (alto - collo) * 2.4;
   const cam = new THREE.PerspectiveCamera(24, 1, 0.05, 50);
-  cam.position.set(d * 0.18, testa + d * 0.05, -d); cam.lookAt(0, testa - h * 0.035, 0);
+  cam.position.set(d * 0.18, testa + d * 0.05, -d); cam.lookAt(0, collo === undefined ? testa - h * 0.035 : testa, 0);
   const rt = new THREE.WebGLRenderTarget(LATO, LATO, { depthBuffer: true });
   rt.texture.colorSpace = THREE.SRGBColorSpace;
   const prima = gl.getRenderTarget(), colore = gl.getClearColor(new THREE.Color()), alfa = gl.getClearAlpha();

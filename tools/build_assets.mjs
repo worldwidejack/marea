@@ -202,6 +202,7 @@ for (const file of fs.readdirSync(RAW).filter((f) => f.endsWith('.glb')).sort())
   if (name.startsWith('chr_')) {
     entry.tint = TINT; entry.materials = root.listMaterials().map((m) => m.getName());
     if (extra.durate) entry.durations = extra.durate;
+    if (extra.corpo) entry.corpo = extra.corpo; // ossa del corpo e del manichino dei vestiti (rpg/adatta.ts)
     entry.parts = root.listNodes().map((n) => n.getName()).filter((n) => /^(capelli|cappello)_/.test(n));
     // avatar AI (#287): i capelli sono dentro il corpo, si tingono ma non si cambiano; restano obbligatori i 5 cappelli di partenza
     for (const h of ['paglia', 'berretto', 'pescatore', 'lanterna', 'neon']) if (!entry.parts.includes(`cappello_${h}`)) errors.push(`${name}: manca il nodo cappello_${h}`);
