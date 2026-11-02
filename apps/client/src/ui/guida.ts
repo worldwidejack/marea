@@ -6,8 +6,9 @@
 import type * as THREE from 'three';
 import { ARROW_SVG } from './compass.ts';
 import { pointerPose } from './pointer.ts';
-import { PAL, el, injectUiStyle } from './style.ts';
+import { el, injectUiStyle } from './style.ts';
 import { registerStateProvider } from '../test/testapi.ts';
+import { LIBRO as L } from './libro_colori.ts';
 
 export type GuidaStep = {
   id: string;
@@ -25,21 +26,21 @@ export type Guida = {
 };
 
 const CSS = `
-.mz-guida { position: absolute; left: 8px; top: max(8px, env(safe-area-inset-top)); width: 260px; box-sizing: border-box; display: none; padding: 6px 8px 8px 10px; background: rgba(46,30,20,.93); border: 2px solid ${PAL.giallo}; box-shadow: 0 3px 0 ${PAL.neroCaldo}; z-index: 13; pointer-events: none !important; }
+.mz-guida { position: absolute; left: 8px; top: max(8px, env(safe-area-inset-top)); width: 260px; box-sizing: border-box; display: none; padding: 6px 8px 8px 10px; background: ${L.carta}; border: 2px solid ${L.acquaScura}; box-shadow: 0 3px 0 ${L.inchiostro}; z-index: 13; pointer-events: none !important; }
 .mz-guida.on { display: block; }
 .mz-guida.cede { visibility: hidden; }
-.mz-guida small { display: block; color: ${PAL.giallo}; font-size: 11px; letter-spacing: .08em; }
+.mz-guida small { display: block; color: ${L.acquaScura}; font-size: 11px; letter-spacing: .08em; }
 .mz-guida b { display: block; font-size: 16px; margin: 2px 0; }
-.mz-guida span { display: block; color: ${PAL.sabbia}; font-size: 13px; line-height: 1.3; }
-.mz-guida i { display: none; margin-top: 4px; padding-top: 4px; border-top: 1px solid ${PAL.legno}; color: ${PAL.sabbiaChiara}; font-size: 12px; font-style: normal; }
+.mz-guida span { display: block; color: ${L.inchiostro2}; font-size: 13px; line-height: 1.3; }
+.mz-guida i { display: none; margin-top: 4px; padding-top: 4px; border-top: 1px solid ${L.filo}; color: ${L.inchiostro}; font-size: 12px; font-style: normal; }
 .mz-guida i.on { display: block; }
-.mz-guida.ok { border-color: ${PAL.erba}; }
-.mz-guida.ok small { color: ${PAL.erba}; }
+.mz-guida.ok { border-color: ${L.acqua}; }
+.mz-guida.ok small { color: ${L.acqua}; }
 @media (max-width: 699px) {
   .mz-guida { top: auto; left: 8px; right: 8px; width: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 180px); }
   body:has(#mzAttrezzoBtn.on) .mz-guida { right: 84px; } /* il bottone dell'attrezzo in mano (Q), sopra la A */
 }
-.mz-guida-ptr { position: absolute; left: 0; top: 0; width: 32px; height: 40px; display: none; color: ${PAL.giallo}; z-index: 12; pointer-events: none !important; filter: drop-shadow(0 3px 0 ${PAL.neroCaldo}); }
+.mz-guida-ptr { position: absolute; left: 0; top: 0; width: 32px; height: 40px; display: none; color: ${L.acquaScura}; z-index: 12; pointer-events: none !important; filter: drop-shadow(0 3px 0 ${L.inchiostro}); }
 .mz-guida-ptr.on { display: block; }
 .mz-guida-ptr svg { width: 32px; height: 40px; }
 #ui.mz-racing .mz-guida, #ui.mz-racing .mz-guida-ptr { visibility: hidden; }

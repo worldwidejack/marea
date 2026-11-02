@@ -27,7 +27,7 @@ import { PAL, el } from '../ui/style.ts';
 import { pixIcon } from '../ui/icons.ts';
 import { suona } from '../audio/ponte.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
-
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 const C = PESCI_CFG;
 type Fase = 'spento' | 'mira' | 'volo' | 'attesa' | 'morso' | 'preso' | 'scappa';
 type Stato = 'nuota' | 'viene' | 'finte' | 'morde' | 'via';
@@ -50,23 +50,23 @@ const AVVISO_MS = 20_000;
 /** Altri bottoni di posto accesi (GIOCA al molo, Porto, botteghe, porte…): lì la A è loro, non della canna. */
 const ALTRI = '.mz-play.on:not(#mzPescaBtn), #mzPortoBtn.on, #mzAmiciBtn.on, #mzLibroBtn.on, #mzBottegaBtn.on, #mzPortaBtn.on';
 const CSS = `
-#mzPescaPanel { position: absolute; left: 50%; top: calc(max(8px, env(safe-area-inset-top)) + 58px); transform: translateX(-50%); z-index: 17; display: none; flex-direction: column; gap: 4px; width: min(320px, calc(100% - 128px)); box-sizing: border-box; padding: 6px 8px; background: rgba(46,30,20,.94); border: 2px solid ${PAL.legnoChiaro}; box-shadow: 0 3px 0 ${PAL.neroCaldo}; color: ${PAL.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; }
+#mzPescaPanel { position: absolute; left: 50%; top: calc(max(8px, env(safe-area-inset-top)) + 58px); transform: translateX(-50%); z-index: 17; display: none; flex-direction: column; gap: 4px; width: min(320px, calc(100% - 128px)); box-sizing: border-box; padding: 6px 8px; background: ${L.carta}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; color: ${L.inchiostro}; font: 700 13px ${FONT_LIBRO}; }
 #mzPescaPanel.on { display: flex; }
 /* telefono: sotto la minimappa e le METE, dove la striscia in alto è libera */
 @media (max-width: 699px) { #mzPescaPanel { top: calc(max(8px, env(safe-area-inset-top)) + 206px); width: calc(100% - 32px); font-size: 12px; } }
-#mzPescaPanel.tira { border-color: ${PAL.giallo}; }
+#mzPescaPanel.tira { border-color: ${L.acquaScura}; }
 #mzPescaPanel .r { display: flex; align-items: center; gap: 6px; }
 #mzPescaPanel .t { flex: 1; min-width: 0; line-height: 1.25; }
-#mzPescaPanel .t small { display: block; color: ${PAL.sabbia}; font-size: 11px; }
-#mzPescaPanel button { flex: none; min-width: 44px; min-height: 40px; padding: 0 8px; background: ${PAL.legnoScuro}; border: 2px solid ${PAL.legnoChiaro}; color: ${PAL.sabbiaChiara}; font: bold 12px ui-monospace, Menlo, monospace; cursor: pointer; }
-#mzPescaPanel .bar { position: relative; height: 14px; background: ${PAL.pietraScura}; border: 2px solid ${PAL.neroCaldo}; display: none; }
+#mzPescaPanel .t small { display: block; color: ${L.inchiostro2}; font-size: 11px; }
+#mzPescaPanel button { flex: none; min-width: 44px; min-height: 40px; padding: 0 8px; background: ${L.cartaChiara}; border: 2px solid ${L.oro}; color: ${L.inchiostro}; font: 700 12px ${FONT_LIBRO}; cursor: pointer; }
+#mzPescaPanel .bar { position: relative; height: 14px; background: ${L.filo}; border: 2px solid ${L.inchiostro}; display: none; }
 #mzPescaPanel.tira .bar { display: block; }
-#mzPescaPanel .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: ${PAL.giallo}; }
-#mzPescaPanel .bar u { position: absolute; right: 0; top: 0; bottom: 0; background: ${PAL.rosso}; text-decoration: none; }
-#mzPescePreso { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.9); z-index: 26; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 18px; background: rgba(46,30,20,.96); border: 3px solid ${PAL.giallo}; box-shadow: 0 4px 0 ${PAL.neroCaldo}; color: ${PAL.sabbiaChiara}; font: bold 15px ui-monospace, Menlo, monospace; text-align: center; opacity: 0; pointer-events: none; transition: opacity .15s steps(3), transform .15s steps(3); max-width: calc(100% - 32px); box-sizing: border-box; }
+#mzPescaPanel .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: ${L.acquaScura}; }
+#mzPescaPanel .bar u { position: absolute; right: 0; top: 0; bottom: 0; background: ${L.rosso}; text-decoration: none; }
+#mzPescePreso { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.9); z-index: 26; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 18px; background: ${L.carta}; border: 3px solid ${L.acquaScura}; box-shadow: 0 4px 0 ${L.inchiostro}; color: ${L.inchiostro}; font: 700 15px ${FONT_LIBRO}; text-align: center; opacity: 0; pointer-events: none; transition: opacity .15s steps(3), transform .15s steps(3); max-width: calc(100% - 32px); box-sizing: border-box; }
 #mzPescePreso.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-#mzPescePreso b { color: ${PAL.giallo}; font-size: 17px; }
-#mzPescePreso small { color: ${PAL.sabbia}; font-size: 12px; }
+#mzPescePreso b { color: ${L.acquaScura}; font-size: 17px; }
+#mzPescePreso small { color: ${L.inchiostro2}; font-size: 12px; }
 .mz-pesca-mira #btnA, .mz-pesca-mira #btnAzione, body.mz-sotto #mzPescaBtn, body.mz-sotto #mzPescaPanel, body.mz-sotto #mzPescePreso { display: none !important; }
 `;
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);

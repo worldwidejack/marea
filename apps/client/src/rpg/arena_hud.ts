@@ -12,6 +12,7 @@ import { spellDef } from '@marea/content/rpg.ts';
 import { PAL, el } from '../ui/style.ts';
 import { iconaMagia, iconOf, itemIcon } from './items_ui.ts';
 import { createMiraStick } from './mira_stick.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type ArenaControlli = {
   /** Un campione per tick: A in più (clic, joystick di mira), mira, tocco veloce, Scarica (E), slot e pozione scelti adesso (null = no). */
@@ -43,52 +44,52 @@ body.mz-arena .mz-mira { bottom: calc(${SAFE} + 88px) !important; }
 body.mz-arena.mz-dng-aimon #btnA { display: none !important; }
 body.mz-arena.mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-right, 0px)) + 116px) !important; }
 .mz-ar-top { position: absolute; left: 50%; top: ${TOP}; transform: translateX(-50%); width: min(560px, calc(100% - 16px)); display: flex; align-items: flex-start; gap: 6px; z-index: 13; pointer-events: none !important; font-size: 12px; }
-.mz-ar-lato { flex: 1; min-width: 0; padding: 4px 6px 5px; background: rgba(35,32,31,.86); border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; }
-.mz-ar-lato.lui { text-align: right; border-color: ${P.rosso}; }
-.mz-ar-lato .nome { font-weight: bold; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mz-ar-lato { flex: 1; min-width: 0; padding: 4px 6px 5px; background: ${L.carta}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; }
+.mz-ar-lato.lui { text-align: right; border-color: ${L.rosso}; }
+.mz-ar-lato .nome { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mz-ar-lato .eroe + .eroe { margin-top: 3px; }
-.mz-ar-lato.sq .nome { font-size: 11px; }
+.mz-ar-lato.sq .nome { font-size: 11px; line-height: 1.05; }
 .mz-ar-lato.sq .mz-ar-bar { height: 8px; margin-top: 1px; }
 .mz-ar-lato .eroe.giu { opacity: .45; }
-.mz-ar-badge { position: absolute; left: 50%; top: calc(${TOP} + 74px); transform: translateX(-50%); padding: 4px 12px; background: rgba(35,32,31,.9); border: 2px solid ${P.erba}; box-shadow: 0 3px 0 ${P.neroCaldo}; font-weight: bold; font-size: 13px; z-index: 13; pointer-events: none !important; display: none; white-space: nowrap; }
+.mz-ar-badge { position: absolute; left: 50%; top: calc(${TOP} + 74px); transform: translateX(-50%); padding: 4px 12px; background: ${L.carta}; border: 2px solid ${L.acqua}; box-shadow: 0 3px 0 ${L.inchiostro}; font-weight: 700; font-size: 13px; z-index: 13; pointer-events: none !important; display: none; white-space: nowrap; }
 .mz-ar-badge.on { display: block; }
-.mz-ar-badge.giu { border-color: ${P.rosso}; }
-.mz-ar-bar { position: relative; height: 12px; margin-top: 3px; background: ${P.ombraCalda}; border: 2px solid ${P.neroCaldo}; }
+.mz-ar-badge.giu { border-color: ${L.rosso}; }
+.mz-ar-bar { position: relative; height: 12px; margin-top: 3px; background: ${L.cartaScura}; border: 2px solid ${L.inchiostro}; }
 .mz-ar-bar.sottile { height: 6px; margin-top: 2px; border-width: 1px; }
 .mz-ar-bar i { position: absolute; top: 0; bottom: 0; left: 0; }
 .mz-ar-lato.lui .mz-ar-bar i { left: auto; right: 0; }
-.mz-ar-mid { flex: none; width: 70px; padding: 3px 0 4px; background: rgba(46,30,20,.94); border: 2px solid ${P.giallo}; box-shadow: 0 3px 0 ${P.neroCaldo}; text-align: center; }
+.mz-ar-mid { flex: none; width: 70px; padding: 3px 0 4px; background: ${L.carta}; border: 2px solid ${L.acqua}; box-shadow: 0 3px 0 ${L.inchiostro}; text-align: center; }
 .mz-ar-mid b { display: block; font-size: 19px; }
-.mz-ar-mid b.poco { color: ${P.rosso}; }
+.mz-ar-mid b.poco { color: ${L.rosso}; }
 .mz-ar-dots { display: flex; justify-content: center; gap: 3px; margin-top: 2px; }
-.mz-ar-dots i { width: 8px; height: 8px; background: ${P.ombraCalda}; border: 1px solid ${P.neroCaldo}; }
-.mz-ar-dots i.mio { background: ${P.erbaChiara}; } .mz-ar-dots i.suo { background: ${P.rosso}; } .mz-ar-dots i.pari { background: ${P.pietra}; }
+.mz-ar-dots i { width: 8px; height: 8px; background: ${L.cartaScura}; border: 1px solid ${L.inchiostro}; }
+.mz-ar-dots i.mio { background: ${L.acqua}; } .mz-ar-dots i.suo { background: ${L.rosso}; } .mz-ar-dots i.pari { background: ${L.inchiostro2}; }
 .mz-ar-barra { position: absolute; left: 50%; bottom: calc(${SAFE} + 8px); transform: translateX(-50%); display: flex; gap: 6px; z-index: 14; touch-action: none; -webkit-user-select: none; user-select: none; }
-.mz-ar-barra button { position: relative; width: 52px; height: 52px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(46,30,20,.9); border: 3px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; color: ${P.sabbiaChiara}; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.mz-ar-barra button.cur { border-color: ${P.giallo}; background: rgba(110,74,32,.97); transform: translateY(-4px); }
+.mz-ar-barra button { position: relative; width: 52px; height: 52px; padding: 0; display: flex; align-items: center; justify-content: center; background: ${L.carta}; border: 3px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; color: ${L.inchiostro}; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.mz-ar-barra button.cur { border-color: ${L.acqua}; background: rgba(110,74,32,.97); transform: translateY(-4px); }
 .mz-ar-barra button.vuoto, .mz-ar-barra button.no { opacity: .45; }
 .mz-ar-barra button.pz { background: rgba(44,107,63,.86); border-radius: 50%; }
 .mz-ar-barra button.pz.usata { background: rgba(35,32,31,.7); opacity: .4; }
-.mz-ar-barra button i { position: absolute; left: 3px; top: 1px; font: bold 11px ui-monospace, Menlo, monospace; font-style: normal; color: ${P.sabbia}; text-shadow: 1px 1px 0 ${P.neroCaldo}; }
-.mz-ar-barra button b { position: absolute; right: 3px; bottom: 1px; font: bold 11px ui-monospace, Menlo, monospace; color: ${P.acquaBassa}; text-shadow: 1px 1px 0 ${P.neroCaldo}; }
+.mz-ar-barra button i { position: absolute; left: 3px; top: 1px; font: 700 11px ${FONT_LIBRO}; font-style: normal; color: ${L.inchiostro2}; text-shadow: 1px 1px 0 ${L.inchiostro}; }
+.mz-ar-barra button b { position: absolute; right: 3px; bottom: 1px; font: 700 11px ${FONT_LIBRO}; color: ${P.acquaBassa}; text-shadow: 1px 1px 0 ${L.inchiostro}; }
 .mz-ar-barra button:active { transform: translateY(2px); }
-.mz-ar-menu-btn { position: absolute; right: max(8px, env(safe-area-inset-right, 0px)); top: calc(${TOP} + 66px); min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 4px; background: ${P.legnoScuro}; border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; color: ${P.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; z-index: 14; cursor: pointer; }
-.mz-ar-menu-btn i { display: block; width: 5px; height: 16px; background: ${P.sabbiaChiara}; box-shadow: 1px 1px 0 ${P.neroCaldo}; }
-.mz-ar-box { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: min(330px, calc(100% - 32px)); padding: 14px 16px 16px; background: rgba(46,30,20,.97); border: 3px solid ${P.legnoChiaro}; box-shadow: 0 5px 0 ${P.neroCaldo}; z-index: 24; text-align: center; display: none; font-size: 16px; }
+.mz-ar-menu-btn { position: absolute; right: max(8px, env(safe-area-inset-right, 0px)); top: calc(${TOP} + 66px); min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 4px; background: ${L.cartaChiara}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; color: ${L.inchiostro}; font: 700 13px ${FONT_LIBRO}; z-index: 14; cursor: pointer; }
+.mz-ar-menu-btn i { display: block; width: 5px; height: 16px; background: ${L.cartaChiara}; box-shadow: 1px 1px 0 ${L.inchiostro}; }
+.mz-ar-box { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: min(330px, calc(100% - 32px)); padding: 14px 16px 16px; background: ${L.carta}; border: 3px solid ${L.oro}; box-shadow: 0 5px 0 ${L.inchiostro}; z-index: 24; text-align: center; display: none; font-size: 16px; }
 .mz-ar-box.on { display: block; }
 .mz-ar-box > b { display: block; font-size: 24px; margin-bottom: 4px; }
-.mz-ar-box .sub { color: ${P.sabbia}; font-size: 14px; margin: 2px 0 8px; }
+.mz-ar-box .sub { color: ${L.inchiostro2}; font-size: 14px; margin: 2px 0 8px; }
 .mz-ar-box .mz-btn { justify-content: center; }
-.mz-ar-box.vinta { border-color: ${P.giallo}; } .mz-ar-box.vinta > b { color: ${P.giallo}; }
-.mz-ar-box.persa { border-color: ${P.rosso}; } .mz-ar-box.persa > b { color: ${P.rosso}; }
+.mz-ar-box.vinta { border-color: ${L.acqua}; } .mz-ar-box.vinta > b { color: ${L.acquaScura}; }
+.mz-ar-box.persa { border-color: ${L.rosso}; } .mz-ar-box.persa > b { color: ${L.rosso}; }
 .mz-ar-rounds { display: flex; justify-content: center; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
-.mz-ar-rounds span { padding: 2px 6px; border: 2px solid ${P.neroCaldo}; font-size: 12px; font-weight: bold; }
-.mz-ar-rounds .mio { background: ${P.erbaScura}; } .mz-ar-rounds .suo { background: ${P.rosso}; color: ${P.neroCaldo}; } .mz-ar-rounds .pari { background: ${P.pietraScura}; }
-.mz-ar-premio { font-weight: bold; color: ${P.giallo}; min-height: 20px; margin: 6px 0 2px; }
-.mz-ar-big { position: absolute; left: 50%; top: 36%; transform: translate(-50%, -50%); display: none; padding: 10px 22px; background: rgba(46,30,20,.95); border: 3px solid ${P.legnoChiaro}; box-shadow: 0 5px 0 ${P.neroCaldo}; text-align: center; z-index: 18; pointer-events: none !important; font: bold 40px ui-monospace, Menlo, monospace; white-space: nowrap; }
+.mz-ar-rounds span { padding: 2px 6px; border: 2px solid ${L.inchiostro}; font-size: 12px; font-weight: 700; }
+.mz-ar-rounds .mio { background: ${L.acquaScura}; } .mz-ar-rounds .suo { background: ${L.rosso}; color: ${L.inchiostro}; } .mz-ar-rounds .pari { background: ${L.filo}; }
+.mz-ar-premio { font-weight: 700; color: ${L.acquaScura}; min-height: 20px; margin: 6px 0 2px; }
+.mz-ar-big { position: absolute; left: 50%; top: 36%; transform: translate(-50%, -50%); display: none; padding: 10px 22px; background: ${L.carta}; border: 3px solid ${L.oro}; box-shadow: 0 5px 0 ${L.inchiostro}; text-align: center; z-index: 18; pointer-events: none !important; font: 700 40px ${FONT_LIBRO}; white-space: nowrap; }
 .mz-ar-big.on { display: block; }
-.mz-ar-big small { display: block; margin-top: 4px; font-size: 14px; color: ${P.sabbia}; }
-.mz-ar-attesa { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); padding: 8px 14px; background: rgba(46,30,20,.95); border: 2px solid ${P.arancio}; box-shadow: 0 3px 0 ${P.neroCaldo}; font-weight: bold; font-size: 15px; z-index: 17; display: none; pointer-events: none !important; text-align: center; max-width: calc(100% - 32px); }
+.mz-ar-big small { display: block; margin-top: 4px; font-size: 14px; color: ${L.inchiostro2}; }
+.mz-ar-attesa { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); padding: 8px 14px; background: ${L.carta}; border: 2px solid ${L.oroScuro}; box-shadow: 0 3px 0 ${L.inchiostro}; font-weight: 700; font-size: 15px; z-index: 17; display: none; pointer-events: none !important; text-align: center; max-width: calc(100% - 32px); }
 .mz-ar-attesa.on { display: block; }
 `;
 

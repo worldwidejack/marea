@@ -177,15 +177,6 @@ export function row(k: string, icon: Node | null, name: string, sub: string, on:
   r.addEventListener('click', onClick);
   return r;
 }
-export function chip(k: string, label: string, on: boolean, onClick: () => void, color?: string, locked = false): HTMLButtonElement {
-  const c = el('button', 'mz-rp-chip' + (on ? ' on' : '') + (locked ? ' lock' : ''));
-  c.type = 'button'; c.dataset['k'] = k;
-  if (color) { const d = el('i', 'dot'); d.style.background = palColor(color); c.appendChild(d); }
-  c.append(label);
-  c.addEventListener('click', onClick);
-  return c;
-}
-
 /** Righe di statistiche di un oggetto (per i dettagli e la forgia). */
 export function statLines(it: ItemDef): string[] {
   const out: string[] = [];

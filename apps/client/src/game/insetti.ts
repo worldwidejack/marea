@@ -27,6 +27,7 @@ import { insettoCanvas } from '../ui/insetti_sprite.ts';
 import { PAL, el } from '../ui/style.ts';
 import { suona } from '../audio/ponte.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type Attrezzo = 'nulla' | 'pala' | 'retino' | 'canna';
 export type InsettiBorgo = {
@@ -50,13 +51,13 @@ const R_SASSO = 1.9, R_ALBERO = 2.2, CHIOMA = 2.6;
 const PUZZA_S = 2, PUZZA_PASSO = 0.5;
 const SALVA = 'mz-attrezzo';
 const CSS = `
-#mzInsettiBtn, #mzAttrezzoBtn { position: absolute; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 16px); z-index: 16; display: none; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px; background: rgba(46,30,20,.94); border: 2px solid ${PAL.legnoChiaro}; color: ${PAL.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; border-radius: 6px; box-shadow: 0 3px 0 ${PAL.neroCaldo}; }
-#mzInsettiBtn { left: 50%; transform: translateX(-50%); } #mzInsettiBtn.on, #mzAttrezzoBtn.on { display: inline-flex; } #mzInsettiBtn b { color: ${PAL.giallo}; }
+#mzInsettiBtn, #mzAttrezzoBtn { position: absolute; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 16px); z-index: 16; display: none; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px; background: ${L.carta}; border: 2px solid ${L.oro}; color: ${L.inchiostro}; font: 700 13px ${FONT_LIBRO}; cursor: pointer; border-radius: 6px; box-shadow: 0 3px 0 ${L.inchiostro}; }
+#mzInsettiBtn { left: 50%; transform: translateX(-50%); } #mzInsettiBtn.on, #mzAttrezzoBtn.on { display: inline-flex; } #mzInsettiBtn b { color: ${L.acquaScura}; }
 #mzAttrezzoBtn { right: 35px; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 132px); min-width: 44px; padding: 6px 8px; flex-direction: column; gap: 0; font-size: 10px; } #mzAttrezzoBtn canvas { width: 24px; height: 24px; image-rendering: pixelated; }
 @media (max-width: 699px) { #mzInsettiBtn { left: calc(50% + 21px); padding: 8px 10px; } #mzInsettiBtn .lungo { display: none; } }
 body.mz-sotto #mzInsettiBtn, body.mz-sotto #mzAttrezzoBtn, body.mz-sotto #mzInsettoPreso { display: none !important; } /* nel dungeon update() non gira: i bottoni restano come erano */
-#mzInsettoPreso { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.9); z-index: 26; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 18px; background: rgba(46,30,20,.96); border: 3px solid ${PAL.giallo}; box-shadow: 0 4px 0 ${PAL.neroCaldo}; color: ${PAL.sabbiaChiara}; font: bold 15px ui-monospace, Menlo, monospace; text-align: center; opacity: 0; pointer-events: none; transition: opacity .15s steps(3), transform .15s steps(3); max-width: calc(100% - 32px); box-sizing: border-box; }
-#mzInsettoPreso.on { opacity: 1; transform: translate(-50%, -50%) scale(1); } #mzInsettoPreso b { color: ${PAL.giallo}; font-size: 17px; } #mzInsettoPreso small { color: ${PAL.sabbia}; font-size: 12px; }
+#mzInsettoPreso { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.9); z-index: 26; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 18px; background: ${L.carta}; border: 3px solid ${L.acquaScura}; box-shadow: 0 4px 0 ${L.inchiostro}; color: ${L.inchiostro}; font: 700 15px ${FONT_LIBRO}; text-align: center; opacity: 0; pointer-events: none; transition: opacity .15s steps(3), transform .15s steps(3); max-width: calc(100% - 32px); box-sizing: border-box; }
+#mzInsettoPreso.on { opacity: 1; transform: translate(-50%, -50%) scale(1); } #mzInsettoPreso b { color: ${L.acquaScura}; font-size: 17px; } #mzInsettoPreso small { color: ${L.inchiostro2}; font-size: 12px; }
 `;
 // icone 8×8 degli attrezzi: m legno, w chiaro, p pietra, d scuro
 const ICONE: Record<Attrezzo, string[]> = {

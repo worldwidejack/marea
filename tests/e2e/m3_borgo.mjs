@@ -90,7 +90,7 @@ export default async function (ctx) {
     const s = await ctx.getState(t.page);
     for (const p of [...s.botteghe.posti, ...s.porto.posti]) {
       await vai(t.page, p.fronte.x, p.fronte.z + 1.2);
-      const tagliati = await t.page.evaluate(() => [...document.querySelectorAll('.mz-lbl')].map((e) => ({ t: e.textContent.trim(), b: e.getBoundingClientRect() }))
+      const tagliati = await t.page.evaluate(() => [...document.querySelectorAll('.mz-lbl')].map((e) => ({ t: e.getAttribute('aria-label') || e.textContent.trim(), b: e.getBoundingClientRect() }))
         .filter((x) => x.b.width > 0 && x.b.right > -500 && x.b.left < innerWidth + 500 && (x.b.left < -0.5 || x.b.right > innerWidth + 0.5)).map((x) => x.t));
       assert(!tagliati.length, `davanti a ${p.id} cartellini tagliati sul bordo: ${tagliati.join(', ')}`);
     }

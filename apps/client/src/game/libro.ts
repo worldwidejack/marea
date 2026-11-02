@@ -19,6 +19,7 @@ import { pixIcon } from '../ui/icons.ts';
 import { createLabelLayer, LABEL_NEAR_M } from '../ui/sheet.ts';
 import type { RientroUi } from '../ui/rientro.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { LIBRO as L } from '../ui/libro_colori.ts';
 
 /** Un'isola abitata col suo libro: `view` dà il LotState (firme comprese), `mine` = la tua. */
 export type LibroIsola = { slot: number; owner: string; ownerName: string; mine: boolean; view: LotView };
@@ -43,7 +44,7 @@ export type LibriOpts = {
 };
 
 const CSS = `
-.mz-lbl.libro { border-color: ${P.giallo}; font-size: 13px; min-height: 32px; }
+.mz-lbl.libro { border-color: ${L.acqua}; font-size: 13px; min-height: 32px; }
 .mz-play.on ~ .mz-libro-btn.on { top: calc(60% + 66px); }
 `;
 
@@ -82,7 +83,7 @@ export function createLibri(o: LibriOpts): Libri {
     const dx = p1.x - p0.x, dz = p1.z - p0.z, wx = p0.x + dx * fuori - dz * lato, wz = p0.z + dz * fuori + dx * lato, y = o.world.groundY(wx, wz);
     geos.push(leggioGeometry().applyMatrix4(M(wx, y, wz, 0, Math.atan2(dx, dz), 0, 1.2, 1.2, 1.2)));
     const label = layer.add(() => { if (dist(wx, wz) < cfg.raggio * 2.5) void open(lib); else o.hud.toast(`Libro degli ospiti${is.mine ? '' : ' di ' + is.ownerName}: davanti alla porta di casa`, 2200); });
-    label.set('bubble', [pixIcon('libro', 16), el('span', '', 'Libro')], 'libro'); label.el.classList.add('libro'); label.el.dataset['libro'] = is.owner;
+    label.set('bubble', [pixIcon('libro', 16)], 'libro'); label.el.setAttribute('aria-label', 'Libro degli ospiti'); label.el.classList.add('libro'); label.el.dataset['libro'] = is.owner;
     const lib = { is, x: wx + dx * 0.9, z: wz + dz * 0.9, px: wx, pz: wz, y, label }; // x, z = dove sta chi legge (davanti al leggio, dalla parte della strada)
     return [lib];
   });

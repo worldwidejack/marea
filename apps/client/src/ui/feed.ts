@@ -13,6 +13,7 @@ import { suona } from '../audio/ponte.ts';
 import { emoteIcon } from '../game/emote.ts';
 import type { EmoteId } from '@marea/protocol';
 import { AVATAR } from '@marea/content';
+import { LIBRO as L } from './libro_colori.ts';
 
 export type Feed = { refresh(): Promise<void>; open(): void; close(): void; toggle(): void; isOpen(): boolean; readonly unread: number };
 /** `onNews`: righe mai viste (main rilegge il lotto). */
@@ -24,16 +25,16 @@ const FIRST_MS = 3000;
 const P = PAL;
 const CSS = `
 #mzFeed .mz-feed-list { display: flex; flex-direction: column; gap: 6px; }
-.mz-feed-row { padding: 6px 8px 6px 10px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; border-left-width: 6px; color: ${P.sabbia}; font-size: 14px; line-height: 1.35; }
+.mz-feed-row { padding: 6px 8px 6px 10px; background: ${L.cartaChiara}; border: 2px solid ${L.filo}; border-left-width: 6px; color: ${L.inchiostro2}; font-size: 14px; line-height: 1.35; }
 .mz-feed-row .t { display: block; }
-.mz-feed-row .q { display: block; margin-top: 2px; font-size: 12px; color: ${P.pietra}; }
-.mz-feed-row.new { background: ${P.ombraCalda}; border-color: ${P.giallo}; color: ${P.sabbiaChiara}; font-weight: bold; }
-.mz-feed-row.new .q { color: ${P.giallo}; }
-.mz-feed-row[data-tipo="visita"] { border-left-color: ${P.giallo}; display: flex; gap: 8px; align-items: flex-start; }
-.mz-feed-row[data-tipo="record"] { border-left-color: ${P.rosso}; }
+.mz-feed-row .q { display: block; margin-top: 2px; font-size: 12px; color: ${L.inchiostro2}; }
+.mz-feed-row.new { background: ${L.cartaScura}; border-color: ${L.acqua}; color: ${L.inchiostro}; font-weight: 700; }
+.mz-feed-row.new .q { color: ${L.acquaScura}; }
+.mz-feed-row[data-tipo="visita"] { border-left-color: ${L.acqua}; display: flex; gap: 8px; align-items: flex-start; }
+.mz-feed-row[data-tipo="record"] { border-left-color: ${L.rosso}; }
 .mz-feed-row[data-tipo="visita"] > .mz-ico { margin-top: 2px; }
 .mz-feed-row[data-tipo="visita"] > div { flex: 1; min-width: 0; }
-.mz-feed-empty { color: ${P.sabbia}; margin: 4px 0 10px; }
+.mz-feed-empty { color: ${L.inchiostro2}; margin: 4px 0 10px; }
 #mzFeedBtn .mz-ico { width: 28px; height: 28px; }
 `;
 let styled = false;

@@ -6,7 +6,7 @@ import { heroDerived } from '@marea/sim/rpg/hero.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
 import type { ItemDef, SlotOggetto } from '@marea/sim/rpg/types.ts';
 import { el } from '../ui/style.ts';
-import { GROUPS, SLOT_NOME, button, chip, fmtKg, iconOf, row, sec, statLines } from './items_ui.ts';
+import { GROUPS, SLOT_NOME, button, fmtKg, iconOf, iconaMagia, row, sec, statLines } from './items_ui.ts';
 import type { View } from './items_ui.ts';
 
 const NELLA_BORSA: readonly string[] = ['strumento', 'insetto', 'pesce'];
@@ -48,20 +48,19 @@ export function renderBag(v: View, out: HTMLElement): void {
   out.appendChild(sec('Magia in mano', inMano(v) ? 'tieni A per mirare, lascia per lanciare (i raggi restano accesi finché tieni) · C alterna' : 'tocca per impugnarla · C alterna'));
   if (!h.magie.length) out.appendChild(el('div', 'mz-rp-empty', 'Nessuna magia: leggi un libro.'));
   else {
-    const chips = el('div', 'mz-rp-chips');
-    for (const id of h.magie) {
+    for (const id of h.magie) { // una sotto l'altra, come gli oggetti dello zaino: icona, nome, costo
       const s = SPELLS.find((x) => x.id === id);
       if (!s) continue;
       const on = h.equip.magia === id && inMano(v);
-      const c = chip(`magia:${id}`, s.nome, on, () => {
+      const r = row(`magia:${id}`, iconaMagia(id, 24), s.nome, `${s.costo} Magicka${s.forma === 'raggio' ? ' al secondo' : ''}`, on, () => {
         if (v.busy) return;
         if (on) v.act({ t: 'equip', slot: 'mano', item: null }, () => 'Arma in mano');
         else v.act({ t: 'equip', slot: 'magia', item: id }, () => `In mano: ${s.nome}`);
       });
-      c.dataset['magia'] = id;
-      chips.appendChild(c);
+      r.dataset['magia'] = id; r.removeAttribute('aria-expanded');
+      if (on) r.appendChild(el('span', 'eq', 'in mano'));
+      out.appendChild(r);
     }
-    out.appendChild(chips);
     const cur = h.equip.magia ? SPELLS.find((x) => x.id === h.equip.magia) : undefined;
     if (cur) out.appendChild(el('div', 'mz-rp-cmp', `${cur.descr} Costa ${cur.costo} Magicka${cur.forma === 'raggio' ? ' al secondo' : ''}.`));
   }

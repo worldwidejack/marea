@@ -1,4 +1,4 @@
-// Cartelli discreti (#129), senza server (net=0): da PC i cartelli delle attività e i nomi della gente del Porto lontani sono piccoli
+// Cartelli discreti (#129), senza server (net=0): da PC i cartelli delle attività lontani sono piccoli
 // e in trasparenza (classe `far`), da vicino tornano pieni; sul telefono restano sempre pieni. Screenshot della piazza da PC.
 export const timeout = 120000;
 export default async function (ctx) {
@@ -30,12 +30,6 @@ export default async function (ctx) {
     await fine(d.page);
     const l = await lbl(d.page, '.mz-lbl[data-porto="mercante"]');
     assert(l && !l.far && l.opacity === 1, 'Mercante da vicino: ' + JSON.stringify(l));
-  });
-
-  await ctx.test('PC: il nome di una persona a più di 6 m è discreto', async () => {
-    await d.page.waitForFunction(() => [...document.querySelectorAll('.mz-lbl.persona')].some((e) => !e.style.transform.includes('-9999') && e.classList.contains('far')), null, { timeout: 20000 }).catch(() => {});
-    const n = await d.page.evaluate(() => [...document.querySelectorAll('.mz-lbl.persona')].filter((e) => !e.style.transform.includes('-9999') && e.classList.contains('far')).length);
-    assert(n > 0, 'nessun nome discreto in piazza');
   });
 
   const p = await ctx.open('?test=1&net=0');

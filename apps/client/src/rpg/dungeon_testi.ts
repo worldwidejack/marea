@@ -14,6 +14,7 @@ import { PAL, el } from '../ui/style.ts';
 import { tieniPremuto } from '../ui/comandi_touch.ts';
 import { itemIcon } from './items_ui.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 type Lettura = NonNullable<DungeonTesti['letture']>[number];
 type Voce = NonNullable<DungeonTesti['voci']>[number];
@@ -45,40 +46,40 @@ const horn = (c: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 
 const CSS = `
 .mz-dng-titolo { position: absolute; left: 50%; top: 25%; transform: translateX(-50%); z-index: 17; pointer-events: none !important; text-align: center; display: none; white-space: nowrap; }
 .mz-dng-titolo.on { display: block; animation: mzDngTit ${TITOLO_MS}ms steps(15) forwards; }
-.mz-dng-titolo b { display: block; font: bold min(30px, 5.6vw) ui-monospace, Menlo, monospace; letter-spacing: .1em; color: ${P.sabbiaChiara}; text-shadow: 3px 3px 0 ${P.neroCaldo}; }
-.mz-dng-titolo i { display: block; width: 62%; height: 3px; margin: 7px auto; background: ${P.giallo}; box-shadow: 0 3px 0 ${P.neroCaldo}; }
-.mz-dng-titolo small { display: block; font: bold 14px ui-monospace, Menlo, monospace; color: ${P.sabbia}; text-shadow: 2px 2px 0 ${P.neroCaldo}; }
+.mz-dng-titolo b { display: block; font: 700 min(30px, 5.6vw) ${FONT_LIBRO}; letter-spacing: .1em; color: ${L.inchiostro}; text-shadow: 3px 3px 0 ${L.inchiostro}; }
+.mz-dng-titolo i { display: block; width: 62%; height: 3px; margin: 7px auto; background: ${L.acqua}; box-shadow: 0 3px 0 ${L.inchiostro}; }
+.mz-dng-titolo small { display: block; font: 700 14px ${FONT_LIBRO}; color: ${L.inchiostro2}; text-shadow: 2px 2px 0 ${L.inchiostro}; }
 @keyframes mzDngTit { 0% { opacity: 0; } 12% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; } }
-.mz-dng-voce { position: absolute; left: 50%; top: calc(max(8px, env(safe-area-inset-top)) + max(112px, var(--mz-dng-hud-h, 0px) + 10px)); transform: translateX(-50%); width: min(440px, calc(100% - 32px)); box-sizing: border-box; padding: 7px 12px 9px; background: rgba(35,32,31,.94); border: 2px solid ${P.acquaBassa}; box-shadow: 0 4px 0 ${P.neroCaldo}; z-index: 16; display: none; cursor: pointer; pointer-events: auto; }
+.mz-dng-voce { position: absolute; left: 50%; top: calc(max(8px, env(safe-area-inset-top)) + max(112px, var(--mz-dng-hud-h, 0px) + 10px)); transform: translateX(-50%); width: min(440px, calc(100% - 32px)); box-sizing: border-box; padding: 7px 12px 9px; background: ${L.carta}; border: 2px solid ${P.acquaBassa}; box-shadow: 0 4px 0 ${L.inchiostro}; z-index: 16; display: none; cursor: pointer; pointer-events: auto; }
 .mz-dng-voce.on { display: block; }
-.mz-dng-voce.capo { border-color: ${P.rosso}; }
-.mz-dng-voce .chi { display: flex; align-items: center; gap: 6px; font-weight: bold; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: ${P.acquaBassa}; }
-.mz-dng-voce.capo .chi { color: ${P.rosso}; }
-.mz-dng-voce .chi small { margin-left: auto; font-size: 11px; letter-spacing: 0; text-transform: none; color: ${P.sabbia}; font-weight: normal; }
-.mz-dng-voce p { margin: 4px 0 0; min-height: 2.7em; font-size: 15px; line-height: 1.35; color: ${P.sabbiaChiara}; }
+.mz-dng-voce.capo { border-color: ${L.rosso}; }
+.mz-dng-voce .chi { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: ${P.acquaBassa}; }
+.mz-dng-voce.capo .chi { color: ${L.rosso}; }
+.mz-dng-voce .chi small { margin-left: auto; font-size: 11px; letter-spacing: 0; text-transform: none; color: ${L.inchiostro2}; font-weight: normal; }
+.mz-dng-voce p { margin: 4px 0 0; min-height: 2.7em; font-size: 15px; line-height: 1.35; color: ${L.inchiostro}; }
 .mz-dng-segni { position: absolute; inset: 0; pointer-events: none !important; z-index: 12; overflow: hidden; }
-.mz-dng-segno { position: absolute; left: 0; top: 0; display: none; align-items: center; gap: 4px; padding: 2px 6px 2px 4px; background: rgba(35,32,31,.82); border: 1px dashed ${P.sabbia}; font: bold 11px ui-monospace, Menlo, monospace; color: ${P.sabbia}; white-space: nowrap; }
-.mz-dng-segno.letto { color: ${P.erbaChiara}; border-color: ${P.erbaScura}; }
-.mz-dng-leggi { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); width: min(300px, calc(100% - 32px)); box-sizing: border-box; padding: 7px 12px 10px; background: rgba(46,30,20,.94); border: 2px dashed ${P.legnoChiaro}; box-shadow: 0 4px 0 ${P.neroCaldo}; z-index: 15; display: none; cursor: pointer; touch-action: none; overflow: hidden; pointer-events: auto; }
+.mz-dng-segno { position: absolute; left: 0; top: 0; display: none; align-items: center; gap: 4px; padding: 2px 6px 2px 4px; background: ${L.carta}; border: 1px dashed ${L.inchiostro2}; font: 700 11px ${FONT_LIBRO}; color: ${L.inchiostro2}; white-space: nowrap; }
+.mz-dng-segno.letto { color: ${L.acqua}; border-color: ${L.acquaScura}; }
+.mz-dng-leggi { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); width: min(300px, calc(100% - 32px)); box-sizing: border-box; padding: 7px 12px 10px; background: ${L.carta}; border: 2px dashed ${L.oro}; box-shadow: 0 4px 0 ${L.inchiostro}; z-index: 15; display: none; cursor: pointer; touch-action: none; overflow: hidden; pointer-events: auto; }
 .mz-dng-leggi.on { display: block; }
-.mz-dng-leggi.tiene { border-style: solid; border-color: ${P.giallo}; }
-.mz-dng-leggi .t { display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 13px; color: ${P.sabbiaChiara}; }
-.mz-dng-leggi .t kbd { margin-left: auto; padding: 0 5px; border: 1px solid ${P.sabbia}; font: bold 12px ui-monospace, Menlo, monospace; color: ${P.sabbia}; }
-.mz-dng-leggi .n { margin-top: 4px; font-size: 14px; font-weight: bold; color: ${P.sabbiaChiara}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mz-dng-leggi .s { margin-top: 1px; font-size: 12px; color: ${P.sabbia}; }
-.mz-dng-leggi .fill { position: absolute; left: 0; bottom: 0; height: 4px; width: 0; background: ${P.giallo}; }
-.mz-dng-lett { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100% - 24px)); max-height: calc(100% - 96px); box-sizing: border-box; display: none; flex-direction: column; z-index: 25; background: ${P.sabbiaChiara}; color: ${P.neroCaldo}; border: 3px solid ${P.legno}; box-shadow: 0 6px 0 ${P.neroCaldo}; pointer-events: auto; }
+.mz-dng-leggi.tiene { border-style: solid; border-color: ${L.acqua}; }
+.mz-dng-leggi .t { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; color: ${L.inchiostro}; }
+.mz-dng-leggi .t kbd { margin-left: auto; padding: 0 5px; border: 1px solid ${L.inchiostro2}; font: 700 12px ${FONT_LIBRO}; color: ${L.inchiostro2}; }
+.mz-dng-leggi .n { margin-top: 4px; font-size: 14px; font-weight: 700; color: ${L.inchiostro}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mz-dng-leggi .s { margin-top: 1px; font-size: 12px; color: ${L.inchiostro2}; }
+.mz-dng-leggi .fill { position: absolute; left: 0; bottom: 0; height: 4px; width: 0; background: ${L.acqua}; }
+.mz-dng-lett { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100% - 24px)); max-height: calc(100% - 96px); box-sizing: border-box; display: none; flex-direction: column; z-index: 25; background: ${L.cartaChiara}; color: ${L.inchiostro}; border: 3px solid ${L.filo}; box-shadow: 0 6px 0 ${L.inchiostro}; pointer-events: auto; }
 .mz-dng-lett.on { display: flex; }
-.mz-dng-lett .tag { padding: 9px 14px 0; font-size: 11px; font-weight: bold; letter-spacing: .08em; text-transform: uppercase; color: ${P.legno}; }
-.mz-dng-lett h3 { margin: 2px 14px 8px; font-size: 18px; color: ${P.legnoScuro}; }
-.mz-dng-lett .corpo { overflow-y: auto; padding: 0 14px 2px; font-size: 15px; line-height: 1.5; color: ${P.neroCaldo}; }
+.mz-dng-lett .tag { padding: 9px 14px 0; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: ${L.filo}; }
+.mz-dng-lett h3 { margin: 2px 14px 8px; font-size: 18px; color: ${L.cartaChiara}; }
+.mz-dng-lett .corpo { overflow-y: auto; padding: 0 14px 2px; font-size: 15px; line-height: 1.5; color: ${L.inchiostro}; }
 .mz-dng-lett .corpo p { margin: 0 0 10px; }
 .mz-dng-lett .piede { padding: 0 14px 12px; }
-.mz-dng-lett .piede .sub { font-size: 12px; color: ${P.legno}; }
-.mz-dng-lett.incisione { background: ${P.pietraScura}; color: ${P.sabbiaChiara}; border-color: ${P.giallo}; }
-.mz-dng-lett.incisione .tag, .mz-dng-lett.incisione h3 { color: ${P.giallo}; }
-.mz-dng-lett.incisione .corpo { color: ${P.sabbiaChiara}; }
-.mz-dng-lett.incisione .piede .sub { color: ${P.sabbia}; }
+.mz-dng-lett .piede .sub { font-size: 12px; color: ${L.filo}; }
+.mz-dng-lett.incisione { background: ${L.filo}; color: ${L.inchiostro}; border-color: ${L.acqua}; }
+.mz-dng-lett.incisione .tag, .mz-dng-lett.incisione h3 { color: ${L.acquaScura}; }
+.mz-dng-lett.incisione .corpo { color: ${L.inchiostro}; }
+.mz-dng-lett.incisione .piede .sub { color: ${L.inchiostro2}; }
 `;
 
 const ricorda = (k: string): Set<string> => {

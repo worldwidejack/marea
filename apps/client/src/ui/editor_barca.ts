@@ -10,6 +10,7 @@ import type { Api, Me } from '../net/api.ts';
 import { BARCA_COLORI, disegnaBarca } from '../game/barca_look.ts';
 import { PAL, el } from './style.ts';
 import { resIcon } from './icons.ts';
+import { FONT_LIBRO, LIBRO as L } from './libro_colori.ts';
 
 export type RigaBarca = 'scafo' | 'vela';
 export type SezioneBarca = {
@@ -28,12 +29,12 @@ export type SezioneBarca = {
 const P = PAL;
 const STYLE = `
 .mz-eb-head { display: flex; align-items: center; gap: 10px; }
-.mz-eb-prev { width: 160px; height: 88px; flex: none; image-rendering: pixelated; border: 2px solid ${P.neroCaldo}; background: ${P.acquaBassa}; }
-.mz-eb-head p { margin: 0; color: ${P.sabbia}; font-size: 13px; line-height: 1.35; }
-.mz-eb-chip { display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; border: 2px solid ${P.neroCaldo}; }
-.mz-eb-chip.no { background: ${P.pietra}; box-shadow: inset 0 0 0 3px ${P.pietraChiara}; }
-.mz-eb-nome { width: 100%; box-sizing: border-box; min-height: 44px; padding: 0 8px; background: ${P.sabbiaChiara}; color: ${P.neroCaldo}; border: 2px solid ${P.neroCaldo}; font: bold 16px ui-monospace, Menlo, monospace; }
-.mz-eb-nome::placeholder { color: ${P.pietraScura}; text-transform: none; }
+.mz-eb-prev { width: 160px; height: 88px; flex: none; image-rendering: pixelated; border: 2px solid ${L.inchiostro}; background: ${P.acquaBassa}; }
+.mz-eb-head p { margin: 0; color: ${L.inchiostro2}; font-size: 13px; line-height: 1.35; }
+.mz-eb-chip { display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; border: 2px solid ${L.inchiostro}; }
+.mz-eb-chip.no { background: ${L.inchiostro2}; box-shadow: inset 0 0 0 3px ${L.filo}; }
+.mz-eb-nome { width: 100%; box-sizing: border-box; min-height: 44px; padding: 0 8px; background: ${L.cartaChiara}; color: ${L.inchiostro}; border: 2px solid ${L.inchiostro}; font: 700 16px ${FONT_LIBRO}; }
+.mz-eb-nome::placeholder { color: ${L.filo}; text-transform: none; }
 `;
 const injectStyle = (): void => {
   if (document.getElementById('mz-eb-style')) return;

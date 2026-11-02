@@ -18,7 +18,7 @@ import type { Api, DungeonFinish } from '../net/api.ts';
 import { ApiError } from '../net/api.ts';
 import type { PixId } from '../ui/icons.ts';
 import { pixIcon } from '../ui/icons.ts';
-import { PAL, el, injectUiStyle } from '../ui/style.ts';
+import { el, injectUiStyle } from '../ui/style.ts';
 import { placeholder, sigillo, togliScenografia } from './ingressi_forme.ts';
 import { createLabelLayer, LABEL_NEAR_M } from '../ui/sheet.ts';
 import { FLAGS } from '../flags.ts';
@@ -27,6 +27,7 @@ import type { DungeonRun, PanelCtx, RunCtx, SquadraRete } from '../rpg/types.ts'
 import { parseSqServer } from '@marea/protocol/squadra.ts';
 import type { SqClientMsg, SqMembro, SqServerMsg } from '@marea/protocol/squadra.ts';
 import type { DungeonAzione, DungeonAzioni, PackedDungeon } from '@marea/sim/dungeon/types.ts';
+import { LIBRO as L } from '../ui/libro_colori.ts';
 
 export type Ingressi = {
   readonly spots: readonly { id: string; nome: string; x: number; z: number; icon: PixId }[];
@@ -74,22 +75,22 @@ const NEAR_M = 4;
 /** Squadra: chi si allontana più di così dall'ingresso esce dalla squadra. */
 const LONTANO_M = NEAR_M + 3;
 const ICON: PixId = 'ingresso';
-const CSS = `.mz-lbl.dng { border-color: ${PAL.viola}; font-size: 15px; min-height: 34px; }
+const CSS = `.mz-lbl.dng { border-color: ${L.acqua}; font-size: 15px; min-height: 34px; }
 body.mz-sotto #mzDngEntra, body.mz-sotto #mzDngInsieme, body.mz-sotto #mzDngSquadra { display: none; }
-#mzDngInsieme { top: calc(60% + 66px); background: ${PAL.erbaChiara}; }
-.mz-dng-sq { position: absolute; left: 50%; top: max(64px, calc(env(safe-area-inset-top) + 56px)); transform: translateX(-50%); width: min(320px, calc(100% - 32px)); padding: 12px 14px 14px; background: rgba(46,30,20,.96); border: 3px solid ${PAL.erbaChiara}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; z-index: 24; text-align: center; }
+#mzDngInsieme { top: calc(60% + 66px); background: ${L.acqua}; }
+.mz-dng-sq { position: absolute; left: 50%; top: max(64px, calc(env(safe-area-inset-top) + 56px)); transform: translateX(-50%); width: min(320px, calc(100% - 32px)); padding: 12px 14px 14px; background: ${L.carta}; border: 3px solid ${L.acqua}; box-shadow: 0 5px 0 ${L.inchiostro}; z-index: 24; text-align: center; }
 .mz-dng-sq b { display: block; font-size: 18px; }
-.mz-dng-sq .chi { margin: 6px 0 2px; font-weight: bold; font-size: 16px; color: ${PAL.erbaChiara}; }
-.mz-dng-sq .sub { color: ${PAL.sabbia}; font-size: 13px; margin: 2px 0 6px; }
+.mz-dng-sq .chi { margin: 6px 0 2px; font-weight: 700; font-size: 16px; color: ${L.acqua}; }
+.mz-dng-sq .sub { color: ${L.inchiostro2}; font-size: 13px; margin: 2px 0 6px; }
 .mz-dng-sq .mz-btn { justify-content: center; }
-.mz-dng-sq .mz-btn.via { background: ${PAL.erbaChiara}; }
-.mz-dng-da { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: min(320px, calc(100% - 32px)); padding: 14px 16px 16px; background: rgba(46,30,20,.97); border: 3px solid ${PAL.viola}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; z-index: 24; text-align: center; }
+.mz-dng-sq .mz-btn.via { background: ${L.acqua}; }
+.mz-dng-da { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: min(320px, calc(100% - 32px)); padding: 14px 16px 16px; background: ${L.carta}; border: 3px solid ${L.acqua}; box-shadow: 0 5px 0 ${L.inchiostro}; z-index: 24; text-align: center; }
 .mz-dng-da b { display: block; font-size: 19px; }
-.mz-dng-da .sub { color: ${PAL.sabbia}; font-size: 14px; margin: 4px 0 4px; }
+.mz-dng-da .sub { color: ${L.inchiostro2}; font-size: 14px; margin: 4px 0 4px; }
 .mz-dng-da .mz-btn { justify-content: center; }
-.mz-dng-da .mz-btn.lan { background: ${PAL.giallo}; }
-#mzDngEntra.sig { background: ${PAL.pietra}; }
-.mz-lbl.dng.sig { border-color: ${PAL.rosso}; }`;
+.mz-dng-da .mz-btn.lan { background: ${L.acquaScura}; }
+#mzDngEntra.sig { background: ${L.inchiostro2}; }
+.mz-lbl.dng.sig { border-color: ${L.rosso}; }`;
 
 export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader: Loader; api: Api | null; hud: Hud; root: HTMLElement; canvas: HTMLCanvasElement; getLot(): LotState | null; setLot(l: LotState): void }): Ingressi {
   injectUiStyle();
@@ -127,7 +128,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     if (o.loader.has(name)) void o.loader.load(name).then((g) => holder.add(g.scene)).catch(() => holder.add(placeholder()));
     else holder.add(placeholder(s.stile));
     const label = layer.add(() => { void enter(s); });
-    label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome)], 'dng');
+    label.set('bubble', [pixIcon(s.icon, 16)], 'dng'); label.el.setAttribute('aria-label', s.nome);
     label.el.classList.add('dng');
     const sig = richiesto(s.id) ? sigillo(s.stile) : null;
     if (sig) holder.add(sig);
@@ -423,7 +424,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
             m.chiuso = c; m.sig.visible = c;
             if (!c && m.s.id === 'vuoto') { try { localStorage.setItem('marea:cancello_vuoto_aperto', '1'); } catch {} }
             const r = richiesto(m.s.id), tag = c ? (r === 'unico_anello_onda' ? ' · cancello chiuso' : ' · sigillato') : '';
-            m.label.set('bubble', [pixIcon(m.s.icon, 16), el('span', '', `${m.s.nome}${tag}`)], c ? 'dng-sig' : 'dng');
+            m.label.set('bubble', [pixIcon(m.s.icon, 16)], c ? 'dng-sig' : 'dng'); m.label.el.setAttribute('aria-label', `${m.s.nome}${tag}`);
             m.label.el.classList.add('dng'); m.label.el.classList.toggle('sig', c); // set() rifà le classi
           }
         }

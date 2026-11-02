@@ -1,8 +1,8 @@
 // Stile dell'HUD del mondo: il «libro illustrato» del kit (ui/kit.ts, `assets/concept/ui/kit/n6_inchiostro.jpg`): cartigli di carta crema
 // col bordo d'oro e il filo d'inchiostro, tondi di carta, scritte serif. Piccolo (--mzk .82 sul telefono) così il mondo resta protagonista.
-// Il nome del file e ALLEGRO vengono dallo stile di prima (alla Super Mario): ALLEGRO serve ancora al menù dell'avatar finché non passa al kit.
+// Il nome del file e ALLEGRO vengono dallo stile di prima (alla Super Mario): ALLEGRO resta per il cartellino della tua barca (game/mia_barca.ts).
 // Ridisegna sopra i moduli di sempre (topbar, barra risorse, minimappa, mete, cartellini, bottoni di posto) senza toccarne la logica:
-// selettori `body #id` così vince sullo stile vecchio qualunque sia l'ordine dei <style>. I pannelli (fogli, editor, diario…) restano com'erano.
+// selettori `body #id` così vince sullo stile vecchio qualunque sia l'ordine dei <style>. I pannelli (fogli, editor, diario…) sono nel kit (ui/style.ts).
 // Joystick, A e B sono in game/input.ts (stile inline). Colori: palette sua, come l'interfaccia delle Corse (ROADMAP §Deviazioni).
 import type { Look } from '@marea/protocol';
 import { AVATAR } from '@marea/content';
@@ -15,8 +15,6 @@ export const ALLEGRO = {
 } as const;
 export const FONT_ALLEGRO = "'MzTitan', 'Arial Rounded MT Bold', ui-rounded, system-ui, sans-serif";
 const A = ALLEGRO;
-/** Contorno pieno delle scritte bianche (niente sfocature): 8 direzioni + l'ombra sotto. */
-export const CONTORNO_ALLEGRO = `0 2px 0 ${A.notte}, 2px 0 0 ${A.notte}, -2px 0 0 ${A.notte}, 0 -2px 0 ${A.notte}, 1.5px 1.5px 0 ${A.notte}, -1.5px 1.5px 0 ${A.notte}, 1.5px -1.5px 0 ${A.notte}, -1.5px -1.5px 0 ${A.notte}, 0 3px 0 ${A.notte}`;
 
 /** px CSS che crescono un po' sul PC. */
 const k = (n: number) => `calc(var(--mzk) * ${n}px)`;

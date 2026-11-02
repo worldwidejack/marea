@@ -31,6 +31,7 @@ import type { Scelta } from '../templari/scelta.ts';
 import type { TClasse } from '@marea/content/templari.ts';
 import { TI_STORIA, parseTiServer } from '@marea/protocol/templari_insieme.ts';
 import type { TiClientMsg, TiMembro, TiServerMsg, TiTurno } from '@marea/protocol/templari_insieme.ts';
+import { LIBRO as L } from '../ui/libro_colori.ts';
 
 export type Templari = {
   /** La porta della chiesa (per la bussola), null se l'isola non c'è. */
@@ -55,14 +56,14 @@ const NEAR_M = 4;
 const NOMI_EROI: Record<string, string> = { crociato: 'Crociato', bucaniera: 'Bucaniera', arciere: 'Arciere' };
 /** Sala: chi si allontana più di così dalla porta della chiesa esce dalla sala. */
 const LONTANO_M = NEAR_M + 3;
-const CSS = `#mzTemplariInsieme { top: calc(60% + 66px); background: ${PAL.erbaChiara}; }
+const CSS = `#mzTemplariInsieme { top: calc(60% + 66px); background: ${L.acqua}; }
 body.mz-sotto #mzTemplariInsieme, body.mz-sotto #mzTemplariSala { display: none; }
-.mz-tpl-sala { position: absolute; left: 50%; top: max(64px, calc(env(safe-area-inset-top) + 56px)); transform: translateX(-50%); width: min(320px, calc(100% - 32px)); padding: 12px 14px 14px; background: rgba(46,30,20,.96); border: 3px solid ${PAL.rosso}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; z-index: 24; text-align: center; }
+.mz-tpl-sala { position: absolute; left: 50%; top: max(64px, calc(env(safe-area-inset-top) + 56px)); transform: translateX(-50%); width: min(320px, calc(100% - 32px)); padding: 12px 14px 14px; background: ${L.carta}; border: 3px solid ${L.rosso}; box-shadow: 0 5px 0 ${L.inchiostro}; z-index: 24; text-align: center; }
 .mz-tpl-sala b { display: block; font-size: 18px; }
-.mz-tpl-sala .chi { margin: 6px 0 2px; font-weight: bold; font-size: 16px; color: ${PAL.erbaChiara}; }
-.mz-tpl-sala .sub { color: ${PAL.sabbia}; font-size: 13px; margin: 2px 0 6px; }
+.mz-tpl-sala .chi { margin: 6px 0 2px; font-weight: 700; font-size: 16px; color: ${L.acqua}; }
+.mz-tpl-sala .sub { color: ${L.inchiostro2}; font-size: 13px; margin: 2px 0 6px; }
 .mz-tpl-sala .mz-btn { justify-content: center; }
-.mz-tpl-sala .mz-btn.via { background: ${PAL.rosso}; color: ${PAL.sabbiaChiara}; }`;
+.mz-tpl-sala .mz-btn.via { background: ${L.rosso}; color: ${L.inchiostro}; }`;
 /** Stato condiviso col chunk (test): autopilota (tick per frame) e vista corrente per state().templari. */
 /** `prova`: solo test, mette nella partita un'arma, lo scudo, punti o uno zombie davanti (la partita così non si rigioca uguale: solo senza server). */
 export const templariLink: { autopilot: number; state: (() => Record<string, unknown>) | null; prova: ((o: Record<string, unknown>) => unknown) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, state: null, prova: null };

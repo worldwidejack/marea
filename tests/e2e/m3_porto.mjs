@@ -97,13 +97,13 @@ export default async function (ctx) {
     const posto = async (id) => (await st()).porto.posti.find((p) => p.id === id);
     const vai = async (x, z) => { await hook('teleport', x, z); await sleep(700); };
 
-    await ctx.test('piazza: banco, Bacheca e quattro persone del Porto con il nome; draw call ≤ 100', async () => {
+    await ctx.test('piazza: banco, Bacheca e quattro persone del Porto, cartelli senza testo ma col nome in aria-label; draw call ≤ 100', async () => {
       const m = await posto('mercante'), b = await posto('bacheca');
       await vai((m.fronte.x + b.fronte.x) / 2, m.fronte.z + 5);
       await hook('setZoom', 1.15); await sleep(1200);
       const s = await st();
       assert(s.porto.gente.length === gente.gente.length && s.porto.gente.length >= 4, 'gente: ' + JSON.stringify(s.porto.gente));
-      const labels = await page.evaluate(() => [...document.querySelectorAll('.mz-lbl[data-porto]')].map((e) => e.textContent));
+      const labels = await page.evaluate(() => [...document.querySelectorAll('.mz-lbl[data-porto]')].map((e) => e.getAttribute('aria-label')));
       assert(labels.includes('Mercante') && labels.includes('Bacheca'), 'cartelli: ' + labels.join(','));
       await ctx.shot(page, 'desktop_piazza');
       const perf = await ctx.getPerf(page); ctx.log('perf piazza', JSON.stringify(perf));

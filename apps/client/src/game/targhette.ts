@@ -4,16 +4,17 @@
 import * as THREE from 'three';
 import type { Camera } from 'three';
 import type { GameWorld } from './world.ts';
-import { PAL, el } from '../ui/style.ts';
+import { el } from '../ui/style.ts';
 import { registerStateProvider } from '../test/testapi.ts';
 import { LABEL_NEAR_M } from '../ui/sheet.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type Targhette = { update(): void };
 const DIST = 40;
 const STYLE = `
 #mzTarghe { position: absolute; inset: 0; overflow: hidden; z-index: 5; pointer-events: none !important; }
 #ui.mz-racing #mzTarghe, body.mz-sotto #mzTarghe { visibility: hidden; }
-.mz-targa { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; padding: 1px 6px 2px; background: rgba(46,30,20,.82); border: 2px solid ${PAL.legnoChiaro}; box-shadow: 0 2px 0 ${PAL.neroCaldo}; font: bold 12px/1.2 ui-monospace, Menlo, monospace; color: ${PAL.sabbiaChiara}; white-space: nowrap; pointer-events: none; will-change: transform; }
+.mz-targa { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; padding: 1px 6px 2px; background: ${L.carta}; border: 2px solid ${L.oro}; box-shadow: 0 2px 0 ${L.inchiostro}; font: 700 12px/1.2 ${FONT_LIBRO}; color: ${L.inchiostro}; white-space: nowrap; pointer-events: none; will-change: transform; }
 /* #129: da PC, oltre LABEL_NEAR_M la targhetta è più piccola e un po' trasparente; sul telefono resta com'è */
 @media (hover: hover) and (pointer: fine) {
   .mz-targa { transition: opacity .2s; }

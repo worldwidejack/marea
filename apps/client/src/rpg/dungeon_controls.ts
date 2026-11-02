@@ -10,6 +10,7 @@ import { tieniPremuto } from '../ui/comandi_touch.ts';
 import { createMiraStick } from './mira_stick.ts';
 import { createPreferiti } from './dungeon_preferiti_ui.ts';
 import type { InMano, Preferito } from './dungeon_preferiti.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type LanternaUi = { salvatoQui: boolean; oggetti: number; monete: number };
 export type Controls = {
@@ -47,7 +48,7 @@ export type Controls = {
 const MIRA = 108; // px: anello del joystick di mira (mira_stick.ts), per lasciargli il posto
 const SAFE = 'env(safe-area-inset-bottom, 0px)', RIGHT = 'max(16px, env(safe-area-inset-right, 0px))', TOP = 'max(8px, env(safe-area-inset-top))';
 const CSS = `
-.mz-dng-btn { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: 3px solid rgba(244,227,193,.7); color: ${PAL.sabbiaChiara}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font: bold 13px ui-monospace, Menlo, monospace; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; z-index: 13; overflow: hidden; }
+.mz-dng-btn { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: 3px solid rgba(244,227,193,.7); color: ${L.inchiostro}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font: 700 13px ${FONT_LIBRO}; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; z-index: 13; overflow: hidden; }
 .mz-dng-btn.d { right: calc(${RIGHT} + 4px); bottom: calc(${SAFE} + 132px); background: rgba(44,107,63,.82); }
 .mz-dng-btn.e { right: calc(${RIGHT} + 78px); bottom: calc(${SAFE} + 206px); background: rgba(120,70,22,.84); display: none; }
 .mz-dng-btn.e.on-vis { display: flex; }
@@ -56,32 +57,32 @@ const CSS = `
 .mz-dng-aimon .mz-dng-btn.d { bottom: calc(${SAFE} + 160px); }
 .mz-dng-btn.on { transform: scale(.92); filter: brightness(1.3); }
 .mz-dng-btn.off { opacity: .45; }
-.mz-dng-btn.mano { border-color: ${PAL.giallo}; box-shadow: 0 0 0 2px ${PAL.neroCaldo}; }
+.mz-dng-btn.mano { border-color: ${L.acquaScura}; box-shadow: 0 0 0 2px ${L.inchiostro}; }
 .mz-dng-btn .cd { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(35,32,31,.7); pointer-events: none; }
 .mz-dng-btn small { font-size: 10px; opacity: .85; position: relative; }
 .mz-dng-btn .ico { position: relative; display: flex; }
 .mz-dng-top { position: absolute; right: ${RIGHT}; top: ${TOP}; display: flex; gap: 8px; z-index: 14; }
-.mz-dng-tb { min-height: 44px; min-width: 44px; padding: 0 10px; display: flex; align-items: center; justify-content: center; gap: 6px; background: ${PAL.legnoScuro}; color: ${PAL.sabbiaChiara}; border: 2px solid ${PAL.legnoChiaro}; box-shadow: 0 3px 0 ${PAL.neroCaldo}; font: bold 14px ui-monospace, Menlo, monospace; cursor: pointer; }
-.mz-dng-tb:active { transform: translateY(2px); box-shadow: 0 1px 0 ${PAL.neroCaldo}; }
-.mz-dng-tb small { font-size: 11px; color: ${PAL.sabbia}; }
-.mz-dng-tb .pz { display: flex; gap: 4px; } .mz-dng-tb .pz i { display: block; width: 5px; height: 16px; background: ${PAL.sabbiaChiara}; box-shadow: 1px 1px 0 ${PAL.neroCaldo}; }
-.mz-dng-exit { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); display: none; align-items: center; gap: 8px; min-height: 56px; padding: 0 18px; background: ${PAL.giallo}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; font: bold 18px ui-monospace, Menlo, monospace; z-index: 16; cursor: pointer; white-space: nowrap; }
+.mz-dng-tb { min-height: 44px; min-width: 44px; padding: 0 10px; display: flex; align-items: center; justify-content: center; gap: 6px; background: ${L.cartaChiara}; color: ${L.inchiostro}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; font: 700 14px ${FONT_LIBRO}; cursor: pointer; }
+.mz-dng-tb:active { transform: translateY(2px); box-shadow: 0 1px 0 ${L.inchiostro}; }
+.mz-dng-tb small { font-size: 11px; color: ${L.inchiostro2}; }
+.mz-dng-tb .pz { display: flex; gap: 4px; } .mz-dng-tb .pz i { display: block; width: 5px; height: 16px; background: ${L.inchiostro}; box-shadow: 1px 1px 0 ${L.inchiostro}; }
+.mz-dng-exit { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); display: none; align-items: center; gap: 8px; min-height: 56px; padding: 0 18px; background: ${L.acquaScura}; color: ${L.inchiostro}; border: 3px solid ${L.inchiostro}; box-shadow: 0 5px 0 ${L.inchiostro}; font: 700 18px ${FONT_LIBRO}; z-index: 16; cursor: pointer; white-space: nowrap; }
 .mz-dng-exit.on { display: flex; }
 .mz-dng-exit.valv { background: ${PAL.acquaBassa}; }
-.mz-dng-exit.tim { background: ${PAL.arancio}; }
-.mz-dng-lan { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); width: min(300px, calc(100% - 32px)); padding: 8px 10px 10px; display: none; background: rgba(46,30,20,.95); border: 3px solid ${PAL.giallo}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; z-index: 16; text-align: center; }
+.mz-dng-exit.tim { background: ${L.oroScuro}; }
+.mz-dng-lan { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); width: min(300px, calc(100% - 32px)); padding: 8px 10px 10px; display: none; background: ${L.carta}; border: 3px solid ${L.acquaScura}; box-shadow: 0 5px 0 ${L.inchiostro}; z-index: 16; text-align: center; }
 .mz-dng-lan.on { display: block; }
-.mz-dng-lan b { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 16px; color: ${PAL.giallo}; letter-spacing: .06em; }
-.mz-dng-lan b i { display: block; width: 8px; height: 12px; background: ${PAL.giallo}; box-shadow: 0 0 0 2px ${PAL.arancio}, 0 0 10px ${PAL.giallo}; }
-.mz-dng-lan .sub { font-size: 13px; color: ${PAL.sabbia}; margin: 3px 0 0; min-height: 17px; }
+.mz-dng-lan b { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 16px; color: ${L.acquaScura}; letter-spacing: .06em; }
+.mz-dng-lan b i { display: block; width: 8px; height: 12px; background: ${L.acquaScura}; box-shadow: 0 0 0 2px ${L.oroScuro}, 0 0 10px ${L.acquaScura}; }
+.mz-dng-lan .sub { font-size: 13px; color: ${L.inchiostro2}; margin: 3px 0 0; min-height: 17px; }
 .mz-dng-lan .mz-btn { margin-top: 8px; min-height: 52px; font-size: 17px; }
-.mz-dng-lan .mz-btn.salva { background: ${PAL.giallo}; }
-.mz-dng-lan .mz-btn.salva.fatto { background: ${PAL.erbaScura}; color: ${PAL.sabbiaChiara}; }
-.mz-dng-ask { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: min(320px, calc(100% - 32px)); padding: 16px; background: rgba(46,30,20,.97); border: 3px solid ${PAL.rosso}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; z-index: 24; text-align: center; display: none; font-size: 17px; }
+.mz-dng-lan .mz-btn.salva { background: ${L.acquaScura}; }
+.mz-dng-lan .mz-btn.salva.fatto { background: ${L.acquaScura}; color: ${L.inchiostro}; }
+.mz-dng-ask { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: min(320px, calc(100% - 32px)); padding: 16px; background: ${L.carta}; border: 3px solid ${L.rosso}; box-shadow: 0 5px 0 ${L.inchiostro}; z-index: 24; text-align: center; display: none; font-size: 17px; }
 .mz-dng-ask.on { display: block; }
-.mz-dng-ask.pausa { border-color: ${PAL.legnoChiaro}; }
-.mz-dng-ask b { display: block; font-size: 22px; margin-bottom: 6px; color: ${PAL.sabbiaChiara}; }
-.mz-dng-ask .sub { color: ${PAL.sabbia}; font-size: 14px; margin-bottom: 12px; }
+.mz-dng-ask.pausa { border-color: ${L.oro}; }
+.mz-dng-ask b { display: block; font-size: 22px; margin-bottom: 6px; color: ${L.inchiostro}; }
+.mz-dng-ask .sub { color: ${L.inchiostro2}; font-size: 14px; margin-bottom: 12px; }
 .mz-dng-ask .mz-btn small { font-size: 12px; color: inherit; opacity: .8; }
 `;
 

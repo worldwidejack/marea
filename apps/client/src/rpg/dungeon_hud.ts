@@ -10,6 +10,7 @@ import { spellDef } from '@marea/content/rpg.ts';
 import { PAL, el } from '../ui/style.ts';
 import { iconaMagia, iconOf, itemIcon } from './items_ui.ts';
 import type { Bar } from './dungeon_actors.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type DungeonHud = {
   set(v: DungeonView, maxTicks: number): void;
@@ -39,39 +40,39 @@ const CROWN = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 7 5" width="
 const CSS = `
 body.mz-sotto #compass, body.mz-sotto #mzTop, body.mz-sotto #mzGuida, body.mz-sotto #mzGuidaPtr, body.mz-sotto .mz-bar, body.mz-sotto .mz-work,
 body.mz-sotto .mz-labels, body.mz-sotto #mzPlay, body.mz-sotto #mzEmoteRow, body.mz-sotto #mzEmotes, body.mz-sotto #mzSheet { display: none !important; }
-.mz-dng-hud { position: absolute; left: max(8px, env(safe-area-inset-left, 0px)); top: max(8px, env(safe-area-inset-top)); width: 196px; padding: 6px 8px 7px; background: rgba(35,32,31,.86); border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; z-index: 13; pointer-events: none !important; font-size: 12px; }
+.mz-dng-hud { position: absolute; left: max(8px, env(safe-area-inset-left, 0px)); top: max(8px, env(safe-area-inset-top)); width: 196px; padding: 6px 8px 7px; background: ${L.carta}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; z-index: 13; pointer-events: none !important; font-size: 12px; }
 .mz-dng-hud .r { display: flex; align-items: center; gap: 6px; height: 17px; }
 .mz-dng-hud .r + .r { margin-top: 3px; }
-.mz-dng-hud .bar { position: relative; flex: 1; height: 12px; background: ${P.ombraCalda}; border: 2px solid ${P.neroCaldo}; }
+.mz-dng-hud .bar { position: relative; flex: 1; height: 12px; background: ${L.cartaScura}; border: 2px solid ${L.inchiostro}; }
 .mz-dng-hud .bar i { position: absolute; left: 0; top: 0; bottom: 0; }
-.mz-dng-hud .bar i.lag { background: ${P.sabbiaChiara}; }
-.mz-dng-hud .n { min-width: 52px; text-align: right; font-weight: bold; font-size: 12px; }
-.mz-dng-hud .k { width: 10px; font-weight: bold; }
-.mz-dng-hud .row2 { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; font-weight: bold; font-size: 13px; align-items: center; }
+.mz-dng-hud .bar i.lag { background: ${L.cartaChiara}; }
+.mz-dng-hud .n { min-width: 52px; text-align: right; font-weight: 700; font-size: 12px; }
+.mz-dng-hud .k { width: 10px; font-weight: 700; }
+.mz-dng-hud .row2 { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; font-weight: 700; font-size: 13px; align-items: center; }
 .mz-dng-hud .row2 span { display: inline-flex; align-items: center; gap: 3px; }
-.mz-dng-hud .row2 .warn { color: ${P.rosso}; }
+.mz-dng-hud .row2 .warn { color: ${L.rosso}; }
 .mz-dng-hud .row2 .ok { color: ${P.acquaBassa}; }
 .mz-dng-fx { position: absolute; inset: 0; pointer-events: none !important; z-index: 12; overflow: hidden; }
-.mz-dng-num { position: absolute; left: 0; top: 0; font: bold 16px ui-monospace, Menlo, monospace; text-shadow: 2px 2px 0 ${P.neroCaldo}; animation: mzDngNum .8s steps(8) forwards; white-space: nowrap; }
+.mz-dng-num { position: absolute; left: 0; top: 0; font: 700 16px ${FONT_LIBRO}; text-shadow: 2px 2px 0 ${L.inchiostro}; animation: mzDngNum .8s steps(8) forwards; white-space: nowrap; }
 .mz-dng-num.big { font-size: 22px; }
-.mz-dng-num.dato { color: ${P.sabbiaChiara}; } .mz-dng-num.preso { color: ${P.rosso}; } .mz-dng-num.cura { color: ${P.erbaChiara}; } .mz-dng-num.info { color: ${P.giallo}; font-size: 13px; }
+.mz-dng-num.dato { color: ${L.inchiostro}; } .mz-dng-num.preso { color: ${L.rosso}; } .mz-dng-num.cura { color: ${L.acqua}; } .mz-dng-num.info { color: ${L.acquaScura}; font-size: 13px; }
 @keyframes mzDngNum { 0% { translate: -50% 0; opacity: 1; } 70% { opacity: 1; } 100% { translate: -50% -42px; opacity: 0; } }
-.mz-dng-hp { position: absolute; left: 0; top: 0; width: 40px; height: 6px; background: ${P.neroCaldo}; border: 1px solid ${P.neroCaldo}; }
+.mz-dng-hp { position: absolute; left: 0; top: 0; width: 40px; height: 6px; background: ${L.inchiostro}; border: 1px solid ${L.inchiostro}; }
 .mz-dng-hp.boss { width: 72px; height: 8px; }
-.mz-dng-hp b { display: none; position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%); filter: drop-shadow(0 2px 0 ${P.neroCaldo}); }
+.mz-dng-hp b { display: none; position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%); filter: drop-shadow(0 2px 0 ${L.inchiostro}); }
 .mz-dng-hp.capo b { display: block; }
-.mz-dng-hp.capo { border-color: ${P.giallo}; }
-.mz-dng-hp i { display: block; height: 100%; background: ${P.rosso}; }
+.mz-dng-hp.capo { border-color: ${L.acqua}; }
+.mz-dng-hp i { display: block; height: 100%; background: ${L.rosso}; }
 .mz-dng-hp.ally i { background: #8A5CFF; }
-.mz-dng-amico { position: absolute; left: 0; top: 0; text-align: center; font: bold 12px ui-monospace, Menlo, monospace; color: ${P.sabbiaChiara}; text-shadow: 1px 1px 0 ${P.neroCaldo}, -1px 1px 0 ${P.neroCaldo}; white-space: nowrap; }
-.mz-dng-amico i { display: block; width: 44px; height: 6px; margin: 2px auto 0; background: ${P.neroCaldo}; border: 1px solid ${P.neroCaldo}; }
-.mz-dng-amico i b { display: block; height: 100%; background: ${P.erbaChiara}; }
-.mz-dng-amico.nem { color: ${P.rosso}; } .mz-dng-amico.nem i b { background: ${P.rosso}; }
-.mz-dng-toast { position: absolute; left: 50%; top: 27%; transform: translateX(-50%); padding: 6px 12px; background: rgba(46,30,20,.94); border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; font-weight: bold; font-size: 15px; z-index: 15; pointer-events: none !important; display: none; max-width: calc(100% - 32px); text-align: center; }
+.mz-dng-amico { position: absolute; left: 0; top: 0; text-align: center; font: 700 12px ${FONT_LIBRO}; color: ${L.inchiostro}; text-shadow: 1px 1px 0 ${L.inchiostro}, -1px 1px 0 ${L.inchiostro}; white-space: nowrap; }
+.mz-dng-amico i { display: block; width: 44px; height: 6px; margin: 2px auto 0; background: ${L.inchiostro}; border: 1px solid ${L.inchiostro}; }
+.mz-dng-amico i b { display: block; height: 100%; background: ${L.acqua}; }
+.mz-dng-amico.nem { color: ${L.rosso}; } .mz-dng-amico.nem i b { background: ${L.rosso}; }
+.mz-dng-toast { position: absolute; left: 50%; top: 27%; transform: translateX(-50%); padding: 6px 12px; background: ${L.carta}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; font-weight: 700; font-size: 15px; z-index: 15; pointer-events: none !important; display: none; max-width: calc(100% - 32px); text-align: center; }
 .mz-dng-toast.on { display: block; }
-.mz-dng-big { position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%); display: none; padding: 12px 22px; background: rgba(46,30,20,.95); border: 3px solid ${P.legnoChiaro}; box-shadow: 0 5px 0 ${P.neroCaldo}; text-align: center; z-index: 18; pointer-events: none !important; font: bold 36px ui-monospace, Menlo, monospace; white-space: nowrap; }
+.mz-dng-big { position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%); display: none; padding: 12px 22px; background: ${L.carta}; border: 3px solid ${L.oro}; box-shadow: 0 5px 0 ${L.inchiostro}; text-align: center; z-index: 18; pointer-events: none !important; font: 700 36px ${FONT_LIBRO}; white-space: nowrap; }
 .mz-dng-big.on { display: block; }
-.mz-dng-big small { display: block; margin-top: 6px; font-size: 14px; color: ${P.sabbia}; }
+.mz-dng-big small { display: block; margin-top: 6px; font-size: 14px; color: ${L.inchiostro2}; }
 `;
 /** Il contatore dell'arma unica (Mausoleo): pressione del Fendiflutti, ritmo della Grande Lancetta, molle dell'Arco Carillon; la Brezza
  *  dell'Albero della «Stella del Mattino» (Diga). */

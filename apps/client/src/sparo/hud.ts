@@ -3,6 +3,7 @@
 // sinistra, il bordo rosso a gradini quando la vita scende, i messaggi al centro, il pannello delle prove (A/B) e i tasti.
 // Stile pulito alla COD (bianco con l'ombra); quello vero si sceglie da reference, come per le Corse.
 import { P } from '../render/island_parts.ts';
+import { LIBRO as L } from '../ui/libro_colori.ts';
 
 export type HudDati = {
   /** Dispersione adesso (rad) e campo visivo verticale (gradi): il mirino sta dove arrivano i colpi. */
@@ -29,7 +30,7 @@ const CSS = `
 .sp-mir b { position: absolute; left: -1px; top: -1px; width: 2px; height: 2px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.55); }
 .sp-x { position: absolute; left: 50%; top: 50%; width: 0; height: 0; opacity: 0; }
 .sp-x i { position: absolute; width: 11px; height: 3px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
-.sp-x.rosso i { background: ${P.rosso}; }
+.sp-x.rosso i { background: ${L.rosso}; }
 .sp-mun { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); text-align: right; }
 .sp-mun .n { font-size: 44px; line-height: 1; } .sp-mun .r { font-size: 20px; opacity: .8; } .sp-mun .a { font-size: 13px; opacity: .9; letter-spacing: .14em; }
 .sp-mun .bar { width: 120px; height: 5px; margin: 6px 0 0 auto; background: rgba(0,0,0,.45); }
@@ -38,7 +39,7 @@ const CSS = `
 .sp-hud.tocco .sp-obi .d { font-size: 14px; } .sp-hud.tocco .sp-obi .i { display: none; }
 .sp-mun .bar i { display: block; height: 100%; background: #fff; }
 .sp-obi { position: absolute; left: max(18px, env(safe-area-inset-left)); top: max(14px, env(safe-area-inset-top)); max-width: 46vw; }
-.sp-obi .t { font-size: 12px; letter-spacing: .2em; color: ${P.giallo}; } .sp-obi .d { font-size: 17px; margin-top: 2px; } .sp-obi .i { font-size: 12px; opacity: .85; margin-top: 4px; text-transform: none; letter-spacing: .02em; }
+.sp-obi .t { font-size: 12px; letter-spacing: .2em; color: ${L.acquaScura}; } .sp-obi .d { font-size: 17px; margin-top: 2px; } .sp-obi .i { font-size: 12px; opacity: .85; margin-top: 4px; text-transform: none; letter-spacing: .02em; }
 .sp-msg { position: absolute; left: 50%; top: 31%; transform: translateX(-50%); font-size: 26px; letter-spacing: .12em; white-space: nowrap; opacity: 0; transition: opacity .2s; }
 .sp-bordo { position: absolute; inset: 0; pointer-events: none; }
 .sp-inv { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 10px; background: rgba(35,32,31,.55); pointer-events: none; }

@@ -10,7 +10,8 @@ import { disegnoAbito, disegnoCappello } from '../game/abiti.ts';
 import { iconOf } from './items_ui.ts';
 import { registerStateProvider } from '../test/testapi.ts';
 import type { Borsa, BorsaOpts } from '../ui/borsa.ts';
-import { PAL as P, el, injectUiStyle } from '../ui/style.ts';
+import { el, injectUiStyle } from '../ui/style.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 type Tab = 'vestiti' | 'cappelli' | 'strumenti' | 'animali' | 'mobili';
 const TABS: readonly [Tab, string][] = [['vestiti', 'Vestiti'], ['cappelli', 'Cappelli'], ['strumenti', 'Strumenti'], ['animali', 'Insetti e pesci'], ['mobili', 'Mobili']];
@@ -21,20 +22,20 @@ const DESCR_STRUMENTO: Record<string, string> = {
 };
 const CSS = `
 #mzBorsa .bz-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-#mzBorsa .bz-tab { flex: 1 0 auto; min-height: 40px; padding: 0 8px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; color: ${P.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; }
-#mzBorsa .bz-tab[aria-pressed="true"] { background: ${P.arancio}; color: ${P.neroCaldo}; border-color: ${P.neroCaldo}; }
+#mzBorsa .bz-tab { flex: 1 0 auto; min-height: 40px; padding: 0 8px; background: ${L.cartaChiara}; border: 2px solid ${L.filo}; color: ${L.inchiostro}; font: 700 13px ${FONT_LIBRO}; cursor: pointer; }
+#mzBorsa .bz-tab[aria-pressed="true"] { background: ${L.acqua}; color: ${L.cartaChiara}; border-color: ${L.inchiostro}; }
 #mzBorsa .bz-griglia { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-#mzBorsa .bz-pz { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px; min-width: 0; cursor: pointer; background: ${P.sabbiaChiara}; color: ${P.neroCaldo}; border: 2px solid ${P.legnoScuro}; box-shadow: 0 3px 0 ${P.neroCaldo}; font: 11px/1.15 ui-monospace, Menlo, monospace; text-align: center; }
-#mzBorsa .bz-pz img { width: 100%; aspect-ratio: 1; object-fit: contain; background: ${P.sabbia}; border-radius: 8px; }
-#mzBorsa .bz-pz.on { border-color: ${P.erba}; box-shadow: 0 0 0 2px ${P.erba}, 0 3px 0 ${P.neroCaldo}; }
-#mzBorsa .bz-pz .ok { position: absolute; top: 3px; right: 3px; padding: 0 4px; background: ${P.erba}; color: ${P.neroCaldo}; font-weight: bold; font-size: 10px; }
-#mzBorsa .bz-pz .vuoto { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1; background: ${P.sabbia}; border-radius: 8px; font-size: 26px; color: ${P.legno}; }
-#mzBorsa .bz-riga { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 4px 6px; min-height: 44px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; color: ${P.sabbiaChiara}; }
+#mzBorsa .bz-pz { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px; min-width: 0; cursor: pointer; background: ${L.cartaChiara}; color: ${L.inchiostro}; border: 2px solid ${L.cartaChiara}; box-shadow: 0 3px 0 ${L.inchiostro}; font: 11px/1.15 ${FONT_LIBRO}; text-align: center; }
+#mzBorsa .bz-pz img { width: 100%; aspect-ratio: 1; object-fit: contain; background: ${L.cartaScura}; border-radius: 8px; }
+#mzBorsa .bz-pz.on { border-color: ${L.acqua}; box-shadow: 0 0 0 2px ${L.acqua}, 0 3px 0 ${L.inchiostro}; }
+#mzBorsa .bz-pz .ok { position: absolute; top: 3px; right: 3px; padding: 0 4px; background: ${L.acqua}; color: ${L.inchiostro}; font-weight: 700; font-size: 10px; }
+#mzBorsa .bz-pz .vuoto { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1; background: ${L.cartaScura}; border-radius: 8px; font-size: 26px; color: ${L.filo}; }
+#mzBorsa .bz-riga { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 4px 6px; min-height: 44px; background: ${L.cartaChiara}; border: 2px solid ${L.filo}; color: ${L.inchiostro}; }
 #mzBorsa .bz-riga span { flex: 1; min-width: 0; }
-#mzBorsa .bz-riga small { display: block; color: ${P.sabbia}; font-size: 12px; }
-#mzBorsa .bz-riga b.n { font-size: 15px; color: ${P.giallo}; }
-#mzBorsa .bz-nota { margin: 8px 2px 0; color: ${P.sabbia}; font-size: 12px; }
-#mzBorsa .bz-nota.bad { color: ${P.arancio}; font-weight: bold; }
+#mzBorsa .bz-riga small { display: block; color: ${L.inchiostro2}; font-size: 12px; }
+#mzBorsa .bz-riga b.n { font-size: 15px; color: ${L.acquaScura}; }
+#mzBorsa .bz-nota { margin: 8px 2px 0; color: ${L.inchiostro2}; font-size: 12px; }
+#mzBorsa .bz-nota.bad { color: ${L.oroScuro}; font-weight: 700; }
 `;
 
 export function createBorsaUi(o: BorsaOpts & { onOpen(): void; onClose(): void }): Borsa {

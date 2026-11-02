@@ -17,6 +17,7 @@ import { pixIcon } from '../ui/icons.ts';
 import { setTopbarHidden } from '../ui/topbar.ts';
 import { FLAGS } from '../flags.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type GiocoBarca = SchermoGioco & { step(f: InputFrame): void; update(t: number): void };
 type Phase = 'countdown' | 'race' | 'end';
@@ -31,14 +32,14 @@ const fmt = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); retur
 // i chip dell'HUD sono quelli della Regata (.mz-race, CSS iniettato da game/regata.ts all'avvio): qui solo le aggiunte
 const CSS = `
 .mz-race .c.cs-time { min-width: 86px; justify-content: center; }
-.mz-race .c.cs-time.low { border-color: ${PAL.rosso}; color: ${PAL.rosso}; }
-.mz-race .c.cs-time.plus { border-color: ${PAL.giallo}; color: ${PAL.giallo}; }
-.mz-race .c.cs-dest { border-color: ${PAL.giallo}; }
-.mz-race .c.cs-dest .arr { fill: ${PAL.giallo}; }
-.mz-race .cs-bar { display: block; width: 100%; height: 6px; margin-top: 2px; background: ${PAL.legnoScuro}; }
-.mz-race .cs-bar i { display: block; height: 100%; background: ${PAL.arancio}; }
-.mz-race .cs-time.low .cs-bar i { background: ${PAL.rosso}; }
-.mz-cs-tag { position: absolute; left: 0; top: 0; display: none; align-items: center; gap: 6px; padding: 0 8px; min-height: 32px; background: rgba(46,30,20,.94); border: 2px solid ${PAL.giallo}; box-shadow: 0 3px 0 ${PAL.neroCaldo}; color: ${PAL.giallo}; font: bold 14px ui-monospace, Menlo, monospace; white-space: nowrap; z-index: 13; pointer-events: none; transform: translate(-50%, -100%); }
+.mz-race .c.cs-time.low { border-color: ${L.rosso}; color: ${L.rosso}; }
+.mz-race .c.cs-time.plus { border-color: ${L.acquaScura}; color: ${L.acquaScura}; }
+.mz-race .c.cs-dest { border-color: ${L.acquaScura}; }
+.mz-race .c.cs-dest .arr { fill: ${L.acquaScura}; }
+.mz-race .cs-bar { display: block; width: 100%; height: 6px; margin-top: 2px; background: ${L.cartaChiara}; }
+.mz-race .cs-bar i { display: block; height: 100%; background: ${L.oroScuro}; }
+.mz-race .cs-time.low .cs-bar i { background: ${L.rosso}; }
+.mz-cs-tag { position: absolute; left: 0; top: 0; display: none; align-items: center; gap: 6px; padding: 0 8px; min-height: 32px; background: ${L.carta}; border: 2px solid ${L.acquaScura}; box-shadow: 0 3px 0 ${L.inchiostro}; color: ${L.acquaScura}; font: 700 14px ${FONT_LIBRO}; white-space: nowrap; z-index: 13; pointer-events: none; transform: translate(-50%, -100%); }
 .mz-cs-tag.on { display: flex; }
 `;
 

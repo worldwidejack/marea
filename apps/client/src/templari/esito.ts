@@ -5,17 +5,18 @@ import { PAL, el, injectUiStyle } from '../ui/style.ts';
 import { resIcon } from '../ui/icons.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import type { EsitoVista } from './types.ts';
+import { LIBRO as L } from '../ui/libro_colori.ts';
 
 const CSS = `
-.mz-tpl-esito { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(360px, calc(100% - 24px)); max-height: calc(100% - 40px); overflow-y: auto; padding: 16px 14px 12px; background: rgba(35,32,31,.97); border: 3px solid ${PAL.rosso}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; z-index: 22; text-align: center; }
-.mz-tpl-esito h2 { margin: 0 0 4px; font: bold 24px/1.2 'Press Start 2P', ui-monospace, monospace; letter-spacing: .02em; }
-.mz-tpl-esito .ond { font: bold 50px/1 'Press Start 2P', ui-monospace, monospace; color: ${PAL.rosso}; text-shadow: 3px 3px 0 ${PAL.neroCaldo}; margin: 8px 0 2px; }
-.mz-tpl-esito .sub { color: ${PAL.sabbia}; font-size: 13px; margin-bottom: 10px; }
-.mz-tpl-esito .sec { margin: 10px 0 4px; font-size: 12px; color: ${PAL.sabbia}; text-align: left; border-bottom: 2px solid ${PAL.roccia}; padding-bottom: 2px; }
-.mz-tpl-esito .pr { display: flex; justify-content: center; gap: 14px; font-size: 18px; font-weight: bold; margin: 6px 0; }
+.mz-tpl-esito { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(360px, calc(100% - 24px)); max-height: calc(100% - 40px); overflow-y: auto; padding: 16px 14px 12px; background: ${L.carta}; border: 3px solid ${L.rosso}; box-shadow: 0 5px 0 ${L.inchiostro}; z-index: 22; text-align: center; }
+.mz-tpl-esito h2 { margin: 0 0 4px; font: 700 24px/1.2 'Press Start 2P', ui-monospace, monospace; letter-spacing: .02em; }
+.mz-tpl-esito .ond { font: 700 50px/1 'Press Start 2P', ui-monospace, monospace; color: ${L.rosso}; text-shadow: 3px 3px 0 ${L.inchiostro}; margin: 8px 0 2px; }
+.mz-tpl-esito .sub { color: ${L.inchiostro2}; font-size: 13px; margin-bottom: 10px; }
+.mz-tpl-esito .sec { margin: 10px 0 4px; font-size: 12px; color: ${L.inchiostro2}; text-align: left; border-bottom: 2px solid ${L.cartaScura}; padding-bottom: 2px; }
+.mz-tpl-esito .pr { display: flex; justify-content: center; gap: 14px; font-size: 18px; font-weight: 700; margin: 6px 0; }
 .mz-tpl-esito .pr span { display: flex; align-items: center; gap: 5px; }
-.mz-tpl-esito .nota { font-size: 13px; color: ${PAL.arancio}; margin: 6px 0; }
-.mz-tpl-esito .rec { margin: 10px 0 2px; padding: 8px; border: 2px solid ${PAL.giallo}; color: ${PAL.giallo}; font-weight: bold; font-size: 15px; background: ${PAL.ombraCalda}; }
+.mz-tpl-esito .nota { font-size: 13px; color: ${L.oroScuro}; margin: 6px 0; }
+.mz-tpl-esito .rec { margin: 10px 0 2px; padding: 8px; border: 2px solid ${L.acquaScura}; color: ${L.acquaScura}; font-weight: 700; font-size: 15px; background: ${L.cartaScura}; }
 .mz-tpl-esito .mz-btn { justify-content: center; margin-top: 12px; }
 `;
 const TITOLO: Record<string, [string, string]> = { morto: ['Sei caduto', PAL.rosso], alba: ['È l’alba', PAL.giallo], uscito: ['Sei uscito', PAL.sabbiaChiara] };

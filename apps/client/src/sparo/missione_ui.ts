@@ -3,6 +3,7 @@
 // Stesso stile dell'HUD (hud.ts): bianco con l'ombra, maiuscolo.
 import { P } from '../render/island_parts.ts';
 import type { SMedaglia } from '@marea/sim/sparo/stato.ts';
+import { LIBRO as L } from '../ui/libro_colori.ts';
 
 export type Fine = { esito: 'vinta' | 'persa'; medaglia: SMedaglia; secondi: number; precisione: number; teste: number; danno: number; uccisi: number };
 export type MissioneUi = {
@@ -19,22 +20,22 @@ export type MissioneUi = {
 
 const CSS = `
 .sm-mark { position: absolute; left: 0; top: 0; pointer-events: none; display: none; transform: translate(-50%, -50%); text-align: center; font: 800 12px system-ui, -apple-system, sans-serif; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.6); letter-spacing: .06em; }
-.sm-mark i { display: block; width: 14px; height: 14px; margin: 0 auto 3px; background: ${P.giallo}; transform: rotate(45deg); box-shadow: 0 0 0 2px rgba(35,32,31,.75); }
+.sm-mark i { display: block; width: 14px; height: 14px; margin: 0 auto 3px; background: ${L.acqua}; transform: rotate(45deg); box-shadow: 0 0 0 2px ${L.carta}; }
 .sm-sab { position: absolute; left: 50%; bottom: 23%; transform: translateX(-50%); display: none; text-align: center; font: 800 14px system-ui, -apple-system, sans-serif; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.6); letter-spacing: .1em; text-transform: uppercase; pointer-events: none; }
 .sm-sab .bar { width: 220px; height: 8px; margin: 6px auto 0; background: rgba(0,0,0,.5); box-shadow: 0 0 0 2px rgba(255,255,255,.35); }
-.sm-sab .bar i { display: block; height: 100%; width: 0; background: ${P.giallo}; }
+.sm-sab .bar i { display: block; height: 100%; width: 0; background: ${L.acqua}; }
 .sm-dan { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
-.sm-dan i { position: absolute; left: -36px; top: -132px; width: 72px; height: 9px; background: ${P.rosso}; box-shadow: 0 0 0 2px rgba(35,32,31,.55); transform-origin: 36px 132px; opacity: 0; }
+.sm-dan i { position: absolute; left: -36px; top: -132px; width: 72px; height: 9px; background: ${L.rosso}; box-shadow: 0 0 0 2px rgba(35,32,31,.55); transform-origin: 36px 132px; opacity: 0; }
 .sm-pan { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 8px; background: rgba(35,32,31,.62); color: #fff; font: 800 15px system-ui, -apple-system, sans-serif; text-shadow: 0 2px 0 rgba(0,0,0,.55); text-align: center; pointer-events: none; z-index: 6; }
 .sm-pan.on { display: flex; }
-.sm-pan .t { font-size: 13px; letter-spacing: .3em; color: ${P.giallo}; }
+.sm-pan .t { font-size: 13px; letter-spacing: .3em; color: ${L.acquaScura}; }
 .sm-pan .g { font-size: clamp(26px, 5vw, 44px); letter-spacing: .1em; }
 .sm-pan .o { font-size: 16px; line-height: 1.75; letter-spacing: .03em; }
-.sm-pan .o b { color: ${P.giallo}; }
+.sm-pan .o b { color: ${L.acquaScura}; }
 .sm-pan .k { font-size: 12px; opacity: .85; line-height: 1.7; letter-spacing: .02em; max-width: 92vw; }
 .sm-pan .via { margin-top: 10px; font-size: 20px; letter-spacing: .14em; }
 .sm-pan .med { width: 64px; height: 64px; margin: 6px auto; box-shadow: 0 0 0 4px rgba(35,32,31,.7); transform: rotate(45deg); }
-.sm-pan button { pointer-events: auto; margin-top: 12px; font: 800 18px system-ui, -apple-system, sans-serif; letter-spacing: .14em; color: #23201F; background: ${P.giallo}; border: 0; padding: 12px 28px; cursor: pointer; box-shadow: 0 4px 0 rgba(35,32,31,.6); touch-action: manipulation; }
+.sm-pan button { pointer-events: auto; margin-top: 12px; font: 800 18px system-ui, -apple-system, sans-serif; letter-spacing: .14em; color: #23201F; background: ${L.acqua}; border: 0; padding: 12px 28px; cursor: pointer; box-shadow: 0 4px 0 rgba(35,32,31,.6); touch-action: manipulation; }
 `;
 const MED: Record<string, [string, string]> = { oro: ['ORO', P.giallo], argento: ['ARGENTO', P.pietraChiara], bronzo: ['BRONZO', P.arancio] };
 
