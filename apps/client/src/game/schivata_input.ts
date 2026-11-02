@@ -4,7 +4,7 @@ import { FONT_LIBRO, LIBRO as L } from '../ui/kit.ts';
 export function creaComandoSchivata(root: HTMLElement) {
   const b = document.createElement('button'); b.type = 'button'; b.id = 'btnSchiva';
   b.textContent = '↻'; b.title = 'Schiva (V)'; b.setAttribute('aria-label', 'Schiva (V)');
-  b.style.cssText = `position:absolute;right:calc(max(18px,env(safe-area-inset-right,0px)) + 170px);bottom:calc(env(safe-area-inset-bottom,0px) + 84px);width:60px;height:60px;border-radius:50%;border:3px solid ${L.oro};background:${L.acqua};color:${L.cartaChiara};box-shadow:0 4px 0 ${L.inchiostro};font:700 32px ${FONT_LIBRO};touch-action:none;user-select:none;z-index:14;display:none;`;
+  b.style.cssText = `position:absolute;right:calc(max(18px,env(safe-area-inset-right,0px)) + 9px);bottom:calc(env(safe-area-inset-bottom,0px) + 196px);width:60px;height:60px;border-radius:50%;border:3px solid ${L.oro};background:${L.acqua};color:${L.cartaChiara};box-shadow:0 4px 0 ${L.inchiostro};font:700 32px ${FONT_LIBRO};touch-action:none;user-select:none;z-index:14;display:none;`;
   const label = document.createElement('small'); label.textContent = 'Schiva';
   label.style.cssText = `display:block;font:700 11px ${FONT_LIBRO};margin-top:-8px;`; b.append(label); root.append(b);
   let on = false, held = false, latch = false;
