@@ -49,12 +49,14 @@ const MIRA = 108; // px: anello del joystick di mira (mira_stick.ts), per lascia
 const SAFE = 'env(safe-area-inset-bottom, 0px)', RIGHT = 'max(16px, env(safe-area-inset-right, 0px))', TOP = 'max(8px, env(safe-area-inset-top))';
 const CSS = `
 .mz-dng-btn { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: 3px solid rgba(244,227,193,.7); color: ${L.inchiostro}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font: 700 13px ${FONT_LIBRO}; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; z-index: 13; overflow: hidden; }
-.mz-dng-btn.d { right: calc(${RIGHT} + 4px); bottom: calc(${SAFE} + 132px); background: rgba(44,107,63,.82); }
+.mz-dng-btn.d { right: calc(${RIGHT} + 4px); bottom: calc(${SAFE} + 204px); background: rgba(44,107,63,.82); }
+.mz-dng #btnSchiva { right: calc(${RIGHT} + 4px) !important; bottom: calc(${SAFE} + 132px) !important; }
 .mz-dng-btn.e { right: calc(${RIGHT} + 78px); bottom: calc(${SAFE} + 206px); background: rgba(120,70,22,.84); display: none; }
 .mz-dng-btn.e.on-vis { display: flex; }
 .mz-dng-aimon #btnA { display: none !important; }
 .mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-right, 0px)) + ${MIRA + 8}px) !important; }
-.mz-dng-aimon .mz-dng-btn.d { bottom: calc(${SAFE} + 160px); }
+.mz-dng-aimon .mz-dng-btn.d { bottom: calc(${SAFE} + 232px); }
+.mz-dng-aimon #btnSchiva { bottom: calc(${SAFE} + 160px) !important; }
 .mz-dng-btn.on { transform: scale(.92); filter: brightness(1.3); }
 .mz-dng-btn.off { opacity: .45; }
 .mz-dng-btn.mano { border-color: ${L.acquaScura}; box-shadow: 0 0 0 2px ${L.inchiostro}; }
@@ -88,6 +90,7 @@ const CSS = `
 
 export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; hero(): HeroState | null; onPreferito(p: Preferito): void; blocked(): boolean; yaw(): number; insieme?: boolean; valvola?: string; timone?: string }): Controls {
   if (!document.getElementById('mz-dng-ctrl-style')) { const st = document.createElement('style'); st.id = 'mz-dng-ctrl-style'; st.textContent = CSS; document.head.appendChild(st); }
+  o.root.classList.add('mz-dng'); // la schivata (#btnSchiva) prende il posto di D
   let dLatch = false, eLatch = false, aLatch = false, mouseA = false, asking = false, pausa = false;
   const keys = new Set<string>();
   const mkBtn = (cls: string, key: string, label: string) => {
@@ -218,7 +221,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
     dispose() {
       removeEventListener('keydown', kd, true); removeEventListener('keyup', ku, true);
       o.canvas.removeEventListener('pointerdown', md); removeEventListener('pointerup', mu); removeEventListener('blur', blur);
-      stick.dispose(); pref.dispose(); o.root.classList.remove('mz-dng-aimon');
+      stick.dispose(); pref.dispose(); o.root.classList.remove('mz-dng-aimon', 'mz-dng');
       for (const e of all) e.remove();
     },
   };
