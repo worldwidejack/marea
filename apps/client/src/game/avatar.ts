@@ -35,7 +35,7 @@ export type Avatar = {
   /** Da seduto: rema (clip/posa `row`) con la fase `phase` (rad) invece di stare fermo. */
   setRowing(on: boolean, phase?: number): void;
   /** Avatar remoto: posa dal messaggio di rete, senza sim. `anim` accetta la stringa del protocollo. */
-  setPose(p: { x: number; z: number; yaw: number; anim: string; t?: number }): void;
+  setPose(p: { x: number; z: number; yaw: number; anim: string; t?: number; speed?: number }): void;
   /** Quota del terreno (es. `island.groundY`); senza, si deduce dal tipo di cella. */
   setGround(fn: ((x: number, z: number) => number) | null): void;
   readonly attached: boolean;
@@ -48,6 +48,7 @@ export type Avatar = {
   /** Cosa si vede adesso (per i test); null se niente è ancora vestito. */
   indossaStato(): { corpo: string | null; arma: string | null; faretra: boolean; tri: number } | null;
   /** Override procedurale del braccio destro (attrezzi, retino). null per disattivare. */
+  setToolIdle(on: boolean): void;
   setArmOverride(fn: ((dt: number) => void) | null): void;
   /** Avvia un'azione animata (scuotere albero, pala su sasso/buca). Ritorna la durata in s. */
   avviaAzione(tipo: AvatarAzione, durata?: number, bersaglio?: { x: number; z: number }): number;
@@ -158,7 +159,7 @@ function buildRig(look: Look): Rig {
 }
 
 // ---------- modello glTF ----------
-type ModelRig = { root: THREE.Object3D; anim: Animator; setLook(look: Look): void; setCappello(id: string | null): void; rest: Map<string, THREE.Matrix4>; vesti: { visibile(on: boolean): void; stato(): unknown } | null; corpo?: Corpo; skin(): string | null };
+type ModelRig = { gaitSpeed: typeof CLIP_SPEED; root: THREE.Object3D; anim: Animator; setLook(look: Look): void; setCappello(id: string | null): void; rest: Map<string, THREE.Matrix4>; vesti: { visibile(on: boolean): void; stato(): unknown } | null; corpo?: Corpo; skin(): string | null };
 /** Il loader clona con Object3D.clone: gli SkinnedMesh restano legati alle ossa dell'originale. Le ricolleghiamo per nome (idempotente). */
 function rebindSkins(root: THREE.Object3D): void {
   root.traverse((n) => {
@@ -238,7 +239,8 @@ async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
   };
   const setCappello = (id: string | null) => { forzato = id; if (ultimo) setLook(ultimo); };
   const corpo = nome.startsWith('chr_') ? (loader.manifest.models[nome] as { corpo?: Corpo } | undefined)?.corpo : undefined; // ossa per le armature (rpg/adatta.ts)
-  return { root: scene, anim: createAnimator(scene, nome.startsWith('chr_') ? heroClips(scene, clips) : clips), setLook, setCappello, rest, vesti, corpo, skin: () => skinAv?.attuale ?? null };
+  const bakedGait = nome === 'chr_eroe';
+  return { gaitSpeed: bakedGait ? { walk: 2.6, run: 4.4 } : CLIP_SPEED, root: scene, anim: createAnimator(scene, nome.startsWith('chr_') ? heroClips(scene, clips, bakedGait) : clips), setLook, setCappello, rest, vesti, corpo, skin: () => skinAv?.attuale ?? null };
 }
 
 /** Dove guarda davvero l'oggetto in assi mondo [x, z] (per i test). */
@@ -258,6 +260,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
   const body = model ? model.root : rig!.root, bodyY = body.position.y, bodyYaw = body.rotation.y; // il gesto muove il corpo, non `object` (lo posa update)
   let state = newAvatar(o.x, o.z), prev = state;
   const bone = (n: string) => object.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(n)) ?? object.getObjectByName(n) ?? null;
+  let toolIdle = false;
   let armOverride: ((dt: number) => void) | null = null;
   const pulite = creaRipristino(bone);
   const azioni = creaGestoreAzioni({
@@ -333,8 +336,9 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
       if (model) {
         pulite.ripristina();
         const a = model.anim;
-        if (!a.play(shown, shown === 'roll' ? 0.04 : 0.15)) a.play('idle', 0.15);
-        a.setSpeed(shown === 'walk' ? speed / CLIP_SPEED.walk : shown === 'run' ? speed / CLIP_SPEED.run : shown === 'row' ? 0.6 + 0.4 * Math.abs(Math.cos(rowPh * 0.5)) : 1);
+        const clip = shown === 'idle' && toolIdle ? 'idle_tool' : shown;
+        if (!a.play(clip, shown === 'roll' ? 0.04 : 0.15)) a.play('idle', 0.15);
+        a.setSpeed(shown === 'walk' ? speed / model.gaitSpeed.walk : shown === 'run' ? speed / model.gaitSpeed.run : shown === 'row' ? 0.6 + 0.4 * Math.abs(Math.cos(rowPh * 0.5)) : 1);
         a.update(dt);
         if (shown === 'roll') a.seek(1 - lerp(prev.anim === 'roll' ? prev.rollT ?? 0 : state.rollT ?? 0, state.rollT ?? 0, alpha) / (BALANCE.avatar.schivata.durata * 60));
         if (armOverride) { pulite.salva(); armOverride(dt); }
@@ -370,10 +374,11 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
     },
     setRowing(on, phase = 0) { rowing = on; rowPh = phase; },
     setPose(p) {
-      const a = (['idle', 'walk', 'run', 'roll', 'sit'] as const).find((k) => k === p.anim) ?? 'idle', s = a === 'walk' ? CLIP_SPEED.walk : a === 'run' ? CLIP_SPEED.run : 0;
+      const a = (['idle', 'walk', 'run', 'roll', 'sit'] as const).find((k) => k === p.anim) ?? 'idle', s = a === 'walk' ? p.speed ?? CLIP_SPEED.walk : a === 'run' ? p.speed ?? CLIP_SPEED.run : 0;
       const rollTicks = BALANCE.avatar.schivata.durata * 60;
       prev = state; state = { x: p.x, z: p.z, yaw: p.yaw, vx: Math.sin(p.yaw) * s, vz: -Math.cos(p.yaw) * s, anim: a, ...(a === 'roll' ? { rollT: (1 - (p.t ?? (prev.anim === 'roll' ? 1 - Math.max(0, (prev.rollT ?? 0) - 6) / rollTicks : 0))) * rollTicks } : {}) };
     },
+    setToolIdle(on) { toolIdle = on; },
     setArmOverride(fn) {
       armOverride = fn;
       if (!fn) { pulite.ripristina(); object.updateMatrixWorld(true); }

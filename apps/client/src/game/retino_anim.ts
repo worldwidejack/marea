@@ -55,7 +55,7 @@ export function creaRetinoAnim(w: GameWorld): RetinoAnim {
   const bone = (n: string) => w.avatar.object.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(n)) ?? w.avatar.object.getObjectByName(n) ?? null;
   const ossa: Record<string, THREE.Object3D | null> = {};
   const osso = (n: string) => (ossa[n] ??= bone(n));
-  const handPos = new THREE.Vector3();
+  const handPos = new THREE.Vector3(), jointPos = new THREE.Vector3();
   let ultimaPosa: RetinoPosa = { x: 0, y: 0, z: 0, h: 0, pitch: -0.32, roll: 0.16 };
   let registrato = false, isAttivo = false, corrente: PosaRetino | null = null;
 
@@ -83,21 +83,27 @@ export function creaRetinoAnim(w: GameWorld): RetinoAnim {
     hips?.updateMatrixWorld(true);
   };
 
-  const override = () => {
+  let guardTime = 0;
+  const override = (dt: number) => {
     const v = corrente, av = w.avatar.object;
     if (!v) return;
     av.updateMatrixWorld(true);
     corpo(v);
-    localTarget.set(v.hx, v.hy, v.hz);
+    guardTime += dt;
+    const breath = w.avatar.state.anim === 'idle' && !v.knee ? Math.sin(guardTime * 2.1) : 0;
+    localTarget.set(v.hx, v.hy + .01 * breath, v.hz);
     targetW.copy(localTarget).applyMatrix4(av.matrixWorld);
     poleW.copy(localPole).applyQuaternion(av.quaternion).normalize();
 
     const up = osso('UpperArm.R'), lo = osso('LowerArm.R');
     if (up && lo) {
-      ik(up, lo, 0.23, 0.27, targetW, poleW);
+      const hand = osso('Hand.R');
+      const upper = lo.getWorldPosition(jointPos).distanceTo(up.getWorldPosition(handPos));
+      const lower = hand ? hand.getWorldPosition(handPos).distanceTo(jointPos) : 0.27;
+      ik(up, lo, upper, lower, targetW, poleW);
       lo.getWorldPosition(handPos);
       const fdir = new THREE.Vector3(0, 1, 0).applyQuaternion(lo.getWorldQuaternion(qp)).normalize();
-      handPos.addScaledVector(fdir, 0.27);
+      handPos.addScaledVector(fdir, lower);
     } else {
       const armR = av.getObjectByName('armR');
       if (armR) { // segnaposto a box: il braccio ruota in blocco verso la mano
@@ -107,7 +113,7 @@ export function creaRetinoAnim(w: GameWorld): RetinoAnim {
         armR.localToWorld(handPos.set(0, -0.575, 0));
       } else handPos.copy(targetW);
     }
-    ultimaPosa = posaDaMano(handPos, -av.rotation.y - v.giro, v.pitch, v.roll);
+    ultimaPosa = posaDaMano(handPos, -av.rotation.y - v.giro, v.pitch + .025 * breath, v.roll);
   };
 
   return {

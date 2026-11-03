@@ -359,7 +359,7 @@ def _merge(d, extra):
     return d
 
 
-def make_clips(ob, bones, st):
+def make_clips(ob, bones, st, custom=None):
     """Clip idle walk run sit row con lo stile del personaggio. st (tutto facoltativo):
     posa(t, moto) → dict extra sopra ogni clip (braccia che tengono qualcosa: moto = 0 fermo, 1 cammina, 2 corre);
     idle(t) → dict del gesto da fermo; passo (ampiezza coscia), braccia (oscillazione), molla (rimbalzo del bacino), curvo (gradi di
@@ -456,6 +456,7 @@ def make_clips(ob, bones, st):
         return d
 
     clips = {'idle': (idle, st.get('idle_n', 90)), 'walk': (walk, st.get('walk_n', 16)), 'run': (run, st.get('run_n', 16)), 'sit': (sit, 60), 'row': (row, 42)}
+    clips.update(custom or {})
     sc = bpy.context.scene
     sc.render.fps, sc.render.fps_base = models_chr.FPS, 1.0
     ob.animation_data_create()
@@ -463,7 +464,8 @@ def make_clips(ob, bones, st):
         act = bpy.data.actions.new(cname)
         act.use_fake_user = True
         ob.animation_data.action = act
-        for f in range(0, nfr + 1, 2):
+        step = 1 if custom and cname in ('walk', 'run') else 2
+        for f in range(0, nfr + 1, step):
             models_chr.pose(ob, f, fn(f / nfr))
         for fc in models_chr._fcurves(act):
             for kp in fc.keyframe_points:

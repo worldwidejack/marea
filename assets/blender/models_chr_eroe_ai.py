@@ -9,17 +9,27 @@
 import math
 import bpy
 from mathutils import Vector
-import gente_kit, models_chr_eroe
+import eroe_anim, gente_kit, models_chr_eroe
 from lib import to_blender
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, '..', 'ai', 'eroe', 'eroe_3000.glb')
 # ossa a riposo misurate sul modello (1,62 m capelli compresi, braccia appena aperte come nel disegno, gambe corte da cartone)
-OSSA = gente_kit.bones_for(hip=0.54, chest=0.88, neck=1.00, top=1.50, sh=(0.18, 0.89), elbow=0.72, wrist=0.60, leg_x=0.075, knee=0.32,
+OSSA = gente_kit.bones_for(hip=0.54, chest=0.88, neck=1.00, top=1.50, sh=(0.18, 0.89), elbow=0.72, wrist=0.55, leg_x=0.075, knee=0.32,
                            ankle=0.10, foot=0.17, arm_out=0.08)
+# L'asse della manica e del guanto è arretrato rispetto al centro del busto.
+for side, sign in (('L', -1), ('R', 1)):
+    spalla = (sign * .18, .89, .067)
+    gomito = (sign * .222, .71, .067)
+    mano = (sign * .257, .55, .052)
+    OSSA[f'UpperArm.{side}'] = (spalla, gomito, 'Spine')
+    OSSA[f'LowerArm.{side}'] = (gomito, mano, f'UpperArm.{side}')
+    OSSA[f'Hand.{side}'] = (mano, tuple(t + .25 * (t - h) for h, t in zip(gomito, mano)), f'LowerArm.{side}')
 TAU = 0.03            # quanto sfumano i pesi tra due ossa (m)
-DENTRO = (0.10, 0.17)  # le braccia pesano solo fuori dal busto: da 0 a 1 tra queste due |x|
+# Sotto 0,72 m i due avambracci sono isole distinte, ai lati del busto.
+# I vertici dell'orlo arrivano alla stessa x sul lato della borsa.
+BORDO_SINISTRO, BORDO_DESTRO = -.18, .2125
 BORSA = ((0.05, 0.21), (0.46, 0.72), 0.16)  # la borsa sul fianco destro segue il bacino e basta: x, z, |y| massimi
 
 
@@ -61,15 +71,24 @@ def _pesi(mesh, ossa):
     (bx0, bx1), (bz0, bz1), by = BORSA
     for v in mesh.data.vertices:
         p = v.co
-        if bx0 < p.x < bx1 and bz0 < p.z < bz1 and abs(p.y) < by:
+        braccio_basso = p.z < .72 and (p.x < BORDO_SINISTRO or p.x > BORDO_DESTRO)
+        if not braccio_basso and bx0 < p.x < bx1 and bz0 < p.z < bz1 and abs(p.y) < by:
             gr['Hips'].add([v.index], 1.0, 'REPLACE')
             continue
         ds = {}
         for b, (h, t) in bl.items():
+            if b.startswith('Hand'): continue
             if b.endswith('.L') and p.x > 0.02: continue
             if b.endswith('.R') and p.x < -0.02: continue
             d = _segd(p, h, t)
-            if b.startswith(('UpperArm', 'LowerArm')): d -= TAU * math.log(max(1e-3, _ss(abs(p.x), *DENTRO)))
+            braccio = b.startswith(('UpperArm', 'LowerArm'))
+            if braccio_basso and not braccio: continue
+            if braccio and not braccio_basso:
+                influence = _ss(p.z, .72, .80) * _ss(abs(p.x), .12, .20)
+                if not influence: continue
+                d -= TAU * math.log(influence)
+            if b.startswith(('UpperLeg', 'LowerLeg', 'Foot')) and p.z > .51: continue
+            if b != 'Foot.' + ('L' if p.x < 0 else 'R') and p.z < .09: continue
             ds[b] = d
         dm = min(ds.values())
         w = {b: math.exp(-(d - dm) / TAU) for b, d in ds.items()}
@@ -84,11 +103,11 @@ def chr_eroe():
     mesh = _mesh()
     rig = gente_kit.build_rig('chr_eroe', OSSA, [mesh])
     _pesi(mesh, OSSA)
-    durate = gente_kit.make_clips(rig, OSSA, {'passo': 30, 'braccia': 26, 'molla': 0.8, 'walk_n': 14, 'run_n': 12, 'aperte': 2})
+    durate = gente_kit.make_clips(rig, OSSA, {}, eroe_anim.clips(rig, OSSA))
     tri = sum(len(p.vertices) - 2 for p in mesh.data.polygons)
     return [rig, mesh], {
         'clips': list(durate), 'durate': durate,
-        'preview': {'walk': 3, 'run': 3, 'sit': 0, 'row': 10},
+        'preview': {'idle': 35, 'walk': 3, 'run': 3, 'sit': 0, 'row': 10},
         'tri_pezzi': {mesh.name: tri},
         # ossa del corpo e del manichino dei vestiti: le armature in scatole (rpg/adatta.ts) si portano sul corpo nuovo osso per osso
         'corpo': {'ossa': {b: [h, t] for b, (h, t, _p) in OSSA.items()}, 'manichino': {b: [h, t] for b, (h, t, _p) in ossa_m.items()}},
