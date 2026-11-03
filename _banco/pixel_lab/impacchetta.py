@@ -56,6 +56,12 @@ for p, v in sorted(indice.items(), key=lambda pv: ORDINE.get(pv[1].get('gruppo')
         pos = foglio(nomi, os.path.join(DATI, p, f'px{alto}'), os.path.join(OUT, f'{p}_px{alto}.png'), 'png')
         d['alti'][alto] = {n: {'r': pos[n], 'ax': e['ax'], 'ay': e['ay'], 'box': e['box']} for n, e in el.items()}
     dati['personaggi'][p] = d
+# le reference del PG (3/11): i disegni da davanti per scegliere il protagonista
+ref_f = os.path.join(DATI, 'reference.json')
+if os.path.exists(ref_f):
+    ref = json.load(open(ref_f))
+    pos = foglio(list(ref), os.path.join(DATI, 'reference'), os.path.join(OUT, 'reference.webp'), 'webp')
+    dati['reference'] = {n: {'r': pos[n], 'nome': v['nome']} for n, v in ref.items()}
 for alto in ('64', '96'):
     shutil.copy(os.path.join(QUI, f'sfondo{alto}.png'), os.path.join(OUT, f'sfondo{alto}.png'))
     dati['sfondi'][alto] = json.load(open(os.path.join(QUI, f'sfondo{alto}.json')))

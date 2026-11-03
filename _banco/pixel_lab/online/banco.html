@@ -60,6 +60,16 @@
   .op span { font: 11px var(--mono); color: var(--tenue); display: block; }
   .op .stelle { color: var(--mio); min-height: 15px; }
   button.pref.su { background: var(--mio); border-color: var(--mio); color: #231c00; }
+  #galleria { padding-block: 16px 32px; }
+  #galleria h2 { font-size: 16px; margin: 0 0 4px; font-weight: 600; }
+  #schede { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 12px; margin-top: 14px; }
+  .scheda { background: var(--piano); border: 1px solid var(--bordo); border-radius: 9px; padding: 8px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .scheda.mia { border-color: var(--mio); }
+  .scheda canvas { display: block; margin: 0 auto; background: var(--vetrino); border-radius: 6px; width: 100% !important; height: auto !important; }
+  .scheda b { font-weight: 600; }
+  .scheda .stelle { color: var(--mio); font-size: 13px; min-height: 18px; }
+  .scheda input { font: inherit; font-size: 13px; color: var(--testo); background: var(--fondo); border: 1px solid var(--bordo); border-radius: 6px; padding: 5px 7px; width: 100%; }
+  .scheda .altre { color: var(--tenue); font-size: 12px; }
   .conta { color: var(--tenue); font: 12px var(--mono); font-variant-numeric: tabular-nums; }
   @media (max-width: 720px) {
     main { grid-template-columns: minmax(0, 1fr); }
@@ -80,6 +90,11 @@
   <span id="stato">carico i disegni…</span>
 </header>
 <div id="avviso" class="giro" hidden></div>
+<section id="galleria" class="giro" hidden>
+  <h2>Scegli il PG</h2>
+  <span class="aiuto">Reference disegnate da Codex, da davanti. Metti la stella al tuo PG (una sola) e scrivi cosa cambieresti. Quello scelto da almeno 2 su 3 va in PixelLab: pixel art, 8 direzioni e camminata.</span>
+  <div id="schede"></div>
+</section>
 <main>
   <aside>
     <h2>vista</h2>
@@ -271,15 +286,19 @@ function conta() {
 function generale() { $('generale').value = mio[`generale~${st.p}~${st.alto}`]?.nota ?? ''; }
 function personaggi() {
   const d = $('personaggi'); d.innerHTML = '';
+  if (D.reference) {
+    const r = document.createElement('div'); r.className = 'riga'; const b = document.createElement('b'); b.textContent = 'il PG'; r.append(b);
+    const bt = document.createElement('button'); bt.textContent = `scegli il PG (${Object.keys(D.reference).length})`; bt.classList.toggle('su', st.galleria); bt.onclick = galleria; r.append(bt); d.append(r);
+  }
   for (const [g, titolo] of Object.entries(GRUPPI)) {
     const ps = Object.keys(D.personaggi).filter((x) => (D.personaggi[x].gruppo ?? 'atelier') === g); if (!ps.length) continue;
     const r = document.createElement('div'); r.className = 'riga'; const b = document.createElement('b'); b.textContent = titolo; r.append(b);
-    for (const x of ps) { const bt = document.createElement('button'); bt.textContent = nome(x); bt.classList.toggle('su', x === st.p); bt.onclick = () => scegliPersonaggio(x); r.append(bt); }
+    for (const x of ps) { const bt = document.createElement('button'); bt.textContent = nome(x); bt.classList.toggle('su', !st.galleria && x === st.p); bt.onclick = () => scegliPersonaggio(x); r.append(bt); }
     d.append(r);
   }
 }
 function scegliPersonaggio(p) {
-  st.p = p; ferma(); personaggi();
+  st.p = p; st.galleria = false; $('galleria').hidden = true; document.querySelector('main').hidden = false; ferma(); personaggi();
   const alti = Object.keys(D.personaggi[p].alti);
   if (!alti.includes(st.alto)) st.alto = alti.includes('64') ? '64' : alti[0];
   bottoni('alti', alti.map((a) => [a, a + ' px']), st.alto, scegliAlto);
@@ -288,6 +307,39 @@ function scegliPersonaggio(p) {
 }
 function scegliAlto(a) { st.alto = a; ferma(); bottoni('alti', Object.keys(D.personaggi[st.p].alti).map((x) => [x, x + ' px']), a, scegliAlto); forma(); if (st.m >= MOSSE.length) st.m = 0; generale(); miniature(); conta(); disegna(); }
 function scegliVista(v) { st.v = v; ferma(); bottoni('viste', VISTEP.map((x) => [x, x]), v, scegliVista); miniature(); conta(); disegna(); }
+
+// ---- la scelta del PG: le reference da davanti, una stella a testa (pg~scelta) e una nota per reference (pg~nota~<nome>) ----
+async function galleria() {
+  st.galleria = true; ferma(); $('galleria').hidden = false; document.querySelector('main').hidden = true;
+  $('alti').innerHTML = ''; $('conta').textContent = ''; personaggi(); schede();
+}
+let giroSchede = 0;
+async function schede() {
+  if (!st.galleria || !D.reference) return;
+  const giro = ++giroSchede, atl = await carica('reference.webp');
+  if (giro !== giroSchede) return;
+  const c = $('schede'), attivo = document.activeElement?.dataset?.ref;
+  if (attivo) return; // non ridisegnare mentre qualcuno scrive una nota
+  c.innerHTML = '';
+  for (const [n, v] of Object.entries(D.reference)) {
+    const mia = mio['pg~scelta']?.p === n;
+    const b = document.createElement('div'); b.className = 'scheda' + (mia ? ' mia' : '');
+    const [rx, ry, w, h] = v.r, H = 300, W = Math.round(w * H / h);
+    const cv = document.createElement('canvas'), g = tela(cv, W, H);
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(atl, rx, ry, w, h, 0, 0, W, H);
+    const t = document.createElement('b'); t.textContent = v.nome;
+    const s = document.createElement('span'); s.className = 'stelle';
+    s.textContent = Object.entries(tutti).filter(([chi, d]) => chi !== io && d['pg~scelta']?.p === n).map(([chi]) => '★ ' + (nomi[chi] || 'un altro')).concat(mia ? ['★ tu'] : []).join(' ');
+    const bt = document.createElement('button'); bt.className = 'pref' + (mia ? ' su' : ''); bt.textContent = mia ? '★ il mio PG' : '☆ il mio PG';
+    bt.onclick = () => { scrivi({ 'pg~scelta': { p: mia ? null : n, quando: Date.now() } }); schede(); };
+    const nota = document.createElement('input'); nota.placeholder = 'cosa cambieresti…'; nota.dataset.ref = n; nota.value = mio['pg~nota~' + n]?.nota ?? '';
+    let tt; nota.oninput = () => { clearTimeout(tt); tt = setTimeout(() => scrivi({ ['pg~nota~' + n]: { nota: nota.value, quando: Date.now() } }), 800); };
+    nota.onblur = () => setTimeout(schede, 900);
+    const altre = document.createElement('span'); altre.className = 'altre';
+    altre.textContent = Object.entries(tutti).filter(([chi, d]) => chi !== io && d['pg~nota~' + n]?.nota).map(([chi, d]) => `${nomi[chi] || 'un altro'}: «${d['pg~nota~' + n].nota}»`).join(' · ');
+    b.append(cv, t, s, bt, nota, altre); c.append(b);
+  }
+}
 
 // ---- le opzioni a confronto: ognuna in piedi a 64 px nel Borgo, con le stelle (le preferite di ognuno) ----
 const PREF = 'preferita~64';
@@ -331,6 +383,7 @@ $('nota').oninput = () => { const sp = k(), c = campo(sp); clearTimeout(tNota); 
 $('generale').oninput = () => { const c = `generale~${st.p}~${st.alto}`; clearTimeout(tGen); tGen = setTimeout(() => scrivi({ [c]: { nota: $('generale').value, quando: Date.now() } }), 800); };
 for (const id of ['zoom', 'griglia', 'sopra', 'altri']) $(id).oninput = () => disegna();
 addEventListener('keydown', (e) => {
+  if (st.galleria) return; // nella scelta del PG i tasti non votano gli sprite nascosti
   if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range') return;
   const vi = VISTEP.indexOf(st.v), nv = VISTEP.length;
   if (e.key === 'ArrowRight') { ferma(); st.m = (st.m + 1) % MOSSE.length; disegna(); }
@@ -351,7 +404,8 @@ addEventListener('keydown', (e) => {
     D = await fetch('dati.json').then((r) => r.json());
     stato('pronto');
     st.alto = '64'; // 64 px confermato da Jack (3/11)
-    scegliPersonaggio(Object.keys(D.personaggi)[0]); // le opzioni pensate per 64 vengono per prime
+    scegliPersonaggio(Object.keys(D.personaggi)[0]);
+    if (D.reference) galleria(); // la scelta del PG viene per prima (3/11)
   } catch (e) { stato('i disegni non si caricano: ' + e.message, true); return; }
   const lento = setTimeout(() => { $('avviso').hidden = false; $('avviso').textContent = 'I segni non si riescono ancora a leggere: puoi guardare, ma salva più tardi.'; }, 10000);
   try {
@@ -366,7 +420,7 @@ addEventListener('keydown', (e) => {
       if (tutti[io] && !Object.keys(mio).length) { mio = { ...tutti[io] }; creato = true; }
       const altri = Object.keys(tutti).filter((x) => x !== io);
       if (altri.length) { const ps = await user.profiles(altri); for (const x of altri) nomi[x] = ps[x]?.name || 'un altro'; }
-      generale(); miniature(); conta(); disegna(); confronto();
+      generale(); miniature(); conta(); disegna(); confronto(); schede();
     }, (e) => { clearTimeout(lento); $('avviso').hidden = false; $('avviso').textContent = 'I segni non si leggono (' + (e.code || e.message) + '): ricarica la pagina più tardi.'; });
   } catch (e) { clearTimeout(lento); $('avviso').hidden = false; $('avviso').textContent = 'I segni non funzionano qui: ' + (e.message || e); }
 })();
