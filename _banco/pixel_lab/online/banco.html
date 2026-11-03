@@ -1,0 +1,373 @@
+<title>Banco dei pixel di MAREA</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* banco da lavoro scuro (una sola resa, voluta): i pannelli sono vetrini sotto la lente, la griglia è la protagonista */
+  :root {
+    --fondo: #14171d; --piano: #1d222b; --bordo: #2f3744; --testo: #e7eaf0; --tenue: #98a2b3;
+    --sabbia: #efdcb8; --ok: #58c27a; --no: #e4605a; --mio: #ffd23f; --altri: #5cc8ff; --vetrino: #262c37;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--fondo); color: var(--testo); font: 14px/1.45 var(--sans); }
+  .giro { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  header { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding-block: 12px; border-bottom: 1px solid var(--bordo); }
+  h1 { font-size: 17px; margin: 0; font-weight: 600; text-wrap: balance; }
+  h1 small { font: 500 12px var(--mono); color: var(--tenue); margin-left: 6px; }
+  .gruppo { display: flex; gap: 4px; flex-wrap: wrap; }
+  button, select { font: inherit; color: var(--testo); background: var(--piano); border: 1px solid var(--bordo); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+  button:hover { border-color: #56627a; }
+  button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--sabbia); outline-offset: 1px; }
+  button.su { background: var(--sabbia); color: #18202b; border-color: var(--sabbia); }
+  #chi { color: var(--tenue); font-size: 13px; }
+  #stato { margin-left: auto; color: var(--tenue); font: 12px var(--mono); }
+  #stato.errore { color: var(--no); }
+  #avviso { background: #3a2a14; color: var(--sabbia); padding-block: 8px; font-size: 13px; }
+  main { display: grid; grid-template-columns: 196px minmax(0, 1fr); gap: 0; }
+  aside { border-right: 1px solid var(--bordo); padding: 12px 12px 24px max(16px, env(safe-area-inset-left, 0px)); }
+  aside h2 { font: 500 12px var(--mono); color: var(--tenue); margin: 14px 0 6px; letter-spacing: .02em; }
+  #viste { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  #miniature { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .mini { position: relative; background: var(--piano); border: 1px solid var(--bordo); border-radius: 7px; padding: 4px; cursor: pointer; text-align: center; }
+  .mini.su { border-color: var(--sabbia); }
+  .mini canvas { image-rendering: pixelated; display: block; margin: 0 auto; max-width: 100%; }
+  .mini span { font: 11px var(--mono); color: var(--tenue); }
+  .mini i { position: absolute; top: 5px; width: 8px; height: 8px; border-radius: 50%; }
+  section { padding-block: 14px 32px; padding-left: 16px; padding-right: max(16px, env(safe-area-inset-right, 0px)); min-width: 0; }
+  #comandi { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-bottom: 12px; color: var(--tenue); }
+  #comandi label { display: flex; gap: 6px; align-items: center; }
+  #pannelli { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-end; overflow-x: auto; }
+  .pan h3 { font: 500 12px var(--mono); color: var(--tenue); margin: 0 0 6px; }
+  .pan canvas { display: block; background: var(--vetrino); border-radius: 4px; cursor: crosshair; max-width: none; }
+  #codex { cursor: default; }
+  #giudizio { margin-top: 16px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 18px; max-width: 980px; }
+  #giudizio > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  button.ok.su { background: var(--ok); border-color: var(--ok); color: #0d1a10; }
+  button.no.su { background: var(--no); border-color: var(--no); color: #22090a; }
+  textarea { width: 100%; min-height: 58px; font: inherit; color: var(--testo); background: var(--piano); border: 1px solid var(--bordo); border-radius: 7px; padding: 7px 9px; resize: vertical; }
+  .aiuto { color: var(--tenue); font-size: 12px; }
+  #altrui { color: var(--testo); font-size: 13px; background: var(--piano); border: 1px solid var(--bordo); border-left: 3px solid var(--altri); border-radius: 6px; padding: 7px 10px; }
+  .gruppi { display: flex; flex-direction: column; gap: 4px; }
+  .gruppi .riga { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .gruppi .riga b { font: 500 11px var(--mono); color: var(--tenue); width: 132px; }
+  #confronto { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+  #confronto[hidden] { display: none; }
+  .op { background: var(--piano); border: 1px solid var(--bordo); border-radius: 7px; padding: 6px 6px 4px; cursor: pointer; text-align: center; }
+  .op.su { border-color: var(--sabbia); }
+  .op canvas { image-rendering: pixelated; display: block; margin: 0 auto 3px; }
+  .op span { font: 11px var(--mono); color: var(--tenue); display: block; }
+  .op .stelle { color: var(--mio); min-height: 15px; }
+  button.pref.su { background: var(--mio); border-color: var(--mio); color: #231c00; }
+  .conta { color: var(--tenue); font: 12px var(--mono); font-variant-numeric: tabular-nums; }
+  @media (max-width: 720px) {
+    main { grid-template-columns: minmax(0, 1fr); }
+    aside { border-right: 0; border-bottom: 1px solid var(--bordo); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+    #miniature { grid-template-columns: repeat(6, 1fr); }
+    #giudizio { grid-template-columns: minmax(0, 1fr); }
+    section { padding-left: max(16px, env(safe-area-inset-left, 0px)); }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="giro">
+  <h1>Banco dei pixel <small>MAREA</small></h1>
+  <div class="gruppi" id="personaggi"></div>
+  <div class="gruppo" id="alti"></div>
+  <span class="conta" id="conta"></span>
+  <span id="chi"></span>
+  <span id="stato">carico i disegni…</span>
+</header>
+<div id="avviso" class="giro" hidden></div>
+<main>
+  <aside>
+    <h2>vista</h2>
+    <div id="viste"></div>
+    <h2>disegni della vista</h2>
+    <div id="miniature"></div>
+  </aside>
+  <section>
+    <div id="comandi">
+      <label for="zoom">zoom <input type="range" id="zoom" min="2" max="12" value="5"></label>
+      <label for="griglia"><input type="checkbox" id="griglia" checked> griglia dei pixel di MAREA</label>
+      <label for="sopra">Codex sopra <input type="range" id="sopra" min="0" max="100" value="0"></label>
+      <label for="altri"><input type="checkbox" id="altri" checked> segni degli altri</label>
+      <button id="anima">▶ anima la camminata</button>
+      <span class="aiuto">← → disegno · ↑ ↓ vista · 1 va bene · 2 da rifare · spazio anima · g griglia</span>
+    </div>
+    <div id="confronto" hidden></div>
+    <div id="pannelli">
+      <div class="pan"><h3 id="tCodex">disegno di Codex</h3><canvas id="codex"></canvas></div>
+      <div class="pan"><h3 id="tPixel">pixel art</h3><canvas id="pixel"></canvas></div>
+      <div class="pan"><h3>nel Borgo, sulla griglia del gioco</h3><canvas id="borgo"></canvas></div>
+    </div>
+    <div id="giudizio">
+      <div>
+        <div class="gruppo"><button class="ok" id="bOk">va bene</button><button class="no" id="bNo">da rifare</button><button class="pref" id="bPref" hidden>★ la mia preferita</button></div>
+        <span class="aiuto">clicca sui pixel (nella pixel art o nel Borgo) per segnare dove non va; un altro clic toglie il segno. I tuoi segni sono gialli, quelli degli altri azzurri.</span>
+        <label class="aiuto" for="nota">nota su questo disegno</label>
+        <textarea id="nota" placeholder="cosa non va, cosa vorresti…"></textarea>
+        <div id="altrui" hidden></div>
+      </div>
+      <div>
+        <label class="aiuto" for="generale">nota su tutto il personaggio, a questa altezza</label>
+        <textarea id="generale" placeholder="per esempio: occhi troppo piccoli in tutte le viste"></textarea>
+        <div id="altruiGen" class="aiuto"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const VISTE = ['S', 'SSE', 'SE', 'ESE', 'E', 'ENE', 'NE', 'NNE', 'N'];
+// le viste e i disegni di ogni personaggio vengono dai dati: le opzioni del 3/11 hanno solo SE, in piedi + 4 della camminata
+let MOSSE = [], VISTEP = VISTE, CICLO = [];
+const NOMI = { protagonista: 'protagonista', viandante: 'viandante', scugnizzo: 'scugnizzo', 'f3-prova': 'F3' };
+const GRUPPI = { pixellab: 'PixelLab (prova)', opzioni: 'opzioni pensate per 64', atelier: "dall'Atelier" };
+const nome = (p) => D.personaggi[p].nome && D.personaggi[p].gruppo !== 'atelier' ? D.personaggi[p].nome : NOMI[p] ?? p;
+function forma() {
+  const sp = Object.keys(D.personaggi[st.p].alti[st.alto]);
+  VISTEP = VISTE.filter((v) => sp.some((x) => x.startsWith(v + '_')));
+  MOSSE = [...new Set(sp.map((x) => x.slice(x.indexOf('_') + 1)))];
+  const giro = MOSSE.filter((m) => m.startsWith('camminata_'));
+  CICLO = (giro.length ? giro : MOSSE.filter((m) => m.startsWith('passo_'))).map((m) => MOSSE.indexOf(m));
+}
+const BW = 72, BH = 100; // la finestra del Borgo, in pixel di gioco
+const st = { p: null, alto: '96', v: 'S', m: 0, anima: null };
+let D, db = null, user = null, io = null, mio = {}, tutti = {}, nomi = {};
+const img = new Map();
+const $ = (id) => document.getElementById(id);
+const carica = (src) => {
+  if (!img.has(src)) img.set(src, new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ko(new Error('manca ' + src)); i.src = src; }));
+  return img.get(src);
+};
+const k = (m = st.m) => `${st.v}_${MOSSE[m]}`;
+const campo = (sp = k()) => `${st.p}~${st.alto}~${sp}`;
+const voce = (sp = k()) => D.personaggi[st.p].alti[st.alto][sp];
+const segno = (sp = k()) => mio[campo(sp)] ?? { voto: null, punti: [], nota: '' };
+function stato(t, errore = false) { const s = $('stato'); s.textContent = t; s.classList.toggle('errore', errore); }
+const ora = () => new Date().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+// ---- i segni: un documento per persona (segni/<id>), un campo per disegno; si scrive uno alla volta ----
+let coda = Promise.resolve(), creato = false;
+function scrivi(dati) {
+  Object.assign(mio, dati);
+  if (!db || !io) { stato('segno tenuto solo qui: apri la pagina col tuo account', true); return; }
+  coda = coda.then(async () => {
+    const ref = db.doc('segni/' + io);
+    if (!creato) { const s = await ref.get(); if (!s.exists) await ref.set({}); creato = true; }
+    await ref.update(dati);
+    stato('salvato ✓ ' + ora());
+  }).catch((e) => stato('non salvato: ' + (e.message || e.code || e), true));
+}
+function salva(sp = k()) { const s = segno(sp); s.quando = Date.now(); scrivi({ [campo(sp)]: s }); miniature(); conta(); }
+
+// ---- pannelli ----
+function tela(c, w, h) {
+  const d = devicePixelRatio || 1;
+  c.width = Math.round(w * d); c.height = Math.round(h * d); c.style.width = w + 'px'; c.style.height = h + 'px';
+  const g = c.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); g.imageSmoothingEnabled = false;
+  return g;
+}
+function griglia(c, Z) {
+  if (!$('griglia').checked) return;
+  const g = c.getContext('2d'), d = devicePixelRatio || 1;
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.strokeStyle = 'rgba(0,0,0,0.3)'; g.lineWidth = 1; g.beginPath();
+  for (let x = 0; x <= c.width / d + 0.01; x += Z) { const X = Math.round(x * d) + 0.5; g.moveTo(X, 0); g.lineTo(X, c.height); }
+  for (let y = 0; y <= c.height / d + 0.01; y += Z) { const Y = Math.round(y * d) + 0.5; g.moveTo(0, Y); g.lineTo(c.width, Y); }
+  g.stroke(); g.restore();
+}
+function cerchi(g, Z, dx, dy) {
+  const giro = (pp, col) => { g.strokeStyle = col; for (const [x, y] of pp) { g.beginPath(); g.arc((x + dx + 0.5) * Z, (y + dy + 0.5) * Z, Math.max(5, Z * 0.9), 0, 7); g.stroke(); } };
+  g.save(); g.lineWidth = 2;
+  if ($('altri').checked) for (const [chi, s] of Object.entries(tutti)) if (chi !== io && s[campo()]) giro(s[campo()].punti ?? [], '#5cc8ff');
+  giro(segno().punti, '#ffd23f');
+  g.restore();
+}
+async function disegna() {
+  const e = voce(), Z = +$('zoom').value, sp = k(), P = D.personaggi[st.p];
+  if (!e) return;
+  const [atl, cod, sf] = await Promise.all([carica(`${st.p}_px${st.alto}.png`), carica(`${st.p}_codex.webp`), carica(`sfondo${st.alto}.png`)]);
+  if (sp !== k()) return;
+  const [rx, ry, w, h] = e.r, [bx, by, bw, bh] = e.box, [cx, cy, cw, ch] = P.codex[sp];
+  $('tPixel').textContent = `pixel art (${st.alto} px)`;
+  // PixelLab disegna già in pixel: il pannello di sinistra è lo sprite originale, a pixel netti
+  const pl = P.gruppo === 'pixellab';
+  $('tCodex').textContent = pl ? 'sprite di PixelLab, così com\'è' : 'disegno di Codex';
+  let g = tela($('codex'), w * Z, h * Z);
+  g.imageSmoothingEnabled = !pl; g.imageSmoothingQuality = 'high'; g.drawImage(cod, cx, cy, cw, ch, bx * Z, by * Z, bw * Z, bh * Z);
+  g = tela($('pixel'), w * Z, h * Z);
+  g.drawImage(atl, rx, ry, w, h, 0, 0, w * Z, h * Z);
+  const sopra = +$('sopra').value / 100;
+  if (sopra > 0) { g.globalAlpha = sopra; g.imageSmoothingEnabled = true; g.drawImage(cod, cx, cy, cw, ch, bx * Z, by * Z, bw * Z, bh * Z); g.globalAlpha = 1; g.imageSmoothingEnabled = false; }
+  griglia($('pixel'), Z); cerchi(g, Z, 0, 0);
+  // nel Borgo: lo sfondo preso dalla tela del gioco (un pixel = un pixel di gioco), lo sprite coi piedi dove stava nel gioco
+  const [px, py] = D.sfondi[st.alto].piede, x0 = px - BW / 2, y0 = py - BH + 14, sx = px - e.ax - x0, sy = py - e.ay - y0;
+  g = tela($('borgo'), BW * Z, BH * Z);
+  g.drawImage(sf, x0, y0, BW, BH, 0, 0, BW * Z, BH * Z);
+  g.drawImage(atl, rx, ry, w, h, sx * Z, sy * Z, w * Z, h * Z);
+  griglia($('borgo'), Z); cerchi(g, Z, sx, sy);
+  $('borgo').dataset.sx = sx; $('borgo').dataset.sy = sy;
+  const s = segno();
+  $('bOk').classList.toggle('su', s.voto === 'ok'); $('bNo').classList.toggle('su', s.voto === 'no');
+  if (document.activeElement !== $('nota')) $('nota').value = s.nota ?? '';
+  altrui();
+  document.querySelectorAll('.mini').forEach((m, i) => m.classList.toggle('su', i === st.m));
+}
+async function altrui() {
+  const righe = [], gen = [];
+  for (const [chi, s] of Object.entries(tutti)) {
+    if (chi === io) continue;
+    const n = nomi[chi] || 'un altro', x = s[campo()], gg = s[`generale~${st.p}~${st.alto}`];
+    if (x && (x.voto || x.nota || x.punti?.length)) righe.push(`${n}: ${x.voto === 'ok' ? 'va bene' : x.voto === 'no' ? 'da rifare' : 'senza voto'}${x.punti?.length ? ` · ${x.punti.length} pixel segnati` : ''}${x.nota ? ` · «${x.nota}»` : ''}`);
+    if (gg?.nota) gen.push(`${n}: «${gg.nota}»`);
+  }
+  const a = $('altrui'); a.hidden = !righe.length || !$('altri').checked; a.textContent = righe.join('\n');
+  $('altruiGen').textContent = gen.join(' · ');
+}
+
+// ---- clic: un segno sul pixel, in coordinate dello sprite ----
+function clic(ev, dx, dy) {
+  const Z = +$('zoom').value, r = ev.target.getBoundingClientRect();
+  const x = Math.floor((ev.clientX - r.left) / Z) - dx, y = Math.floor((ev.clientY - r.top) / Z) - dy;
+  const s = segno(), i = s.punti.findIndex(([a, b]) => a === x && b === y);
+  if (i >= 0) s.punti.splice(i, 1); else s.punti.push([x, y]);
+  if (s.punti.length && !s.voto) s.voto = 'no';
+  mio[campo()] = s; salva(); disegna();
+}
+$('pixel').onclick = (ev) => clic(ev, 0, 0);
+$('borgo').onclick = (ev) => clic(ev, +$('borgo').dataset.sx, +$('borgo').dataset.sy);
+
+// ---- liste ----
+function bottoni(dove, voci, attivo, scegli) {
+  const d = $(dove); d.innerHTML = '';
+  for (const [kk, t] of voci) { const b = document.createElement('button'); b.textContent = t; b.classList.toggle('su', kk === attivo); b.onclick = () => scegli(kk); d.appendChild(b); }
+}
+const colore = (s) => !s ? null : s.voto === 'ok' ? 'var(--ok)' : s.voto === 'no' ? 'var(--no)' : s.nota || s.punti?.length ? 'var(--mio)' : null;
+let giroMini = 0;
+async function miniature() {
+  const d = $('miniature'), giro = ++giroMini;
+  const atl = await carica(`${st.p}_px${st.alto}.png`);
+  if (giro !== giroMini) return; // nel frattempo è partito un giro più nuovo: vale quello
+  d.innerHTML = '';
+  MOSSE.forEach((m, i) => {
+    const sp = `${st.v}_${m}`, e = voce(sp); if (!e) return;
+    const b = document.createElement('div'); b.className = 'mini' + (i === st.m ? ' su' : '');
+    const c = document.createElement('canvas'); const [rx, ry, w, h] = e.r; c.width = w; c.height = h; c.style.width = Math.round(w * 96 / +st.alto) + 'px';
+    c.getContext('2d').drawImage(atl, rx, ry, w, h, 0, 0, w, h);
+    const t = document.createElement('span'); t.textContent = m.replace('_', ' ');
+    b.append(c, t);
+    const mioC = colore(segno(sp)); if (mioC) { const pal = document.createElement('i'); pal.style.right = '5px'; pal.style.background = mioC; b.append(pal); }
+    const altro = Object.entries(tutti).find(([chi, s]) => chi !== io && colore(s[`${st.p}~${st.alto}~${sp}`]));
+    if (altro) { const pal = document.createElement('i'); pal.style.right = '16px'; pal.style.background = 'var(--altri)'; b.append(pal); }
+    b.onclick = () => { st.m = i; ferma(); disegna(); }; d.appendChild(b);
+  });
+}
+function conta() {
+  const tutti_ = Object.keys(D.personaggi[st.p].alti[st.alto]), fatti = tutti_.filter((sp) => segno(sp).voto);
+  $('conta').textContent = `${fatti.length}/${tutti_.length} giudicati · ${tutti_.filter((sp) => segno(sp).voto === 'no').length} da rifare`;
+}
+function generale() { $('generale').value = mio[`generale~${st.p}~${st.alto}`]?.nota ?? ''; }
+function personaggi() {
+  const d = $('personaggi'); d.innerHTML = '';
+  for (const [g, titolo] of Object.entries(GRUPPI)) {
+    const ps = Object.keys(D.personaggi).filter((x) => (D.personaggi[x].gruppo ?? 'atelier') === g); if (!ps.length) continue;
+    const r = document.createElement('div'); r.className = 'riga'; const b = document.createElement('b'); b.textContent = titolo; r.append(b);
+    for (const x of ps) { const bt = document.createElement('button'); bt.textContent = nome(x); bt.classList.toggle('su', x === st.p); bt.onclick = () => scegliPersonaggio(x); r.append(bt); }
+    d.append(r);
+  }
+}
+function scegliPersonaggio(p) {
+  st.p = p; ferma(); personaggi();
+  const alti = Object.keys(D.personaggi[p].alti);
+  if (!alti.includes(st.alto)) st.alto = alti.includes('64') ? '64' : alti[0];
+  bottoni('alti', alti.map((a) => [a, a + ' px']), st.alto, scegliAlto);
+  forma(); if (st.m >= MOSSE.length) st.m = 0; generale(); confronto();
+  scegliVista(VISTEP.includes(st.v) ? st.v : VISTEP[0]);
+}
+function scegliAlto(a) { st.alto = a; ferma(); bottoni('alti', Object.keys(D.personaggi[st.p].alti).map((x) => [x, x + ' px']), a, scegliAlto); forma(); if (st.m >= MOSSE.length) st.m = 0; generale(); miniature(); conta(); disegna(); }
+function scegliVista(v) { st.v = v; ferma(); bottoni('viste', VISTEP.map((x) => [x, x]), v, scegliVista); miniature(); conta(); disegna(); }
+
+// ---- le opzioni a confronto: ognuna in piedi a 64 px nel Borgo, con le stelle (le preferite di ognuno) ----
+const PREF = 'preferita~64';
+let giroConf = 0;
+async function confronto() {
+  const c = $('confronto'), ops = Object.keys(D.personaggi).filter((x) => D.personaggi[x].gruppo === 'opzioni');
+  const qui = D.personaggi[st.p].gruppo === 'opzioni';
+  c.hidden = !qui || !ops.length; $('bPref').hidden = !qui;
+  $('bPref').classList.toggle('su', mio[PREF]?.p === st.p);
+  if (c.hidden) return;
+  const giro = ++giroConf, sf = await carica('sfondo64.png'), atl = await Promise.all(ops.map((p) => carica(`${p}_px64.png`)));
+  if (giro !== giroConf) return;
+  c.innerHTML = '';
+  const Z = 3, W = 44, H = 76, [px, py] = D.sfondi['64'].piede;
+  ops.forEach((p, i) => {
+    const sp = Object.keys(D.personaggi[p].alti['64'])[0], e = D.personaggi[p].alti['64'][sp];
+    const b = document.createElement('div'); b.className = 'op' + (p === st.p ? ' su' : '');
+    const cv = document.createElement('canvas'), g = tela(cv, W * Z, H * Z), x0 = px - W / 2, y0 = py - H + 6;
+    g.drawImage(sf, x0, y0, W, H, 0, 0, W * Z, H * Z);
+    const [rx, ry, w, h] = e.r; g.drawImage(atl[i], rx, ry, w, h, (px - e.ax - x0) * Z, (py - e.ay - y0) * Z, w * Z, h * Z);
+    const t = document.createElement('span'); t.textContent = nome(p);
+    const s = document.createElement('span'); s.className = 'stelle';
+    s.textContent = Object.entries(tutti).filter(([chi, d]) => chi !== io && d[PREF]?.p === p).map(([chi]) => '★ ' + (nomi[chi] || 'un altro')).concat(mio[PREF]?.p === p ? ['★ tu'] : []).join(' ');
+    b.append(cv, t, s); b.onclick = () => scegliPersonaggio(p); c.append(b);
+  });
+}
+$('bPref').onclick = () => { const v = mio[PREF]?.p === st.p ? { p: null, quando: Date.now() } : { p: st.p, quando: Date.now() }; scrivi({ [PREF]: v }); confronto(); };
+
+function ferma() { if (st.anima) { clearInterval(st.anima); st.anima = null; $('anima').textContent = '▶ anima la camminata'; } }
+$('anima').onclick = () => {
+  if (st.anima) return ferma();
+  if (!CICLO.length) return;
+  let i = Math.max(0, CICLO.indexOf(st.m));
+  st.anima = setInterval(() => { i = (i + 1) % CICLO.length; st.m = CICLO[i]; disegna(); }, CICLO.length > 4 ? 110 : 170);
+  $('anima').textContent = '■ ferma';
+};
+function vota(v) { const s = segno(); s.voto = s.voto === v ? null : v; mio[campo()] = s; salva(); disegna(); }
+$('bOk').onclick = () => vota('ok'); $('bNo').onclick = () => vota('no');
+let tNota, tGen;
+$('nota').oninput = () => { const sp = k(), c = campo(sp); clearTimeout(tNota); tNota = setTimeout(() => { const s = mio[c] ?? { voto: null, punti: [], nota: '' }; s.nota = $('nota').value; mio[c] = s; s.quando = Date.now(); scrivi({ [c]: s }); miniature(); }, 800); };
+$('generale').oninput = () => { const c = `generale~${st.p}~${st.alto}`; clearTimeout(tGen); tGen = setTimeout(() => scrivi({ [c]: { nota: $('generale').value, quando: Date.now() } }), 800); };
+for (const id of ['zoom', 'griglia', 'sopra', 'altri']) $(id).oninput = () => disegna();
+addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range') return;
+  const vi = VISTEP.indexOf(st.v), nv = VISTEP.length;
+  if (e.key === 'ArrowRight') { ferma(); st.m = (st.m + 1) % MOSSE.length; disegna(); }
+  else if (e.key === 'ArrowLeft') { ferma(); st.m = (st.m + MOSSE.length - 1) % MOSSE.length; disegna(); }
+  else if (e.key === 'ArrowDown') scegliVista(VISTEP[(vi + 1) % nv]);
+  else if (e.key === 'ArrowUp') scegliVista(VISTEP[(vi + nv - 1) % nv]);
+  else if (e.key === '1') vota('ok');
+  else if (e.key === '2') vota('no');
+  else if (e.key === ' ') { e.preventDefault(); $('anima').click(); }
+  else if (e.key === 'g') { $('griglia').checked = !$('griglia').checked; disegna(); }
+  else return;
+  e.preventDefault();
+});
+
+// ---- avvio: i disegni subito, i segni appena il database risponde ----
+(async () => {
+  try {
+    D = await fetch('dati.json').then((r) => r.json());
+    stato('pronto');
+    st.alto = '64'; // 64 px confermato da Jack (3/11)
+    scegliPersonaggio(Object.keys(D.personaggi)[0]); // le opzioni pensate per 64 vengono per prime
+  } catch (e) { stato('i disegni non si caricano: ' + e.message, true); return; }
+  const lento = setTimeout(() => { $('avviso').hidden = false; $('avviso').textContent = 'I segni non si riescono ancora a leggere: puoi guardare, ma salva più tardi.'; }, 10000);
+  try {
+    [db, user] = window.claude?.use ? await Promise.all([claude.use('db'), claude.use('user')]) : [null, null];
+    if (!db || !user) { clearTimeout(lento); $('avviso').hidden = false; $('avviso').textContent = 'I segni si salvano solo aprendo la pagina col tuo account su claude.ai (con il permesso di scrivere).'; return; }
+    io = await user.id();
+    const me = await user.me(); $('chi').textContent = 'segni come ' + ((me && me.name) || 'te');
+    db.collection('segni').onSnapshot(async (snap) => {
+      clearTimeout(lento); $('avviso').hidden = true;
+      tutti = {};
+      for (const d of snap.docs) tutti[d.id] = d.data();
+      if (tutti[io] && !Object.keys(mio).length) { mio = { ...tutti[io] }; creato = true; }
+      const altri = Object.keys(tutti).filter((x) => x !== io);
+      if (altri.length) { const ps = await user.profiles(altri); for (const x of altri) nomi[x] = ps[x]?.name || 'un altro'; }
+      generale(); miniature(); conta(); disegna(); confronto();
+    }, (e) => { clearTimeout(lento); $('avviso').hidden = false; $('avviso').textContent = 'I segni non si leggono (' + (e.code || e.message) + '): ricarica la pagina più tardi.'; });
+  } catch (e) { clearTimeout(lento); $('avviso').hidden = false; $('avviso').textContent = 'I segni non funzionano qui: ' + (e.message || e); }
+})();
+</script>

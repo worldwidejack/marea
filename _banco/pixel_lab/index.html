@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banco dei pixel</title>
+<style>
+  :root { --fondo: #171b22; --pannello: #222833; --bordo: #323a48; --testo: #e8ebf1; --tenue: #9aa4b5; --ok: #4fbf6a; --no: #e0574f; --segno: #ffd23f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fondo); color: var(--testo); font: 14px/1.4 system-ui, -apple-system, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--bordo); }
+  h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  .gruppo { display: flex; gap: 4px; flex-wrap: wrap; }
+  button { font: inherit; color: var(--testo); background: var(--pannello); border: 1px solid var(--bordo); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+  button:hover { border-color: #56627a; }
+  button.su { background: #f1e3c6; color: #18202b; border-color: #f1e3c6; }
+  #stato { margin-left: auto; color: var(--tenue); font-size: 13px; }
+  #stato.errore { color: var(--no); }
+  main { display: grid; grid-template-columns: 200px 1fr; min-height: calc(100vh - 60px); }
+  aside { border-right: 1px solid var(--bordo); padding: 12px; overflow: auto; }
+  aside h2 { font-size: 13px; color: var(--tenue); font-weight: 500; margin: 12px 0 6px; }
+  #viste { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  #miniature { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .mini { position: relative; background: var(--pannello); border: 1px solid var(--bordo); border-radius: 7px; padding: 4px; cursor: pointer; text-align: center; }
+  .mini.su { border-color: #f1e3c6; }
+  .mini canvas { image-rendering: pixelated; display: block; margin: 0 auto; }
+  .mini span { font-size: 11px; color: var(--tenue); }
+  .mini i { position: absolute; top: 5px; right: 5px; width: 9px; height: 9px; border-radius: 50%; }
+  section { padding: 14px 16px; overflow: auto; }
+  #comandi { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-bottom: 12px; color: var(--tenue); }
+  #comandi label { display: flex; gap: 6px; align-items: center; }
+  #pannelli { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-end; }
+  .pan h3 { font-size: 13px; font-weight: 500; color: var(--tenue); margin: 0 0 6px; }
+  .pan canvas { display: block; background: #2a303b; border-radius: 4px; cursor: crosshair; }
+  #codex { cursor: default; }
+  #giudizio { margin-top: 16px; display: grid; grid-template-columns: auto 1fr; gap: 10px 14px; max-width: 900px; align-items: start; }
+  #giudizio .gruppo button { padding: 7px 14px; }
+  button.ok.su { background: var(--ok); border-color: var(--ok); color: #0d1a10; }
+  button.no.su { background: var(--no); border-color: var(--no); color: #22090a; }
+  textarea { width: 100%; min-height: 54px; font: inherit; color: var(--testo); background: var(--pannello); border: 1px solid var(--bordo); border-radius: 7px; padding: 7px 9px; resize: vertical; }
+  .aiuto { color: var(--tenue); font-size: 12px; }
+  .conta { color: var(--tenue); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Banco dei pixel · 64 px</h1>
+  <div class="gruppo" id="personaggi"></div>
+  <span class="conta" id="conta"></span>
+  <span id="stato">carico…</span>
+</header>
+<main>
+  <aside>
+    <h2>vista</h2>
+    <div id="viste"></div>
+    <h2>disegni della vista</h2>
+    <div id="miniature"></div>
+  </aside>
+  <section>
+    <div id="comandi">
+      <label>zoom <input type="range" id="zoom" min="3" max="14" value="7"></label>
+      <label><input type="checkbox" id="griglia" checked> griglia dei pixel di MAREA</label>
+      <label>Codex sopra <input type="range" id="sopra" min="0" max="100" value="0"></label>
+      <button id="anima">▶ anima la camminata</button>
+      <span class="aiuto">← → disegno · ↑ ↓ vista · 1 va bene · 2 da rifare · spazio anima · g griglia</span>
+    </div>
+    <div id="pannelli">
+      <div class="pan"><h3>disegno di Codex</h3><canvas id="codex"></canvas></div>
+      <div class="pan"><h3>pixel art (64 px)</h3><canvas id="pixel"></canvas></div>
+      <div class="pan"><h3>nel Borgo, sulla griglia del gioco</h3><canvas id="borgo"></canvas></div>
+    </div>
+    <div id="giudizio">
+      <div class="gruppo"><button class="ok" id="bOk">va bene</button><button class="no" id="bNo">da rifare</button></div>
+      <div class="aiuto">clicca sui pixel (nella pixel art o nel Borgo) per segnare dove non va; clicca di nuovo per togliere il segno</div>
+      <div class="aiuto">nota su questo disegno</div>
+      <textarea id="nota" placeholder="cosa non va, cosa vorresti…"></textarea>
+      <div class="aiuto">nota su tutto il personaggio</div>
+      <textarea id="generale" placeholder="per esempio: occhi troppo piccoli in tutte le viste"></textarea>
+    </div>
+  </section>
+</main>
+<script>
+const VISTE = ['S', 'SSE', 'SE', 'ESE', 'E', 'ENE', 'NE', 'NNE', 'N'];
+const MOSSE = [...[1, 2, 3, 4].map((n) => `cammina_${n}`), ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => `camminata_${n}`)];
+const NOMI = { protagonista: 'protagonista', viandante: 'viandante', scugnizzo: 'scugnizzo', 'f3-prova': 'F3' };
+const BW = 72, BH = 92; // la finestra del Borgo, in pixel di gioco
+const st = { p: null, v: 'S', m: 0, anima: null };
+let indice, sfondo, segni = { sprite: {}, generale: {} };
+const img = new Map();
+const $ = (id) => document.getElementById(id);
+const carica = (src) => {
+  if (!img.has(src)) img.set(src, new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ko(new Error('manca ' + src)); i.src = src; }));
+  return img.get(src);
+};
+const chiave = (m = st.m) => `${st.v}_${MOSSE[m]}`;
+const voce = (k = chiave()) => indice[st.p].elenco[k];
+const segno = (k = chiave()) => segni.sprite[`${st.p}/${k}`] ?? { voto: null, punti: [], nota: '' };
+function stato(t, errore = false) { const s = $('stato'); s.textContent = t; s.classList.toggle('errore', errore); }
+
+// ---- salvataggio: ogni invio va al server (segni.json + segni.jsonl) ----
+async function invia(dati) {
+  try {
+    const r = await fetch('/segni', { method: 'POST', body: JSON.stringify(dati) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.errore);
+    stato('salvato ✓ ' + j.quando.slice(11, 16));
+  } catch (e) { stato('non salvato: ' + e.message, true); }
+}
+function salva(k = chiave()) {
+  const s = segno(k);
+  segni.sprite[`${st.p}/${k}`] = s;
+  invia({ personaggio: st.p, sprite: k, voto: s.voto, punti: s.punti, nota: s.nota });
+  miniature(); conta();
+}
+
+// ---- disegno dei pannelli ----
+function tela(c, w, h) {
+  const d = devicePixelRatio || 1;
+  c.width = Math.round(w * d); c.height = Math.round(h * d); c.style.width = w + 'px'; c.style.height = h + 'px';
+  const g = c.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); g.imageSmoothingEnabled = false;
+  return g;
+}
+function griglia(c, Z, ox = 0, oy = 0) {
+  if (!$('griglia').checked) return;
+  const g = c.getContext('2d'), d = devicePixelRatio || 1;
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
+  g.strokeStyle = 'rgba(0,0,0,0.28)'; g.lineWidth = 1; g.beginPath();
+  for (let x = ox; x <= c.width / d + 0.01; x += Z) { const X = Math.round(x * d) + 0.5; g.moveTo(X, 0); g.lineTo(X, c.height); }
+  for (let y = oy; y <= c.height / d + 0.01; y += Z) { const Y = Math.round(y * d) + 0.5; g.moveTo(0, Y); g.lineTo(c.width, Y); }
+  g.stroke(); g.restore();
+}
+function punti(g, Z, dx, dy) {
+  g.save(); g.strokeStyle = '#ffd23f'; g.lineWidth = 2;
+  for (const [x, y] of segno().punti) { g.beginPath(); g.arc((x + dx + 0.5) * Z, (y + dy + 0.5) * Z, Math.max(5, Z * 0.9), 0, 7); g.stroke(); }
+  g.restore();
+}
+async function disegna() {
+  const e = voce(), Z = +$('zoom').value, k = chiave();
+  if (!e) return;
+  const [sp, cx] = await Promise.all([carica(`dati/${st.p}/px/${k}.png`), carica(`dati/${st.p}/codex/${k}.png`)]);
+  if (k !== chiave()) return;
+  const [bx, by, bw, bh] = e.box;
+  // Codex: il ritaglio nel riquadro che è diventato lo sprite, liscio
+  let g = tela($('codex'), e.w * Z, e.h * Z);
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(cx, bx * Z, by * Z, bw * Z, bh * Z);
+  // pixel art, con Codex sopra in trasparenza se si vuole
+  g = tela($('pixel'), e.w * Z, e.h * Z);
+  g.drawImage(sp, 0, 0, e.w * Z, e.h * Z);
+  const sopra = +$('sopra').value / 100;
+  if (sopra > 0) { g.globalAlpha = sopra; g.imageSmoothingEnabled = true; g.drawImage(cx, bx * Z, by * Z, bw * Z, bh * Z); g.globalAlpha = 1; g.imageSmoothingEnabled = false; }
+  griglia($('pixel'), Z); punti(g, Z, 0, 0);
+  // nel Borgo: lo sfondo preso dalla tela del gioco (un pixel = un pixel di gioco) e lo sprite coi piedi dove stava nel gioco
+  const [px, py] = sfondo.piede, x0 = px - BW / 2, y0 = py - BH + 14;
+  const sx = px - e.ax - x0, sy = py - e.ay - y0;
+  g = tela($('borgo'), BW * Z, BH * Z);
+  g.drawImage(await carica('sfondo.png'), x0, y0, BW, BH, 0, 0, BW * Z, BH * Z);
+  g.drawImage(sp, sx * Z, sy * Z, e.w * Z, e.h * Z);
+  griglia($('borgo'), Z); punti(g, Z, sx, sy);
+  $('borgo').dataset.sx = sx; $('borgo').dataset.sy = sy;
+  // il giudizio di questo disegno
+  const s = segno();
+  $('bOk').classList.toggle('su', s.voto === 'ok'); $('bNo').classList.toggle('su', s.voto === 'no');
+  if (document.activeElement !== $('nota')) $('nota').value = s.nota;
+  document.querySelectorAll('.mini').forEach((m, i) => m.classList.toggle('su', i === st.m));
+}
+
+// ---- clic: un segno sul pixel (in coordinate dello sprite) ----
+function clic(ev, dx, dy) {
+  const Z = +$('zoom').value, r = ev.target.getBoundingClientRect();
+  const x = Math.floor((ev.clientX - r.left) / Z) - dx, y = Math.floor((ev.clientY - r.top) / Z) - dy;
+  const s = segno(), i = s.punti.findIndex(([a, b]) => a === x && b === y);
+  if (i >= 0) s.punti.splice(i, 1); else s.punti.push([x, y]);
+  if (s.punti.length && !s.voto) s.voto = 'no';
+  segni.sprite[`${st.p}/${chiave()}`] = s; salva(); disegna();
+}
+$('pixel').onclick = (ev) => clic(ev, 0, 0);
+$('borgo').onclick = (ev) => clic(ev, +$('borgo').dataset.sx, +$('borgo').dataset.sy);
+
+// ---- liste ----
+function bottoni(dove, voci, attivo, scegli) {
+  const d = $(dove); d.innerHTML = '';
+  for (const [k, t] of voci) { const b = document.createElement('button'); b.textContent = t; b.classList.toggle('su', k === attivo); b.onclick = () => scegli(k); d.appendChild(b); }
+}
+function colore(s) { return s.voto === 'ok' ? 'var(--ok)' : s.voto === 'no' ? 'var(--no)' : s.nota || s.punti.length ? 'var(--segno)' : 'transparent'; }
+async function miniature() {
+  const d = $('miniature'); d.innerHTML = '';
+  MOSSE.forEach((m, i) => {
+    const k = `${st.v}_${m}`, e = voce(k); if (!e) return;
+    const b = document.createElement('div'); b.className = 'mini' + (i === st.m ? ' su' : '');
+    const c = document.createElement('canvas'); c.width = e.w; c.height = e.h; c.style.width = e.w * 1.5 + 'px';
+    carica(`dati/${st.p}/px/${k}.png`).then((im) => c.getContext('2d').drawImage(im, 0, 0));
+    const t = document.createElement('span'); t.textContent = m.replace('_', ' ');
+    const pal = document.createElement('i'); pal.style.background = colore(segno(k));
+    b.append(c, t, pal); b.onclick = () => { st.m = i; ferma(); disegna(); }; d.appendChild(b);
+  });
+}
+function conta() {
+  const tutti = Object.keys(indice[st.p].elenco), fatti = tutti.filter((k) => segno(k).voto);
+  const no = tutti.filter((k) => segno(k).voto === 'no').length;
+  $('conta').textContent = `${fatti.length} di ${tutti.length} giudicati · ${no} da rifare`;
+}
+function scegliPersonaggio(p) {
+  st.p = p; ferma();
+  bottoni('personaggi', Object.keys(indice).map((k) => [k, NOMI[k] ?? k]), p, scegliPersonaggio);
+  $('generale').value = segni.generale[p]?.nota ?? '';
+  scegliVista(st.v);
+}
+function scegliVista(v) {
+  st.v = v; ferma();
+  bottoni('viste', VISTE.map((k) => [k, k]), v, scegliVista);
+  miniature(); conta(); disegna();
+}
+
+// ---- animazione della camminata a 8 pose ----
+function ferma() { if (st.anima) { clearInterval(st.anima); st.anima = null; $('anima').textContent = '▶ anima la camminata'; } }
+$('anima').onclick = () => {
+  if (st.anima) return ferma();
+  if (st.m < 4) st.m = 4;
+  st.anima = setInterval(() => { st.m = st.m >= 11 ? 4 : st.m + 1; disegna(); }, 110);
+  $('anima').textContent = '■ ferma';
+};
+
+// ---- giudizio ----
+function vota(v) { const s = segno(); s.voto = s.voto === v ? null : v; segni.sprite[`${st.p}/${chiave()}`] = s; salva(); disegna(); }
+$('bOk').onclick = () => vota('ok'); $('bNo').onclick = () => vota('no');
+let tNota, tGen;
+$('nota').oninput = () => { const k = chiave(); clearTimeout(tNota); tNota = setTimeout(() => { const s = segno(k); s.nota = $('nota').value; segni.sprite[`${st.p}/${k}`] = s; salva(k); }, 700); };
+$('generale').oninput = () => { const p = st.p; clearTimeout(tGen); tGen = setTimeout(() => { segni.generale[p] = { nota: $('generale').value }; invia({ personaggio: p, generale: $('generale').value }); }, 700); };
+for (const id of ['zoom', 'griglia', 'sopra']) $(id).oninput = () => disegna();
+addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'TEXTAREA') return;
+  const vi = VISTE.indexOf(st.v);
+  if (e.key === 'ArrowRight') { ferma(); st.m = (st.m + 1) % MOSSE.length; disegna(); }
+  else if (e.key === 'ArrowLeft') { ferma(); st.m = (st.m + MOSSE.length - 1) % MOSSE.length; disegna(); }
+  else if (e.key === 'ArrowDown') scegliVista(VISTE[(vi + 1) % 9]);
+  else if (e.key === 'ArrowUp') scegliVista(VISTE[(vi + 8) % 9]);
+  else if (e.key === '1') vota('ok');
+  else if (e.key === '2') vota('no');
+  else if (e.key === ' ') { e.preventDefault(); $('anima').click(); }
+  else if (e.key === 'g') { $('griglia').checked = !$('griglia').checked; disegna(); }
+  else return;
+  e.preventDefault();
+});
+
+(async () => {
+  try {
+    [indice, sfondo, segni] = await Promise.all(['dati/indice.json', 'sfondo.json', 'segni'].map((u) => fetch(u).then((r) => r.json())));
+    stato('pronto');
+    scegliPersonaggio(Object.keys(indice).includes('protagonista') ? 'protagonista' : Object.keys(indice)[0]);
+  } catch (e) { stato('errore: ' + e.message, true); }
+})();
+</script>
+</body>
+</html>

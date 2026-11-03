@@ -51,7 +51,7 @@ def uno(cartella, nome, rif, testo):
     t0 = time.time()
     # le immagini prima di -C: dopo --image un'opzione chiude l'elenco, così il «-» (prompt da stdin) non diventa un'immagine
     cmd = [shutil.which('codex') or 'codex', 'exec', '--skip-git-repo-check', '-s', 'workspace-write',
-           '--image', ','.join(immagini), '-C', dove, '-']
+           *(['--image', ','.join(immagini)] if immagini else []), '-C', dove, '-']
     with open(os.path.join(log, f'codex_{nome}.log'), 'w', encoding='utf-8') as f:
         r = subprocess.run(cmd, input=prompt, text=True, stdout=f, stderr=subprocess.STDOUT, cwd=dove)
     fatto = os.path.exists(os.path.join(dove, nome + '.png'))

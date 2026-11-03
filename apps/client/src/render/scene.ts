@@ -55,7 +55,9 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
   const resize = () => {
     const cw = o.canvas.clientWidth || innerWidth, ch = o.canvas.clientHeight || innerHeight;
     cw0 = cw; ch0 = ch;
-    const k = hd() ? Math.min(nitido!, devicePixelRatio || 1) : Math.min(1.5, devicePixelRatio || 1) * pixelScale(o.flags, bassa);
+    // banco pixel (prova, 3/11): ?pxschermo=N = un pixel di gioco è N pixel veri dello schermo, intero, a ogni schermo
+    const pxs = Number(new URLSearchParams(location.search).get('pxschermo')) || 0;
+    const k = pxs ? (devicePixelRatio || 1) / pxs : hd() ? Math.min(nitido!, devicePixelRatio || 1) : Math.min(1.5, devicePixelRatio || 1) * pixelScale(o.flags, bassa);
     w = Math.max(1, Math.round(cw * k)); h = Math.max(1, Math.round(ch * k));
     gl.setSize(w, h, false); post?.setSize(w, h);
     diorama.camera.aspect = cw / Math.max(1, ch); diorama.camera.updateProjectionMatrix();
