@@ -37,6 +37,8 @@
   #mzHome .mini { background-image: var(--mz-home-mini); image-rendering: pixelated; }
   #mzHome .img { background-image: url(/assets/home/sfondo.webp); }
   #mzHome .lato { display: none; }
+  #mzHome .video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; pointer-events: none; }
+  #mzHome .video.pronto { opacity: 1; }
   @media (min-aspect-ratio: 571/1056) {
     #mzHome { --u: max(2.4px, min(calc(100vh * 571 / 105600), 6px)); }
     #mzHome .q { left: 50%; right: auto; width: calc(100vh * 571 / 1056); transform: translateX(-50%); }
@@ -67,6 +69,7 @@
 <div id="ui"><div id="mzHome" role="dialog" aria-label="MAREA">
   <div class="lato sx"></div><div class="lato dx"></div>
   <div class="q"><i class="mini"></i><i class="img"></i></div>
+  <video class="video" muted loop playsinline aria-hidden="true"></video>
   <div class="carico" aria-live="polite"><span>Carico… 0%</span><div class="barra"><i></i></div></div>
   <div class="bot">
     <button type="button" class="tondo" data-home="impostazioni" disabled><b><svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="#23201F" d="M6 0h4v1h-4zM5 1h1v1h-1zM10 1h1v1h-1zM2 2h2v1h-2zM5 2h1v1h-1zM10 2h1v1h-1zM12 2h2v1h-2zM1 3h1v1h-1zM4 3h1v1h-1zM11 3h1v1h-1zM14 3h1v1h-1zM1 4h1v1h-1zM14 4h1v1h-1zM2 5h1v1h-1zM7 5h2v1h-2zM13 5h1v1h-1zM1 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM14 6h1v1h-1zM0 7h1v1h-1zM5 7h1v1h-1zM10 7h1v1h-1zM15 7h1v1h-1zM0 8h1v1h-1zM5 8h1v1h-1zM10 8h1v1h-1zM15 8h1v1h-1zM1 9h1v1h-1zM6 9h1v1h-1zM9 9h1v1h-1zM14 9h1v1h-1zM2 10h1v1h-1zM7 10h2v1h-2zM13 10h1v1h-1zM1 11h1v1h-1zM14 11h1v1h-1zM1 12h1v1h-1zM4 12h1v1h-1zM11 12h1v1h-1zM14 12h1v1h-1zM2 13h2v1h-2zM5 13h1v1h-1zM10 13h1v1h-1zM12 13h2v1h-2zM5 14h1v1h-1zM10 14h1v1h-1zM6 15h4v1h-4z"/><path fill="#E8E1D6" d="M6 1h4v1h-4zM6 2h1v1h-1zM9 2h1v1h-1zM2 3h2v1h-2zM5 3h6v1h-6zM12 3h2v1h-2zM2 4h12v1h-12zM3 5h4v1h-4zM9 5h4v1h-4zM2 6h4v1h-4zM10 6h4v1h-4zM1 7h4v1h-4zM11 7h4v1h-4zM1 8h4v1h-4zM11 8h4v1h-4zM2 9h4v1h-4zM10 9h4v1h-4zM3 10h4v1h-4zM9 10h4v1h-4zM2 11h12v1h-12zM2 12h2v1h-2zM5 12h6v1h-6zM12 12h2v1h-2zM6 13h1v1h-1zM9 13h1v1h-1zM6 14h4v1h-4z"/><path fill="#B9AFA3" d="M7 2h2v1h-2zM7 13h2v1h-2z"/></svg></b><span>IMPOSTAZIONI</span></button>
@@ -76,6 +79,22 @@
 </div><div id="perf"></div><div id="toast"></div></div>
 <!-- la home si salta come in flags.ts (FLAGS.home): test senza ?home=1, banchi, gara tra amici; e una volta sola dopo il modulo dell'invito (ui/entra.ts) -->
 <script>(function(){var q=new URLSearchParams(location.search),on=function(k){return q.get(k)==='1'||q.get(k)==='true'},dopo=false;try{dopo=sessionStorage.getItem('marea:home:salta')==='1';sessionStorage.removeItem('marea:home:salta')}catch(e){}if((on('test')&&!on('home'))||q.has('banco')||q.get('templari')==='banco'||q.get('arena')==='banco'||q.get('gara')==='amici'||dopo){var h=document.getElementById('mzHome');if(h)h.remove()}})();</script>
+<script>
+(function () {
+  var home = document.getElementById('mzHome'), video = home && home.querySelector('.video');
+  if (!video || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var verticale = matchMedia('(orientation: portrait) and (pointer: coarse)');
+  function scegli() {
+    if (!home.isConnected) return;
+    video.classList.remove('pronto');
+    video.src = verticale.matches ? '/assets/home/sfondo-verticale.mp4' : '/assets/home/sfondo-orizzontale.mp4';
+    video.play().catch(function () {});
+  }
+  video.addEventListener('playing', function () { video.classList.add('pronto'); });
+  verticale.addEventListener('change', scegli);
+  window.addEventListener('load', function () { if ('requestIdleCallback' in window) requestIdleCallback(scegli, {timeout: 3000}); else setTimeout(scegli, 1000); });
+})();
+</script>
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
