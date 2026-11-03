@@ -327,7 +327,7 @@ export function createPorto(o: PortoOpts): Porto {
         const shadow = !far && fd(n.x, n.z) < SHADOW_M;
         if (shadow !== n.shadow) { n.shadow = shadow; for (const m of n.meshes) m.castShadow = shadow; }
         if (far) { // lontano non si disegna; il nome resta solo per chi ha il segno, da cercare
-          if (n.segno) { const q = screenOf(n.x, 2.25, n.z); n.label.place(q.x, q.y, q.on && fd(n.x, n.z) < SHOW_M && !o.world.race.on, true); } else n.label.place(0, 0, false);
+          if (n.segno) { const q = screenOf(n.x, 2.25, n.z); n.label.place(q.x, q.y, q.on && fd(n.x, n.z) < SHOW_M && !o.world.race.on, fd(n.x, n.z) < LABEL_NEAR_M); } else n.label.place(0, 0, false);
           continue;
         }
         const close = accanto(n);
@@ -336,7 +336,7 @@ export function createPorto(o: PortoOpts): Porto {
         else if (close && !bancoDi(n.p)) { n.yaw = Math.atan2(f.x - n.x, -(f.z - n.z)); if (n.cammina) n.cammina.yaw = n.yaw; } // si gira verso di te
         if (n.av) { n.av.setPose({ x: n.x, z: n.z, yaw: n.yaw, anim }); n.av.update(1, dt); scegliLod(n.meshes, o.camera, n.x, 1, n.z); }
         const p = screenOf(n.x, 2.25, n.z);
-        n.label.place(p.x, p.y, n.segno && p.on && !!n.av && fd(n.x, n.z) < SHOW_M && !n.talk && !o.world.race.on, true);
+        n.label.place(p.x, p.y, n.segno && p.on && !!n.av && fd(n.x, n.z) < SHOW_M && !n.talk && !o.world.race.on, fd(n.x, n.z) < LABEL_NEAR_M);
       }
     },
   };

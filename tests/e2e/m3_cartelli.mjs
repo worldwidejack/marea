@@ -1,10 +1,9 @@
-// Cartelli discreti (#129), senza server (net=0): da PC i cartelli delle attività lontani sono piccoli
-// e in trasparenza (classe `far`), da vicino tornano pieni; sul telefono restano sempre pieni. Screenshot della piazza da PC.
+// Cartelli (#129, poi «fuori dalle balle»), senza server (net=0): i cartelli del mondo si vedono solo da vicino (entro LABEL_NEAR_M),
+// più lontano spariscono, da PC e da telefono. Screenshot della piazza da PC.
 export const timeout = 120000;
 export default async function (ctx) {
   const { assert } = ctx;
-  const lbl = (page, sel) => page.evaluate((s) => { const e = document.querySelector(s); if (!e) return null; const c = getComputedStyle(e); return { far: e.classList.contains('far'), font: parseFloat(c.fontSize), opacity: +c.opacity, shown: !e.style.transform.includes('-9999') }; }, sel);
-  const fine = (page) => page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'), null, { timeout: 5000 }).catch(() => {}); // la dissolvenza (.2 s) finita
+  const lbl = (page, sel) => page.evaluate((s) => { const e = document.querySelector(s); return e ? { shown: !!e.style.transform && !e.style.transform.includes('-9999') } : null; }, sel);
   const posto = async (page, id) => (await ctx.getState(page)).porto.posti.find((p) => p.id === id);
   const vai = async (page, x, z) => { await page.evaluate(([x, z]) => window.__game.test.teleport(x, z), [x, z]); };
 
@@ -12,36 +11,35 @@ export default async function (ctx) {
   await ctx.waitReady(d.page, 20000);
   await ctx.waitState(d.page, (s) => s.porto && s.porto.posti.length >= 3, 20000);
 
-  await ctx.test('PC: davanti alla Bacheca il Mercante lontano è discreto, la Bacheca è piena', async () => {
+  await ctx.test('PC: lontano dalla piazza i cartelli sono nascosti, davanti alla Bacheca si vede', async () => {
     const b = await posto(d.page, 'bacheca');
+    await vai(d.page, b.fronte.x, b.fronte.z + 40);
+    await d.page.waitForFunction(() => ['mercante', 'bacheca'].every((k) => !document.querySelector(`.mz-lbl[data-porto="${k}"]`)?.style.transform || document.querySelector(`.mz-lbl[data-porto="${k}"]`).style.transform.includes('-9999')), null, { timeout: 15000 }).catch(() => {});
+    const m = await lbl(d.page, '.mz-lbl[data-porto="mercante"]'), lont = await lbl(d.page, '.mz-lbl[data-porto="bacheca"]');
+    assert(m && !m.shown && lont && !lont.shown, 'da lontano: ' + JSON.stringify([m, lont]));
     await vai(d.page, b.fronte.x, b.fronte.z + 1);
-    await d.page.waitForFunction(() => document.querySelector('.mz-lbl[data-porto="mercante"]')?.classList.contains('far') && !document.querySelector('.mz-lbl[data-porto="bacheca"]')?.classList.contains('far'), null, { timeout: 15000 }).catch(() => {});
-    await fine(d.page);
-    const m = await lbl(d.page, '.mz-lbl[data-porto="mercante"]'), bb = await lbl(d.page, '.mz-lbl[data-porto="bacheca"]');
-    assert(m && m.far && m.opacity < 1 && m.font < 14, 'Mercante da lontano: ' + JSON.stringify(m));
-    assert(bb && !bb.far && bb.opacity === 1 && bb.font >= 14, 'Bacheca da vicino: ' + JSON.stringify(bb));
+    await d.page.waitForFunction(() => (() => { const x = document.querySelector('.mz-lbl[data-porto="bacheca"]')?.style.transform; return !!x && !x.includes('-9999'); })(), null, { timeout: 15000 }).catch(() => {});
+    const bb = await lbl(d.page, '.mz-lbl[data-porto="bacheca"]');
+    assert(bb && bb.shown, 'Bacheca da vicino: ' + JSON.stringify(bb));
     await ctx.shot(d.page, 'desktop_cartelli_piazza');
   });
 
-  await ctx.test('PC: avvicinandosi al Mercante il suo cartello torna pieno', async () => {
+  await ctx.test('PC: avvicinandosi al Mercante il suo cartello compare', async () => {
     const m = await posto(d.page, 'mercante');
     await vai(d.page, m.fronte.x, m.fronte.z + 1);
-    await d.page.waitForFunction(() => !document.querySelector('.mz-lbl[data-porto="mercante"]')?.classList.contains('far'), null, { timeout: 15000 }).catch(() => {});
-    await fine(d.page);
+    await d.page.waitForFunction(() => (() => { const x = document.querySelector('.mz-lbl[data-porto="mercante"]')?.style.transform; return !!x && !x.includes('-9999'); })(), null, { timeout: 15000 }).catch(() => {});
     const l = await lbl(d.page, '.mz-lbl[data-porto="mercante"]');
-    assert(l && !l.far && l.opacity === 1, 'Mercante da vicino: ' + JSON.stringify(l));
+    assert(l && l.shown, 'Mercante da vicino: ' + JSON.stringify(l));
   });
 
   const p = await ctx.open('?test=1&net=0');
   await ctx.waitReady(p.page, 20000);
   await ctx.waitState(p.page, (s) => s.porto && s.porto.posti.length >= 3, 20000);
-  await ctx.test('telefono: i cartelli lontani restano pieni', async () => {
+  await ctx.test('telefono: anche qui i cartelli lontani sono nascosti', async () => {
     const b = await posto(p.page, 'bacheca');
-    await vai(p.page, b.fronte.x, b.fronte.z + 1);
+    await vai(p.page, b.fronte.x, b.fronte.z + 40);
     await p.page.waitForTimeout(1500);
-    const touch = await p.page.evaluate(() => !matchMedia('(hover: hover) and (pointer: fine)').matches);
-    const s = await p.page.evaluate(() => [...document.querySelectorAll('.mz-lbl.bubble.far')].map((e) => +getComputedStyle(e).opacity));
-    assert(touch, 'il telefono dei test risulta un PC col mouse');
-    assert(s.every((o) => o === 1), 'sul telefono un cartello è in trasparenza: ' + JSON.stringify(s));
+    const m = await lbl(p.page, '.mz-lbl[data-porto="bacheca"]');
+    assert(m && !m.shown, 'sul telefono la Bacheca lontana si vede: ' + JSON.stringify(m));
   });
 }
