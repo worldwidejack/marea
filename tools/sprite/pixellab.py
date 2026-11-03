@@ -13,6 +13,9 @@ Uso:
   pixellab.py pixelart <disegno.png> <uscita.png> [--lato 64] [--forza 200]
                                                            un disegno di Codex (su magenta o scontornato) → pixel art da
                                                            davanti, lato×lato; serve il python del venv di Fenaki (PIL)
+  pixellab.py testo "<descrizione>" <uscita.png> [--lato 64] [--seme N]
+                                                           da testo con Pixen, come il mozzo: low detail, low top-down,
+                                                           da davanti (south), fondo trasparente (1 generazione)
 Le direzioni sono quelle di PixelLab: south, south-east, east, north-east, north, north-west, west, south-west.
 """
 import json
@@ -110,6 +113,26 @@ def pixelart(disegno, uscita, lato=64, forza=200):
     print(uscita, json.dumps(r.get('usage')))
 
 
+def testo(descrizione, uscita, lato=64, seme=None):
+    """create-image-pixen con le impostazioni del mozzo (il più bello finora, 3/11): low detail, low top-down, south."""
+    import base64
+    r = api('POST', '/create-image-pixen', {'description': descrizione, 'image_size': {'width': lato, 'height': lato},
+                                            'detail': 'low detail', 'view': 'low top-down', 'direction': 'south',
+                                            'no_background': True, **({'seed': seme} if seme is not None else {})})
+    job = r.get('background_job_id')
+    if job:
+        r = aspetta(job).get('last_response') or {}
+    img = r.get('image') or (r.get('images') or [None])[0]
+    if not img:
+        sys.exit('nessuna immagine nella risposta: ' + json.dumps(r)[:600])
+    os.makedirs(os.path.dirname(os.path.abspath(uscita)), exist_ok=True)
+    if img.get('base64'):
+        open(uscita, 'wb').write(base64.b64decode(img['base64']))
+    else:
+        scarica_url(img['url'], uscita)
+    print(uscita, json.dumps(r.get('usage')))
+
+
 def main():
     a = sys.argv[1:]
     if not a:
@@ -132,6 +155,9 @@ def main():
     elif a[0] == 'pixelart':
         o = {k: int(a[a.index(k) + 1]) for k in ('--lato', '--forza') if k in a}
         pixelart(a[1], a[2], o.get('--lato', 64), o.get('--forza', 200))
+    elif a[0] == 'testo':
+        o = {k: int(a[a.index(k) + 1]) for k in ('--lato', '--seme') if k in a}
+        testo(a[1], a[2], o.get('--lato', 64), o.get('--seme'))
     elif a[0] == 'lavoro':
         print(json.dumps(api('GET', f'/background-jobs/{a[1]}'), indent=1)[:3000])
 
