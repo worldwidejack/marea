@@ -85,7 +85,7 @@ export default async function (ctx) {
     };
     const cammina = async (page, tasti, fatto, ms = 15000) => { for (const k of tasti) await page.keyboard.down(k); try { await ctx.waitState(page, fatto, ms); } finally { for (const k of tasti) await page.keyboard.up(k); } };
 
-    await ctx.test('PC: la bottega MOBILI sullo slargo; contro la porta si entra (velo, camera fissa, niente minimappa)', async () => {
+    await ctx.test('PC: la bottega «da fulvio» sullo slargo; contro la porta si entra (velo, camera fissa, niente minimappa)', async () => {
       const V = await open(ctx.B.DESKTOP);
       globalThis.__pc = V;
       const { porta } = (await V.st()).negozio;

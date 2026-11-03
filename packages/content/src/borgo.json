@@ -23,7 +23,7 @@
     { "stanza": "piano", "verso": "giu", "cell": [21, 43], "a": "terra", "arrivo": [14, 33], "da": 6 }
   ] },
   "negozio": {"at": [48, 25], "porta": [49, 26], "rot": -2.51},
-  "negozioDentro": { "pavimento": [2, 2, 16, 7], "corridoio": [8, 7, 9], "altezza": 3.6, "finitura": { "pavimento": "piastrelle", "carta": "rombi" } },
+  "negozioDentro": { "pavimento": [2, 2, 16, 7], "corridoio": [8, 7, 9], "altezza": 3.6, "finitura": { "pavimento": "parquet_rovere_sbiancato", "carta": "righe" } },
   "pala": { "id": "pala", "nome": "Pala", "monete": 500, "bottino": [10, 200] },
   "pavimenti": [
     { "id": "piastrelle", "nome": "Piastrelle crema", "motivo": "scacchi", "colori": ["#E8E1D6", "#B9AFA3", "#7F7568"] },
