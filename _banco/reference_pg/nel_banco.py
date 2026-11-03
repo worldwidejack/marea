@@ -20,8 +20,12 @@ sys.argv = sys.argv[:1]
 import pixel_vero as pv  # noqa: E402
 
 DATI = os.path.join(QUI, '..', 'pixel_lab', 'dati')
-# giro 3 in testa (3/11, dopo Jack sul giro 2: «tutti dragon ballosi. cambia stile»: 10 stili lontani fra loro), poi il giro 2
+# i giri dal più nuovo (3/11, dopo Jack sul giro 2: «tutti dragon ballosi. cambia stile»: 10 stili lontani fra loro), poi il giro 2
 GIRI = [
+    # giro 4 (3/11, Jack: il PG di Birba «alla goku bambino», semplificato per la pixel art)
+    ('reference_pg4', {'p1_semplice': '1 · semplice, scalzo', 'p2_scarpe': '2 · con le scarpe', 'p3_canottiera': '3 · canottiera',
+                       'p4_code_corte': '4 · code corte', 'p5_testone': '5 · testa grande', 'p6_slanciato': '6 · più grande (19)',
+                       'p7_frangia': '7 · frangia'}),
     ('reference_pg3', {'n1_quest1_ligne_claire': '1 · ligne claire', 'n2_quest1_rubber_hose': "2 · rubber hose '30",
                        'n3_gross_out': "3 · gross-out '90", 'n4_mid_century': "4 · mid-century '50",
                        'n5_libro_illustrato': '5 · libro illustrato', 'n6_ghibli': '6 · Ghibli', 'n7_graffiti': '7 · graffiti Y2K',
@@ -38,7 +42,7 @@ shutil.rmtree(out, ignore_errors=True)
 os.makedirs(out)
 elenco = {}
 for cartella, nomi in GIRI:
-    giro = 'giro 3 · ' if cartella == 'reference_pg3' else 'giro 2 · '
+    giro = 'giro ' + {'reference_pg4': '4', 'reference_pg3': '3', 'reference_pg2': '2'}[cartella] + ' · '
     for n, mostra in nomi.items():
         f = os.path.join(QUI, '..', cartella, 'fogli', n + '.png')
         if not os.path.exists(f):
