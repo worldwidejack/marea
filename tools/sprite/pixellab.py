@@ -10,6 +10,9 @@ Uso:
   pixellab.py scarica <id> <cartella>                      le 8 direzioni e le animazioni già fatte → PNG
   pixellab.py anima <id> <modello> [direzione …]           animazione da modello (1 generazione a direzione)
   pixellab.py lavoro <job_id>                              lo stato di un lavoro
+  pixellab.py pixelart <disegno.png> <uscita.png> [--lato 64] [--forza 200]
+                                                           un disegno di Codex (su magenta o scontornato) → pixel art da
+                                                           davanti, lato×lato; serve il python del venv di Fenaki (PIL)
 Le direzioni sono quelle di PixelLab: south, south-east, east, north-east, north, north-west, west, south-west.
 """
 import json
@@ -76,6 +79,37 @@ def scarica(cid, cartella):
     print(f"{c.get('name')}: {len(c.get('rotation_urls') or {})} direzioni, {len(c.get('animations') or [])} animazioni → {cartella}")
 
 
+def pixelart(disegno, uscita, lato=64, forza=200):
+    """image-to-pixelart: la figura scontornata, quadrata su 4×lato (l'ingresso consigliato è 4 volte l'uscita)."""
+    import base64
+    import io
+
+    import numpy as np
+    from PIL import Image
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import pixel_vero as pv
+    im = Image.open(disegno).convert('RGBA')
+    rgba = np.array(im)
+    if rgba[..., 3].min() == 255:  # fondo magenta → alfa
+        rgba[..., 3] = (pv.alfa_magenta(rgba[..., :3]) * 255).astype(np.uint8)
+    ys, xs = np.where(rgba[..., 3] > 127)
+    fig = Image.fromarray(rgba[ys.min():ys.max() + 1, xs.min():xs.max() + 1], 'RGBA')
+    L = 4 * lato
+    s = (L * 0.94) / max(fig.size)  # un filo di margine: piedi e capelli non toccano il bordo
+    fig = fig.resize((round(fig.size[0] * s), round(fig.size[1] * s)), Image.LANCZOS)
+    tela = Image.new('RGBA', (L, L))
+    tela.paste(fig, ((L - fig.size[0]) // 2, L - fig.size[1] - round(L * 0.02)), fig)
+    buf = io.BytesIO()
+    tela.save(buf, 'PNG')
+    r = api('POST', '/image-to-pixelart', {'image': {'type': 'base64', 'base64': base64.b64encode(buf.getvalue()).decode()},
+                                          'image_size': {'width': L, 'height': L}, 'output_size': {'width': lato, 'height': lato},
+                                          'init_image_strength': forza})
+    os.makedirs(os.path.dirname(os.path.abspath(uscita)), exist_ok=True)
+    tela.save(os.path.splitext(uscita)[0] + '_ingresso.png')
+    open(uscita, 'wb').write(base64.b64decode(r['image']['base64']))
+    print(uscita, json.dumps(r.get('usage')))
+
+
 def main():
     a = sys.argv[1:]
     if not a:
@@ -95,6 +129,9 @@ def main():
         for job in r.get('background_job_ids') or []:
             j = aspetta(job)
             print(job, j['status'], json.dumps(j.get('usage')))
+    elif a[0] == 'pixelart':
+        o = {k: int(a[a.index(k) + 1]) for k in ('--lato', '--forza') if k in a}
+        pixelart(a[1], a[2], o.get('--lato', 64), o.get('--forza', 200))
     elif a[0] == 'lavoro':
         print(json.dumps(api('GET', f'/background-jobs/{a[1]}'), indent=1)[:3000])
 
