@@ -91,8 +91,8 @@
 </header>
 <div id="avviso" class="giro" hidden></div>
 <section id="galleria" class="giro" hidden>
-  <h2>Scegli il PG</h2>
-  <span class="aiuto">Reference disegnate da Codex, da davanti. Metti la stella al tuo PG (una sola) e scrivi cosa cambieresti. Quello scelto da almeno 2 su 3 va in PixelLab: pixel art, 8 direzioni e camminata.</span>
+  <h2>Le reference del PG</h2>
+  <span class="aiuto">Disegnate da Codex, da davanti. Il PG si vota sul gruppo WhatsApp (2 su 3); qui le vedi grandi e puoi scrivere cosa cambieresti. Quello scelto va in PixelLab: pixel art, 8 direzioni e camminata.</span>
   <div id="schede"></div>
 </section>
 <main>
@@ -288,7 +288,7 @@ function personaggi() {
   const d = $('personaggi'); d.innerHTML = '';
   if (D.reference) {
     const r = document.createElement('div'); r.className = 'riga'; const b = document.createElement('b'); b.textContent = 'il PG'; r.append(b);
-    const bt = document.createElement('button'); bt.textContent = `scegli il PG (${Object.keys(D.reference).length})`; bt.classList.toggle('su', st.galleria); bt.onclick = galleria; r.append(bt); d.append(r);
+    const bt = document.createElement('button'); bt.textContent = `reference del PG (${Object.keys(D.reference).length})`; bt.classList.toggle('su', st.galleria); bt.onclick = galleria; r.append(bt); d.append(r);
   }
   for (const [g, titolo] of Object.entries(GRUPPI)) {
     const ps = Object.keys(D.personaggi).filter((x) => (D.personaggi[x].gruppo ?? 'atelier') === g); if (!ps.length) continue;
@@ -337,7 +337,7 @@ async function schede() {
     nota.onblur = () => setTimeout(schede, 900);
     const altre = document.createElement('span'); altre.className = 'altre';
     altre.textContent = Object.entries(tutti).filter(([chi, d]) => chi !== io && d['pg~nota~' + n]?.nota).map(([chi, d]) => `${nomi[chi] || 'un altro'}: «${d['pg~nota~' + n].nota}»`).join(' · ');
-    b.append(cv, t, s, bt, nota, altre); c.append(b);
+    b.append(cv, t, nota, altre); c.append(b); // si vota su WhatsApp (Jack, 3/11): niente stella qui
   }
 }
 
