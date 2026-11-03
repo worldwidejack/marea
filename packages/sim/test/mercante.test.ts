@@ -1,7 +1,7 @@
 // Il Mercante in piazza: 4 cappelli e 4 vestiti al giorno, a caso, e chi esce un giorno non torna per i 2 giorni dopo.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { AVATAR } from '@marea/content';
+import { AVATAR, venduto } from '@marea/content';
 import { buyAbito, newLot, ownsAbito, vetrinaMercante, vetrinaMercanteDel } from '../src/index.ts';
 import { EconomyError } from '../src/economy/types.ts';
 
@@ -25,14 +25,14 @@ test('vetrina del Mercante: 4 + 4 diversi, a pagamento, e niente ritorni nei 2 g
     }
   }
   assert.equal(visti.cappelli.size, AVATAR.cappelli.filter((h) => h.monete > 0).length, 'in quattro mesi passano tutti i cappelli');
-  assert.equal(visti.abiti.size, AVATAR.abiti.filter((a) => a.monete > 0).length, 'e tutti i vestiti');
+  assert.equal(visti.abiti.size, AVATAR.abiti.filter((a) => venduto(AVATAR, a)).length, 'e tutti i vestiti in vendita');
   assert.deepEqual(vetrinaMercanteDel(dal + 50), vetrinaMercanteDel(dal + 50), 'stesso giorno, stessa vetrina');
 });
 
 test('vestiti: i gratuiti sono di tutti, gli altri dal Mercante il giorno che li ha, una volta', () => {
   const t = (AVATAR.mercante.dal + 30) * DAY + 12 * 3_600_000;
   const oggi = vetrinaMercante(t).abiti, a = AVATAR.abiti.find((x) => x.id === oggi[0])!;
-  const assente = AVATAR.abiti.find((x) => x.monete > 0 && !oggi.includes(x.id))!;
+  const assente = AVATAR.abiti.find((x) => venduto(AVATAR, x) && !oggi.includes(x.id))!;
   let lot = { ...newLot('a', t), monete: a.monete + 5 };
   assert.ok(ownsAbito(lot, 'base') && ownsAbito(lot, 'salopette') && ownsAbito(lot, 'felpa'));
   assert.ok(!ownsAbito(lot, a.id));

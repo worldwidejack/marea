@@ -91,7 +91,7 @@ export default async function (ctx) {
     });
 
     await ctx.test('tu: Ada si veste dal suo personaggio (a piedi, arma sulla schiena)', async () => {
-      await ctx.waitState(A.page, (s) => s.wp2_avatar && s.wp2_avatar.vestito && s.wp2_avatar.vestito.corpo === null && s.wp2_avatar.vestito.arma === 'arco_legno' && s.wp2_avatar.abiti?.abito === 'abt_base', 20000);
+      await ctx.waitState(A.page, (s) => s.wp2_avatar && s.wp2_avatar.vestito && s.wp2_avatar.vestito.corpo === null && s.wp2_avatar.vestito.arma === 'arco_legno' && (s.wp2_avatar.abiti?.abito ?? null) === null, 20000); // il protagonista a skin non indossa i vestiti di chr_base (solo cappelli)
     });
 
     await ctx.test('amico: Ada cambia arma e armatura sul server → Bea la vede cambiare (senza ricaricare)', async () => {

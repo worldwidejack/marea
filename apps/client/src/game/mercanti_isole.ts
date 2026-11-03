@@ -150,7 +150,7 @@ export function createMercantiIsole(o: MercantiIsoleOpts): MercantiIsole {
 
     s = { ...def, av: null, meshes: [], label };
 
-    void inFila(() => createAvatar({ loader: o.loader, look: def.look, x: def.x, z: def.z })).then((av) => {
+    void inFila(() => createAvatar({ loader: o.loader, look: def.look, x: def.x, z: def.z, modello: 'chr_base' })).then((av) => {
       av.setGround(o.world.groundY);
       av.setPose({ x: def.x, z: def.z, yaw: def.yaw, anim: 'idle' });
       group.add(av.object);

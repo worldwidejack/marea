@@ -2,7 +2,7 @@
 // Vestiti e cappelli: quelli tuoi (gratis o comprati dal Mercante), col loro disegno (assets/abiti/<modello>.png); un tocco e lo indossi
 // (POST /api/look, come INDOSSA dal Mercante). Strumenti, insetti e pesci vengono dallo zaino del personaggio (`lot.hero.inv`, oggetti
 // `strumento` / `insetto` / `pesce`: non pesano); i mobili dal magazzino di casa (si posano con ARREDA).
-import { AVATAR, DECOR, MOBILI } from '@marea/content';
+import { AVATAR, DECOR, MOBILI, indossabile } from '@marea/content';
 import { casaDi, ownsAbito, ownsHat } from '@marea/sim';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
 import type { Look } from '@marea/protocol';
@@ -75,7 +75,7 @@ export function createBorsaUi(o: BorsaOpts & { onOpen(): void; onClose(): void }
     const oggetti = (kinds: string[]) => Object.keys(inv).filter((id) => (inv[id] ?? 0) > 0 && hasItem(id) && kinds.includes(itemDef(id).kind)).map((id) => itemDef(id)).sort((a, b) => a.nome.localeCompare(b.nome, 'it'));
     if (tab === 'vestiti') {
       const g = el('div', 'bz-griglia'), mio = look().abito ?? 0;
-      AVATAR.abiti.forEach((a, i) => { if (ownsAbito(lot, a.id)) g.appendChild(pezzo(`abito:${a.id}`, a.nome, disegnoAbito(a.id), mio === i, () => void indossa({ abito: i }, a.nome))); });
+      AVATAR.abiti.forEach((a, i) => { if (indossabile(AVATAR, a) && ownsAbito(lot, a.id)) g.appendChild(pezzo(`abito:${a.id}`, a.nome, disegnoAbito(a.id), mio === i, () => void indossa({ abito: i }, a.nome))); });
       body.append(g, el('p', 'bz-nota', 'Altri vestiti dal Mercante in piazza: quattro nuovi ogni giorno.'));
     } else if (tab === 'cappelli') {
       const g = el('div', 'bz-griglia'), mio = look().cappello;

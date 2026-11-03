@@ -3,7 +3,7 @@
 // Puro e deterministico: la vetrina dipende solo dal giorno e da avatar.json, così client e server vedono la stessa cosa. Per rispettare il
 // riposo la scelta di un giorno guarda i giorni prima: si calcola in avanti da `mercante.dal` (pochi giorni, e il risultato resta in memoria).
 // I vestiti comprati stanno in `LotState.posseduti` come «abito:<id>» (accanto ai cappelli, senza campi nuovi).
-import { AVATAR } from '@marea/content';
+import { AVATAR, venduto } from '@marea/content';
 import { createRng } from '../rng.ts';
 import { advance } from './advance.ts';
 import { giornoRoma } from './giorno.ts';
@@ -14,7 +14,7 @@ import type { LotState } from './types.ts';
 export type VetrinaMercante = { cappelli: string[]; abiti: string[] };
 type Tipo = 'cappelli' | 'abiti';
 
-const pool = (t: Tipo): string[] => (t === 'cappelli' ? AVATAR.cappelli : AVATAR.abiti).filter((x) => x.monete > 0).map((x) => x.id);
+const pool = (t: Tipo): string[] => (t === 'cappelli' ? AVATAR.cappelli.filter((x) => x.monete > 0) : AVATAR.abiti.filter((x) => venduto(AVATAR, x))).map((x) => x.id);
 const memo: Record<Tipo, string[][]> = { cappelli: [], abiti: [] };
 
 /** `n` id a caso dal pool, saltando quelli usciti negli ultimi `riposo` giorni (se non bastano, si riprende da quelli). */
