@@ -101,11 +101,13 @@ export default async function (ctx) {
         // l'istante in cui il fumetto se ne va, preso nella pagina: il test dopo non lo misura in ritardo
         if (!window.__viaSaluto) { const v = { at: 0 }; window.__viaSaluto = v; const o = new MutationObserver(() => { if (!e.isConnected) { v.at = Date.now(); o.disconnect(); } }); o.observe(e.parentNode, { childList: true }); }
         const s = window.__game.state().emotes.shown.find((x) => x.who === 'anna');
-        return { bx: r.left + r.width / 2, bottom: r.bottom, w: r.width, h: r.height, vis: getComputedStyle(e).visibility, c: { l: c.left, t: c.top, w: c.width, h: c.height }, s };
+        if (!s) return null;
+        // quando è nato, dall'età letta nello stesso istante: letta dopo, se intanto il fumetto è sparito l'età vale 0 e la durata viene negativa
+        return { bx: r.left + r.width / 2, bottom: r.bottom, w: r.width, h: r.height, vis: getComputedStyle(e).visibility, c: { l: c.left, t: c.top, w: c.width, h: c.height }, s, born: Date.now() - 1000 * s.age };
       }, null, { timeout: LAT + 1000, polling: 30 });
       seenAt = Date.now();
       const g = await preso.jsonValue();
-      const born = await bruno.page.evaluate(() => Date.now() - 1000 * (window.__game.state().emotes.shown.find((x) => x.who === 'anna')?.age ?? 0));
+      const born = g.born;
       bornAt = born;
       ctx.log(`Bruno lo trova dopo ${seenAt - pressAt} ms (fumetto nato ${born - pressAt} ms dopo la pressione)`);
       // il requisito è sull'arrivo (età del fumetto, orologio di Bruno); margine di 1 s sul ritrovamento (con la grafica software il fumetto si disegna tardi)
