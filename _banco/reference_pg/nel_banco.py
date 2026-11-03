@@ -20,8 +20,11 @@ sys.argv = sys.argv[:1]
 import pixel_vero as pv  # noqa: E402
 
 DATI = os.path.join(QUI, '..', 'pixel_lab', 'dati')
-NOMI = {'quest1': 'quest 1 (di Riccardo)', 'f3': 'F3', 'bussola': 'la bussola', 'surfista': 'il surfista', 'fionda': 'la fionda',
-        'meccanico': 'il meccanico', 'maglione': 'il maglione', 'postina': 'la postina'}
+# giro 2 (3/11, dopo Jack: «l'unica che salverei è la 1», niente donne né pelle scura, shonen / semplici / proporzioni)
+CARTELLA = os.path.join(QUI, '..', 'reference_pg2', 'fogli')
+NOMI = {'n1_quest1_shonen': '1 · quest 1 shonen', 'n2_quest1_semplice': '2 · quest 1 semplice', 'n3_spettinato': '3 · spettinato',
+        'n4_ciuffo': '4 · ciuffo rosso', 'n5_camicia_bianca': '5 · maglia bianca', 'n6_maglietta': '6 · maglietta',
+        'n7_slanciato': '7 · più slanciato', 'n8_testone': '8 · testa grande'}
 ALTO = 480
 
 out = os.path.join(DATI, 'reference')
@@ -29,7 +32,7 @@ shutil.rmtree(out, ignore_errors=True)
 os.makedirs(out)
 elenco = {}
 for n, mostra in NOMI.items():
-    f = os.path.join(QUI, 'fogli', n + '.png')
+    f = os.path.join(CARTELLA, n + '.png')
     if not os.path.exists(f):
         continue
     rgb = np.array(Image.open(f).convert('RGB'))
