@@ -8,10 +8,12 @@ import * as THREE from 'three';
 import type { Loader } from '../render/loader.ts';
 import { coperti, triRiposo } from './abiti_copre.ts';
 import type { Tri } from './abiti_copre.ts';
+import { AVATAR } from '@marea/content';
 
 /** Il disegno 2D di un cappello o di un vestito (assets/blender/anteprime_abiti.py): menù del Mercante e Borsa. */
 export const disegnoCappello = (id: string): string => `/assets/abiti/cap_${id}.png`;
-export const disegnoAbito = (id: string): string => `/assets/abiti/abt_${id}.png`;
+// le skin hanno il disegno del protagonista con la skin addosso (192 px, tools/meshy/skin_anteprima.py)
+export const disegnoAbito = (id: string): string => { const skin = AVATAR.abiti.find((a) => a.id === id)?.skin; return skin ? `/assets/skin/${skin}_anteprima.png` : `/assets/abiti/abt_${id}.png`; };;
 
 export type Vesti = {
   /** I pezzi da indossare (nomi di modello, `abt_…`, `cap_…`, o null). L'ultima chiamata vince; si carica senza bloccare. */

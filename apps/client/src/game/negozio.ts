@@ -199,7 +199,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   allestisci(giornoRoma(adesso()));
   let ciro: Avatar | null = null;
   const ciroPos = { x: ox + bc.x + 0.6, z: oz + bc.z + 0.6 };
-  void createAvatar({ loader: o.loader, look: { pelle: 2, capelli: 5, coloreCapelli: 3, vestito: 4, cappello: 0 }, x: ciroPos.x, z: ciroPos.z }).then((av) => {
+  void createAvatar({ loader: o.loader, look: { pelle: 2, capelli: 5, coloreCapelli: 3, vestito: 4, cappello: 0 }, x: ciroPos.x, z: ciroPos.z, modello: 'chr_base' }).then((av) => {
     av.setGround(w.groundY); av.object.name = 'mobiliere'; av.object.visible = false; w.scene.add(av.object); ciro = av;
   }).catch(() => { /* senza Fulvio il negozio funziona lo stesso */ });
 

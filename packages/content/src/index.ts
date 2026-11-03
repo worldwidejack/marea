@@ -31,6 +31,7 @@ import { validateAll, validateArchipelago, validateTemi } from './schema.ts';
 import { DIARIO, validateDiario } from './diario.ts'; // Diario del capitano (#87)
 
 export type * from './types.ts';
+export { indossabile, venduto } from './venduto.ts';
 
 export const ISLANDS = islands as unknown as readonly IslandDef[];
 export const AVATAR = avatar as unknown as AvatarDef;

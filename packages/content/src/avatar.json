@@ -1,4 +1,5 @@
 {
+  "protagonista": "chr_eroe",
   "barca": {
     "nomeMax": 14,
     "scafo": "legno",
@@ -64,7 +65,7 @@
     { "id": "bolla", "nome": "Casco a bolla", "monete": 260, "modello": "cap_bolla" }
   ],
   "abiti": [
-    { "id": "base", "nome": "T-shirt e pantaloncini", "monete": 0 },
+    { "id": "base", "nome": "T-shirt e pantaloncini", "monete": 0, "skin": "base" },
     { "id": "salopette", "nome": "Salopette di jeans", "monete": 0 },
     { "id": "felpa", "nome": "Felpa oversize e cargo", "monete": 0 },
     { "id": "cerata", "nome": "Cerata gialla da pioggia", "monete": 30 },
@@ -90,8 +91,11 @@
     { "id": "gelataio", "nome": "Gilet a righe e papillon", "monete": 70 },
     { "id": "frac", "nome": "Frac con orologio da taschino", "monete": 220 },
     { "id": "cactus", "nome": "Costume da cactus nel vaso", "monete": 150 },
-    { "id": "spaziale", "nome": "Tuta spaziale anni ’60", "monete": 260 }
+    { "id": "spaziale", "nome": "Tuta spaziale anni ’60", "monete": 260 },
+    { "id": "marinaio", "nome": "Skin marinaio", "monete": 60, "skin": "marinaio" },
+    { "id": "guardaboschi", "nome": "Skin guardaboschi", "monete": 75, "skin": "guardaboschi" },
+    { "id": "fiamma", "nome": "Skin fiamma", "monete": 90, "skin": "fiamma" }
   ],
-  "mercante": { "_nota": "Vetrina del Mercante in piazza (game/abiti, economy/mercante.ts): ogni giorno di Roma `cappelli` cappelli e `abiti` vestiti a pagamento scelti a caso; uno uscito oggi non torna per `riposo` giorni. `dal` = primo giorno del calcolo.", "cappelli": 4, "abiti": 4, "riposo": 2, "dal": 20740 },
+  "mercante": { "_nota": "Vetrina del Mercante in piazza (game/abiti, economy/mercante.ts): ogni giorno di Roma `cappelli` cappelli e `abiti` vestiti a pagamento scelti a caso; uno uscito oggi non torna per `riposo` giorni. `dal` = primo giorno del calcolo.", "cappelli": 4, "abiti": 1, "riposo": 2, "dal": 20740 },
   "emote": ["saluto", "esulta", "ride", "no", "applauso", "cuore", "sorpresa", "balla"]
 }

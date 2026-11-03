@@ -126,9 +126,10 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
   // --- texture in VRAM (stima: w×h×4, senza mipmap) ---
   // le pelli della Difesa (#358) le carica solo difesa.html, una alla volta: budget a parte (difesaAssetsMB)
   const difesaAssetsBytes = files.filter((f) => f.startsWith('assets/difesa/')).reduce((a, f) => a + size(f), 0);
-  const pngs = files.filter((f) => f.endsWith('.png') && !f.startsWith('assets/difesa/') && !f.startsWith('assets/abiti/'));
+  // le skin del protagonista (assets/skin/<id>.png, game/avatar_skin.ts) si scaricano una alla volta, solo quella che indossi: in VRAM ne vale una (512×512)
+  const pngs = files.filter((f) => f.endsWith('.png') && !f.startsWith('assets/difesa/') && !f.startsWith('assets/abiti/') && !f.startsWith('assets/skin/'));
   const textures = pngs.map((f) => { const s = pngSize(path.join(outDir, f)); return s ? { file: f, w: s.w, h: s.h, bytes: s.w * s.h * 4 } : null; }).filter(Boolean);
-  const texBytes = textures.reduce((a, t) => a + t.bytes, 0);
+  const texBytes = textures.reduce((a, t) => a + t.bytes, 0) + (files.some((f) => f.startsWith('assets/skin/')) ? 512 * 512 * 4 : 0);
 
   const version = JSON.parse(fs.readFileSync(path.join(outDir, 'version.json'), 'utf8'));
   const report = {

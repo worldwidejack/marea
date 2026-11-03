@@ -1,4 +1,4 @@
-// Avatar (WP2): modello `chr_base` (o `npc_<id>` di manifest_gente.json: i paesani del Borgo, colori nei vertici, il look non li tinge) dal manifest (clip idle walk run sit row, materiali mat_pelle/mat_capelli/mat_vestito/mat_cappello)
+// Avatar (WP2): modello `chr_eroe` (il protagonista di Meshy, texture sola: le skin) o `chr_base` (o `npc_<id>` di manifest_gente.json: i paesani del Borgo, colori nei vertici, il look non li tinge) dal manifest (clip idle walk run sit row, materiali mat_pelle/mat_capelli/mat_vestito/mat_cappello)
 // oppure segnaposto procedurale a 6 teste (1,6 m) fatto di pochi box in colori di palette, animato a mano.
 // La fisica è nella sim (stepAvatar); qui: resa, animazione, look, posa da seduto/a bordo, ombre di contatto.
 import * as THREE from 'three';
@@ -158,7 +158,7 @@ function buildRig(look: Look): Rig {
 }
 
 // ---------- modello glTF ----------
-type ModelRig = { root: THREE.Object3D; anim: Animator; setLook(look: Look): void; setCappello(id: string | null): void; rest: Map<string, THREE.Matrix4>; vesti: { visibile(on: boolean): void; stato(): unknown } | null; corpo?: Corpo };
+type ModelRig = { root: THREE.Object3D; anim: Animator; setLook(look: Look): void; setCappello(id: string | null): void; rest: Map<string, THREE.Matrix4>; vesti: { visibile(on: boolean): void; stato(): unknown } | null; corpo?: Corpo; skin(): string | null };
 /** Il loader clona con Object3D.clone: gli SkinnedMesh restano legati alle ossa dell'originale. Le ricolleghiamo per nome (idempotente). */
 function rebindSkins(root: THREE.Object3D): void {
   root.traverse((n) => {
@@ -174,16 +174,16 @@ async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
   scene.updateMatrixWorld(true);
   const rest = new Map<string, THREE.Matrix4>();
   scene.traverse((n) => { if ((n as THREE.Bone).isBone) rest.set(n.name, n.matrixWorld.clone()); });
-  // vestiti e cappelli del Mercante (game/abiti.ts): solo sul chr_base, i paesani hanno i loro vestiti nel modello
+  // vestiti e cappelli del Mercante (game/abiti.ts): sui chr_*, i paesani hanno i loro vestiti nel modello; il protagonista a skin non indossa i vestiti (la skin li sostituisce), solo i cappelli
   let caricaVesti: Promise<import('./abiti.ts').Vesti> | null = null, vistoVesti = true, statoVesti: (() => unknown) | null = null, capGlb: string | null = null;
   const conVesti = (f: (v: import('./abiti.ts').Vesti) => void) => void (caricaVesti ??= import('./abiti.ts').then((m) => { const v = m.creaVesti({ loader, root: scene, rest, dopo: (c) => { capGlb = c; if (ultimo) setLook(ultimo); } }); statoVesti = v.stato; return v; })).then(f);
-  const vesti = nome === 'chr_base' ? { visibile(on: boolean) { vistoVesti = on; if (caricaVesti) conVesti((v) => v.visibile(on)); if (ultimo) setLook(ultimo); }, stato: () => statoVesti?.() ?? null } : null;
-  const groups: Record<'pelle' | 'capelli' | 'vestito' | 'cappello', THREE.MeshLambertMaterial[]> = { pelle: [], capelli: [], vestito: [], cappello: [] };
+  const vesti = nome.startsWith('chr_') ? { visibile(on: boolean) { vistoVesti = on; if (caricaVesti) conVesti((v) => v.visibile(on)); if (ultimo) setLook(ultimo); }, stato: () => statoVesti?.() ?? null } : null;
+  const groups: Record<'pelle' | 'capelli' | 'vestito' | 'cappello', THREE.MeshLambertMaterial[]> = { pelle: [], capelli: [], vestito: [], cappello: [] }, texSkin: THREE.MeshLambertMaterial[] = [];
   const conv = (old: THREE.Material): THREE.Material => {
     const o = old as THREE.MeshStandardMaterial;
     const m = new THREE.MeshLambertMaterial({ name: o.name, color: o.color ? o.color.clone() : 0xffffff, map: o.map ?? null, vertexColors: o.vertexColors, flatShading: true, transparent: o.transparent, alphaTest: o.alphaTest, side: o.side });
     const key = /^mat_(pelle|capelli|vestito|cappello)/.exec(o.name)?.[1] as keyof typeof groups | undefined;
-    if (key) groups[key].push(m);
+    if (key) groups[key].push(m); else if (o.name === 'mat_eroe') texSkin.push(m); // il protagonista nuovo ha una texture sola: le skin la cambiano (game/avatar_skin.ts)
     return m;
   };
   scene.traverse((n) => {
@@ -208,14 +208,22 @@ async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
       head.attach(m); extra.set(id, m);
     }
   }
+  // le skin (game/avatar_skin.ts) sono un chunk a parte: si scarica solo quando qualcuno ne indossa una; 'base' = la texture del glb
+  let skinAv: import('./avatar_skin.ts').SkinAvatar | null = null, skinVoluta: string | null = null;
+  const setSkin = (id: string | null) => {
+    if (!texSkin.length || id === skinVoluta) return;
+    skinVoluta = id;
+    if (skinAv || (id && id !== 'base')) void import('./avatar_skin.ts').then((m) => { skinAv ??= m.creaSkin(texSkin); skinAv.set(skinVoluta); });
+  };
   let forzato: string | null = null, ultimo: Look | null = null;
   const setLook = (look: Look) => {
     ultimo = look;
     // gli eroi dei Templari (setCappello): sotto il vestito la maglietta prende il colore del vestito, così non spunta dalle spalle
     const k = { ...lookColors(look), ...(forzato ? { hat: forzato, shirt: MAGLIA_EROI[forzato] ?? lookColors(look).shirt } : {}) };
-    const ab = look.abito === undefined || forzato ? undefined : AVATAR.abiti[look.abito], glb = vesti ? AVATAR.cappelli.find((h) => h.id === k.hat)?.modello ?? null : null;
+    const ab = look.abito === undefined || forzato || texSkin.length ? undefined : AVATAR.abiti[look.abito], glb = vesti ? AVATAR.cappelli.find((h) => h.id === k.hat)?.modello ?? null : null;
     for (const [id, m] of extra) m.visible = id === k.hat && !(glb && capGlb === glb); // quando il glb del cappello è addosso (game/abiti.ts) le scatole e i nodi di chr_base si spengono
     if (vesti && (ab || glb || caricaVesti)) conVesti((v) => { v.visibile(vistoVesti); v.set(ab ? 'abt_' + ab.id : null, glb); }); // chunk a parte, solo per chi indossa qualcosa
+    setSkin(look.abito === undefined ? null : (AVATAR.abiti[look.abito] as { skin?: string } | undefined)?.skin ?? null);
     for (const m of groups.pelle) m.color.set(k.skin);
     for (const m of groups.capelli) m.color.set(k.hair);
     for (const m of groups.vestito) m.color.set(k.shirt);
@@ -229,8 +237,8 @@ async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
     });
   };
   const setCappello = (id: string | null) => { forzato = id; if (ultimo) setLook(ultimo); };
-  const corpo = nome === 'chr_base' ? (loader.manifest.models[nome] as { corpo?: Corpo } | undefined)?.corpo : undefined; // ossa per le armature (rpg/adatta.ts)
-  return { root: scene, anim: createAnimator(scene, nome === 'chr_base' ? heroClips(scene, clips) : clips), setLook, setCappello, rest, vesti, corpo };
+  const corpo = nome.startsWith('chr_') ? (loader.manifest.models[nome] as { corpo?: Corpo } | undefined)?.corpo : undefined; // ossa per le armature (rpg/adatta.ts)
+  return { root: scene, anim: createAnimator(scene, nome.startsWith('chr_') ? heroClips(scene, clips) : clips), setLook, setCappello, rest, vesti, corpo, skin: () => skinAv?.attuale ?? null };
 }
 
 /** Dove guarda davvero l'oggetto in assi mondo [x, z] (per i test). */
@@ -244,7 +252,8 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
   const object = new THREE.Group(); object.name = 'avatar';
   let look = o.look, model: ModelRig | null = null, rig: Rig | null = null;
   if (o.modello) { if (!o.loader.has(o.modello)) await o.loader.extend('manifest_gente.json'); if (o.loader.has(o.modello)) model = await loadModel(o.loader, o.modello).catch((e) => { console.warn(`[marea] ${o.modello} non caricabile`, e); return null; }); }
-  if (!model && o.loader.has('chr_base')) { try { model = await loadModel(o.loader); } catch (e) { console.warn('[marea] chr_base non caricabile, uso il segnaposto', e); } }
+  const eroe = o.loader.has(AVATAR.protagonista) ? AVATAR.protagonista : 'chr_base'; // il protagonista di tutti (avatar.json `protagonista`); i paesani passano `modello`
+  if (!model && o.loader.has(eroe)) { try { model = await loadModel(o.loader, eroe); } catch (e) { console.warn(`[marea] ${eroe} non caricabile, uso il segnaposto`, e); } }
   if (model) object.add(model.root); else { rig = buildRig(look); object.add(rig.root); }
   const body = model ? model.root : rig!.root, bodyY = body.position.y, bodyYaw = body.rotation.y; // il gesto muove il corpo, non `object` (lo posa update)
   let state = newAvatar(o.x, o.z), prev = state;
@@ -375,7 +384,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
   };
   if (!registered) {
     registered = true;
-    registerStateProvider('wp2_avatar', () => ({ abiti: model?.vesti?.stato() ?? null, ticks, facing: facing(object), model: !!model, shown, clip: model?.anim.current ?? null, attached, y: object.position.y, mv, runB, sitB, rowB, look, indossa: indossa ?? null, vestito: api.indossaStato() }));
+    registerStateProvider('wp2_avatar', () => ({ abiti: model?.vesti?.stato() ?? null, ticks, facing: facing(object), model: !!model, skin: model?.skin() ?? null, shown, clip: model?.anim.current ?? null, attached, y: object.position.y, mv, runB, sitB, rowB, look, indossa: indossa ?? null, vestito: api.indossaStato() }));
   }
   return api;
 }

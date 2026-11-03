@@ -72,8 +72,9 @@ export type MobileDef = { id: string; nome: string; categoria: string; monete: n
 /** `monete`: prezzo (0 = gratis, di tutti; gli altri li vende il Mercante in piazza, quattro al giorno). `modello`: il glb del cappello
  *  (`cap_<id>`, manifest_abiti.json); senza, il cappello è fatto a scatole in game/avatar.ts. */
 export type HatDef = { id: string; nome: string; monete: number; modello?: string };
-/** Un vestito intero (#vestiti): il glb `abt_<id>` sopra il chr_base. `monete` 0 = gratis, di tutti; gli altri dal Mercante. */
-export type AbitoDef = { id: string; nome: string; monete: number };
+/** Un vestito intero (#vestiti): il glb `abt_<id>` sopra il chr_base. `monete` 0 = gratis, di tutti; gli altri dal Mercante.
+ *  `skin`: una skin del protagonista nuovo (chr_eroe), la sua texture sta in /assets/skin/<skin>.png (game/avatar_skin.ts); con un protagonista a skin il Mercante vende solo quelle. */
+export type AbitoDef = { id: string; nome: string; monete: number; skin?: string };
 /** La vetrina del Mercante in piazza: quanti cappelli e vestiti al giorno, per quanti giorni uno uscito non torna, il primo giorno di Roma del calcolo. */
 export type MercanteDef = { cappelli: number; abiti: number; riposo: number; dal: number };
 export type DecorDef = { id: string; nome: string; monete: number; model: string; mercante?: boolean };
@@ -83,6 +84,8 @@ export type BarcaColore = { id: string; nome: string; hex: string; monete: numbe
 /** La tua barca (#107): colori (id stabili, si aggiunge in fondo), scafo e vela di serie (`vela` 'nessuna' = la barca a remi di prima), nome lungo al massimo `nomeMax`. */
 export type BarcaDef = { nomeMax: number; scafo: string; vela: string; colori: BarcaColore[] };
 export type AvatarDef = {
+  /** Il modello del protagonista di tutti: `chr_eroe` (di Meshy, texture sola: ci si veste con le skin) o `chr_base` (pelle, capelli e vestito tinti). */
+  protagonista: string;
   /** Personalizzazione della barca (#107). */
   barca: BarcaDef;
   pelle: string[];

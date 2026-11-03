@@ -1,5 +1,6 @@
 // Validatore dei contenuti: niente dipendenze, errori in italiano. Chiamato da tools/check_static.mjs e dai test.
 import type { ArchipelagoDef, AvatarDef, BalanceDef, DecorDef, IslandDef, TemaDef } from './types.ts';
+import { venduto } from './venduto.ts';
 
 const HEX = /^#[0-9A-F]{6}$/;
 const TILES = new Set(['~', ',', '.', 'g', 'r', 'd', 'P', 'B', 'L']);
@@ -40,10 +41,12 @@ export function validateAll(c: { islands: IslandDef[]; avatar: AvatarDef; balanc
     if (abIds.has(a.id)) errs.push(`vestito duplicato: ${a.id}`);
     abIds.add(a.id);
     if (!(Number.isInteger(a.monete) && a.monete >= 0)) errs.push(`vestito ${a.id}: prezzo in monete non valido`);
+    if (a.skin !== undefined && !/^[a-z0-9_]+$/.test(a.skin)) errs.push(`vestito ${a.id}: skin non valida`);
   }
+  if (!/^chr_[a-z0-9_]+$/.test(c.avatar.protagonista ?? '')) errs.push('avatar.protagonista: serve un modello chr_…');
   const mc = c.avatar.mercante;
   if (!mc) errs.push('avatar.mercante mancante');
-  else for (const [k, n, pool] of [['cappelli', mc.cappelli, c.avatar.cappelli.filter((h) => h.monete > 0).length], ['abiti', mc.abiti, (c.avatar.abiti ?? []).filter((a) => a.monete > 0).length]] as const)
+  else for (const [k, n, pool] of [['cappelli', mc.cappelli, c.avatar.cappelli.filter((h) => h.monete > 0).length], ['abiti', mc.abiti, (c.avatar.abiti ?? []).filter((a) => venduto(c.avatar, a)).length]] as const)
     if (n * (mc.riposo + 1) > pool) errs.push(`mercante: ${n} ${k} al giorno con ${mc.riposo} giorni di riposo ne vogliono ${n * (mc.riposo + 1)}, ce ne sono ${pool}`);
   const bc = c.avatar.barca, bcIds = new Set<string>();
   if (!bc || !Array.isArray(bc.colori)) errs.push('avatar.barca mancante');
