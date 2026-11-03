@@ -48,7 +48,7 @@ function roll(t: number): Pose {
   } };
 }
 
-export function heroClips(root: THREE.Object3D, original: THREE.AnimationClip[]): THREE.AnimationClip[] {
+export function heroClips(root: THREE.Object3D, original: THREE.AnimationClip[], bakedLocomotion = false): THREE.AnimationClip[] {
   if (!root.getObjectByName('Hips')) return original;
   root.updateMatrixWorld(true);
   const names = ['Hips', 'Spine', 'Head', ...['UpperArm', 'LowerArm', 'UpperLeg', 'LowerLeg', 'Foot'].flatMap((n) => [n + '.L', n + '.R'])];
@@ -60,6 +60,7 @@ export function heroClips(root: THREE.Object3D, original: THREE.AnimationClip[])
     return [{ name, b, rest: b.quaternion.clone(), pos: b.position.clone(), basis, inv: basis.clone().invert(), parentScale: b.parent.getWorldScale(new THREE.Vector3()) }];
   });
   const specs: [string, number, (t: number) => Pose][] = [['idle', 12, idle], ['walk', 0.72, (t) => gait(t / 0.72, false)], ['run', 0.52, (t) => gait(t / 0.52, true)], ['roll', 0.6, (t) => roll(t / 0.6)]];
+  if (bakedLocomotion) specs.splice(0, 3);
   const clips = specs.map(([name, duration, sample]) => {
     const n = Math.ceil(duration * 40), times = Array.from({ length: n + 1 }, (_, i) => i * duration / n);
     const poses = times.map(sample), tracks: THREE.KeyframeTrack[] = [];

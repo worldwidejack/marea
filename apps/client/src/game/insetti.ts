@@ -360,7 +360,9 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
       if (congelato > 0) { congelato -= dt; if (congelato <= 0 && !w.avatar.azioneInCorso) w.frozen = false; }
       const f = w.avatar.state; fermoDa = Math.hypot(f.vx, f.vz) < 0.2 ? fermoDa + dt : 0;
       const c = chi(), dentro = inBorgo(), mano = inMano();
-      retino.update(dt, puoImpugnare() && mano === 'retino');
+      const impugna = puoImpugnare();
+      w.avatar.setToolIdle(impugna && (mano === 'pala' || mano === 'canna'));
+      retino.update(dt, impugna && mano === 'retino');
       syncLiberi(now);
       for (const [k, a] of attori) {
         if (Math.hypot(a.x - c.x, a.z - c.z) > 60 && a.stato !== 'via' && a.stato !== 'acqua') continue;

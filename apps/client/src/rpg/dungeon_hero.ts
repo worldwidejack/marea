@@ -135,7 +135,6 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   };
   equip(o.hero);
 
-  // ---- arma: nel pugno, ingrandita perché la punta arrivi vicino alla portata (quel che si vede ≈ dove colpisce) ----
   let bow = false, tiro = false, arco: Arco | null = null, weapon: THREE.Object3D | null = null, bladeMats: THREE.MeshLambertMaterial[] = [], bladeLen = 0, kind: Kind = 'pugni', mountN = 0;
   // magia in mano: kind diventa 'magia' (due mani avanti, sfera), l'arma resta montata ma nascosta; `weaponKind` è quello dell'arma
   let weaponKind: Kind = 'pugni', magiaId: string | null = null, rottaOra = false;
@@ -172,7 +171,6 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   }
   await mount(o.hero.arma);
 
-  // ---- rotazioni nello spazio del corpo (inner: asse X = destra, −Z = avanti) applicate sopra la clip ----
   const qa = new THREE.Quaternion(), qp = new THREE.Quaternion(), qr = new THREE.Quaternion(), qi = new THREE.Quaternion(), ql = new THREE.Quaternion(), qid = new THREE.Quaternion();
   function rot(b: THREE.Object3D | null, axis: V3, ang: number): void {
     if (!b || !b.parent || Math.abs(ang) < 1e-4) return;
@@ -212,7 +210,6 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     aim(lo, tmp.subVectors(T2, E2).normalize(), w);
   }
 
-  // ---- pose (spazio del corpo) ----
   const G_LAMA = 0.2; // angolo della lama in guardia: avanti, appena a destra
   function guard(p: Pose): void {
     Object.assign(p, { yaw: 0, twist: 0, lean: 0, crouch: 0, headUp: 0, headYaw: 0, wR: 0, wL: 0, punta: null, wA: 0 });
@@ -337,7 +334,6 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     }
   }
 
-  // ---- stato ----
   let cur: DungeonView['hero'] | null = null, key = '', prevT = 0, curT = 0, prevC = 0, curC = 0, pieno = false;
   let px = o.x, pz = o.z, speed = 0, flashT = 0, fullT = 0, deadT = 0, clock = 0, blendT = 1;
   const target = newPose(), from = newPose(), final = newPose(), girata = newPose();
@@ -394,7 +390,6 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     placeWeapon(p);
   }
 
-  // ---- arco teso: corda alla mano destra, freccia incoccata; linea di mira davanti ----
   const cocca = v3();
   function corda(h: DungeonView['hero']): void {
     if (!arco || !weapon?.visible) return;
@@ -457,7 +452,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
       const d = Math.sqrt((h.x - px) ** 2 + (h.z - pz) ** 2) * 60; px = h.x; pz = h.z;
       speed = speed * 0.7 + d * 0.3;
       const anim = h.anim === 'schiva' ? 'roll' : h.anim === 'morto' ? 'idle' : speed > 4.6 ? 'run' : speed > 0.4 ? 'walk' : 'idle';
-      avatar.setPose({ x: h.x, z: h.z, yaw: Math.atan2(h.fx, -h.fz), anim, t: h.t });
+      avatar.setPose({ x: h.x, z: h.z, yaw: Math.atan2(h.fx, -h.fz), anim, t: h.t, speed });
       cur = h;
     },
     update(alpha, dt) {
@@ -468,6 +463,13 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
       if (cur) {
         const t = lerp(prevT, curT, alpha), c = lerp(prevC, curC, alpha);
         pose(target, cur, t, c);
+        if (cur.anim === 'fermo') {
+          const breath = Math.sin(clock * 2.1);
+          const rise = breath * (heavy ? .009 : .018);
+          target.fR.y += rise;
+          target.fL.y += rise;
+          target.dir.applyAxisAngle(X, breath * (heavy ? .012 : .026));
+        }
         blendT += dt;
         mixPose(final, from, target, smooth(0, 0.09, blendT));
         if (cur.anim === 'schiva') { inner.position.set(0, 0, 0); inner.rotation.set(0, 0, 0); final.wA = 1; final.punta = null; final.dir.set(-1, 0.25, 0).normalize(); final.piatto.set(0, 0, 1); avatar.object.updateMatrixWorld(true); placeWeapon(final); } else apply(final, dt);
