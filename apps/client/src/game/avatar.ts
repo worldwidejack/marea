@@ -167,7 +167,7 @@ function rebindSkins(root: THREE.Object3D): void {
     sm.bind(new THREE.Skeleton(bones, sm.skeleton.boneInverses), sm.bindMatrix);
   });
 }
-async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
+async function loadModel(loader: Loader, look: Look, nome = 'chr_base'): Promise<ModelRig> {
   const { scene, clips } = await loader.load(nome);
   rebindSkins(scene);
   // il corpo a riposo (prima che parta una clip): l'equipaggiamento (rpg/vestito.ts) ci misura i pezzi sulle ossa
@@ -208,13 +208,8 @@ async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
       head.attach(m); extra.set(id, m);
     }
   }
-  // le skin (game/avatar_skin.ts) sono un chunk a parte: si scarica solo quando qualcuno ne indossa una; 'base' = la texture del glb
-  let skinAv: import('./avatar_skin.ts').SkinAvatar | null = null, skinVoluta: string | null = null;
-  const setSkin = (id: string | null) => {
-    if (!texSkin.length || id === skinVoluta) return;
-    skinVoluta = id;
-    if (skinAv || (id && id !== 'base')) void import('./avatar_skin.ts').then((m) => { skinAv ??= m.creaSkin(texSkin); skinAv.set(skinVoluta); });
-  };
+  // skin, pelle e capelli del protagonista (game/avatar_skin.ts, chunk a parte): pronte prima del primo fotogramma, così nascono già coi colori del look
+  const skinAv = texSkin.length ? await import('./avatar_skin.ts').then((m) => m.creaSkin(texSkin, look)) : null;
   let forzato: string | null = null, ultimo: Look | null = null;
   const setLook = (look: Look) => {
     ultimo = look;
@@ -223,7 +218,7 @@ async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
     const ab = look.abito === undefined || forzato || texSkin.length ? undefined : AVATAR.abiti[look.abito], glb = vesti ? AVATAR.cappelli.find((h) => h.id === k.hat)?.modello ?? null : null;
     for (const [id, m] of extra) m.visible = id === k.hat && !(glb && capGlb === glb); // quando il glb del cappello è addosso (game/abiti.ts) le scatole e i nodi di chr_base si spengono
     if (vesti && (ab || glb || caricaVesti)) conVesti((v) => { v.visibile(vistoVesti); v.set(ab ? 'abt_' + ab.id : null, glb); }); // chunk a parte, solo per chi indossa qualcosa
-    setSkin(look.abito === undefined ? null : (AVATAR.abiti[look.abito] as { skin?: string } | undefined)?.skin ?? null);
+    void skinAv?.set(look);
     for (const m of groups.pelle) m.color.set(k.skin);
     for (const m of groups.capelli) m.color.set(k.hair);
     for (const m of groups.vestito) m.color.set(k.shirt);
@@ -251,9 +246,9 @@ let registered = false;
 export async function createAvatar(o: { loader: Loader; look: Look; x: number; z: number; modello?: string }): Promise<Avatar> {
   const object = new THREE.Group(); object.name = 'avatar';
   let look = o.look, model: ModelRig | null = null, rig: Rig | null = null;
-  if (o.modello) { if (!o.loader.has(o.modello)) await o.loader.extend('manifest_gente.json'); if (o.loader.has(o.modello)) model = await loadModel(o.loader, o.modello).catch((e) => { console.warn(`[marea] ${o.modello} non caricabile`, e); return null; }); }
+  if (o.modello) { if (!o.loader.has(o.modello)) await o.loader.extend('manifest_gente.json'); if (o.loader.has(o.modello)) model = await loadModel(o.loader, look, o.modello).catch((e) => { console.warn(`[marea] ${o.modello} non caricabile`, e); return null; }); }
   const eroe = o.loader.has(AVATAR.protagonista) ? AVATAR.protagonista : 'chr_base'; // il protagonista di tutti (avatar.json `protagonista`); i paesani passano `modello`
-  if (!model && o.loader.has(eroe)) { try { model = await loadModel(o.loader, eroe); } catch (e) { console.warn(`[marea] ${eroe} non caricabile, uso il segnaposto`, e); } }
+  if (!model && o.loader.has(eroe)) { try { model = await loadModel(o.loader, look, eroe); } catch (e) { console.warn(`[marea] ${eroe} non caricabile, uso il segnaposto`, e); } }
   if (model) object.add(model.root); else { rig = buildRig(look); object.add(rig.root); }
   const body = model ? model.root : rig!.root, bodyY = body.position.y, bodyYaw = body.rotation.y; // il gesto muove il corpo, non `object` (lo posa update)
   let state = newAvatar(o.x, o.z), prev = state;

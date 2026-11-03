@@ -1,5 +1,5 @@
 // M1 · Fetta 3, editor dell'avatar (F3-avatar, CONTRACTS §13) sul server locale (wrangler dev, TEST_CLOCK:1).
-// (1) C apre #mzEditor, le frecce cambiano riga e valore, l'avatar cambia subito, nessuna POST /api/look; (2) Esc ripristina e chiude;
+// (1) C apre #mzEditor (righe Pelle e Colore capelli: il taglio non c'è col protagonista a skin), le frecce cambiano riga e valore, l'avatar cambia subito, nessuna POST /api/look; (2) Esc ripristina e chiude;
 // (3) colore dei capelli + Salva → POST 200, dopo il reload /api/me e l'avatar hanno il look nuovo; (4) niente righe Vestito e Cappello
 // (si comprano dal Mercante e si indossano dalla Borsa): un cappello comprato e messo (API) resta nel look quando si salva dall'Aspetto;
 // (5) «Altro dispositivo»: COPIA LINK / MANDA danno `/?t=token` (mai scritto a schermo), copia rifiutata → campo col link;
@@ -89,19 +89,16 @@ export default async function (ctx) {
       assert(s.editor.draft.pelle === (saved0.pelle + 1) % avatar.pelle.length, 'pelle non cambiata: ' + S(s.editor.draft));
       assert(sameLook(s.wp2_avatar.look, s.editor.draft), 'avatar non aggiornato subito: ' + S(s.wp2_avatar.look));
       await anna.page.keyboard.press('ArrowDown');
-      assert((await focusedRow(anna)) === 'capelli', 'freccia giù non va alla riga Capelli: ' + (await focusedRow(anna)));
-      await anna.page.keyboard.press('ArrowRight'); await anna.page.keyboard.press('ArrowRight');
-      await anna.page.keyboard.press('ArrowDown');
-      assert((await focusedRow(anna)) === 'coloreCapelli', 'riga attesa Colore capelli: ' + (await focusedRow(anna)));
+      assert((await focusedRow(anna)) === 'coloreCapelli', 'freccia giù non va alla riga Colore capelli (il taglio non si sceglie più, il protagonista ha il suo): ' + (await focusedRow(anna)));
       await anna.page.keyboard.press('ArrowRight'); // colore capelli +1
       s = await st(anna);
-      const want = { ...saved0, pelle: (saved0.pelle + 1) % 6, capelli: (saved0.capelli + 2) % 8, coloreCapelli: (saved0.coloreCapelli + 1) % 6 };
+      const want = { ...saved0, pelle: (saved0.pelle + 1) % avatar.pelle.length, coloreCapelli: (saved0.coloreCapelli + 1) % avatar.coloriCapelli.length };
       assert(sameLook(s.editor.draft, want), `bozza ${S(s.editor.draft)} ≠ attesa ${S(want)}`);
       assert(sameLook(s.wp2_avatar.look, want), 'avatar ≠ bozza: ' + S(s.wp2_avatar.look));
       assert(s.editor.open && sameLook(s.editor.saved, saved0), 'salvato cambiato senza Salva');
       const txt = await anna.page.locator('#mzEditor').innerText();
-      assert(txt.includes(avatar.capelli[want.capelli].charAt(0).toUpperCase()), 'nomi dai dati mancanti: ' + txt.slice(0, 200));
-      assert((await anna.page.locator('#mzEditor [data-row="vestito"], #mzEditor [data-row="cappello"]').count()) === 0, 'righe Vestito/Cappello ancora nell’Aspetto');
+      assert(txt.toLowerCase().includes(avatar.nomiColoriCapelli[want.coloreCapelli]), 'nomi dai dati mancanti: ' + txt.slice(0, 200));
+      assert((await anna.page.locator('#mzEditor [data-row="vestito"], #mzEditor [data-row="cappello"], #mzEditor [data-row="capelli"]').count()) === 0, 'righe Vestito/Cappello/Capelli ancora nell’Aspetto (taglio e abiti non si scelgono qui)');
       // il pannello sta a destra (340 px), il centro dello schermo resta libero per l'avatar
       const box = await anna.page.locator('#mzEditor').boundingBox();
       assert(box && box.x > 640 && box.width <= 342, 'pannello non a destra da 340 px: ' + S(box));

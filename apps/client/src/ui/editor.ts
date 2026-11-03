@@ -1,4 +1,4 @@
-// Editor dell'avatar («Aspetto», F3-avatar, CONTRACTS §13): pelle, taglio e colore dei capelli, nome, barca. Anteprima DAL VIVO sul proprio
+// Editor dell'avatar («Aspetto», F3-avatar, CONTRACTS §13): pelle, taglio (solo chr_base) e colore dei capelli, nome, barca. Anteprima DAL VIVO sul proprio
 // avatar (o.avatar.setLook a ogni cambio, nessuna chiamata al server); Salva → POST /api/look; Esc, C, × o Annulla ripristinano il look salvato.
 // Cappelli e vestiti non stanno più qui: si comprano dal Mercante in piazza e si indossano dalla Borsa (ui/borsa.ts); il look salvato li tiene.
 // Colori dei capelli con nomi da capelli (#3, `nomiColoriCapelli`).
@@ -47,15 +47,16 @@ const palName = (hex: string): string => {
   const k = Object.entries(PAL).find(([, v]) => v.toUpperCase() === hex.toUpperCase())?.[0];
   return k ? k.replace(/[A-Z]/g, (c) => ' ' + c.toLowerCase()) : '';
 };
-const ROWS: readonly Row[] = [
+const TUTTE: readonly Row[] = [
   { id: 'pelle', nome: 'Pelle', n: AVATAR.pelle.length, kind: 'colori', colore: (i) => AVATAR.pelle[i] ?? PAL.sabbia, nomeDi: (i) => `tono ${i + 1}` },
   { id: 'capelli', nome: 'Capelli', n: AVATAR.capelli.length, kind: 'nomi', nomeDi: (i) => AVATAR.capelli[i] ?? '' },
   { id: 'coloreCapelli', nome: 'Colore capelli', n: AVATAR.coloriCapelli.length, kind: 'colori', colore: (i) => AVATAR.coloriCapelli[i] ?? PAL.legno, nomeDi: (i) => AVATAR.nomiColoriCapelli?.[i] ?? (palName(AVATAR.coloriCapelli[i] ?? '') || `colore ${i + 1}`) },
 ];
+const ROWS = TUTTE.filter((r) => r.id !== 'capelli' || AVATAR.protagonista === 'chr_base'); // il protagonista a skin ha il suo taglio: restano pelle e colore dei capelli
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 const clampLook = (l: Look | null | undefined): Look => {
-  // cappello, vestito e abito restano quelli salvati (si cambiano dalla Borsa)
-  const o: Look = { pelle: 0, capelli: 0, coloreCapelli: 0, vestito: l?.vestito ?? 0, cappello: l?.cappello ?? 0, ...(l?.abito !== undefined ? { abito: l.abito } : {}) };
+  // cappello, vestito e abito restano quelli salvati (si cambiano dalla Borsa), e il taglio quando la riga non c'è
+  const o: Look = { pelle: 0, capelli: l?.capelli ?? 0, coloreCapelli: 0, vestito: l?.vestito ?? 0, cappello: l?.cappello ?? 0, ...(l?.abito !== undefined ? { abito: l.abito } : {}) };
   for (const r of ROWS) { const v = Number(l?.[r.id]); o[r.id] = Number.isInteger(v) && v >= 0 && v < r.n ? v : 0; }
   return o;
 };

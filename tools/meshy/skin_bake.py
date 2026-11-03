@@ -5,8 +5,11 @@
 #   2. ALTA=<glb della skin> ID=<id> blender -b -P tools/meshy/skin_bake.py   → OUT/skin_<id>_cotta.png (colori della palette, 512 px)
 #   3. python3 tools/meshy/skin_tinta.py --png8 <id> OUT/skin_<id>_cotta.png    → apps/client/public/assets/skin/<id>.png (PNG a palette, pochi KB)
 #   4. una voce in packages/content/src/avatar.json `abiti` con "skin": "<id>" (nome e prezzo): la vende il Mercante, il client cambia la texture.
+# Pelle e capelli non sono della skin: assets/ai/eroe/eroe_mappa.png (skin_mappa.py) li segna, il gioco li ridipinge coi colori dell'editor e qui
+# tornano com'erano nella texture di partenza (la fantasia di Meshy lì non conta: nel prompt viso e capelli restano semplici).
 # Con ALTA = il glb originale di Meshy esce la texture di partenza (prova che UV e allineamento tornano).
 import bpy, os, sys, math
+import numpy as np
 SP = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, SP)
 import eroe_leggero, eroe_palette
 
@@ -32,5 +35,12 @@ cotta = os.path.join(OUT, f'skin_{ID}_cotta.png')
 img.filepath_raw = cotta; img.file_format = 'PNG'; img.save()
 nc = bpy.data.images.load(cotta); nc.colorspace_settings.name = 'Non-Color'
 print('COLORI', eroe_palette.quantizza(nc, K))
+# pelle e capelli non sono della skin: la mappa (skin_mappa.py) li segna e il gioco li ridipinge coi colori dell'editor; qui tornano come nella texture di partenza
+def pixel(im):
+    a = np.empty(im.size[0] * im.size[1] * 4, dtype=np.float32); im.pixels.foreach_get(a); return a.reshape(im.size[1], im.size[0], 4)
+def leggi(nome):
+    im = bpy.data.images.load(os.path.join(os.path.dirname(BASE), nome)); im.colorspace_settings.name = 'Non-Color'; return pixel(im)
+zone, partenza, px = leggi('eroe_mappa.png')[:, :, 0] > 0.1, leggi('eroe_tex.png'), pixel(nc)   # la mappa è grigia: valore / 50 = ruolo, 0,196 il più basso
+px[zone] = partenza[zone]; nc.pixels.foreach_set(px.ravel()); nc.update()
 nc.filepath_raw = os.path.join(OUT, f'skin_{ID}_cotta.png'); nc.file_format = 'PNG'; nc.save()
 print('SKIN', nc.filepath_raw)

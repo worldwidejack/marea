@@ -73,8 +73,9 @@ export type MobileDef = { id: string; nome: string; categoria: string; monete: n
  *  (`cap_<id>`, manifest_abiti.json); senza, il cappello è fatto a scatole in game/avatar.ts. */
 export type HatDef = { id: string; nome: string; monete: number; modello?: string };
 /** Un vestito intero (#vestiti): il glb `abt_<id>` sopra il chr_base. `monete` 0 = gratis, di tutti; gli altri dal Mercante.
- *  `skin`: una skin del protagonista nuovo (chr_eroe), la sua texture sta in /assets/skin/<skin>.png (game/avatar_skin.ts); con un protagonista a skin il Mercante vende solo quelle. */
-export type AbitoDef = { id: string; nome: string; monete: number; skin?: string };
+ *  `skin`: una skin del protagonista nuovo (chr_eroe), la sua texture sta in /assets/skin/<skin>.png (game/avatar_skin.ts); con un protagonista a skin il Mercante vende solo quelle.
+ *  `pelleFissa`: la skin ha la sua pelle (una rana verde): la mappa pelle/capelli non si applica a quei pixel. */
+export type AbitoDef = { id: string; nome: string; monete: number; skin?: string; pelleFissa?: boolean };
 /** La vetrina del Mercante in piazza: quanti cappelli e vestiti al giorno, per quanti giorni uno uscito non torna, il primo giorno di Roma del calcolo. */
 export type MercanteDef = { cappelli: number; abiti: number; riposo: number; dal: number };
 export type DecorDef = { id: string; nome: string; monete: number; model: string; mercante?: boolean };
@@ -89,8 +90,11 @@ export type AvatarDef = {
   /** Personalizzazione della barca (#107). */
   barca: BarcaDef;
   pelle: string[];
+  /** Col protagonista a skin: il tono in ombra di ogni pelle (labbra, naso) e il riflesso di ogni colore di capelli, nello stesso ordine di `pelle` e `coloriCapelli`. */
+  pelleOmbra: string[];
   capelli: string[];
   coloriCapelli: string[];
+  capelliLuce: string[];
   /** Nomi da capelli dei colori (#3: «castano», non il nome della palette), stesso ordine di `coloriCapelli`. */
   nomiColoriCapelli?: string[];
   vestiti: string[];

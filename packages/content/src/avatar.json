@@ -34,6 +34,8 @@
   "capelli": ["corti", "spettinati", "coda", "caschetto", "rasati", "ricci", "lunghi", "chignon"],
   "coloriCapelli": ["#2E1E14", "#5A3A1E", "#8E5A2B", "#C98A4B", "#E8433F", "#F4E3C1"],
   "nomiColoriCapelli": ["nero corvino", "castano scuro", "castano", "biondo miele", "rosso fuoco", "biondo platino"],
+  "pelleOmbra": ["#EFC29B", "#D9A070", "#B8784C", "#8C5636", "#5A3A28", "#2E1E14"],
+  "capelliLuce": ["#5A3A1E", "#8E5A2B", "#C98A4B", "#E2B97F", "#F2A33A", "#E8E1D6"],
   "vestiti": ["#3FB9C9", "#E8433F", "#F2A33A", "#8FC35B", "#A64DFF", "#F4E3C1"],
   "cappelli": [
     { "id": "nessuno", "nome": "Nessuno", "monete": 0 },

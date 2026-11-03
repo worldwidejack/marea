@@ -23,7 +23,7 @@ cam.location = c + Vector((math.sin(yaw) * math.cos(pitch) * d, math.cos(yaw) * 
 cam.rotation_euler = (c - cam.location).to_track_quat('-Z', 'Y').to_euler()
 for f in sorted(glob.glob(os.path.join(SKIN, '*.png'))):
     nome = os.path.basename(f)[:-4]
-    if nome.endswith('_anteprima'): continue
+    if nome.endswith('_anteprima') or nome == 'mappa': continue   # mappa.png non è una skin (skin_mappa.py)
     img = bpy.data.images.load(f); img.alpha_mode = 'NONE'; tx.image = img
     sc.render.filepath = os.path.join(SKIN, nome + '_anteprima.png')
     bpy.ops.render.render(write_still=True); print('ANTEPRIMA', nome)

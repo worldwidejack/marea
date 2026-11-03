@@ -36,7 +36,7 @@ export function createHudAllegro(o: { root: HTMLElement; net: NetClient; loader:
   };
   // il ritratto vero (ui/ritratto_avatar.ts, col renderer del gioco) si fa una volta per look, 8 s dopo l'avvio quando il browser
   // respira, e si tiene in localStorage; intanto il bottone mostra la testa disegnata coi colori del look
-  const CHIAVE = 'mz-ritratto:eroe:'; // «eroe»: il protagonista nuovo, i ritratti salvati prima hanno la faccia vecchia
+  const CHIAVE = 'mz-ritratto:eroe2:'; // «eroe2»: il protagonista nuovo con pelle e capelli del look, i ritratti salvati prima hanno i colori di partenza
   const disegna = () => {
     const l = look;
     btn.el.style.setProperty('--mz-testa', testaSvg(l));

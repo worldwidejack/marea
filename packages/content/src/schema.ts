@@ -25,8 +25,10 @@ export function validateAll(c: { islands: IslandDef[]; avatar: AvatarDef; balanc
     if (isl.tile !== 2) errs.push(`isola ${isl.id}: tile deve essere 2 m`);
     errs.push(...validateIslandExtras(isl, w));
   }
-  for (const [k, arr] of Object.entries({ pelle: c.avatar.pelle, coloriCapelli: c.avatar.coloriCapelli, vestiti: c.avatar.vestiti }))
+  for (const [k, arr] of Object.entries({ pelle: c.avatar.pelle, pelleOmbra: c.avatar.pelleOmbra, coloriCapelli: c.avatar.coloriCapelli, capelliLuce: c.avatar.capelliLuce, vestiti: c.avatar.vestiti }))
     for (const h of arr) if (!HEX.test(h)) errs.push(`avatar.${k}: colore non valido ${h}`);
+  if (c.avatar.pelleOmbra.length !== c.avatar.pelle.length) errs.push(`avatar.pelleOmbra: ${c.avatar.pelleOmbra.length} ombre per ${c.avatar.pelle.length} pelli`);
+  if (c.avatar.capelliLuce.length !== c.avatar.coloriCapelli.length) errs.push(`avatar.capelliLuce: ${c.avatar.capelliLuce.length} riflessi per ${c.avatar.coloriCapelli.length} colori`);
   const nomiCap = c.avatar.nomiColoriCapelli;
   if (nomiCap && nomiCap.length !== c.avatar.coloriCapelli.length) errs.push(`avatar.nomiColoriCapelli: ${nomiCap.length} nomi per ${c.avatar.coloriCapelli.length} colori`);
   const hatIds = new Set<string>();
