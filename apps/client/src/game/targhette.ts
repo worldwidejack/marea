@@ -1,6 +1,6 @@
 // Targhette sopra la testa: il nome degli amici (sopra la tua testa niente: il tuo nome lo sai già). I titoli dei traguardi sotto
 // il nome sono stati tolti (tag archivio/spenti-traguardi).
-// DOM proiettato ogni frame come i fumetti delle emote; lontano (> DIST m), fuori schermo o con un fumetto sopra la stessa testa sparisce.
+// DOM proiettato ogni frame come i fumetti delle emote; lontano (> LABEL_NEAR_M), fuori schermo o con un fumetto sopra la stessa testa sparisce.
 import * as THREE from 'three';
 import type { Camera } from 'three';
 import type { GameWorld } from './world.ts';
@@ -10,16 +10,10 @@ import { LABEL_NEAR_M } from '../ui/sheet.ts';
 import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type Targhette = { update(): void };
-const DIST = 40;
 const STYLE = `
 #mzTarghe { position: absolute; inset: 0; overflow: hidden; z-index: 5; pointer-events: none !important; }
 #ui.mz-racing #mzTarghe, body.mz-sotto #mzTarghe { visibility: hidden; }
 .mz-targa { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; padding: 1px 6px 2px; background: ${L.carta}; border: 2px solid ${L.oro}; box-shadow: 0 2px 0 ${L.inchiostro}; font: 700 12px/1.2 ${FONT_LIBRO}; color: ${L.inchiostro}; white-space: nowrap; pointer-events: none; will-change: transform; }
-/* #129: da PC, oltre LABEL_NEAR_M la targhetta è più piccola e un po' trasparente; sul telefono resta com'è */
-@media (hover: hover) and (pointer: fine) {
-  .mz-targa { transition: opacity .2s; }
-  .mz-targa.far { padding: 0 4px 1px; border-width: 1px; box-shadow: none; font-size: 10px; opacity: .75; }
-}
 `;
 
 type Tag = { el: HTMLElement; sig: string };
@@ -36,8 +30,7 @@ export function createTarghette(o: { world: GameWorld; camera: Camera; canvas: H
     if (!t) { t = { el: el('div', 'mz-targa'), sig: '' }; t.el.dataset['who'] = who; layer.appendChild(t.el); tags.set(who, t); }
     if (t.sig !== nome) { t.sig = nome; t.el.replaceChildren(el('span', '', nome)); }
     const a = o.world.anchorOf(who);
-    if (a) t.el.classList.toggle('far', Math.hypot(a.x - me.x, a.z - me.z) >= LABEL_NEAR_M);
-    let on = !!a && Math.hypot(a.x - me.x, a.z - me.z) < DIST && !document.querySelector(`#mzEmotes .mz-emote[data-who="${CSS.escape(who)}"]`);
+    let on = !!a && Math.hypot(a.x - me.x, a.z - me.z) < LABEL_NEAR_M && !document.querySelector(`#mzEmotes .mz-emote[data-who="${CSS.escape(who)}"]`);
     if (a && on) {
       v.set(a.x, a.y + 0.25, a.z).project(o.camera);
       on = v.z > -1 && v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;
