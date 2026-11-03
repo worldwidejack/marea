@@ -3,6 +3,7 @@
  "atlas": "atlas.png",
  "texelsPerMeter": 16,
  "models": {
+  "bld_negozio_l1": {"file": "bld_negozio_l1.glb", "tris": 798, "kb": 84.9},
   "bld_alchimia_l1": {
    "file": "bld_alchimia_l1.glb",
    "tris": 413,

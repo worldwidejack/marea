@@ -1,5 +1,5 @@
 // Il negozio dei mobili del Borgo (#265). Fuori: una bottega sullo slargo della prima fontana (borgo.json `negozio`, la scrive
-// tools/borgo_pianta.py) con la tenda a strisce, la vetrina e l'insegna MOBILI. Dentro: il template `negozio` oltre il mare (come i
+// tools/borgo_pianta.py) con la tenda a strisce, la vetrina e l'insegna da fulvio. Dentro: il template `negozio` oltre il mare (come i
 // giardini), la stessa stanza «da plastico» della casa (game/interno.ts: camera fissa sopra l'ingresso, corridoio, buio attorno), il
 // negoziante (Fulvio, game/fulvio.ts) dietro al bancone, i mobili del giorno sulle pedane e sul muro, i campioni di carta da parati appesi al muro e quelli di pavimento per terra.
 // I mobili in mostra cambiano ogni giorno (mezzanotte di Roma, sim `vetrinaDelGiorno`, #384): uguali per tutti, pescati da tutto mobili.json,
@@ -52,8 +52,8 @@ export type Negozio = {
 const ND = BORGO.negozioDentro, [X0, Z0, X1] = ND.pavimento, [CX, C0, C1] = ND.corridoio;
 const PIANTA: Pianta = { pavimento: ND.pavimento, corridoio: ND.corridoio, altezza: ND.altezza };
 const RAGGIO = 2.2, VICINO = 1.7;
-/** I posti in fila (pedane, quadri a muro, campioni di pavimento): una cella sì e una no, a partire dalla seconda; l'ultima cella è del banco. */
-const POSTI = Math.floor((X1 - X0 - 1) / 2), posto = (i: number): number => X0 + 1 + i * 2;
+/** I posti in fila (pedane, quadri a muro, campioni di pavimento): tre per ala, ai lati della corsia centrale. */
+const POSTI = Math.floor((X1 - X0 - 1) / 2), posto = (i: number): number => X0 + 1 + i * 1.5 + (i >= 3 ? 2.5 : 0);
 const CSS = `
 #mzNegozioBar { position: absolute; left: 8px; right: 8px; top: calc(max(8px, env(safe-area-inset-top)) + 60px); display: none; justify-content: center; z-index: 15; pointer-events: none; }
 #mzNegozioBar.on { display: flex; }
@@ -72,11 +72,11 @@ function bottega(): THREE.BufferGeometry {
   g.push(painted(b(0.6, 0.5, 0.5), P.legnoChiaro, M(0.9, 0.95, 2.0)), painted(b(0.36, 0.3, 0.3), P.rosso, M(0.9, 1.35, 2.0))); // in vetrina
   return merged(g);
 }
-/** L'insegna MOBILI: una tavola con la scritta dipinta a pixel (texture nearest, colori della palette). */
+/** L'insegna «da fulvio»: una tavola con la scritta dipinta a pixel (texture nearest, colori della palette). */
 function insegna(): THREE.Mesh {
   const c = document.createElement('canvas'); c.width = 64; c.height = 16;
   const x = c.getContext('2d')!;
-  x.fillStyle = P.legnoScuro; x.fillRect(0, 0, 64, 16); x.fillStyle = P.giallo; x.font = 'bold 12px monospace'; x.textBaseline = 'middle'; x.textAlign = 'center'; x.fillText('MOBILI', 32, 8.5);
+  x.fillStyle = P.legnoScuro; x.fillRect(0, 0, 64, 16); x.fillStyle = P.giallo; x.font = 'bold 10px monospace'; x.textBaseline = 'middle'; x.textAlign = 'center'; x.fillText('da fulvio', 32, 8.5);
   const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.colorSpace = THREE.SRGBColorSpace;
   const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.65), new THREE.MeshBasicMaterial({ map: t }));
   m.position.set(0, 3.3, 1.86);
@@ -96,7 +96,17 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   const N = BORGO.negozio, fuori = new THREE.Group(); fuori.name = 'negozio_mobili';
   const bx = (porto.origin[0] + N.at[0] + 0.5) * T, bz = (porto.origin[1] + N.at[1] + 0.5) * T;
   const corpo = new THREE.Mesh(bottega(), vc); corpo.castShadow = corpo.receiveShadow = true;
-  fuori.add(corpo, insegna()); fuori.position.set(bx, w.groundY(bx, bz), bz); fuori.rotation.y = N.rot + Math.PI; // il modello guarda +Z, `rot` è il verso −Z
+  const cartello = insegna();
+  fuori.add(corpo, cartello);
+  if (o.loader.has('bld_negozio_l1')) void o.loader.load('bld_negozio_l1').then(({ scene }) => {
+    scene.traverse((n) => { if (n instanceof THREE.Mesh) n.material = vc; });
+    fuori.remove(corpo);
+    corpo.geometry.dispose();
+    cartello.scale.set(0.86, 0.82, 1);
+    cartello.position.set(0, 2.98, 2.08);
+    fuori.add(scene);
+  }).catch(() => { /* il segnaposto mantiene riconoscibile l'ingresso */ });
+  fuori.position.set(bx, w.groundY(bx, bz), bz); fuori.rotation.y = N.rot + Math.PI; // il modello guarda +Z, `rot` è il verso −Z
   w.scene.add(fuori); posaForma(w.solidi, 'negozio', bx, bz, N.rot + Math.PI); // la bottega non si attraversa
   const px = (porto.origin[0] + N.porta[0] + 0.5) * T, pz = (porto.origin[1] + N.porta[1] + 0.5) * T;
   const vx = bx - px, vz = bz - pz, vl = Math.hypot(vx, vz) || 1, verso = { x: vx / vl, z: vz / vl };
@@ -114,24 +124,35 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   // fisse: le pedane (vuote o piene) e il bancone; tutto quello che si vende cambia col giorno (monta)
   for (let i = 0; i < Math.min(MOBILI_VETRINA.terra, POSTI); i++) {
     const c = cella(posto(i), Z0 + 2);
-    parti.push(painted(new THREE.CylinderGeometry(0.95, 1.05, 0.2, 8), P.pietra, M(c.x, 0.1, c.z)));
+    parti.push(painted(new THREE.CylinderGeometry(0.95, 1.05, 0.2, 8), P.boscoOmbra, M(c.x, 0.1, c.z)));
   }
-  // il bancone nell'ultima cella a destra, col registratore di cassa; dietro Fulvio, e accanto l'espositore fisso della pala (#438)
-  const bc = cella(X1 - 1, Z0 + 2);
-  parti.push(painted(new THREE.BoxGeometry(1.4, 1.0, 3.0), P.legno, M(bc.x - 0.4, 0.5, bc.z + 0.6)), painted(new THREE.BoxGeometry(1.5, 0.1, 3.1), P.legnoChiaro, M(bc.x - 0.4, 1.05, bc.z + 0.6)));
-  parti.push(painted(new THREE.BoxGeometry(0.5, 0.35, 0.4), P.arancio, M(bc.x - 0.4, 1.28, bc.z)), painted(new THREE.BoxGeometry(0.3, 0.08, 0.2), P.neroCaldo, M(bc.x - 0.4, 1.48, bc.z)));
+  // Fulvio accoglie chi entra, in fondo alla corsia centrale.
+  const banco = cella(CX, Z0 + 2);
+  const box = (w: number, h: number, d: number, colore: string, x: number, y: number, z: number) =>
+    painted(new THREE.BoxGeometry(w, h, d), colore, M(x, y, z));
+  parti.push(box(2.4, 0.76, 0.75, P.boscoOmbra, banco.x, 0.38, banco.z),
+    box(2.55, 0.12, 0.88, P.legnoChiaro, banco.x, 0.82, banco.z),
+    box(2.4, 0.12, 0.78, P.legnoScuro, banco.x, 0.06, banco.z),
+    box(0.39, 0.24, 0.34, P.arancio, banco.x + 0.85, 1, banco.z));
+  for (const x of [-0.75, 0, 0.75]) parti.push(box(0.55, 0.43, 0.04, P.bosco, banco.x + x, 0.43, banco.z + 0.39));
+  const tappetoZ = (C0 * T + banco.z) / 2 + 0.25;
+  parti.push(box(2.35, 0.025, 3.85, P.legnoScuro, banco.x, 0.017, tappetoZ),
+    box(2.14, 0.028, 3.64, P.sabbia, banco.x, 0.019, tappetoZ),
+    box(1.96, 0.03, 3.46, P.bosco, banco.x, 0.021, tappetoZ));
+  pezziFissi.push({ kind: 'banco', id: 'banco', nome: FV.nome, monete: 0, x: banco.x, z: banco.z, fx: banco.x, fz: banco.z + 1.35 });
+  // Gli attrezzi occupano la fascia lungo la parete destra.
+  const bc = cella(X1 - 1, Z0 + 1.5);
   parti.push(painted(new THREE.CylinderGeometry(0.45, 0.5, 0.16, 8), P.legnoScuro, M(bc.x - 0.4, 0.08, bc.z + 2.65)), painted(new THREE.CylinderGeometry(0.05, 0.05, 1.15, 6), P.legnoChiaro, M(bc.x - 0.4, 0.72, bc.z + 2.65, 0, 0, 0.18)));
   parti.push(painted(new THREE.BoxGeometry(0.26, 0.05, 0.08), P.legnoScuro, M(bc.x - 0.5, 1.28, bc.z + 2.65, 0, 0, 0.18)), painted(new THREE.BoxGeometry(0.28, 0.34, 0.05), P.pietra, M(bc.x - 0.3, 0.24, bc.z + 2.65, 0, 0, 0.18)));
-  pezziFissi.push({ kind: 'banco', id: 'banco', nome: FV.nome, monete: 0, x: bc.x - 0.4, z: bc.z + 0.6, fx: bc.x - 1.9, fz: bc.z + 0.6 }); // davanti al banco
   pezziFissi.push({ kind: 'pala', id: BORGO.pala.id, nome: BORGO.pala.nome, monete: BORGO.pala.monete, x: bc.x - 0.4, z: bc.z + 2.65, fx: bc.x - 1.9, fz: bc.z + 2.65 });
   // e dopo la pala l'espositore del retino (#445): asta, cerchio e rete
-  const rz = bc.z + 4.3;
+  const rz = bc.z + 4.6;
   parti.push(painted(new THREE.CylinderGeometry(0.45, 0.5, 0.16, 8), P.legnoScuro, M(bc.x - 0.4, 0.08, rz)), painted(new THREE.CylinderGeometry(0.04, 0.04, 1.3, 6), P.legnoChiaro, M(bc.x - 0.4, 0.8, rz, 0, 0, -0.12)));
   for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; parti.push(painted(new THREE.BoxGeometry(0.16, 0.03, 0.03), P.pietra, M(bc.x - 0.58 + Math.cos(a) * 0.2, 1.62 + Math.sin(a) * 0.2, rz, 0, 0, a + Math.PI / 2)), painted(new THREE.BoxGeometry(0.165, 0.035, 0.035), P.sabbiaChiara, M(bc.x - 0.58 + Math.cos(a) * 0.2, 1.62 + Math.sin(a) * 0.2, rz + 0.015, 0, 0, a + Math.PI / 2))); }
   parti.push(painted(new THREE.CylinderGeometry(0.19, 0.12, 0.16, 8), P.pietraChiara, M(bc.x - 0.58, 1.62, rz + 0.08, -Math.PI / 2)), painted(new THREE.CylinderGeometry(0.12, 0.04, 0.16, 8), P.pietraChiara, M(bc.x - 0.58, 1.59, rz + 0.23, -Math.PI / 2)));
   pezziFissi.push({ kind: 'retino', id: RETINO.id, nome: RETINO.nome, monete: RETINO.monete, x: bc.x - 0.4, z: rz, fx: bc.x - 1.9, fz: rz });
   // e dall'altra parte del bancone la canna da pesca (#457), dritta sul suo piedistallo col mulinello
-  const cz = bc.z - 3.2;
+  const cz = bc.z - 2.1;
   parti.push(painted(new THREE.CylinderGeometry(0.45, 0.5, 0.16, 8), P.legnoScuro, M(bc.x - 0.4, 0.08, cz)), painted(new THREE.CylinderGeometry(0.035, 0.045, 0.6, 6), P.legnoScuro, M(bc.x - 0.4, 0.45, cz, 0, 0, 0.08)));
   parti.push(painted(new THREE.CylinderGeometry(0.015, 0.03, 1.5, 5), P.legnoChiaro, M(bc.x - 0.49, 1.48, cz, 0, 0, 0.08)), painted(new THREE.CylinderGeometry(0.08, 0.08, 0.06, 8), P.pietra, M(bc.x - 0.33, 0.55, cz, 0, 0, Math.PI / 2)));
   parti.push(painted(new THREE.SphereGeometry(0.07, 6, 4), P.rosso, M(bc.x - 0.62, 1.95, cz)));
@@ -173,7 +194,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
       pezziGiorno.push({ kind: 'carta', id: f.id, nome: f.nome, monete: f.monete ?? 0, x, z, fx: x, fz: z + 1.6 });
     });
     v.pavimenti.flatMap((id) => BORGO.pavimenti.find((f) => f.id === id) ?? []).slice(0, POSTI).forEach((f, i) => {
-      const c = cella(posto(i), Z0 + 4), t = textureCampione(f, 'pavimento');
+      const c = cella(posto(i + (i >= 2 ? 1 : 0)), Z0 + 4), t = textureCampione(f, 'pavimento');
       const tile = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 1.6), new THREE.MeshLambertMaterial({ map: t })); tile.position.set(c.x, 0.06, c.z); tile.receiveShadow = true; tile.userData['campione'] = true; giornoG.add(tile);
       pezziGiorno.push({ kind: 'pavimento', id: f.id, nome: f.nome, monete: f.monete ?? 0, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.4 });
     });
@@ -197,10 +218,10 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     }).catch(() => { /* senza modelli restano le scatole */ });
   };
   allestisci(giornoRoma(adesso()));
-  let ciro: Avatar | null = null;
-  const ciroPos = { x: ox + bc.x + 0.6, z: oz + bc.z + 0.6 };
-  void createAvatar({ loader: o.loader, look: { pelle: 2, capelli: 5, coloreCapelli: 3, vestito: 4, cappello: 0 }, x: ciroPos.x, z: ciroPos.z, modello: 'chr_base' }).then((av) => {
-    av.setGround(w.groundY); av.object.name = 'mobiliere'; av.object.visible = false; w.scene.add(av.object); ciro = av;
+  let fulvioAvatar: Avatar | null = null;
+  const fulvioAvatarPos = { x: ox + banco.x, z: oz + banco.z - 1.35 };
+  void createAvatar({ loader: o.loader, look: { pelle: 2, capelli: 5, coloreCapelli: 3, vestito: 4, cappello: 0 }, x: fulvioAvatarPos.x, z: fulvioAvatarPos.z, modello: 'chr_base' }).then((av) => {
+    av.setGround(w.groundY); av.object.name = 'mobiliere'; av.object.visible = false; w.scene.add(av.object); fulvioAvatar = av;
   }).catch(() => { /* senza Fulvio il negozio funziona lo stesso */ });
 
   // ——— dentro / fuori, camera, cose nascoste ———
@@ -215,7 +236,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     nascosti.length = 0;
     const ora = qui();
     if (ora !== dentro) { dentro = ora; if (ora) inq.entra(ox, oz, PIANTA); else inq.esce(); }
-    dentroG.visible = dentro; if (ciro) ciro.object.visible = dentro;
+    dentroG.visible = dentro; if (fulvioAvatar) fulvioAvatar.object.visible = dentro;
     if (!dentro) return;
     const via = (n: THREE.Object3D | undefined | null) => { if (n && n.visible) { n.visible = false; nascosti.push(n); } };
     via(w.scene.getObjectByName('vista_negozio')); via(w.water.mesh);
@@ -305,7 +326,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
         bar.classList.toggle('on', near?.kind === 'pezzo');
         if (near?.kind === 'pezzo') bar.replaceChildren(el('div', 't', near.p.kind === 'banco' ? `${FV.nome} · A per parlargli` : `${near.p.nome} · ${near.p.monete} monete · A per guardarlo`));
       }
-      if (ciro && dentro) { ciro.setPose({ x: ciroPos.x, z: ciroPos.z, yaw: -Math.PI / 2, anim: 'idle' }); ciro.update(1, 1 / 60); }
+      if (fulvioAvatar && dentro) { fulvioAvatar.setPose({ x: fulvioAvatarPos.x, z: fulvioAvatarPos.z, yaw: Math.PI, anim: 'idle' }); fulvioAvatar.update(1, 1 / 60); }
       insetti.update(dt);
       pala.update(dt);
       pesca.update(dt);
