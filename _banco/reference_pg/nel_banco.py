@@ -5,6 +5,13 @@ Ogni figura scontornata dal magenta, ritagliata e portata a 480 px d'altezza in 
 pixel_lab/dati/reference.json dà l'ordine e il nome da mostrare. Poi impacchetta.py le mette in online/reference.webp.
 
 uso: <python del venv di Fenaki> _banco/reference_pg/nel_banco.py
+
+Candidato nuovo (chiunque del gruppo, senza chiedere a nessuno): il foglio in reference_pg/fogli/<autore>_<cosa>.png
+(una figura da davanti su magenta), la riga col prompt in lavori.txt, poi
+  python nel_banco.py && python ../pixel_lab/impacchetta.py
+e si ripubblica pixel_lab/online/banco.html con dati.json e reference.webp sull'artifact
+https://claude.ai/artifact/YFMuBTgatJ813rP5KtiAFd (serve essere editor dell'artifact: se il publish è rifiutato,
+chiedi a Jack di aggiungerti da «Condividi»). Il commit da solo basta: il Claude di Jack ripubblica alla prima occasione.
 """
 import json
 import os
@@ -21,7 +28,11 @@ import pixel_vero as pv  # noqa: E402
 
 DATI = os.path.join(QUI, '..', 'pixel_lab', 'dati')
 # i giri dal più nuovo (3/11, dopo Jack sul giro 2: «tutti dragon ballosi. cambia stile»: 10 stili lontani fra loro), poi il giro 2
+# i candidati del gruppo, col nome dell'autore davanti (4/11, Jack: «permetti sempre anche agli altri di fare tutto»): ogni <autore>_<cosa>.png in reference_pg/fogli
+# entra da solo, in testa, senza toccare questo file. Basta committare il foglio (e la riga in lavori.txt) e rilanciare.
+_GRUPPO = os.path.join(QUI, 'fogli')
 GIRI = [
+    ('reference_pg', {f[:-4]: ' · '.join(f[:-4].replace('_', ' ', 1).split(' ', 1)) for f in sorted(os.listdir(_GRUPPO)) if f.endswith('.png') and '_' in f}),
     # giro 4 (3/11, Jack: il PG di Birba «alla goku bambino», semplificato per la pixel art)
     ('reference_pg4', {'p1_semplice': '1 · semplice, scalzo', 'p2_scarpe': '2 · con le scarpe', 'p3_canottiera': '3 · canottiera',
                        'p4_code_corte': '4 · code corte', 'p5_testone': '5 · testa grande', 'p6_slanciato': '6 · più grande (19)',
@@ -42,9 +53,9 @@ shutil.rmtree(out, ignore_errors=True)
 os.makedirs(out)
 elenco = {}
 for cartella, nomi in GIRI:
-    giro = 'giro ' + {'reference_pg4': '4', 'reference_pg3': '3', 'reference_pg2': '2'}[cartella] + ' · '
+    giro = {'reference_pg': 'del gruppo · ', 'reference_pg4': 'giro 4 · ', 'reference_pg3': 'giro 3 · ', 'reference_pg2': 'giro 2 · '}[cartella]
     for n, mostra in nomi.items():
-        f = os.path.join(QUI, '..', cartella, 'fogli', n + '.png')
+        f = os.path.join(QUI, '..', cartella, 'fogli', n + '.png')  # i nomi non si ripetono fra i giri
         if not os.path.exists(f):
             continue
         rgb = np.array(Image.open(f).convert('RGB'))
