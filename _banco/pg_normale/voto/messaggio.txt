@@ -1,0 +1,9 @@
+Ragazzi, ecco i 6 PG finalisti. Si vota così:
+
+- votiamo noi 3 (Alti, Birba, Jack)
+- ognuno ha 5 punti e li divide come vuole, anche tutti su uno solo o sui propri
+- scrivete qui una riga col numero del PG e i punti, per esempio: 1:2 4:3
+- vale solo il voto dato dopo questa tavola, quindi chi ha già votato rivota
+- vince chi prende più punti, se c'è parità si rivota solo tra quelli pari
+
+Il 6 è da immaginare con le scarpe al posto delle ciabatte.
