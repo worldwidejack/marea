@@ -16,6 +16,9 @@ Uso:
   pixellab.py testo "<descrizione>" <uscita.png> [--lato 64] [--seme N]
                                                            da testo con Pixen, come il mozzo: low detail, low top-down,
                                                            da davanti (south), fondo trasparente (1 generazione)
+  pixellab.py modifica <sprite.png> "<cosa cambia>" <uscita.png> [--seme N]
+                                                           lo stesso sprite con una modifica a parole (edit-image-pixen):
+                                                           faccia, posa e pixel restano (1 generazione)
 Le direzioni sono quelle di PixelLab: south, south-east, east, north-east, north, north-west, west, south-west.
 """
 import json
@@ -133,6 +136,27 @@ def testo(descrizione, uscita, lato=64, seme=None):
     print(uscita, json.dumps(r.get('usage')))
 
 
+def modifica(sprite, descrizione, uscita, seme=None):
+    """edit-image-pixen: cambia solo quello che si chiede. Lato multiplo di 4, mai riscalare il pixel art."""
+    import base64
+    b = base64.b64encode(open(sprite, 'rb').read()).decode()
+    r = api('POST', '/edit-image-pixen', {'image': {'type': 'base64', 'base64': b, 'format': 'png'}, 'description': descrizione,
+                                          'no_background': True, **({'seed': seme} if seme is not None else {})})
+    job = r.get('background_job_id')
+    if job:
+        j = aspetta(job)
+        r = j.get('last_response') or {}
+    img = r.get('image') or (r.get('images') or [None])[0]
+    if not img:
+        sys.exit('nessuna immagine nella risposta: ' + json.dumps(r)[:600])
+    os.makedirs(os.path.dirname(os.path.abspath(uscita)), exist_ok=True)
+    if img.get('base64'):
+        open(uscita, 'wb').write(base64.b64decode(img['base64']))
+    else:
+        scarica_url(img['url'], uscita)
+    print(uscita, json.dumps(r.get('usage')))
+
+
 def main():
     a = sys.argv[1:]
     if not a:
@@ -158,6 +182,8 @@ def main():
     elif a[0] == 'testo':
         o = {k: int(a[a.index(k) + 1]) for k in ('--lato', '--seme') if k in a}
         testo(a[1], a[2], o.get('--lato', 64), o.get('--seme'))
+    elif a[0] == 'modifica':
+        modifica(a[1], a[2], a[3], int(a[a.index('--seme') + 1]) if '--seme' in a else None)
     elif a[0] == 'lavoro':
         print(json.dumps(api('GET', f'/background-jobs/{a[1]}'), indent=1)[:3000])
 
