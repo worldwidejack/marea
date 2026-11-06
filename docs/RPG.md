@@ -186,9 +186,6 @@ Scheda di Riccardo (scritta con Gemini, adattata dal suo Claude al gioco vero); 
   - **Ognuno per sé alla fine**: uscire dalla scala o da una lanterna, cadere senza aver salvato, o andarsene dal menu vale solo per te; gli altri continuano. Le lanterne sono personali (SALVA salva il tuo bottino). Il capo ucciso conta come dungeon completato per tutta la squadra.
   - **Niente pausa insieme**: Esc apre il menu ma il dungeon non si ferma; con lo zaino aperto il tuo eroe sta fermo (occhio ai nemici).
 
-### Prima persona
-A scelta nelle Impostazioni (di serie la terza persona), vale dalla discesa dopo. Stessa sim: l'unica differenza è che la mischia colpisce dove si guarda (`m` anche sui colpi), arco e magie come col mouse. Mai una mano vuota: arma o bacchetta della magia a destra, torcia a sinistra, due mani sulle armi pesanti, tirapugni a mani nude. Telefono in orizzontale, a due pollici. Codice in `rpg/prima_persona.ts` e `rpg/fp_*.ts`.
-
 ## 5. Equipaggiamento e forgia
 Si forgia dal **Fabbro** del Borgo (#414, VISIONE §2: prima era il Banco da Lavoro del giardino, GDD §5 «Botteghe del Borgo»); ogni giorno ha anche tre pezzi già forgiati in vetrina. Per forgiare serve **solo un tot di quel materiale** (il Legno si paga in **monete** a chi forgia, 4 Legno = 1 moneta, almeno 1: il Legno come risorsa non c'è più, #414; gli altri materiali si trovano nei dungeon). **[scelta provvisoria]** il livello col Fabbro sblocca i materiali: L1 (di tutti) legno, bronzo, ferro · L2 (800 monete) + argento, oro, vetro · L3 (2500) + ossa, meteorite. Chi aveva il Banco tiene il suo livello.
 
