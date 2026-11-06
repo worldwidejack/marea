@@ -71,9 +71,9 @@ const magiaPronta = (s: DungeonState) => (s.runHero.magia !== null ? s.runHero.m
 /** Id della magia che l'eroe di turno tiene in mano (la A la lancia), undefined = ha in mano l'arma. */
 export const magiaInMano = (s: DungeonState): string | undefined => (s.hero.incanta ? magiaPronta(s)?.id : undefined);
 
-function startSwing(s: DungeonState, caricato: boolean): void {
+function startSwing(s: DungeonState, caricato: boolean, dir: Mira): void {
   const h = s.hero, a = h.arma;
-  faceTo(s, aim(s, a.portata * 1.5, COS_SEMICERCHIO, a.portata, false));
+  if (dir) faceDir(s, dir); else faceTo(s, aim(s, a.portata * 1.5, COS_SEMICERCHIO, a.portata, false)); // prima persona: si colpisce dove si guarda
   const vel = 1 + buff(s, a.classe === 'pesante' ? 'velocitaPesanti' : 'velocitaLeggere');
   h.stile = swingStyle(a, caricato);
   h.act = 'swing'; h.actT = 0; h.actDur = secToTicks((a.tempo * (h.stile === 'giro' ? GIRO_TEMPO : 1) * (1 + malusDi(s))) / vel);
@@ -319,7 +319,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       } else if (dDown) drink(s);
       break;
     case 'press':
-      if (!inp.a) startSwing(s, false);
+      if (!inp.a) startSwing(s, false, dir);
       else if (h.actT >= HOLD_TICKS) { h.act = 'carica'; h.actT = 0; h.actDur = secToTicks((a.carica * (1 + malusDi(s)) * moltCaricaPoppa(s)) / (1 + buff(s, 'caricaVeloce'))); h.carica = 0; }
       break;
     case 'carica':
@@ -329,7 +329,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
         h.massimaP = Math.min(1, h.actT / secToTicks(rh.perk.massima));
         if (h.massimaP >= 1 && !h.massimo) { h.massimo = true; ev(s, { t: 'caricaMassima' }); }
       }
-      if (!inp.a) startSwing(s, h.carica >= 1);
+      if (!inp.a) startSwing(s, h.carica >= 1, dir);
       break;
     case 'swing':
       if (!h.colpito) sweepSwing(s);

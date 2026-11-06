@@ -184,7 +184,7 @@ export function createMausoleoFx(o: { sc: DungeonScene; loader: Loader; say(text
       }
       tacche.visible = !!k && k.colpi !== undefined && alone.visible;
       if (k && tacche.visible) {
-        tacche.position.set(k.x, fy + 4.4, k.z); tacche.quaternion.setFromAxisAngle(YA, Math.PI / 4); // di fronte alla camera (da sud-est)
+        tacche.position.set(k.x, fy + 4.4, k.z); tacche.quaternion.setFromAxisAngle(YA, (o.sc.scene.userData.camYaw as number | undefined) ?? Math.PI / 4); // di fronte alla camera
         tacche.children.forEach((c, i) => { (c as THREE.Mesh).material = i < (k.cariche ?? 0) ? taccaOn : taccaOff; });
       }
       // nebbia del secondo cuore: nel Santuario, attorno all'eroe

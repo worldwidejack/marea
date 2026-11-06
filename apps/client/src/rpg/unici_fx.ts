@@ -105,7 +105,7 @@ export function createUniciFx(scene: THREE.Scene, floorY: number): UniciFx {
       nastri.visible = !!br && v.hero.anim !== 'morto';
       nBrezza = br ? br.n : 0;
       if (br) {
-        nastri.position.set(hero.x, floorY + 2.35, hero.z); nastri.rotation.y = Math.PI / 4; // di fronte alla camera (da sud-est)
+        nastri.position.set(hero.x, floorY + 2.35, hero.z); nastri.rotation.y = (scene.userData.camYaw as number | undefined) ?? Math.PI / 4; // di fronte alla camera
         const tot = br.tipo === 'fresca' ? (br.n >= 1 ? 3 : 0) : br.n, onMat = br.tipo === 'vampa' ? nastroVampa : nastroOn;
         nastri.children.forEach((c, k) => { const m = c as THREE.Mesh; m.material = k < tot ? onMat : nastroOff; m.rotation.z = br.n >= br.max ? 0.35 * ((Math.floor(now * 8) + k) % 3 - 1) : 0; });
       }

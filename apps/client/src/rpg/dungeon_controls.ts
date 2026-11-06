@@ -23,6 +23,8 @@ export type Controls = {
   miraDir(): { x: number; z: number } | null;
   /** Pausa, domanda «Uscire?» o scelta di un preferito aperta: niente tick. */
   readonly paused: boolean;
+  /** Prima persona: il mouse è scappato (Esc), si apre la pausa. */
+  apriPausa(): void;
   /** Vicino alla scala: mostra «A · Esci col bottino». */
   setExit(on: boolean): void;
   /** Drenaggio: accanto a una valvola chiusa (A la gira). Fucina: la leva della chiusa (createControls({ valvola }) cambia la scritta). */
@@ -88,7 +90,9 @@ const CSS = `
 .mz-dng-ask .mz-btn small { font-size: 12px; color: inherit; opacity: .8; }
 `;
 
-export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; hero(): HeroState | null; onPreferito(p: Preferito): void; blocked(): boolean; yaw(): number; insieme?: boolean; valvola?: string; timone?: string }): Controls {
+export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; hero(): HeroState | null; onPreferito(p: Preferito): void; blocked(): boolean; yaw(): number; insieme?: boolean; valvola?: string; timone?: string;
+  /** Prima persona: `clic` false = quel clic serviva solo a riprendere il mouse, non attacca; `riprendi` = la pausa si chiude col bottone. */
+  fp?: { clic(): boolean; riprendi(): void } }): Controls {
   if (!document.getElementById('mz-dng-ctrl-style')) { const st = document.createElement('style'); st.id = 'mz-dng-ctrl-style'; st.textContent = CSS; document.head.appendChild(st); }
   o.root.classList.add('mz-dng'); // la schivata (#btnSchiva) prende il posto di D
   let dLatch = false, eLatch = false, aLatch = false, mouseA = false, asking = false, pausa = false;
@@ -124,7 +128,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const lanBox = el('div', 'mz mz-dng-lan'); lanBox.id = 'mzDngLanterna';
   const lanTitle = el('b'); lanTitle.append(el('i'), 'LANTERNA');
   const lanSub = el('div', 'sub');
-  const salva = btn('mz-btn salva', 'salva', 'SALVA'), esciL = btn('mz-btn ghost', 'esci-lanterna', 'ESCI');
+  const salva = btn('mz-btn salva', 'salva', 'SALVA'), esciL = btn('mz-btn ghost', 'esci-lanterna', o.fp ? 'ESCI · X' : 'ESCI');
   const lanRow = el('div', 'mz-row'); lanRow.append(salva, esciL);
   lanBox.append(lanTitle, lanSub, lanRow);
 
@@ -148,7 +152,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const openZaino = () => { setPausa(false); setAsk(false); o.onZaino(); };
   pauseBtn.addEventListener('click', () => { if (!asking) setPausa(!pausa); });
   zaino.addEventListener('click', openZaino);
-  resume.addEventListener('click', () => setPausa(false));
+  resume.addEventListener('click', () => { setPausa(false); o.fp?.riprendi(); });
   mZaino.addEventListener('click', openZaino);
   mEsci.addEventListener('click', () => setAsk(true));
   no.addEventListener('click', () => setAsk(false));
@@ -161,7 +165,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
 
   const kd = (e: KeyboardEvent) => {
     if (e.altKey || e.ctrlKey || e.metaKey || o.blocked()) return; // scheda aperta: Esc e I sono suoi (la chiudono)
-    if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) { if (pref.aperto) pref.chiudi(); else if (asking) setAsk(false); else setPausa(!pausa); } return; }
+    if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat && performance.now() - persoT > 300) { if (pref.aperto) pref.chiudi(); else if (asking) setAsk(false); else setPausa(!pausa); } return; }
     if (asking && (e.code === 'Enter' || e.code === 'KeyY')) { e.preventDefault(); e.stopImmediatePropagation(); setAsk(false); o.onAbort(); return; }
     if (e.code === 'KeyI') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) openZaino(); return; }
     if (e.code === 'KeyR' || e.code === 'KeyE') {
@@ -170,18 +174,21 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
       keys.add(e.code); if (e.code === 'KeyE') eLatch = true; else dLatch = true;
       return;
     }
+    // prima persona: col mouse catturato i bottoni della lanterna non si raggiungono
+    if (o.fp && lanBox.classList.contains('on') && (e.code === 'KeyF' || e.code === 'KeyX')) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat && !pausa && !asking) { if (e.code === 'KeyF') o.onSalva(); else o.onEsciLanterna(); } return; }
     pref.tasto(e); // 1-2-3: i preferiti
   };
   const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
-  const md = (e: PointerEvent) => { if (e.pointerType === 'mouse' && e.button === 0 && !pausa && !asking && !o.blocked()) { mouseA = true; aLatch = true; } };
+  const md = (e: PointerEvent) => { if (e.pointerType === 'mouse' && e.button === 0 && !pausa && !asking && !o.blocked() && (!o.fp || o.fp.clic())) { mouseA = true; aLatch = true; } };
   const mu = (e: PointerEvent) => { if (e.pointerType === 'mouse' && e.button === 0) mouseA = false; };
   const blur = () => { keys.clear(); tD.lascia(); tE.lascia(); mouseA = false; stick.cancel(); };
   addEventListener('keydown', kd, true); addEventListener('keyup', ku, true);
   o.canvas.addEventListener('pointerdown', md); addEventListener('pointerup', mu); addEventListener('blur', blur);
 
-  let lastIcons = '', lanSig = '';
+  let lastIcons = '', lanSig = '', persoT = -1000;
   return {
     get paused() { return asking || pausa || pref.aperto; },
+    apriPausa() { persoT = performance.now(); if (!asking && !pref.aperto) setPausa(true); },
     sample() {
       const st = stick.sample();
       const out = { a: aLatch || mouseA || st.held, d: dLatch || tD.giu || keys.has('KeyR'), e: eLatch || tE.giu || keys.has('KeyE'), m: st.m, tap: st.tap };
@@ -202,7 +209,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
       if (!l) return;
       const cosa = [l.oggetti ? `${l.oggetti} ${l.oggetti === 1 ? 'oggetto' : 'oggetti'}` : '', l.monete ? `${l.monete} monete` : ''].filter(Boolean).join(' e ');
       lanSub.textContent = l.salvatoQui ? 'Bottino al sicuro. Se cadi, ti risvegli qui' : cosa ? `Metti al sicuro ${cosa}` : 'Salva: se cadi, ti risvegli qui';
-      salva.textContent = l.salvatoQui ? 'SALVATO ✓' : 'SALVA';
+      salva.textContent = (l.salvatoQui ? 'SALVATO ✓' : 'SALVA') + (o.fp ? ' · F' : '');
       salva.classList.toggle('fatto', l.salvatoQui);
       esciL.title = 'Esci col bottino: la prossima volta puoi ripartire da qui';
     },

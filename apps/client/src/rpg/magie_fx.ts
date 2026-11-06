@@ -30,9 +30,15 @@ const steps = (v: number, n: number) => Math.floor(Math.max(0, Math.min(1, v)) *
 /** Numero «casuale» stabile (0..1) per un intero: il tremolio si ridisegna a scatti, non a ogni frame. */
 const rnd = (n: number): number => { const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
 
-const SEG_FUOCO = 11, SEG_ELETTRO = 9;
+const SEG_FUOCO = 11, SEG_ELETTRO = 9, SEG_FP = 20;
+/** Prima persona: giri al secondo dei pezzi lungo il flusso, grandezza vista (m per metro di distanza) vicino alla mano e in fondo, distanza della mano dagli occhi. */
+const FP = { giri: 1.1, a0: 0.018, a1: 0.085, lato: 1.1, d0: 0.6 };
+/** Da 0..1 sullo schermo a 0..1 nel mondo: i pezzi sono equidistanti come si vedono, non come stanno (la prospettiva li ammasserebbe in fondo). */
+const inMondo = (s: number, d1: number): number => { const d = 1 / (1 / FP.d0 + (1 / d1 - 1 / FP.d0) * s); return (d - FP.d0) / (d1 - FP.d0); };
+const SCALA_FP: Record<'fuoco' | 'cura' | 'furia', readonly string[]> = { fuoco: [PAL.sabbiaChiara, PAL.giallo, PAL.arancio, PAL.rosso], cura: [PAL.sabbiaChiara, PAL.erbaChiara, PAL.erba, PAL.acquaBassa], furia: [PAL.giallo, PAL.arancio, PAL.rosso, PAL.rosaNeon] };
 
-export function createMagieFx(scene: THREE.Scene, floorY: number): MagieFx {
+/** Prima persona: `origine` = dove sta in mondo la punta della bacchetta: il tuo raggio parte da lì e scorre verso il bersaglio. */
+export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?: () => THREE.Vector3 } = {}): MagieFx {
   const root = new THREE.Group(); root.name = 'magie_fx'; scene.add(root);
   const box = new THREE.BoxGeometry(1, 1, 1);
   const mats = new Map<string, THREE.MeshBasicMaterial>();
@@ -50,7 +56,7 @@ export function createMagieFx(scene: THREE.Scene, floorY: number): MagieFx {
     if (!r) {
       const g = new THREE.Group(); g.visible = false; root.add(g);
       const segs: THREE.Mesh[] = [];
-      for (let i = 0; i < Math.max(SEG_FUOCO, SEG_ELETTRO); i++) { const m = new THREE.Mesh(box, mat(PAL.arancio)); m.renderOrder = 3; g.add(m); segs.push(m); }
+      for (let i = 0; i < Math.max(SEG_FUOCO, SEG_ELETTRO, o.origine ? SEG_FP : 0); i++) { const m = new THREE.Mesh(box, mat(PAL.arancio)); m.renderOrder = 3; g.add(m); segs.push(m); }
       const glow = new THREE.Mesh(box, mat(PAL.giallo, 0.35)); glow.renderOrder = 2; g.add(glow);
       r = { g, segs, glow }; raggi.set(k, r);
     }
@@ -96,6 +102,38 @@ export function createMagieFx(scene: THREE.Scene, floorY: number): MagieFx {
       }
       r.glow.visible = true; r.glow.material = mat(PAL.acquaBassa, 0.16);
       a3.set(x0, y, z0); b3.set(x0 + fx * L, y, z0 + fz * L); tratto(r.glow, a3, b3, 0.4, 0.4);
+    }
+  };
+
+  /** Prima persona: il tuo raggio visto dagli occhi. Dalla punta della bacchetta al bersaglio, sottile vicino e largo in fondo: i pezzi scorrono via
+   *  dalla mano, così si legge come un flusso e non copre la vista. */
+  const disegnaFp = (r: Raggio, da: THREE.Vector3, x: number, z: number, fx: number, fz: number, len: number, el: El, t: number): void => {
+    const e = el ?? 'fuoco', fine = b3.set(x + fx * len, floorY + MAGIA_Y, z + fz * len), dx = fine.x - da.x, dy = fine.y - da.y, dz = fine.z - da.z, sc = Math.floor(t * 30), d1 = Math.max(FP.d0 + 0.5, Math.sqrt(dx * dx + dy * dy + dz * dz) + FP.d0);
+    r.g.visible = true; r.glow.visible = false;
+    if (e === 'elettricita') {
+      let px = da.x, py = da.y, pz = da.z;
+      const fase = Math.floor(t * 15), nx = -fz, nz = fx;
+      for (let i = 0; i < r.segs.length; i++) {
+        const m = r.segs[i]!;
+        if (i >= SEG_ELETTRO) { m.visible = false; continue; }
+        const s = (i + 1) / SEG_ELETTRO, k = inMondo(s, d1), dist = FP.d0 + (d1 - FP.d0) * k, ult = i === SEG_ELETTRO - 1 ? 0 : 1, j = (rnd(fase * 7 + i) - 0.5) * 0.09 * dist * ult, jy = (rnd(fase * 11 + i) - 0.5) * 0.09 * dist * ult;
+        const qx = da.x + dx * k + nx * j, qy = da.y + dy * k + jy, qz = da.z + dz * k + nz * j, w = 0.012 * dist;
+        a3.set(px, py, pz); m.visible = true; m.material = mat(i % 2 ? PAL.acquaBassa : PAL.giallo);
+        tratto(m, a3, new THREE.Vector3(qx, qy, qz), w, w);
+        m.renderOrder = 3; px = qx; py = qy; pz = qz;
+      }
+      return;
+    }
+    const sca = SCALA_FP[e];
+    for (let i = 0; i < r.segs.length; i++) {
+      const m = r.segs[i]!;
+      if (i >= SEG_FP) { m.visible = false; continue; }
+      const s = (i / SEG_FP + (sc / 30) * FP.giri) % 1, k = inMondo(s, d1), dist = FP.d0 + (d1 - FP.d0) * k, a = FP.a0 + (FP.a1 - FP.a0) * s, c = Math.floor(s * sca.length);
+      const lato = (rnd(i * 3 + 1) - 0.5) * FP.lato * a * dist, su = (rnd(i * 5 + 2) - 0.5) * FP.lato * a * dist;
+      m.visible = true; m.material = mat(sca[Math.min(sca.length - 1, c)]!);
+      m.position.set(da.x + dx * k - fz * lato, da.y + dy * k + su, da.z + dz * k + fx * lato);
+      m.scale.setScalar(a * dist * Math.min(1, (1 - s) * 6) * (0.75 + 0.25 * rnd(i + Math.floor(sc / 3))));
+      m.rotation.set(rnd(i + 7) * 3 + s * 4, rnd(i + 11) * 3, 0);
     }
   };
 
@@ -146,7 +184,7 @@ export function createMagieFx(scene: THREE.Scene, floorY: number): MagieFx {
       const accendi = (k: number, x: number, z: number, fx: number, fz: number, c: { len: number; el?: El } | undefined): void => {
         if (!c) return;
         usati.add(k); nRaggi++;
-        disegna(raggio(k), x, z, fx, fz, c.len, c.el, t, k);
+        if (k === 0 && o.origine) disegnaFp(raggio(k), o.origine(), x, z, fx, fz, c.len, c.el, t); else disegna(raggio(k), x, z, fx, fz, c.len, c.el, t, k);
       };
       accendi(0, hero.x, hero.z, v.hero.fx, v.hero.fz, v.hero.canale);
       for (const c of v.compagni) accendi(100 + c.i, c.x, c.z, c.fx, c.fz, c.canale);

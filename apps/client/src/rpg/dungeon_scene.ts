@@ -45,6 +45,8 @@ export type DungeonScene = {
   pulse(n: number): void;
   /** Livello di luce della cella in (x, z): 0 = mai vista, 0.28 = vista prima, ≥ 0.55 = in vista ora. */
   light(x: number, z: number): number;
+  /** Prima persona: la luce cotta delle torce in (x, z), RGB (1 = pieno). */
+  luceQui(x: number, z: number): readonly [number, number, number];
   /** Drenaggio: livello dell'acqua di ogni bacino (1 pieno, 0 asciutto), dalla vista. */
   setAcque(a: readonly { n: number; livello: number }[]): void;
   /** Ritocca i materiali di un oggetto di scena aggiunto dopo (effetti dei dungeon) con la luce delle torce e la nebbia. */
@@ -55,11 +57,11 @@ export type DungeonScene = {
 
 /** Stile di un dungeon: colori dei segnaposto, quota del pavimento, colore della lanterna, luce emisferica (cielo, terra, forza), coperchio
  *  dei muri tagliati dalla finestra. */
-type Stile = { floor: string; wall: string; top: number; lantern: string; hemi: [string, string, number]; coperchio: string };
+type Stile = { floor: string; wall: string; top: number; lantern: string; hemi: [string, string, number]; coperchio: string; /** Prima persona: niente soffitto (posti all'aperto). */ soffitto?: false };
 const STYLE: Record<string, Stile> = {
   grotta: { floor: PAL.roccia, wall: PAL.pietraScura, top: 0.05, lantern: PAL.arancio, hemi: [PAL.pietraScura, PAL.ombraCalda, 1.3], coperchio: PAL.ombraCalda },
   cripta: { floor: PAL.pietraScura, wall: PAL.pietra, top: 0.01, lantern: PAL.arancio, hemi: [PAL.pietra, PAL.ombraCalda, 1.2], coperchio: PAL.ombraCalda },
-  vuoto: { floor: PAL.abisso, wall: PAL.viola, top: 0.1, lantern: PAL.viola, hemi: [PAL.abisso, PAL.neroCaldo, 1.4], coperchio: PAL.abisso },
+  vuoto: { floor: PAL.abisso, wall: PAL.viola, top: 0.1, lantern: PAL.viola, hemi: [PAL.abisso, PAL.neroCaldo, 1.4], coperchio: PAL.abisso, soffitto: false },
   drenaggio: { floor: PAL.pietraScura, wall: PAL.roccia, top: 0.05, lantern: PAL.arancio, hemi: [PAL.acquaProfonda, PAL.ombraCalda, 1.35], coperchio: PAL.ombraCalda },
   archivio: { floor: PAL.legno, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.giallo, hemi: [PAL.sabbia, PAL.ombraCalda, 1.25], coperchio: PAL.ombraCalda },
   fucina: { floor: PAL.roccia, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.arancio, hemi: [PAL.legno, PAL.neroCaldo, 1.3], coperchio: PAL.neroCaldo },
@@ -75,6 +77,8 @@ const STYLE: Record<string, Stile> = {
 };
 /** Finestra sull'eroe: raggio (m) e quota sotto cui non si taglia (sopra il muretto basso da 0,6 m). */
 const FIN = { raggio: 1.7, altezza: 0.68 } as const;
+/** Prima persona: altezza del soffitto (m), quella dei muri alti, e della lanterna, che si porta in mano. */
+const SOFFITTO = 2.4, LANTERNA_FP = { y: 1.9, forza: 3.2 }, SOFFITTO_TONO = 0.42, SCALA_FP = { luce: 0.3, via: 1.7 };
 /** Luce cotta: raggio (m) e forza per tipo di sorgente. */
 const LUCI = { torcia: { r: 10, i: 2 }, braciere: { r: 10, i: 2.2 }, scala: { r: 7, i: 1 }, altare: { r: 5, i: 0.5 } } as const;
 
@@ -84,11 +88,12 @@ const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 const tmp = new THREE.Matrix4(), sc = new THREE.Matrix4();
 
 /** `id`: un dungeon di dungeons.json, o direttamente la sua DungeonDef (il colosseo dell'Arena, che sta in arena.json). */
-export async function createDungeonScene(loader: Loader, id: string | DungeonDef, camera: THREE.Camera): Promise<DungeonScene> {
+export async function createDungeonScene(loader: Loader, id: string | DungeonDef, camera: THREE.Camera, o: { primaPersona?: boolean } = {}): Promise<DungeonScene> {
+  const fp = !!o.primaPersona;
   const def = typeof id === 'string' ? dungeonDef(id) : id, map = parseDungeon(def), T = map.tile, W = map.w, H = map.h;
   const arena = STILI_ARENA.has(def.stile);
   const st = STYLE[def.stile] ?? STYLE['grotta']!;
-  const scene = new THREE.Scene(); scene.name = 'dungeon_' + def.id; scene.userData.near = 4; // render/scene.ts: piano vicino
+  const scene = new THREE.Scene(); scene.name = 'dungeon_' + def.id; scene.userData.near = fp ? 0.1 : 4; // render/scene.ts: piano vicino
   scene.background = new THREE.Color(PAL.neroCaldo);
   const group = new THREE.Group(); group.name = 'kit'; scene.add(group);
   const ch = (cx: number, cz: number): string => def.rows[cz]?.[cx] ?? ' ';
@@ -114,7 +119,7 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
     }
   }
   // muro basso fisso: il pavimento sta a nord o a ovest del muro (il muro è tra la camera e chi cammina lì); gli altri restano alti
-  const isLow = (i: number) => { const cx = i % W, cz = (i - cx) / W; return isFloor(cx, cz - 1) || isFloor(cx - 1, cz) || isFloor(cx - 1, cz - 1); };
+  const isLow = (i: number) => { if (fp) return false; const cx = i % W, cz = (i - cx) / W; return isFloor(cx, cz - 1) || isFloor(cx - 1, cz) || isFloor(cx - 1, cz - 1); };
   const lowWalls = walls.filter(isLow), highWalls = walls.filter((i) => !isLow(i));
 
   const k = def.stile;
@@ -139,12 +144,14 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
       sorgenti.push({ x: (cx + 0.5) * T, z: (cz + 0.5) * T, c: arena ? PAL.sabbiaChiara : PAL.arancio, ...LUCI.braciere });
     }
   }
-  if (!arena) sorgenti.push({ x: map.exit.x, z: map.exit.z, c: PAL.giallo, ...LUCI.scala }); // nel colosseo la scala non c'è
+  if (!arena) sorgenti.push({ x: map.exit.x, z: map.exit.z, c: PAL.giallo, ...LUCI.scala, ...(fp ? { i: LUCI.scala.i * 0.4 } : {}) }); // nel colosseo la scala non c'è
   for (const a of map.altari) sorgenti.push({ x: a.x, z: a.z, c: PAL.acquaBassa, ...LUCI.altare });
 
+  if (fp) for (const s of sorgenti) s.i *= 0.6; // da vicino abbaglierebbero: dall'alto la stessa luce si spalma su tutta la stanza
   // ---- luce cotta e nebbia, finestra sull'eroe ----
   const luce = createLuce(map, { isFloor, muro: (cx, cz) => cx >= 0 && cz >= 0 && cx < W && cz < H && muro[cz * W + cx] === 1, sorgenti, tutto: arena });
   const fin: Finestra = createFinestra({ raggio: FIN.raggio, altezza: st.top + FIN.altezza, coperchio: st.coperchio, griglia: { luce: luce.luce, nebbia: luce.nebbia, w: W, h: H, tile: T, res: RES, buio: PAL.neroCaldo } });
+  if (fp) fin.setTaglia(false); // la camera sta dentro l'eroe: non c'è niente da aprire
 
   const makeBatch = (ps: Part[], cells: number[], base: THREE.Matrix4[], name: string, rit: Ritocco, show = true): Batch => {
     const meshes = ps.map((p) => {
@@ -172,6 +179,13 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
   const dk = k === 'drenaggio' ? kitDrenaggio(st.top) : k === 'archivio' ? kitArchivio(st.top) : k === 'fucina' ? kitFucina(st.top) : k === 'mausoleo' ? kitMausoleo(st.top) : k === 'diga' ? kitDiga(st.top) : k === 'baita' ? kitBaita(st.top) : k === 'ceneri' ? kitCeneri(st.top) : null, ak = k === 'archivio' ? kitArchivio(st.top) : null;
   // la Diga, la Baita e le Ceneri: il pavimento corre tutto nello stesso verso (girato di mezzo giro sì, di un quarto no)
   makeBatch(pFloor ?? dk?.pavimento ?? [boxPart(T, 0.3, T, -0.3 + st.top, st.floor)], floors, mats(floors, k === 'diga' || k === 'baita' || k === 'ceneri' ? (i) => rot(i) & 2 : rot), 'pavimento', TERRA);
+  // prima persona: il soffitto è il pavimento del kit capovolto. Si disegna per primo e non scrive profondità: chi è più alto (boss, scala) non resta tagliato
+  if (fp && st.soffitto !== false) {
+    const sopra = new THREE.Matrix4().makeTranslation(0, SOFFITTO + st.top, 0).multiply(new THREE.Matrix4().makeRotationX(Math.PI));
+    const ps = (pFloor ?? dk?.pavimento ?? [boxPart(T, 0.3, T, -0.3 + st.top, st.wall)]).map((p) => { const mat = p.mat.clone(); mat.color.multiplyScalar(SOFFITTO_TONO); return { geo: p.geo, mat }; });
+    const b = makeBatch(ps, floors, floors.map((i) => place(i % W, Math.floor(i / W), rot(i)).multiply(sopra)), 'soffitto', TERRA);
+    for (const im of b.meshes) { im.renderOrder = -1; (im.material as THREE.Material).depthWrite = false; }
+  }
   makeBatch(pWall ?? dk?.muro ?? [boxPart(T, 2.4, T, 0, st.wall)], highWalls, mats(highWalls, rot), 'muro', PIENO);
   makeBatch(pLow ?? dk?.muro_basso ?? [boxPart(T, 0.6, T, 0, st.wall)], lowWalls, mats(lowWalls, rot), 'muro_basso', PIENO);
   // Fucina, Mausoleo, Diga, Baita e Ceneri cercano la loro colonna (dng_<stile>_colonna) prima del segnaposto; Drenaggio e Archivio le hanno solo in codice
@@ -199,7 +213,9 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
   const exitCell = map.exit.cz * W + map.exit.cx;
   const sdx = Math.round((map.spawn.x - map.exit.x) / T), sdz = Math.round((map.spawn.z - map.exit.z) / T);
   const exitM = new THREE.Matrix4().compose(center(map.exit.cx, map.exit.cz), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(-sdx, -sdz)), new THREE.Vector3(1, 1, 1));
-  if (!arena) makeBatch(pExit ?? [boxPart(1.4, 0.4, 1.8, 0, PAL.legno), boxPart(1.4, 0.4, 1.2, 0.4, PAL.legno), boxPart(1.4, 0.4, 0.6, 0.8, PAL.legnoChiaro)], [exitCell], [exitM], 'scala', SEMPRE);
+  // prima persona: la luce della scala si abbassa (da vicino accecherebbe) e la scala sparisce quando le si va sopra: la camera ci finirebbe dentro
+  const smorza = (p: Part): Part => { if (!fp || !p.mat.emissive.getHex()) return p; const mat = p.mat.clone(); mat.emissiveIntensity = SCALA_FP.luce; return { geo: p.geo, mat }; };
+  const bScala = arena ? null : makeBatch((pExit ?? [boxPart(1.4, 0.4, 1.8, 0, PAL.legno), boxPart(1.4, 0.4, 1.2, 0.4, PAL.legno), boxPart(1.4, 0.4, 0.6, 0.8, PAL.legnoChiaro)]).map(smorza), [exitCell], [exitM], 'scala', SEMPRE);
 
   // ---- altari di salvataggio: piedistallo di pietra e cristallo (spento abisso; acceso, l'ultimo toccato, acqua bassa luminosa) ----
   // segnaposto fatto di box finché non c'è un modello dng_altare; si vedono sempre, come la scala: sono i punti sicuri del dungeon
@@ -213,7 +229,7 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
   const hemi = new THREE.HemisphereLight(st.hemi[0], st.hemi[1], st.hemi[2]);
   const amb = new THREE.AmbientLight(PAL.viola, 0.12);
   const dir = new THREE.DirectionalLight(PAL.sabbia, 0.55); dir.position.set(14, 30, 18); scene.add(dir, dir.target);
-  const lantern = new THREE.PointLight(st.lantern, arena ? 5 : 14, 9, 1.6); lantern.position.set(0, 2.4, 0); // nel colosseo è giorno: la lanterna quasi non serve
+  const lantern = new THREE.PointLight(st.lantern, arena ? 5 : fp ? LANTERNA_FP.forza : 14, 9, 1.6); lantern.position.set(0, 2.4, 0); // nel colosseo è giorno: la lanterna quasi non serve
   const altarLight = new THREE.PointLight(PAL.acquaBassa, 0, 10, 1.6);
   scene.add(hemi, amb, lantern, altarLight);
 
@@ -225,7 +241,8 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
       const hc = cellOfXZ(hx, hz);
       if (hc >= 0 && hc !== lastCell) { lastCell = hc; luce.vista(hc); }
       luce.passo(t0 < 0 ? 0 : t - t0); t0 = t;
-      lantern.position.set(hx, 2.4, hz);
+      lantern.position.set(hx, fp ? LANTERNA_FP.y : 2.4, hz);
+      if (fp && bScala) setInst(bScala, 0, (hx - map.exit.x) ** 2 + (hz - map.exit.z) ** 2 > SCALA_FP.via ** 2);
       dir.target.position.set(hx, 0, hz); dir.position.set(hx + 14, 30, hz + 18);
       // fiamme che tremano a scatti (8 al secondo), non in modo liscio
       const step = Math.floor(t * 8);
@@ -257,6 +274,10 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
     },
     ritocca(o, rit = TERRA) { fin.applica(o, rit); },
     light: (x, z) => luce.livello(cellOfXZ(x, z)),
+    luceQui(x, z) {
+      const d = luce.luce.image.data as Uint8Array, lx = Math.floor((x / T) * RES), lz = Math.floor((z / T) * RES), i = (lz * W * RES + lx) * 4;
+      return [(d[i] ?? 0) / 127.5, (d[i + 1] ?? 0) / 127.5, (d[i + 2] ?? 0) / 127.5];
+    },
     stats: () => ({ floors: floors.length, walls: walls.length, low: lowWalls.length, lights: 2 + (altarLight.intensity > 0 ? 1 : 0), seen: luce.viste, altari: altarCells.length, altareAcceso: altarOn }),
     dispose() {
       for (const c of group.children) (c as THREE.InstancedMesh).dispose(); // le geometrie restano nella cache del kit (prossima discesa)
