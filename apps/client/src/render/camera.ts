@@ -22,6 +22,8 @@ export type DioramaCamera = {
    *  e vista delle impostazioni finché non si passa null; con null torna esattamente com'era. */
   blocca?(v: { yaw: number; pitch: number; dist: number; fov: number } | null): void;
   readonly isLocked?: boolean;
+  /** Prima persona (dungeon): posizione, rotazione e FOV li decide chi chiama, qui non si tocca più niente. false = torna tutto com'era. */
+  pilota?(on: boolean): void;
 };
 export const CAM = { PITCH: Math.PI / 4, YAW: Math.PI / 4, FOV: 30, DIST: 28, ZMIN: 0.6, ZMAX: 2.2, SMOOTH: 0.22, ZOOM_SMOOTH: 0.12 } as const;
 const clamp = (z: number) => Math.min(CAM.ZMAX, Math.max(CAM.ZMIN, z));
@@ -49,10 +51,10 @@ export function createDioramaCamera(o: { aspect: number; canvas: HTMLCanvasEleme
   const aim = () => off.set(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
   aim();
 
-  let lock: { yaw: number; pitch: number; dist: number; fov: number } | null = null, fov0 = camera.fov;
+  let lock: { yaw: number; pitch: number; dist: number; fov: number } | null = null, fov0 = camera.fov, pilotata = false;
   const onWheel = (e: WheelEvent) => {
     e.preventDefault();
-    if (lock) return;
+    if (lock || pilotata) return;
     // deltaY continuo (trackpad) o a scatti (rotella): zoom esponenziale, così ogni tacca pesa uguale a ogni livello.
     const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
     zoomTarget = clamp(zoomTarget * Math.exp(Math.max(-60, Math.min(60, dy)) * (e.ctrlKey ? 0.01 : 0.0022)));
@@ -61,6 +63,7 @@ export function createDioramaCamera(o: { aspect: number; canvas: HTMLCanvasEleme
 
   const lockOff = new THREE.Vector3();
   const place = () => {
+    if (pilotata) return;
     const d = lock ? lock.dist : dist * zoom, o = lock ? lockOff : off;
     camera.position.set(cur.x + o.x * d, cur.y + o.y * d, cur.z + o.z * d);
     camera.lookAt(cur);
@@ -90,6 +93,11 @@ export function createDioramaCamera(o: { aspect: number; canvas: HTMLCanvasEleme
       place();
     },
     get pitch() { return lock ? lock.pitch : pitch; },
+    pilota: (on) => {
+      pilotata = on;
+      if (on) return;
+      api.yaw = lock ? lock.yaw : yaw; camera.rotation.order = 'XYZ'; camera.fov = lock ? lock.fov : fov0; camera.updateProjectionMatrix(); place();
+    },
     setZoom: (z) => { zoomTarget = clamp(z); zoom = zoomTarget; vzoom.v = 0; api.zoom = zoom; place(); },
     update: (dt) => {
       if (!(dt > 0)) return;

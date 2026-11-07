@@ -1,5 +1,5 @@
 // Flag dall'URL, congelati all'avvio. Contratto: docs/TECH.md §9.
-export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; invito: string; serie: boolean; rientro: boolean; novita: boolean; home: boolean; storia: boolean; templari: boolean; banco: boolean; gara: boolean; adrenalina: boolean; difesa: boolean; arena: '' | 'si' | 'banco'; dipinto: 'si' | 'no' | 'prova'; slot: number | null; ruota: '' | '0' | '1'; finiture: Readonly<Record<string, string>> };
+export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; invito: string; serie: boolean; rientro: boolean; novita: boolean; home: boolean; storia: boolean; templari: boolean; banco: boolean; gara: boolean; adrenalina: boolean; difesa: boolean; arena: '' | 'si' | 'banco'; dipinto: 'si' | 'no' | 'prova'; slot: number | null; ruota: '' | '0' | '1'; primaPersona: boolean | null; finiture: Readonly<Record<string, string>> };
 function read(): Flags {
   const q = new URLSearchParams(location.search);
   const on = (k: string) => q.get(k) === '1' || q.get(k) === 'true';
@@ -31,6 +31,7 @@ function read(): Flags {
     dipinto: q.get('dipinto') === '0' ? 'no' : q.get('dipinto') === 'prova' ? 'prova' : q.get('dipinto') === '1' || !on('test') ? 'si' : 'no',
     slot: Number.isInteger(slot) && slot >= 0 ? slot : null, // senza login (test): ?slot=N si nasce davanti alla casa N del Borgo, la barca al molo del Porto
     ruota: q.get('ruota') === '1' ? '1' : q.get('ruota') === '0' ? '0' : '', // Corse sul telefono: ?ruota=1 l'avviso «Ruota il telefono» sempre, ?ruota=0 mai
+    primaPersona: q.get('fp') === '1' ? true : q.get('fp') === '0' ? false : null, // dungeon in prima persona per le prove: ?fp=1 o ?fp=0, senza vale l'impostazione del giocatore
     adrenalina: on('adrenalina'), // Isola dell'Adrenalina per le prove: liberatoria già firmata, casco non richiesto, bottone 🚡 per andare al cancello
     difesa: on('difesa'), // Isola della Difesa per le prove: bottone 🥕 per andare al cancello dell'orto
     // banco delle finiture (provafiniture.html): ?pav=&carta=&liv=&stanza= la stanza in 3D, ?foglio=pav|muri&min= tutte insieme

@@ -51,6 +51,23 @@ test('mira: ogni indice è un versore e aimIndex lo ritrova; fuori scala o assen
   assert.equal(SQ_MIRA_MAX, AIM_N, 'il protocollo della squadra conosce lo stesso massimo');
 });
 
+test('mischia in prima persona: con la mira il colpo va dove si guarda, senza mira resta quella assistita', () => {
+  const colpo = (m?: number) => {
+    const s = arena(heroBase()), e = dummy(s, 0, 1.2), m0 = m ? { m } : {};
+    run(s, 1, inp({ a: true, ...m0 }));
+    run(s, 1, inp({ ...m0 }));
+    run(s, 120);
+    return { e, fx: s.hero.fx, fz: s.hero.fz };
+  };
+  const assistita = colpo();
+  assert.ok(assistita.e.vita < assistita.e.max, 'senza mira: la mira assistita gira l\'eroe sul nemico alle spalle');
+  const altrove = colpo(aimIndex(0, -1));
+  assert.equal(altrove.e.vita, altrove.e.max, 'guardando dall\'altra parte il nemico alle spalle non si prende');
+  assert.ok(vicino([altrove.fx, altrove.fz], aimDir(aimIndex(0, -1))!), 'l\'eroe è girato dove guarda');
+  const davanti = colpo(aimIndex(0, 1));
+  assert.ok(davanti.e.vita < davanti.e.max, 'guardandolo si prende');
+});
+
 test('mira: il log con la mira (formato 2) fa il giro senza perdite; senza mira resta il formato 1 di sempre', () => {
   const frames: DungeonInput[] = [inp({ a: true, m: 5 }), inp({ a: true, m: 5 }), inp({ a: true, m: 7 }), inp({ mx: 0.5 }), inp({ a: true }), inp({ a: true, m: AIM_N })].map(quantizeDungeon);
   const p = packDungeon(frames);

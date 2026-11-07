@@ -105,11 +105,10 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   mirino?: boolean;
   /** Colpi e carica muovono solo dalla vita in su (Templari): il giro del corpo lo fa la schiena, niente gambe piegate né corpo abbassato,
    *  così sotto restano la camminata o il fermo della clip. */
-  soloBusto?: boolean;
+  soloBusto?: boolean; /** Prima persona: arma, sfera, effetti e linea di mira vivono fuori dalla scena (si fa tutto, ma non si disegna). */ soloCorpo?: boolean;
 }): Promise<HeroActor> {
   const avatar = await createAvatar({ loader: o.loader, look: o.look, x: o.x, z: o.z });
-  avatar.setGround(() => o.floorY);
-  o.scene.add(avatar.object);
+  avatar.setGround(() => o.floorY); o.scene.add(avatar.object);
   const bone = (n: string) => avatar.object.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(n)) ?? avatar.object.getObjectByName(n) ?? null;
   const B = {
     armR: bone('UpperArm.R'), foreR: bone('LowerArm.R'), armL: bone('UpperArm.L'), foreL: bone('LowerArm.L'), spine: bone('Spine'), head: bone('Head'),
@@ -129,6 +128,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   const bodyMats = materialsOf(avatar.object);
   let eqKey = '';
   const equip = (h: EquipVista): void => {
+    if (o.soloCorpo) return; // prima persona: le armature a scatole da vicino coprirebbero tutto il corpo
     const i = indossaDi(h), k = JSON.stringify(i ?? null);
     if (k === eqKey) return;
     eqKey = k; avatar.setIndossa(i, { schiena: false });
@@ -138,9 +138,9 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   let bow = false, tiro = false, arco: Arco | null = null, weapon: THREE.Object3D | null = null, bladeMats: THREE.MeshLambertMaterial[] = [], bladeLen = 0, kind: Kind = 'pugni', mountN = 0;
   // magia in mano: kind diventa 'magia' (due mani avanti, sfera), l'arma resta montata ma nascosta; `weaponKind` è quello dell'arma
   let weaponKind: Kind = 'pugni', magiaId: string | null = null, rottaOra = false;
-  const orbe = createOrbe(o.scene);
+  const fuori = o.soloCorpo ? new THREE.Scene() : o.scene, orbe = createOrbe(fuori);
   const applyMano = (): void => { kind = magiaId ? 'magia' : weaponKind; if (weapon) weapon.visible = !magiaId && !rottaOra; };
-  const fxFor = (portata: number) => createHeroFx(o.scene, { portata, rin: kind === 'pugni' ? 0.3 : R_PUGNO + 0.15 });
+  const fxFor = (portata: number) => createHeroFx(fuori, { portata, rin: kind === 'pugni' ? 0.3 : R_PUGNO + 0.15 });
   let fx: HeroFx = fxFor(pugni().portata);
   /** Monta l'arma nel pugno (all'inizio e a ogni cambio dal menu); se nel frattempo ne arriva un'altra, vince l'ultima. */
   async function mount(arma: ArmaInMano): Promise<void> {
@@ -163,7 +163,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     weapon?.removeFromParent();
     weapon = w; bow = b; tiro = !!arma.distanza; bladeMats = mats; bladeLen = len;
     arco = b && w ? armaArco(w, o.loader, false, 1.8) : null;
-    if (w) o.scene.add(w);
+    if (w) fuori.add(w);
     weaponKind = bow ? 'arco' : arma.oggetto ? (arma.lama ? 'lama' : 'fuoco') : !weapon || arma.kind === 'pugni' ? 'pugni' : def?.tipo === 'lancia' || arma.asta ? 'lancia' : 'lama';
     rottaOra = false; kind = weaponKind;
     fx.dispose(); fx = fxFor(kind === 'pugni' ? pugni().portata : arma.portata);
@@ -408,7 +408,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
     const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: PAL.sabbiaChiara, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide }));
-    m.name = 'mira'; m.visible = false; m.renderOrder = 2; o.scene.add(m);
+    m.name = 'mira'; m.visible = false; m.renderOrder = 2; fuori.add(m);
     return m;
   })();
   const miraMat = MIRA.material as THREE.MeshBasicMaterial, miraCol = { su: new THREE.Color(PAL.sabbiaChiara), pieno: new THREE.Color(PAL.giallo) };

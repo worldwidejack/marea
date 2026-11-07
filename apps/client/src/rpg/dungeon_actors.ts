@@ -82,7 +82,7 @@ const FUOCO = new THREE.Color(PAL.arancio), AZZURRO = new THREE.Color(PAL.acquaB
 const ARCO_GIU = new THREE.Vector3(-0.38, 0.85, -0.06), ARCO_SU = new THREE.Vector3(-0.04, 1.28, -0.62), FIANCO = -0.9, ALLUNGO = 0.45;
 const YA = new THREE.Vector3(0, 1, 0);
 
-export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors {
+export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza del lampo bianco di chi è colpito (prima persona: da vicino riempirebbe lo schermo). */ lampo?: number }): Actors {
   const root = new THREE.Group(); root.name = 'attori'; o.scene.scene.add(root);
   const enemies = new Map<number, Enemy>();
   const proj = new Map<number, { obj: THREE.Object3D; px: number; py: number; pz: number; x: number; y: number; z: number; vy: number; tipo: string; bomba: boolean }>();
@@ -277,7 +277,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
           e.arco.a.tendi(tiro && n.anim === 'prepara' && su > 0 ? cocca.set(0, 0, 0.17 + ALLUNGO * tesa) : null, true);
         }
         e.flashT = Math.max(0, e.flashT - dt);
-        if (e.flashT > 0 || n.anim === 'colpito') { glowC = WHITE; glow = 0.9; }
+        if (e.flashT > 0 || n.anim === 'colpito') { glowC = WHITE; glow = o.lampo ?? 0.9; }
         const fade = dead && since > 0.6 ? 1 - steps((since - 0.6) / 0.6, 3) : 1;
         // Fucina: spento, anche il colore della fornace (le parti accese: `_brace` nel segnaposto, mat_emissivo nel modello) diventa cenere
         if (n.spento !== e.spento) { e.spento = !!n.spento; for (const m of e.mats) if (/_brace$|emissiv/.test(m.name)) m.color.setScalar(e.spento ? 0.22 : 1); }

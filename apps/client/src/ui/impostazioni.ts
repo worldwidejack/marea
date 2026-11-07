@@ -64,7 +64,7 @@ export function loadImpostazioni(): Impostazioni {
     const vol = (v: unknown, d: number) => (typeof v === 'number' && v >= 0 && v <= 3 ? Math.round(v) : d); // salvate prima dell'audio: di serie
     const padSec = (PAD_SEC as readonly number[]).includes(Number(raw.padSec)) ? Number(raw.padSec) : base.padSec;
     const ciclo = FLAGS.test && !FLAGS.serie ? raw.ciclo === true : true; // sempre on (#487), non disattivabile (nei test senza ?serie=1 segue base/raw)
-    return { cam: Number(raw.cam) || 0, ciclo, stampa: raw.stampa === true, contorni: raw.contorni === true, meteo: typeof raw.meteo === 'boolean' ? raw.meteo : base.meteo, musica: vol(raw.musica, base.musica), effetti: vol(raw.effetti, base.effetti), unaMano: raw.unaMano === true, padSec, graficaAlta: typeof raw.graficaAlta === 'boolean' ? raw.graficaAlta : base.graficaAlta };
+    return { primaPersona: raw.primaPersona === true, cam: Number(raw.cam) || 0, ciclo, stampa: raw.stampa === true, contorni: raw.contorni === true, meteo: typeof raw.meteo === 'boolean' ? raw.meteo : base.meteo, musica: vol(raw.musica, base.musica), effetti: vol(raw.effetti, base.effetti), unaMano: raw.unaMano === true, padSec, graficaAlta: typeof raw.graficaAlta === 'boolean' ? raw.graficaAlta : base.graficaAlta };
   } catch { return { ...base }; }
 }
 
@@ -81,7 +81,7 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(cur)); } catch { /* navigazione privata: vale fino a fine sessione */ } };
   const change = (p: Partial<Impostazioni>) => { cur = { ...cur, ...p }; save(); o.onChange(cur); setVolumi(cur.musica, cur.effetti); render(); };
-  const toggleRow = (key: 'stampa' | 'contorni' | 'meteo' | 'unaMano' | 'graficaAlta', title: string, sub: string) => {
+  const toggleRow = (key: 'stampa' | 'contorni' | 'meteo' | 'unaMano' | 'graficaAlta' | 'primaPersona', title: string, sub: string) => {
     const b = el('button', 'mz-set-row' + (cur[key] ? ' on' : '')); b.type = 'button'; b.dataset['set'] = key;
     const txt = el('span'); txt.append(el('span', '', title), el('span', 'q', sub));
     b.append(txt, el('span', 'sw', cur[key] ? 'Sì' : 'No'));
@@ -111,7 +111,7 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
     });
     cam.appendChild(row);
     // subito sotto i volumi: chi ha un telefono lento la cerca per prima
-    body.append(volRow('musica', 'Musica'), volRow('effetti', 'Effetti'), toggleRow('graficaAlta', 'Grafica superiore', cur.graficaAlta ? 'spegnila se il gioco va a scatti' : 'meteo, stampa e contorni sono spenti'), cam);
+    body.append(volRow('musica', 'Musica'), volRow('effetti', 'Effetti'), toggleRow('graficaAlta', 'Grafica superiore', cur.graficaAlta ? 'spegnila se il gioco va a scatti' : 'meteo, stampa e contorni sono spenti'), toggleRow('primaPersona', 'Dungeon in prima persona', 'No = terza persona; dalla prossima discesa'), cam);
     if (touch) {
       body.appendChild(toggleRow('unaMano', 'Una mano', 'il joystick appare dove tocchi lo schermo'));
       if (cur.unaMano) { // quanto resta il joystick dopo il rilascio: bottoni grandi come quelli del volume
