@@ -17,6 +17,8 @@
 // prepara lo scatto, sbiadisce. Lame d'acqua in volo (della Guardia, del Custode e del Fendiflutti).
 // Diga: forme in codice di rpg/diga.ts; la Guardia della Paratia perde il portello (`senza`), il Fuciliere si inginocchia mentre mira,
 // l'Albatros vola alto e atterra dopo il barile; palle di moschetto in volo.
+// Prima persona (`fp`): i cadaveri restano stesi a terra (sono loro da frugare, niente sacco), i non-morti che dormono stanno distesi e si
+// alzano quando ti sentono; chi vola sta alla quota della sim (`quota` in enemies.json), così si colpisce dove si vede.
 import * as THREE from 'three';
 import { ENEMIES } from '@marea/content/rpg.ts';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
@@ -40,8 +42,8 @@ type Enemy = {
   px: number; pz: number; x: number; z: number; v: NemV; diedAt: number; flashT: number; ring: THREE.Group | null; ready: boolean;
   /** Archivio: altezza da terra adesso (chi vola, chi sta sulle grate); anelli dell'Astrolabio (gruppi `giro_*`). */
   alt: number; giri: THREE.Object3D[];
-  /** Fucina: il Mastro Forgiatore è spento (la fornace è cenere). */
-  spento: boolean;
+  /** Fucina: il Mastro Forgiatore è spento (la fornace è cenere). Prima persona: quando ha smesso di dormire (s, per alzarsi). */
+  spento: boolean; sveglio: number;
   /** Solo arcieri: l'arco nella sinistra e se l'ultimo attacco preparato era un tiro (vale anche per colpisce e recupera). */
   arco: { obj: THREE.Object3D; a: Arco } | null; tiro: boolean;
 };
@@ -73,16 +75,18 @@ const NEON = new THREE.Color('#8A5CFF'), RED = new THREE.Color(PAL.rosso), WHITE
 const yawOf = (fx: number, fz: number) => Math.atan2(-fx, -fz);
 const steps = (v: number, n: number) => Math.floor(Math.max(0, Math.min(1, v)) * n) / n;
 const ARCIERI = new Set(ENEMIES.filter((d) => d.comportamento === 'arciere' && !d.arpione).map((d) => d.id));
-/** Archivio: chi vola e quanto sta alto quando vola alto (quando scende sta a BASSO). */
+/** Archivio: chi vola e quanto sta alto quando vola alto (`quota`, la stessa della sim; quando scende sta a BASSO). */
 const VOLA = new Set(ENEMIES.filter((d) => d.muove === 'vola').map((d) => d.id));
-const ALTO: Record<string, number> = { nem_aerostato: 1.7, nem_astrolabio: 1.2, nem_anello: 1.4, nem_albatros: 1.8, nem_totem_censo: 1.7 }, BASSO = 0.35, SU_GRATA = 1.0;
+const QUOTA = new Map(ENEMIES.map((d) => [d.id, d.quota ?? 1.5])), BASSO = 0.35, SU_GRATA = 1.0;
+/** Prima persona: chi dorme disteso e si alza (i non-morti), quanto ci mette (s). */
+const DISTESI = new Set(ENEMIES.filter((d) => d.kind === 'nonmorto').map((d) => d.id)), ALZATA = 0.8;
 const FUOCO = new THREE.Color(PAL.arancio), AZZURRO = new THREE.Color(PAL.acquaBassa), NERO = new THREE.Color(0, 0, 0), ORO = new THREE.Color(PAL.giallo);
 /** Impugnatura dell'arco (spazio della radice del nemico, −Z avanti): a riposo nella mano sinistra lungo il fianco; in mira davanti
  *  all'altezza delle spalle, col corpo girato di fianco (la sinistra verso il bersaglio). */
 const ARCO_GIU = new THREE.Vector3(-0.38, 0.85, -0.06), ARCO_SU = new THREE.Vector3(-0.04, 1.28, -0.62), FIANCO = -0.9, ALLUNGO = 0.45;
 const YA = new THREE.Vector3(0, 1, 0);
 
-export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza del lampo bianco di chi è colpito (prima persona: da vicino riempirebbe lo schermo). */ lampo?: number }): Actors {
+export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza del lampo bianco di chi è colpito (prima persona: da vicino riempirebbe lo schermo). */ lampo?: number; fp?: boolean }): Actors {
   const root = new THREE.Group(); root.name = 'attori'; o.scene.scene.add(root);
   const enemies = new Map<number, Enemy>();
   const proj = new Map<number, { obj: THREE.Object3D; px: number; py: number; pz: number; x: number; y: number; z: number; vy: number; tipo: string; bomba: boolean }>();
@@ -105,7 +109,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
   function addEnemy(n: NemV): Enemy {
     const r = new THREE.Group(); r.name = 'nemico_' + n.id; root.add(r);
     const body = new THREE.Group(); r.add(body);
-    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false, alt: 0, giri: [], spento: false };
+    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false, alt: 0, giri: [], spento: false, sveglio: -9 };
     if (ARCIERI.has(n.tipo) && !n.alleato) {
       void object(o.loader, 'arm_arco', () => boxes([[0.05, 1.3, 0.05, 0, 0, 0, PAL.legno]])).then((m) => {
         tintBlade(m, PAL.legnoChiaro); // chiaro: sul pavimento scuro della grotta si legge
@@ -165,6 +169,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
         const e = enemies.get(n.id) ?? addEnemy(n);
         e.px = e.x; e.pz = e.z; e.x = n.x; e.z = n.z;
         if (n.anim === 'morto' && e.v.anim !== 'morto') e.diedAt = performance.now() / 1000;
+        if (e.v.anim === 'dorme' && n.anim !== 'dorme') e.sveglio = performance.now() / 1000;
         e.v = n;
       }
       for (const [id, e] of enemies) if (!seen.has(id)) { e.root.removeFromParent(); enemies.delete(id); }
@@ -187,7 +192,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
       const ls = new Set<number>();
       for (const b of v.bottini) {
         ls.add(b.id);
-        const want = b.tipo === 'cadavere' && b.vuoto ? 'via' : `${b.tipo}:${b.tipo === 'forziere' && b.vuoto ? 1 : 0}`;
+        const want = b.tipo === 'cadavere' && (b.vuoto || o.fp) ? 'via' : `${b.tipo}:${b.tipo === 'forziere' && b.vuoto ? 1 : 0}`;
         const cur = loot.get(b.id);
         if (cur?.state === want) continue;
         cur?.obj.removeFromParent();
@@ -206,7 +211,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
         const n = e.v, x = e.px + (e.x - e.px) * alpha, z = e.pz + (e.z - e.pz) * alpha;
         const lit = o.scene.light(x, z) >= 0.45 || (Math.abs(x - hero.x) < 6 && Math.abs(z - hero.z) < 6);
         const dead = n.anim === 'morto', since = dead ? now - e.diedAt : 0;
-        e.root.visible = lit && !n.invisibile && !n.volo && (!dead || since < 1.2); // lo Sciamano nel fumo e Jean-Claude in aria non si vedono
+        e.root.visible = lit && !n.invisibile && !n.volo && (!dead || !!o.fp || since < 1.2); // lo Sciamano nel fumo e Jean-Claude in aria non si vedono
         if (e.ring) e.ring.visible = false;
         if (!e.root.visible) continue;
         e.root.position.set(x, fy, z); e.root.rotation.y = yawOf(n.fx, n.fz);
@@ -240,12 +245,16 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
           case 'colpisce': b.rotation.x = -0.5; b.position.z = -0.45; break;
           case 'recupera': b.rotation.x = -0.5 * (1 - n.t); b.position.z = -0.45 * (1 - n.t); break;
           case 'colpito': b.position.z = 0.15; break;
-          case 'morto': { const k = steps(since / 0.3, 3); b.rotation.z = 1.4 * k; b.position.y = -0.1 * k; break; }
+          case 'morto': { const k = steps(since / 0.3, 3); b.rotation.z = (o.fp ? 1.52 : 1.4) * k; b.position.y = (o.fp ? 0.05 : -0.1) * k; break; }
           default: b.position.y = 0.02 * Math.sin(t * 2 + e.id);
         }
         if (n.alleato) b.position.y += 0.15 + 0.05 * Math.sin(t * 3 + e.id);
+        if (o.fp && DISTESI.has(n.tipo) && !dead && (n.anim === 'dorme' || now - e.sveglio < ALZATA)) { // disteso a dormire, poi si tira su a scatti
+          const k = n.anim === 'dorme' ? 0 : steps((now - e.sveglio) / ALZATA, 5);
+          b.rotation.set(1.5 * (1 - k), 0, 0); b.position.set(0, 0.12 * (1 - k), 0.5 * (1 - k));
+        }
         // Archivio: in volo (alto o sceso a sganciare, a ricalibrarsi) o aggrappato alla grata; si sposta a scatti di 10 cm
-        const want = VOLA.has(n.tipo) ? (n.alto ? ALTO[n.model] ?? 1.5 : BASSO) : n.grata ? SU_GRATA : 0;
+        const want = VOLA.has(n.tipo) ? (n.alto ? QUOTA.get(n.tipo) ?? 1.5 : BASSO) : n.grata ? SU_GRATA : 0;
         e.alt += (want - e.alt) * Math.min(1, dt * 5);
         if (Math.abs(want - e.alt) < 0.02) e.alt = want;
         b.position.y += Math.round(e.alt * 10) / 10 + (VOLA.has(n.tipo) && !dead ? 0.06 * (Math.floor(t * 3 + e.id) % 2) : 0);
@@ -278,7 +287,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
         }
         e.flashT = Math.max(0, e.flashT - dt);
         if (e.flashT > 0 || n.anim === 'colpito') { glowC = WHITE; glow = o.lampo ?? 0.9; }
-        const fade = dead && since > 0.6 ? 1 - steps((since - 0.6) / 0.6, 3) : 1;
+        const fade = dead && since > 0.6 && !o.fp ? 1 - steps((since - 0.6) / 0.6, 3) : 1;
         // Fucina: spento, anche il colore della fornace (le parti accese: `_brace` nel segnaposto, mat_emissivo nel modello) diventa cenere
         if (n.spento !== e.spento) { e.spento = !!n.spento; for (const m of e.mats) if (/_brace$|emissiv/.test(m.name)) m.color.setScalar(e.spento ? 0.22 : 1); }
         e.mats.forEach((m, i) => {

@@ -16,6 +16,7 @@ export type SuonoId =
   | 'apri' | 'chiudi' | 'click' | 'emote' | 'notifica'
   | 'lancio' | 'plop' | 'abbocca' | 'pesce' | 'scappato'
   | 'colpo_dato' | 'colpo_critico' | 'colpo_preso' | 'schivato' | 'nemico_ko' | 'raccolto' | 'pozione' | 'magia' | 'altare' | 'vuoto' | 'goccia'
+  | 'pericolo' | 'cuore' | 'rallenty' | 'furtivo' // dungeon in prima persona: sei dentro un pericolo, vita bassa, Mano ferma, attacco furtivo
   | 'cannone' | 'tuono' // Tempesta: Arrembaggio
   | 'salto' | 'sfrigola' | 'atterra' | 'giravolta' | 'scavalco' | 'calpesta' // Vulcano: Fuga dalla lava
   // Isola dei Templari (docs/TEMPLARI.md §11): versi, stacchi d'ondata, campana, corno, risata, armi, porte, power-up, cassa

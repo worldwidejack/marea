@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import type { DungeonEvent, DungeonView } from '@marea/sim/dungeon/types.ts';
 import type { RunHero } from '@marea/sim/rpg/types.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
-import { spellDef } from '@marea/content/rpg.ts';
+import { RPG, spellDef } from '@marea/content/rpg.ts';
 import { PAL, el } from '../ui/style.ts';
 import { iconaMagia, iconOf, itemIcon } from './items_ui.ts';
 import type { Bar } from './dungeon_actors.ts';
@@ -188,6 +188,7 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         case 'raccolto': say(`+${e.n} ${nome(e.item)}`); break;
         case 'monete': say(`+${e.n} monete`); break;
         case 'pieno': say(`Zaino pieno: ${nome(e.item)} resta lì`, 2200); break;
+        case 'furtivo': say(`Attacco furtivo! Danno ×${RPG.dungeon.furtivo?.danno ?? 2}`, 1500); break;
         case 'rotto': say(`${nome(e.item)} si è rotta!`, 2400); break;
         case 'senzaMagicka': say('Magicka finita', 1200); break;
         case 'senzaFrecce': say('Frecce finite', 1400); break;

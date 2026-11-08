@@ -11,11 +11,13 @@ import type { SwingStyle } from './swing.ts';
 /** Input di un tick nel dungeon. mx, my in assi mondo (come InputFrame); a = attacca (tieni = carica/tendi; con una magia in mano la lancia),
  * b = corri, c = alterna arma e magia in mano (v6; fino al v5 lanciava la magia preparata), d = pozione. m = mira col mouse (mira.ts, v6):
  * indice d'angolo 1..AIM_N della direzione in cui tirare l'arco o lanciare la magia; assente = mira assistita. Il client registra un frame
- * per tick e lo quantizza con quantizeDungeon (mx, my a 1/8). A sulla scala d'uscita = esci. e = la Scarica dell'arco (perk Scarica, v9), assente = no. */
-export type DungeonInput = { mx: number; my: number; a: boolean; b: boolean; c: boolean; d: boolean; m?: number; e?: boolean; roll?: boolean };
+ * per tick e lo quantizza con quantizeDungeon (mx, my a 1/8). A sulla scala d'uscita = esci. e = la Scarica dell'arco (perk Scarica, v9), assente = no.
+ * p = alzo della mira (prima persona, alzo.ts): indice 1..ALZO_N della pendenza dello sguardo, insieme a `m`; assente = mira piatta. */
+export type DungeonInput = { mx: number; my: number; a: boolean; b: boolean; c: boolean; d: boolean; m?: number; e?: boolean; roll?: boolean; p?: number };
 export const NO_DUNGEON_INPUT: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
-/** RLE: [[ticks, mx×8, my×8, bit a|b<<1|c<<2|d<<3|e<<4, mira?], ...]; la mira (1..AIM_N) c'è solo nelle righe che ce l'hanno. */
-export type PackedDungeon = [number, number, number, number, number?][];
+/** RLE: [[ticks, mx×8, my×8, bit a|b<<1|c<<2|d<<3|e<<4|roll<<5, mira?, alzo?], ...]; la mira (1..AIM_N) e l'alzo (1..ALZO_N) solo nelle righe che ce
+ *  l'hanno (l'alzo solo con la mira: senza mira la riga ha 0 al suo posto). */
+export type PackedDungeon = [number, number, number, number, number?, number?][];
 
 /** Azione dal menu (non dai tasti), dungeon v5: si applica tra due tick, prima del passo del tick in cui è registrata. Il server la rigioca
  *  con gli input; se non si può fare (oggetto che non hai, lanterna lontana) la sim la ignora. */
@@ -28,6 +30,10 @@ export type DungeonAzione =
   | { t: 'salva' }
   /** Sulla lanterna: esci col bottino (come dalla scala); alla discesa dopo si può ripartire da lì. */
   | { t: 'esci' }
+  /** Prima persona (fruga.ts): da qui in poi il bottino di questo eroe si prende a mano, non più passandoci sopra. Il client la manda entrando. */
+  | { t: 'fruga' }
+  /** Dal cadavere, forziere o libro `id` a portata di mano: l'oggetto `item` (quanti ne entrano nello zaino), 'monete', o tutto (assente). */
+  | { t: 'prendi'; id: number; item?: string }
   /** Insieme (#118): il giocatore se n'è andato (Esci, connessione persa). La registra il server, mai il client: per lui la spedizione
    *  finisce lì senza esito (come chiudere la scheda), gli altri continuano. */
   | { t: 'ritira' };
@@ -51,6 +57,8 @@ export type DungeonEvent = (
   | { t: 'rotto'; item: string }
   | { t: 'libro'; item: string }
   | { t: 'aggro'; id: number }
+  /** Prima persona: attacco furtivo su chi non ti aveva visto (il danno è già moltiplicato). */
+  | { t: 'furtivo'; id: number }
   | { t: 'evocato'; id: number; tipo: string }
   /** Toccato l'altare n: bottino al sicuro (il client manda gli input al server, POST /api/dungeon/save). */
   | { t: 'altare'; n: number }
@@ -179,10 +187,11 @@ export type DungeonView = {
     arma: string | null;
     /** Magia in mano (v6): id della magia che la A lancia al posto dell'arma; assente = l'arma è in mano. */
     magia?: string;
-    /** Rallentato dal Tubo-strisciante (Drenaggio). */
-    rallentato?: boolean;
-    /** Magia a raggio accesa: lunghezza in m davanti all'eroe (già accorciata dal primo muro) ed elemento. */
-    canale?: { len: number; el?: SpellElement };
+    /** Rallentato dal Tubo-strisciante (Drenaggio). Mano ferma (perk): il mondo va al rallentatore mentre tendi l'arco. */
+    rallentato?: boolean; rallenty?: boolean;
+    /** Magia a raggio accesa: lunghezza in m davanti all'eroe (già accorciata dal primo muro; con l'alzo lungo il raggio, che sale o scende col seno `n`),
+     *  elemento e, se ha preso un nemico, a che distanza lungo il raggio (`fin`: lì il raggio si vede finire). */
+    canale?: { len: number; el?: SpellElement; fin?: number; n?: number };
     /** Archivio: nel vento che soffia (e ti sposta), al riparo dietro uno scaffale, spinto da fuori (arpione, raffica, bomba). */
     vento?: boolean; riparo?: boolean; spinto?: boolean;
     /** Tempio della «Doppia Nera»: scivola sul Ghiaccio Vivo, nella direzione (asse) [dx, dz]; da qui non comandi i piedi finché non ti fermi. */
@@ -249,7 +258,9 @@ export type DungeonView = {
   vicinoValvola: boolean;
   geyser: { id: number; x: number; z: number; r: number; getto: boolean; t: number; bomba?: boolean; magma?: boolean; cannone?: boolean;
     /** Santuario: l'onda di calore di Korok (chi sta al riparo di un braciere acceso non la sente) · un cerchio da cui nasce un Mite. */
-    onda?: boolean; evoca?: boolean }[];
+    onda?: boolean; evoca?: boolean;
+    /** Lanciato da qualcuno: da dove (x, z) è partito (prima persona: lo si disegna in volo da lì fin dove cade). */
+    da?: [number, number] }[];
   /** Archivio (negli altri dungeon liste vuote): correnti d'aria (direzione, stato e fase 0..1 nello stato), timoni (fermi o no), A qui
    *  ferma una corrente. */
   venti: { n: number; dx: number; dz: number; stato: 'calma' | 'avviso' | 'soffia' | 'ferma'; t: number }[];
@@ -291,7 +302,7 @@ export type DungeonView = {
 /** Un compagno visto da me: posa per l'avatar, vita per la barra, finito (uscito, caduto, andato via) = non si disegna più. */
 export type CompagnoView = {
   i: number; x: number; z: number; fx: number; fz: number; anim: HeroAnim; t: number; carica: number; stile?: SwingStyle;
-  vita: number; max: number; arma: string | null; magia?: string; canale?: { len: number; el?: SpellElement }; protetto: boolean; done: boolean; outcome: RunOutcome | null;
+  vita: number; max: number; arma: string | null; magia?: string; canale?: { len: number; el?: SpellElement; fin?: number; n?: number }; protetto: boolean; done: boolean; outcome: RunOutcome | null;
 };
 
 /** Il modulo della spedizione da solo. Insieme (#118): createParty / stepParty / actParty di dungeon.ts; act, result, view e autopilot

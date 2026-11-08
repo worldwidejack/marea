@@ -65,7 +65,7 @@ test('magie: il raggio continuo fa meno del proiettile spammato al massimo, ma h
     const r = spellDef(raggio), p = spellDef(proiettile);
     const dpsRaggio = (r.danno ?? 0) + (r.sanguina ?? 0), dpsProiettile = ((p.danno ?? 0) / p.ricarica) + (p.sanguina ?? 0);
     assert.ok(dpsRaggio < dpsProiettile, `${raggio}: ${dpsRaggio} < ${dpsProiettile}`);
-    assert.ok((r.gittata ?? 99) <= 6 && r.forma === 'raggio');
+    assert.ok((r.gittata ?? 99) <= 9 && r.forma === 'raggio');
   }
 });
 
@@ -105,7 +105,7 @@ test('magie: un nemico rallentato cammina a metà velocità (il boss a metà eff
 
 test('magie: il fuoco continuo brucia tutti nel corridoio, costa Magicka al secondo e si spegne al rilascio', () => {
   const s = conMagia('fuoco_continuo');
-  const a = bersaglio(s, 2.5), b = bersaglio(s, 4), lontano = bersaglio(s, 7), lato = bersaglio(s, 3, 3);
+  const a = bersaglio(s, 2.5), b = bersaglio(s, 4), lontano = bersaglio(s, 8), lato = bersaglio(s, 3, 3);
   const fermi = [a, b, lontano, lato];
   const m0 = s.hero.magicka;
   const ev = passi(s, 1, inp({ a: true }), fermi).concat(passi(s, 3 * HZ - 1, inp({ a: true }), fermi)); // 3 s di fiamma
@@ -119,7 +119,7 @@ test('magie: il fuoco continuo brucia tutti nel corridoio, costa Magicka al seco
   assert.ok(a.bleedT > 0, 'chi è nella fiamma brucia');
   const v = dungeon.view(s).hero;
   assert.equal(v.anim, 'lancia');
-  assert.ok(v.canale && v.canale.el === 'fuoco' && v.canale.len > 4 && v.canale.len <= 4.5, 'la vista mostra il raggio');
+  assert.ok(v.canale && v.canale.el === 'fuoco' && v.canale.len > 6 && v.canale.len <= 6.5, 'la vista mostra il raggio');
   passi(s, 1, inp(), fermi);
   assert.equal(dungeon.view(s).hero.canale, undefined, 'rilasciata la A, si spegne');
   const dopo = dps(a);

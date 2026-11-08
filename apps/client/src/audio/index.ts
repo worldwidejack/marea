@@ -139,7 +139,7 @@ export function createAudio(): Audio {
     dungeonEvento(e) {
       const id: SuonoId | null = e.t === 'colpo' ? (e.su === 'eroe' ? 'colpo_preso' : e.critico ? 'colpo_critico' : 'colpo_dato')
         : e.t === 'schivato' ? 'schivato' : e.t === 'morte' ? 'nemico_ko' : e.t === 'raccolto' ? 'raccolto' : e.t === 'monete' ? 'moneta'
-        : e.t === 'pozione' ? 'pozione' : e.t === 'magia' ? 'magia' : e.t === 'altare' || e.t === 'risveglio' ? 'altare'
+        : e.t === 'pozione' ? 'pozione' : e.t === 'magia' ? 'magia' : e.t === 'altare' || e.t === 'risveglio' ? 'altare' : e.t === 'furtivo' ? 'furtivo'
         : e.t === 'senzaMagicka' || e.t === 'senzaFrecce' || e.t === 'rotto' || e.t === 'pieno' ? 'vuoto'
         : e.t === 'valvola' ? 'martello' : e.t === 'asciutto' ? 'goccia' : e.t === 'geyser' ? 'sfrigola' : e.t === 'rallentato' ? 'plop' // Drenaggio
         : e.t === 'timone' ? 'martello' : e.t === 'bomba' || e.t === 'scoppio' ? 'cannone' : e.t === 'arpionato' ? 'lancio' : e.t === 'raffica' ? 'raffica' // Archivio

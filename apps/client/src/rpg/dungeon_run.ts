@@ -69,7 +69,7 @@ type Phase = 'loading' | 'play' | 'end' | 'over';
 type Out = { inputs: ReturnType<typeof packDungeon>; hash: number; azioni: DungeonAzioni };
 const END_WAIT = 100; // tick di scritta finale prima di consegnare
 const OUT: Record<string, [string, string]> = { uscito: ['SEI USCITO', PAL.erbaChiara], morto: ['SEI CADUTO', PAL.rosso], tempo: ['TEMPO SCADUTO', PAL.arancio] };
-const NO_ACT: Record<DungeonAzione['t'], string> = { equip: 'Non si può mettere qui', butta: 'Non ce l’hai nello zaino', bevi: 'Non ce l’hai nello zaino', salva: 'Qui è già tutto al sicuro', esci: 'Serve una lanterna', ritira: 'Non si può' };
+const NO_ACT: Record<DungeonAzione['t'], string> = { equip: 'Non si può mettere qui', butta: 'Non ce l’hai nello zaino', bevi: 'Non ce l’hai nello zaino', salva: 'Qui è già tutto al sicuro', esci: 'Serve una lanterna', ritira: 'Non si può', fruga: 'Non si può', prendi: 'Non entra nello zaino: è troppo pesante' };
 const nOggetti = (b: Record<string, number>) => Object.values(b).reduce((a, n) => a + n, 0);
 /** Per i test (Fucina): il Mastro Forgiatore, se c'è. */
 /** Per i test (Mausoleo): il Custode dell'Egida, se c'è. */
@@ -80,7 +80,7 @@ const mastro = (v: DungeonView) => { const k = v.nemici.find((n) => n.tipo === '
 /** Insieme: tick in cuscinetto prima di ripartire dopo uno stallo, oltre cui si va a 2 tick per frame, oltre cui si recupera di corsa. */
 const CUSCINETTO = 2 * SQ_TICKS, SVELTO = 4 * SQ_TICKS, RECUPERO = 30 * SQ_TICKS;
 const bitsOf = (f: DungeonInput) => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0) | (f.e ? 16 : 0) | (f.roll ? 32 : 0);
-const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...((x[2] & 32) !== 0 ? { roll: true } : {}), ...(x[3] ? { m: x[3] } : {}) });
+const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...((x[2] & 32) !== 0 ? { roll: true } : {}), ...(x[3] ? { m: x[3] } : {}), ...(x[3] && x[4] ? { p: x[4] } : {}) });
 
 type Amico = { i: number; nome: string; actor: HeroActor | null; arma: string | null; done: boolean };
 
@@ -106,7 +106,7 @@ export function startRun(ctx: RunCtx, o: {
   const out = (): Out => ({ inputs: packDungeon(frames), hash: dungeon.result(s).hash, azioni: azioni.map(([t, a]) => [t, a]) });
   // insieme: compagni, finestra del turno (joystick dell'ultimo tick, bottoni di tutti i tick), ultimo input mandato, turno a metà
   const amici: Amico[] = rete ? rete.eroi.map((e, i) => ({ i, nome: e.nome, actor: null, arma: e.hero.arma.id, done: false })).filter((a) => a.i !== io) : [];
-  const win = { mx: 0, my: 0, bits: 0, m: 0, n: 0 };
+  const win = { mx: 0, my: 0, bits: 0, m: 0, p: 0, n: 0 };
   let mandato = '0,0,0', inTurno = 0, attesa = true, rotto = false;
   const firme: Record<number, number> = {};
 
@@ -183,7 +183,7 @@ export function startRun(ctx: RunCtx, o: {
         const r = s.eroi[a.i]!;
         a.actor = await createHeroActor({ loader: ctx.loader, look: rete!.eroi[a.i]!.look, hero: r.runHero, scene: sc.scene, floorY: sc.floorY, x: r.hero.x, z: r.hero.z });
       }
-      actors = createActors({ loader: ctx.loader, scene: sc, ...(primaP ? { lampo: 0.25 } : {}) });
+      actors = createActors({ loader: ctx.loader, scene: sc, ...(primaP ? { lampo: 0.25, fp: true } : {}) });
       // Fucina prima: anche lei ha una valvola (la chiusa) e un bacino (la Colata Maestra), ma i suoi effetti sono lava, cascate e fuoco
       if (sc.def.stile === 'fucina') ffx = createFucinaFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       // Mausoleo prima del Drenaggio: anche lui ha una valvola (la chiave di carica) e un bacino (il cancello)
@@ -192,11 +192,11 @@ export function startRun(ctx: RunCtx, o: {
       else if (sc.def.stile === 'diga' || sc.def.stile === 'baita' || sc.def.stile === 'ceneri') dfx = createDigaFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       else if (sc.map.valvole.length || sc.map.bacini.length || o.dungeon === 'drenaggio') fx = createDrenaggioFx({ sc }); else if (sc.map.venti.length || o.dungeon === 'archivio') afx = createArchivioFx({ sc, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       ufx = createUniciFx(sc.scene, sc.floorY); // gli unici della Regina si portano in ogni dungeon
-      gfx = createMagieFx(sc.scene, sc.floorY, primaP ? { origine: () => fp!.punta() } : {}); // raggi, bombe e scoppi delle magie di fuoco ed elettricità
+      gfx = createMagieFx(sc.scene, sc.floorY, primaP ? { origine: () => fp!.punta(), sguardo: () => fp!.sguardo() } : {}); // raggi, bombe e scoppi delle magie di fuoco ed elettricità
       if ((phase as Phase) === 'over') { cleanup(); return; }
       hud = createDungeonHud({ root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera, hero: s.runHero, stile: sc.def.stile });
       controls = createControls({
-        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, yaw: () => ctx.renderer.diorama.yaw, insieme: !!rete, ...(primaP ? { fp: { clic: () => fp?.clic() ?? true, riprendi: () => fp?.riprendi() } } : {}), ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : sc.def.stile === 'diga' ? { valvola: 'A · Gira la ruota', timone: 'A · Gira la ruota' } : sc.def.stile === 'baita' ? { valvola: 'A · Gira la colonnina' } : sc.def.stile === 'ceneri' ? { valvola: 'A · Accendi il braciere' } : {}),
+        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, yaw: () => ctx.renderer.diorama.yaw, insieme: !!rete, ...(primaP ? { fp: { clic: () => fp?.clic() ?? true, riprendi: () => fp?.riprendi(), tasto: (e: KeyboardEvent) => fp?.tasto(e) ?? false } } : {}), ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : sc.def.stile === 'diga' ? { valvola: 'A · Gira la ruota', timone: 'A · Gira la ruota' } : sc.def.stile === 'baita' ? { valvola: 'A · Gira la colonnina' } : sc.def.stile === 'ceneri' ? { valvola: 'A · Accendi il braciere' } : {}),
         onAbort: () => (phase === 'end' ? finish() : abort()),
         onZaino: openZaino,
         onSalva: () => { const e = act({ t: 'salva' }); if (e) ctx.hud.toast(e, 1800); },
@@ -204,7 +204,7 @@ export function startRun(ctx: RunCtx, o: {
         // preferiti 1-2-3: l'arma o la magia scelta va in mano (stessa azione dello zaino, quindi vale anche in squadra)
         hero: () => heroNow(s), onPreferito: (p) => { const e = mettiInMano(p, heroNow(s), act); if (e) ctx.hud.toast(e, 1500); },
       });
-      if (primaP) fp = createPrimaPersona({ root: ctx.root, canvas: ctx.canvas, loader: ctx.loader, diorama: ctx.renderer.diorama, sc, avatar: hero.avatar, hero0: view.hero, attivo: () => phase === 'play' && !controls?.paused && !isPanelOpen() && !testi?.aperta, onPerso: () => controls?.apriPausa() }); else mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: sc.floorY });
+      if (primaP) fp = createPrimaPersona({ root: ctx.root, canvas: ctx.canvas, loader: ctx.loader, diorama: ctx.renderer.diorama, sc, avatar: hero.avatar, hero0: view.hero, attivo: () => phase === 'play' && !controls?.paused && !isPanelOpen() && !testi?.aperta, onPerso: () => controls?.apriPausa(), stato: () => s, act, avviso: (t) => ctx.hud.toast(t, 1800) }); else mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: sc.floorY });
       if (sc.def.testi) testi = createTesti({ root: ctx.root, camera: ctx.renderer.camera, canvas: ctx.canvas, sc, insieme: !!rete, capoMorto: () => view.nemici.some((n) => n.capo && n.anim === 'morto') });
       const ic = hud.icons(); controls.setIcons(ic.d, ic.key);
       if (s.salvato) controls.setSalvato(true);
@@ -334,8 +334,8 @@ export function startRun(ctx: RunCtx, o: {
       else aTap = act === 'idle' && tapT >= 118; // solo i primi tick: senza frecce o Magicka non si insiste
       if (act === 'tira' || act === 'lancia') tapT = 0;
     }
-    const a = f.a || c.a || aTap, m = fp ? fp.mira(view, a || c.e, s.hero) : aTap ? 0 : c.m || (a || s.hero.act === 'tende' || s.hero.act === 'punta' ? puntaMouse() : 0), g = fp ? fp.muovi(f) : f; // la mira solo mentre si preme (e al rilascio dell'arco): il log resta corto; il joystick di mira porta la sua
-    return { mx: g.mx, my: g.my, a, b: g.b, roll: g.roll, c: false, d: c.d, ...(c.e ? { e: true } : {}), ...(m ? { m } : {}) };
+    const a = f.a || c.a || aTap, fm = fp?.mira(view, a || c.e, s.hero) ?? null, m = fp ? fm?.m ?? 0 : aTap ? 0 : c.m || (a || s.hero.act === 'tende' || s.hero.act === 'punta' ? puntaMouse() : 0), g = fp ? fp.muovi(f) : f; // la mira (e in prima persona l'alzo) solo mentre si preme: il log resta corto
+    return { mx: g.mx, my: g.my, a, b: g.b, roll: g.roll, c: false, d: c.d, ...(c.e ? { e: true } : {}), ...(m ? { m } : {}), ...(m && fm?.p ? { p: fm.p } : {}) };
   }
 
   function tickOnce(f: InputFrame): void {
@@ -353,11 +353,11 @@ export function startRun(ctx: RunCtx, o: {
     if (phase === 'play' && !s.done) {
       const fermo = !!controls?.paused || isPanelOpen() || !!testi?.ferma || !!fp?.fermo;
       const q = quantizeDungeon(fermo && !auto ? { ...NO_DUNGEON_INPUT } : inputOra(f));
-      win.mx = q.mx; win.my = q.my; win.bits |= bitsOf(q); if (q.m) win.m = q.m;
+      win.mx = q.mx; win.my = q.my; win.bits |= bitsOf(q); if (q.m) { win.m = q.m; win.p = q.p ?? 0; }
       if (++win.n >= SQ_TICKS) {
-        const x: SqInput = win.m ? [Math.round(win.mx * 8) || 0, Math.round(win.my * 8) || 0, win.bits, win.m] : [Math.round(win.mx * 8) || 0, Math.round(win.my * 8) || 0, win.bits], k = x.join(',');
+        const x: SqInput = win.m ? (win.p ? [Math.round(win.mx * 8) || 0, Math.round(win.my * 8) || 0, win.bits, win.m, win.p] : [Math.round(win.mx * 8) || 0, Math.round(win.my * 8) || 0, win.bits, win.m]) : [Math.round(win.mx * 8) || 0, Math.round(win.my * 8) || 0, win.bits], k = x.join(',');
         if (k !== mandato) { mandato = k; r.manda({ t: 'in', f: x }); }
-        win.bits = 0; win.m = 0; win.n = 0;
+        win.bits = 0; win.m = 0; win.p = 0; win.n = 0;
       }
     }
     if (r.chiusa && !rotto && phase === 'play') { rotto = true; ctx.hud.toast('Connessione con la squadra persa', 3000); finish(); return; }

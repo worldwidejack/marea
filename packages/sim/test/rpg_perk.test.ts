@@ -1,5 +1,5 @@
 // Perk dell'albero (11 ott 2026): numeri derivati (forgiato, Riserva, Grandi Magie) e effetti nel dungeon (Taglio Critico, Colpo fatale,
-// Carica massima, Automira, Arciere Mobile, Scarica, evocazioni potenziate, Patto di sangue), più il bit E nel log degli input.
+// Carica massima, Mano ferma, Arciere Mobile, Scarica, evocazioni potenziate, Patto di sangue), più il bit E nel log degli input.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RPG } from '@marea/content/rpg.ts';
@@ -65,9 +65,10 @@ test('perk: Riserva = +30 % di Magicka totale; Grandi Magie ingrandisce lo scopp
 
 test('perk: RunHero.perk riassume gli effetti da dungeon (e non c\'è senza perk)', () => {
   assert.equal(runHeroOf(newHero()).perk, undefined);
-  const p = runHeroOf(heroCon(['al_lama', 'al_polso', 'al_critico', 'ar_falco', 'ar_tensione', 'ar_automira', 'ar_automira2', 'ar_scarica', 'ar_arcomobile'])).perk!;
+  const p = runHeroOf(heroCon(['al_lama', 'al_polso', 'al_critico', 'ar_falco', 'ar_tensione', 'ar_occhio', 'ar_manoferma', 'ar_scarica', 'ar_arcomobile'])).perk!;
   assert.equal(p.sanguina, 0.5);
-  assert.equal(p.automira, 2);
+  assert.equal(p.zoomArco, true);
+  assert.equal(p.manoFerma, true);
   assert.equal(p.scarica, true);
   assert.equal(p.arcoMobile, true);
   const v = runHeroOf(heroCon(['ev_legame', 'ev_richiamo', 'ev_cattivelle', 'ev_cresciute', 'ev_bastarde', 'ev_grosse', 'ev_patto', 'ev_sangue'], { evocato: 'lupo_spettrale' })).perk!;
@@ -153,23 +154,23 @@ test('Carica massima: dopo 7 s il colpo uccide qualunque nemico; sui boss è il 
   assert.deepEqual(cb, [50]);
 });
 
-test('Automira: la freccia curva verso il bersaglio vicino alla traiettoria (e senza perk lo manca)', () => {
-  const tira = (perk?: RunPerk): Enemy => {
+test("Mano ferma: con l'arco teso il mondo va ai due terzi (da solo), e la freccia va dritta", () => {
+  const corre = (perk?: RunPerk): { strada: number; lento: boolean } => {
     const s = arena(arcoHero(perk));
     s.hero.x = 3; s.hero.z = 6;
-    const e = dummy(s, 'bandito', 14, 1000, 1.6);
-    run(s, 70, inp({ a: true, m: 1 })); // mira dritta a +x, niente mira assistita
-    run(s, 1, inp({ m: 1 }));
-    run(s, 80);
-    return e;
+    const e = dummy(s, 'bandito', 9, 1000); e.st = 'insegue'; e.aggro = true;
+    const x0 = e.x;
+    run(s, 60, inp({ a: true, m: 1 })); // arco teso verso +x: il bandito corre incontro
+    return { strada: x0 - e.x, lento: !!dungeon.view(s).hero.rallenty };
   };
-  assert.equal(tira().vita, 1000, 'senza Automira la freccia passa di lato');
-  assert.ok(tira({ automira: 2 }).vita < 1000, 'con Automira plus colpisce');
-  // lieve: ci arriva solo se è davvero vicino alla traiettoria
-  const s = arena(arcoHero({ automira: 1 })); s.hero.x = 3; s.hero.z = 6;
-  const vicino = dummy(s, 'bandito', 14, 1000, 0.9);
-  run(s, 70, inp({ a: true, m: 1 })); run(s, 1, inp({ m: 1 })); run(s, 80);
-  assert.ok(vicino.vita < 1000, 'Automira leggera prende chi mancheresti di poco');
+  const senza = corre(), con = corre({ manoFerma: true });
+  assert.ok(senza.strada > 1 && !senza.lento, `senza: ${senza.strada}`);
+  assert.ok(con.lento && Math.abs(con.strada / senza.strada - 2 / 3) < 0.08, `con ${con.strada} senza ${senza.strada}`);
+  // la freccia va dritta: chi sta 1,6 m di lato non lo prende nessuno (l'Automira non c'è più)
+  const s = arena(arcoHero({ manoFerma: true, zoomArco: true })); s.hero.x = 3; s.hero.z = 6;
+  const lato = dummy(s, 'bandito', 14, 1000, 1.6);
+  run(s, 70, inp({ a: true, m: 1 })); run(s, 1, inp({ m: 1 })); run(s, 120);
+  assert.equal(lato.vita, 1000);
 });
 
 test('Arciere Mobile: con l\'arco in tensione ti muovi a passo normale, senza il rallentamento', () => {
@@ -233,7 +234,7 @@ test('log degli input: il bit E fa il giro (pack, codec, forma di rete) e il for
 });
 
 test('replay: una partita con la Scarica, passata per il codec di rete, dà lo stesso esito (il server rigioca E)', () => {
-  const hero = arcoHero({ scarica: true, automira: 1 });
+  const hero = arcoHero({ scarica: true });
   const s = dungeon.create({ seed: 77, dungeon: 'grotta', hero });
   const frames = [];
   for (let i = 0; i < 400; i++) {

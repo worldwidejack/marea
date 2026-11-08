@@ -4,8 +4,8 @@
 import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type Sguardo = {
-  /** Rad: yaw 0 = guarda verso −Z, + verso sinistra; pitch + in su. */
-  yaw: number; pitch: number;
+  /** Rad: yaw 0 = guarda verso −Z, + verso sinistra; pitch + in su. `scala`: quanto gira per un movimento (lo zoom dell'arco la abbassa). */
+  yaw: number; pitch: number; scala: number;
   readonly tocco: boolean;
   readonly catturato: boolean;
   /** Telefono tenuto in verticale: si aspetta che lo giri. */
@@ -36,7 +36,7 @@ export function creaSguardo(o: { canvas: HTMLCanvasElement; root: HTMLElement; y
   let dy = 0, dp = 0, daNoi = false, attivoOra = false;
   const dita = new Map<number, { x: number; y: number }>();
   const clamp = (p: number) => Math.max(PITCH_GIU, Math.min(PITCH_SU, p));
-  const gira = (a: number, b: number) => { api.yaw += a; const p = clamp(api.pitch + b); dp += p - api.pitch; api.pitch = p; dy += a; };
+  const gira = (a0: number, b0: number) => { const a = a0 * api.scala, b = b0 * api.scala; api.yaw += a; const p = clamp(api.pitch + b); dp += p - api.pitch; api.pitch = p; dy += a; };
   const cattura = () => { if (tocco || document.pointerLockElement === o.canvas) return; try { void o.canvas.requestPointerLock?.()?.catch?.(() => { /* rifiutato: si riprova col prossimo clic */ }); } catch { /* idem */ } };
   const invito = document.createElement('div'); invito.className = 'mz-fp-clic'; invito.textContent = 'Clicca per guardarti attorno'; o.root.appendChild(invito);
   const avviso = document.createElement('div'); avviso.className = 'mz-fp-gira'; avviso.innerHTML = '<i></i>GIRA IL TELEFONO'; document.body.appendChild(avviso);
@@ -70,7 +70,7 @@ export function creaSguardo(o: { canvas: HTMLCanvasElement; root: HTMLElement; y
   if (!tocco) o.root.classList.add('mz-fp-pc');
 
   const api: Sguardo = {
-    yaw: o.yaw, pitch: 0, tocco,
+    yaw: o.yaw, pitch: 0, scala: 1, tocco,
     get catturato() { return document.pointerLockElement === o.canvas; },
     get verticale() { return tocco && innerHeight > innerWidth; },
     scarto() { const r = { dy, dp }; dy = 0; dp = 0; return r; },

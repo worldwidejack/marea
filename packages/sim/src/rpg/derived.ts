@@ -175,7 +175,7 @@ function perkOf(h: HeroState, m: Mods): RunPerk | undefined {
   if (P('sanguinaCaricato') > 0) p.sanguina = clamp(P('sanguinaCaricato'), 0, 1);
   if (P('paralisiCaricato') > 0) p.paralisi = clamp(P('paralisiCaricato'), 0, 1);
   if (P('caricaMassima') > 0) p.massima = P('caricaMassima');
-  if (P('automira') > 0) p.automira = Math.min(RPG.perk?.automira.length ?? 2, Math.round(P('automira')));
+  if (P('zoomArco') > 0) p.zoomArco = true; if (P('manoFerma') > 0) p.manoFerma = true;
   if (P('arcoMobile') > 0) p.arcoMobile = true;
   if (P('scarica') > 0) p.scarica = true;
   const perenne = P('evocazionePerenne') > 0;

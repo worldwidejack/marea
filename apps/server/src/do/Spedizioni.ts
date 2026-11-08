@@ -25,7 +25,7 @@ const CARICO_MAX_MS = 20_000;
 const SALVA_MS = 10_000;
 const TIENI_MS = 24 * 3600_000;
 /** Azioni dal menu per eroe (parseDungeonAzioni ne accetta 400: qualcuna resta per `ritira`). */
-const MAX_AZIONI = 390;
+const MAX_AZIONI = 890;
 /** Input in coda oltre questi (il client corre più del turno, o arriva a raffiche): si scartano i più vecchi tenendone i bottoni. */
 const MAX_CODA = 4;
 const MAX_MSG_PER_S = 40;
@@ -185,9 +185,9 @@ export class Spedizioni extends DurableObject<Env> {
       m.last = x; f.push(x);
       for (const a of m.az) { az.push([i, a]); m.azioni.push([tick, a]); }
       m.az = [];
-      const ult = m.log[m.log.length - 1], mira = x[3] ?? 0;
-      if (ult && ult[1] === x[0] && ult[2] === x[1] && ult[3] === x[2] && (ult[4] ?? 0) === mira) ult[0] += SQ_TICKS;
-      else m.log.push(mira ? [SQ_TICKS, x[0], x[1], x[2], mira] : [SQ_TICKS, x[0], x[1], x[2]]);
+      const ult = m.log[m.log.length - 1], mira = x[3] ?? 0, alzo = mira ? x[4] ?? 0 : 0;
+      if (ult && ult[1] === x[0] && ult[2] === x[1] && ult[3] === x[2] && (ult[4] ?? 0) === mira && (ult[5] ?? 0) === alzo) ult[0] += SQ_TICKS;
+      else m.log.push(alzo ? [SQ_TICKS, x[0], x[1], x[2], mira, alzo] : mira ? [SQ_TICKS, x[0], x[1], x[2], mira] : [SQ_TICKS, x[0], x[1], x[2]]);
     });
     const msg = JSON.stringify({ t: 'T', n: r.turno, f, ...(az.length ? { az } : {}) } satisfies SqServerMsg);
     for (const m of r.membri) if (m.conn && !m.fuori) { try { m.conn.ws.send(msg); } catch { /* chiusa */ } }

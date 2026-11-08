@@ -1,7 +1,9 @@
 // Magie d'attacco e di supporto oltre al proiettile secco (docs/RPG.md §Magie, docs/ARENA.md): il RAGGIO continuo (Fuoco/Elettricità continua, Cura/Furia a flusso:
 // tieni A, costo e danno/cura sono al secondo, davanti all'eroe per pochi metri) e la BOMBA (Bomba di fuoco/elettrica, Cura/Furia a bomba: lenta, lanciata in alto, scoppia dove atterra).
 // Il fuoco brucia (sanguina), l'elettricità rallenta chi colpisce (combat.ts → rallentaNemico); Cura e Furia agiscono su alleati ed evocazioni. Determinismo: solo + − × ÷ e Math.sqrt.
+// Prima persona (alzo.ts): il raggio va anche in alto e in basso, dove punta il mirino, e si ferma a pavimento e soffitto; la bomba atterra dove guardi.
 import { RPG } from '@marea/content/rpg.ts';
+import { ALTEZZA_EROE, OCCHI_Y, finoAlTetto, lungoRaggio, quotaNemico } from './alzo.ts';
 import { DT } from '../constants.ts';
 import type { RunSpell } from '../rpg/types.ts';
 import type { DungeonState, Enemy, HeroRt, Proj } from './state.ts';
@@ -133,7 +135,8 @@ export function canale(s: DungeonState, sp: RunSpell): boolean {
   }
   h.canale++;
   if (sp.elemento) h.canaleEl = sp.elemento; else delete h.canaleEl;
-  h.canaleLen = libera(s, h.fx, h.fz, sp.gittata ?? 5);
+  const g = sp.gittata ?? 5, A = h.alzo; // con l'alzo la lunghezza è lungo il raggio (in piano ne fa len × coseno)
+  h.canaleLen = A ? Math.min(g, finoAlTetto(s, A[1]), A[0] > 1e-3 ? libera(s, h.fx, h.fz, g * A[0]) / A[0] : g) : libera(s, h.fx, h.fz, g);
   if ((h.canale - 1) % CANALE_OGNI === 0) colpiRaggio(s, sp, ((h.canale - 1) / CANALE_OGNI) % CANALE_EFFETTI === 0);
   return true;
 }
@@ -143,17 +146,13 @@ export function canale(s: DungeonState, sp: RunSpell): boolean {
 function raggioSupporto(s: DungeonState, sp: RunSpell, w: number, len: number, effetti: boolean): void {
   const h = s.hero;
   const sulla: { r: Ricevente; lungo: number }[] = [];
-  const dentro = (x: number, z: number, raggio: number): number | null => { // a che distanza lungo il raggio sta, o null se è fuori dal corridoio
-    const dx = x - h.x, dz = z - h.z, lungo = dx * h.fx + dz * h.fz;
-    return lungo < -0.2 || lungo > len + raggio || Math.abs(dx * h.fz - dz * h.fx) > w + raggio ? null : lungo;
-  };
   for (const e of s.enemies) {
-    const lungo = amica(s, e) ? dentro(e.x, e.z, e.def.raggio) : null;
+    const lungo = amica(s, e) ? lungoRaggio(s, e.x, e.z, e.def.raggio, quotaNemico(s, e), len, w) : null;
     if (lungo !== null) sulla.push({ r: { o: e, max: e.max }, lungo });
   }
   for (let i = 0; i < s.eroi.length; i++) {
     if (i === s.cur || s.eroi[i]!.done || !compagno(s, i)) continue;
-    const lungo = dentro(s.eroi[i]!.hero.x, s.eroi[i]!.hero.z, s.eroi[i]!.runHero.raggio);
+    const lungo = lungoRaggio(s, s.eroi[i]!.hero.x, s.eroi[i]!.hero.z, s.eroi[i]!.runHero.raggio, ALTEZZA_EROE, len, w);
     if (lungo !== null) sulla.push({ r: riceve(s, i), lungo });
   }
   sulla.sort((a, b) => a.lungo - b.lungo);
@@ -172,18 +171,18 @@ function colpiRaggio(s: DungeonState, sp: RunSpell, effetti: boolean): void {
   let primo: Enemy | null = null, pd = Infinity;
   for (const e of s.enemies.slice()) {
     if (!ostile(s, e)) continue;
-    const dx = e.x - h.x, dz = e.z - h.z, lungo = dx * h.fx + dz * h.fz;
-    if (lungo < -0.2 || lungo > len + e.def.raggio) continue;
-    if (Math.abs(dx * h.fz - dz * h.fx) > w + e.def.raggio) continue;
+    const lungo = lungoRaggio(s, e.x, e.z, e.def.raggio, quotaNemico(s, e), len, w);
+    if (lungo === null) continue;
     hitEnemy(s, e, colpoMagia(s, sp, danno, h.x, h.z));
     if (lungo < pd) { pd = lungo; primo = e; }
   }
   // Arena: il raggio brucia anche gli avversari nel corridoio
   for (const j of eroiNemici(s)) {
-    const o = s.eroi[j]!, r = o.runHero.raggio, dx = o.hero.x - h.x, dz = o.hero.z - h.z, lungo = dx * h.fx + dz * h.fz;
-    if (lungo < -0.2 || lungo > len + r || Math.abs(dx * h.fz - dz * h.fx) > w + r) continue;
+    const o = s.eroi[j]!;
+    if (lungoRaggio(s, o.hero.x, o.hero.z, o.runHero.raggio, ALTEZZA_EROE, len, w) === null) continue;
     colpisciEroe(s, j, colpoMagia(s, sp, danno, h.x, h.z));
   }
+  const c = h.alzo ? h.alzo[0] : 1; h.canaleFin = primo && c > 1e-3 ? Math.min(len, Math.max(0, pd) / c) : undefined; // dove il raggio si vede finire
   if (effetti && primo && sp.elemento === 'fuoco') {
     if (V) chiazzaVampa(s, primo.x, primo.z); else caricaVampa(s);
   }
@@ -208,12 +207,14 @@ export function fermaCanale(s: DungeonState, sp?: RunSpell): void {
 /** A che distanza dall'eroe di turno atterra una bomba lanciata verso (fx, fz): sul nemico (o alleato, se di supporto) davanti, se no nel vuoto,
  *  mai oltre il primo muro. Lo usa lanciaBomba e il client per l'ombra di mira (non cambia lo stato). */
 export function distanzaBomba(s: DungeonState, sp: RunSpell, fx: number, fz: number): number {
-  const h = s.hero, max = sp.gittata ?? 9, supp = isSupporto(sp);
-  let d = max * BOMBA_VUOTO, vicino = Infinity;
+  const h = s.hero, max = sp.gittata ?? 9, supp = isSupporto(sp), A = h.alzo;
+  // prima persona: atterra dove lo sguardo tocca terra (guardando in su, in fondo alla gittata), o su chi sta davanti prima di lì
+  const fin = A ? (A[1] < -1e-3 ? Math.min(max, (OCCHI_Y * A[0]) / -A[1]) : max) : max;
+  let d = A ? fin : max * BOMBA_VUOTO, vicino = Infinity;
   for (const e of s.enemies) {
     if (supp ? !amica(s, e) : !ostile(s, e)) continue;
     const dx = e.x - h.x, dz = e.z - h.z, lungo = dx * fx + dz * fz;
-    if (lungo < (supp ? 0.2 : 0.8) || lungo > max || Math.abs(dx * fz - dz * fx) > BOMBA_LATO + e.def.raggio) continue;
+    if (lungo < (supp ? 0.2 : 0.8) || lungo > fin + (A ? e.def.raggio : 0) || Math.abs(dx * fz - dz * fx) > BOMBA_LATO + e.def.raggio) continue;
     if (lungo < vicino) { vicino = lungo; d = lungo; }
   }
   // Arena: le bombe d'attacco puntano anche l'avversario davanti
@@ -221,7 +222,7 @@ export function distanzaBomba(s: DungeonState, sp: RunSpell, fx: number, fz: num
     if (supp) break;
     const th = s.eroi[j]!.hero, raggio = s.eroi[j]!.runHero.raggio;
     const dx = th.x - h.x, dz = th.z - h.z, lungo = dx * fx + dz * fz;
-    if (lungo < 0.8 || lungo > max || Math.abs(dx * fz - dz * fx) > BOMBA_LATO + raggio) continue;
+    if (lungo < 0.8 || lungo > fin || Math.abs(dx * fz - dz * fx) > BOMBA_LATO + raggio) continue;
     if (lungo < vicino) { vicino = lungo; d = lungo; }
   }
   if (supp) {
@@ -229,7 +230,7 @@ export function distanzaBomba(s: DungeonState, sp: RunSpell, fx: number, fz: num
       if (i === s.cur || s.eroi[i]!.done || !compagno(s, i)) continue;
       const th = s.eroi[i]!.hero, raggio = s.eroi[i]!.runHero.raggio;
       const dx = th.x - h.x, dz = th.z - h.z, lungo = dx * fx + dz * fz;
-      if (lungo < 0.2 || lungo > max || Math.abs(dx * fz - dz * fx) > BOMBA_LATO + raggio) continue;
+      if (lungo < 0.2 || lungo > fin || Math.abs(dx * fz - dz * fx) > BOMBA_LATO + raggio) continue;
       if (lungo < vicino) { vicino = lungo; d = lungo; }
     }
     if (s.pvp && vicino === Infinity) d = 0.4; // Arena: senza compagni davanti la Cura e la Furia a bomba cadono ai tuoi piedi

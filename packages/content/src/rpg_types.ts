@@ -98,7 +98,7 @@ export type ModKey =
   | 'caricaVeloce' | 'costoDistruzione' | 'costoEvocazione' | 'durataEvocazione' | 'difesa' | 'malusArmatura' | 'peso'
   | 'velocitaCorsa' | 'staminaCorsa' | 'dannoConArmaturaLeggera' | 'materialiForgia' | 'potenzaPozioni' | 'resistMagia'
   // perk dell'albero (11 ott 2026): effetti nel dungeon (sim/dungeon) e sulle cose forgiate (sim/rpg/derived)
-  | 'sanguinaCaricato' | 'paralisiCaricato' | 'caricaMassima' | 'automira' | 'arcoMobile' | 'scarica' | 'raggioMagia'
+  | 'sanguinaCaricato' | 'paralisiCaricato' | 'caricaMassima' | 'zoomArco' | 'manoFerma' | 'arcoMobile' | 'scarica' | 'raggioMagia'
   | 'dannoAlleati' | 'vitaAlleati' | 'magickaPct' | 'evocazionePerenne' | 'difesaForgiata' | 'dannoForgiato' | 'pesoForgiato'
   // seconda tornata (11 ott 2026): avvelenamento, Lama d'aria, Spaccaossa, Terremoto, frecce perforanti, Faretra, Pioggia di frecce, Combustione,
   // Catena di fulmini, Doppio richiamo, Banchetto, Medico da campo, Doppia dose, Pozioni durature, Capolavoro
@@ -132,7 +132,7 @@ export type RecipeDef = { id: string; nome: string; ingredienti: Record<string, 
 export type EnemyDef = {
   id: string; nome: string; kind: EnemyKind; model: string;
   vita: number; danno: number; armatura: number; resistMagia?: number;
-  velocita: number; vista: number; portata: number; preparazione: number; recupero: number; raggio: number;
+  velocita: number; vista: number; portata: number; preparazione: number; recupero: number; raggio: number; /** Prima persona: alto (m) e, chi vola, a che quota (alzo.ts). */ altezza?: number; quota?: number;
   /** `torretta` (Drenaggio, Valvola-SparaVapore): non si muove mai (né la spingono), si gira verso l'eroe e tira quando lo vede.
    *  Archivio: `bombardiere` (Aerostato-Spia) sta a qualche metro dall'eroe e sgancia `bomba`; `astrolabio` è il capo con `astrolabio`;
    *  `anello` sono gli anelli-scudo che il capo stacca a metà vita (non hanno IA: girano attorno a lui).
@@ -324,8 +324,8 @@ export type RpgPerkBalance = {
   paralisi: { secondi: number };
   /** Carica massima: sui boss il danno è un caricato normale × `moltBoss`; sugli altri è letale. */
   caricaMassima: { moltBoss: number };
-  /** Automira (livello 1) e Automira plus (livello 2): la freccia sterza verso il nemico più vicino entro il cono (coseno) a `k` della differenza di direzione a ogni tick, fino a `gittata` m. */
-  automira: { cos: number; k: number; gittata: number }[];
+  /** Occhio d'aquila: con l'arco teso del tutto la vista stringe a `zoom` del campo (solo resa, prima persona). Mano ferma: con l'arco teso il mondo salta un tick ogni `ogni` (sim/dungeon/perk.ts). */
+  occhio: { zoom: number }; manoFerma: { ogni: number };
   /** Scarica: ogni `ricarica` s, `frecce` frecce a piena tensione, una ogni `ogni` s. */
   scarica: { ricarica: number; frecce: number; ogni: number; pioggia: { ricarica: number; frecce: number } };
   /** Lame avvelenate: il colpo normale avvelena `dps` al secondo per `secondi` s. */
@@ -373,7 +373,7 @@ export type RpgBalance = {
   dungeon: {
     maxMinuti: number; morte: { bottino: number; xp: number }; altare: { protezione: number };
     /** Dungeon insieme (#118): al massimo `max` eroi; la vita dei nemici cresce di `vitaPerCompagno` (frazione) per ogni eroe oltre il primo. */
-    gruppo?: { max: number; vitaPerCompagno: number };
+    gruppo?: { max: number; vitaPerCompagno: number }; /** Prima persona: il colpo su chi non ti ha visto fa × `danno` (i boss no); camminando ti notano a `vista` della distanza, chi dorme a `dorme` in più. */ furtivo?: { danno: number; vista: number; dorme: number };
   };
   /** Arena PvP (docs/ARENA.md Step 1): statistiche di base normalizzate (100/100/100), scala e tetto ai danni tra giocatori (niente one-shot). */
   arena: RpgArenaBalance;

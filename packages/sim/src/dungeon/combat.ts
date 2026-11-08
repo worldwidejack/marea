@@ -120,7 +120,10 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
   if (mb < 0) return 0;
   retro *= mb;
   if (e.def.raffica && e.st === 'recupera' && src.caricato && src.mischia) ribalta(s, e);
-  const d = dannoSu(e, src) * (src.letale ? 1 : retro) * (e.spento && e.def.forgiatore ? e.def.forgiatore.vulnerabile : 1);
+  // prima persona: chi dorme o non ti ha ancora visto prende l'attacco furtivo (i boss no)
+  const furtivo = s.hero.fruga && !src.daAlleato && !e.aggro && !e.def.boss && (e.st === 'dorme' || e.st === 'veglia') ? RPG.dungeon.furtivo?.danno ?? 1 : 1;
+  if (furtivo > 1) ev(s, { t: 'furtivo', id: e.id });
+  const d = dannoSu(e, src) * (src.letale ? 1 : retro) * (e.spento && e.def.forgiatore ? e.def.forgiatore.vulnerabile : 1) * furtivo;
   const utile = Math.min(d, Math.max(0, e.vita)); // il danno oltre la vita rimasta non dà xp: un colpo enorme su un nemico debole vale quanto due piccoli
   e.vita -= d;
   e.hurt = COLPITO_TICKS;

@@ -11,6 +11,8 @@ import { beviNow, stepHero } from './hero.ts';
 import { stepEnemies } from './enemies.ts';
 import { stepProjectiles } from './projectiles.ts';
 import { pickup } from './loot.ts';
+import { frugaNow, prendiNow } from './fruga.ts';
+import { mondoFermo } from './perk.ts';
 import { esciQui, salvaQui, stepAltari } from './altari.ts';
 import { buttaNow, equipNow } from './zaino.ts';
 import { stepAcque, stepGeyser } from './acque.ts';
@@ -30,7 +32,7 @@ export const MAX_TICKS = (RPG.dungeon?.maxMinuti ?? 20) * 60 * HZ;
 
 /** Un tick per tutti: prima ogni eroe in gioco col suo input (in ordine), poi nemici, proiettili, geyser e acqua (Drenaggio), lava, fuoco
  *  e cascate (Fucina), lancette e onde (Mausoleo), vento e spinte (Archivio; la risacca della Diga), rottami (Diga), raccolta, lanterne. L'eroe di turno
- *  (`s.cur`) alla fine è quello di prima. */
+ *  (`s.cur`) alla fine è quello di prima. Mano ferma (perk.ts): nei tick in cui il mondo sta fermo si muovono solo l'eroe e i suoi colpi. */
 export function stepParty(s: DungeonState, inputs: readonly DungeonInput[]): void {
   s.eventi = [];
   if (finita(s)) return;
@@ -41,6 +43,7 @@ export function stepParty(s: DungeonState, inputs: readonly DungeonInput[]): voi
     stepHero(s, inputs[i] ?? NO_DUNGEON_INPUT);
   }
   s.cur = prima;
+  if (mondoFermo(s)) { stepProjectiles(s, true); if (!finita(s)) pickup(s); if (!finita(s)) stepAltari(s); s.tick++; return; }
   scopriChiAttacca(s); // Arena: chi attacca esce dall'erba alta
   if (!finita(s)) stepEnemies(s);
   if (!finita(s)) stepProjectiles(s);
@@ -86,7 +89,9 @@ export const dungeon: DungeonModule<DungeonState> = {
   // v10: magie di fuoco ed elettricità differenziate (il fuoco brucia di più, l'elettricità rallenta), Fuoco/Elettricità continua (raggio che si tiene
   // con la A, costa Magicka al secondo) e Bomba di fuoco/elettrica (lenta, scoppia dove atterra); libri nelle mappe della Grotta, Cripta, Drenaggio, Fucina
   // v11: schivata a stamina e preparazione delle armi separata dallo swing rapido.
-  id: 'dungeon', version: 11, maxTicks: MAX_TICKS,
+  // v12: prima persona (docs/PRIMA_PERSONA.md): alzo della mira (DungeonInput.p, log formato 5) con nemici alti quanto il loro modello, bottino a mano
+  // (azioni `fruga` e `prendi`), attacco furtivo, Mano ferma e Occhio d'aquila al posto dell'Automira. In terza persona non cambia niente.
+  id: 'dungeon', version: 12, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
   act(s, a) {
@@ -97,6 +102,8 @@ export const dungeon: DungeonModule<DungeonState> = {
       case 'bevi': return beviNow(s, a.item);
       case 'salva': return salvaQui(s);
       case 'esci': return esciQui(s);
+      case 'fruga': return frugaNow(s);
+      case 'prendi': return prendiNow(s, a.id, a.item);
       // insieme: il giocatore se n'è andato, per lui la spedizione finisce senza esito (gli altri continuano)
       case 'ritira': s.done = true; s.outcome = null; return [{ t: 'ritirato' }];
       default: return null;

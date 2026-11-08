@@ -35,9 +35,10 @@ import { giraVerso, girata, moveToward, potenza, setState } from './passi.ts';
 import { colpoCorsia, corsiaFino } from './diga.ts';
 import { brucia, scia } from './fuoco.ts';
 import { passoNemico, sanguina } from './perk.ts';
+import { furtivita } from './fruga.ts';
 import {
   ALLEATO_SEGUE, BOSS_AREA_DANNO, BOSS_AREA_OGNI, BOSS_AREA_PREP, BOSS_AREA_RAGGIO, COLPISCE_TICKS, COS_CONO_NEMICO, COS_SCAFANDRO, DISTANZA_TIRATORI,
-  BOMBA_LONTANO, BOMBA_VICINO, FLOW_OGNI, MAGIA_Y, RAGGIO_ALLARME, RAGGIO_ATTIVO, TOLLERANZA_NEMICO, VISTA_DORMENDO,
+  BOMBA_LONTANO, BOMBA_VICINO, FLOW_OGNI, MAGIA_Y, SPAZIO_FP, RAGGIO_ALLARME, RAGGIO_ATTIVO, TOLLERANZA_NEMICO, VISTA_DORMENDO,
 } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -82,12 +83,12 @@ function bersaglio(s: DungeonState, e: Enemy): number {
   }
   return best;
 }
-/** Un eroe in gioco entro `vista` e in linea di vista (da solo: l'eroe). */
+/** Un eroe in gioco entro `vista` e in linea di vista (da solo: l'eroe); in prima persona chi cammina piano si fa notare più tardi (fruga.ts). */
 function vedeEroe(s: DungeonState, e: Enemy, vista: number): boolean {
   for (const r of s.eroi) {
     if (r.done) continue;
     const dx = r.hero.x - e.x, dz = r.hero.z - e.z, d = Math.sqrt(dx * dx + dz * dz);
-    if (d <= vista && lineOfSight(s.map, e.x, e.z, r.hero.x, r.hero.z)) return true;
+    if (d <= vista * furtivita(r, e.st === 'dorme') && lineOfSight(s.map, e.x, e.z, r.hero.x, r.hero.z)) return true;
   }
   return false;
 }
@@ -470,7 +471,7 @@ function separate(s: DungeonState, act: Enemy[]): void {
     if (a.alleato || fisso(a) || vola(a)) continue;
     for (const r of s.eroi) {
       if (r.done) continue;
-      const h = r.hero, dx = a.x - h.x, dz = a.z - h.z, d2 = dx * dx + dz * dz, rr = a.def.raggio + r.runHero.raggio;
+      const h = r.hero, dx = a.x - h.x, dz = a.z - h.z, d2 = dx * dx + dz * dz, rr = a.def.raggio + r.runHero.raggio + (h.fruga ? SPAZIO_FP : 0);
       if (d2 < rr * rr && d2 > 1e-12) { const d = Math.sqrt(d2), k = (rr - d) / d; moveCircle(grigliaDi(s, a), a, dx * k, dz * k, a.def.raggio); }
     }
   }

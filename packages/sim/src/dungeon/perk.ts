@@ -1,5 +1,5 @@
 // Effetti dei perk dell'albero delle abilità dentro il dungeon (docs/RPG.md §3): Taglio Critico (sanguinamento + rallentamento), Colpo fatale
-// (paralisi), Automira (frecce che curvano). I numeri stanno in balance.json → perk; le probabilità e i livelli in perks.json (RunHero.perk).
+// (paralisi), Mano ferma (con l'arco teso il mondo rallenta). I numeri stanno in balance.json → perk; le probabilità e i livelli in perks.json (RunHero.perk).
 // Determinismo: solo + − × ÷ e Math.sqrt, il caso viene da s.rng.
 import { RPG } from '@marea/content/rpg.ts';
 import { DT } from '../constants.ts';
@@ -56,26 +56,14 @@ export function passoNemico(s: DungeonState, e: Enemy): boolean {
   return true;
 }
 
-/** Automira: la freccia dell'eroe sterza verso il nemico più vicino che ha davanti (dentro il cono del suo livello). */
-export function guidaFreccia(s: DungeonState, p: Proj): void {
-  const L = RPG.perk?.automira[(p.guida ?? 0) - 1];
-  if (!L) return;
-  const v = Math.sqrt(p.vx * p.vx + p.vz * p.vz);
-  if (v < 1e-6) return;
-  const hx = p.vx / v, hz = p.vz / v;
-  let best: Enemy | null = null, bd = Infinity, bx = 0, bz = 0;
-  for (const e of s.enemies) {
-    if (e.alleato || e.st === 'morto' || p.colpiti.includes(e.id)) continue;
-    const dx = e.x - p.x, dz = e.z - p.z, d = Math.sqrt(dx * dx + dz * dz);
-    if (d < 0.3 || d > L.gittata || d >= bd) continue;
-    if ((dx * hx + dz * hz) / d < L.cos) continue;
-    best = e; bd = d; bx = dx / d; bz = dz / d;
-  }
-  if (!best) return;
-  const nx = hx + (bx - hx) * L.k, nz = hz + (bz - hz) * L.k, l = Math.sqrt(nx * nx + nz * nz);
-  if (l < 1e-6) return;
-  p.vx = (nx / l) * v; p.vz = (nz / l) * v;
+/** Mano ferma: da soli (non insieme, non in Arena), con l'arco teso il mondo rallenta: nemici, i loro tiri e le trappole saltano un tick ogni
+ *  `RPG.perk.manoFerma.ogni` (a 3 vanno ai due terzi). L'eroe e le sue frecce no. true = in questo tick il mondo sta fermo. */
+export function mondoFermo(s: DungeonState): boolean {
+  const M = RPG.perk?.manoFerma;
+  return !!M && !!s.runHero.perk?.manoFerma && s.eroi.length === 1 && !s.pvp && s.hero.act === 'tende' && s.tick % M.ogni === M.ogni - 1;
 }
+/** Il mondo va al rallentatore (per la resa: il client tinge lo schermo)? */
+export const alRallentatore = (s: DungeonState): boolean => !!RPG.perk?.manoFerma && !!s.runHero.perk?.manoFerma && s.eroi.length === 1 && !s.pvp && s.hero.act === 'tende';
 
 // ---------- seconda tornata (11 ott 2026) ----------
 const r2 = (v: number): number => Math.round(v * 100) / 100;

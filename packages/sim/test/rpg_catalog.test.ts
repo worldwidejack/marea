@@ -9,7 +9,7 @@ const PALETTE = new Set([...fs.readFileSync(new URL('../../../docs/ART_BIBLE.md'
 const MOD_KEYS = new Set(['vita', 'magicka', 'stamina', 'regenVita', 'regenMagicka', 'regenStamina', 'dannoLeggere', 'dannoPesanti', 'dannoArco', 'dannoDistruzione',
   'velocitaLeggere', 'velocitaPesanti', 'tensioneArco', 'caricaVeloce', 'costoDistruzione', 'costoEvocazione', 'durataEvocazione', 'difesa', 'malusArmatura', 'peso',
   'velocitaCorsa', 'staminaCorsa', 'dannoConArmaturaLeggera', 'materialiForgia', 'potenzaPozioni', 'resistMagia',
-  'sanguinaCaricato', 'paralisiCaricato', 'caricaMassima', 'automira', 'arcoMobile', 'scarica', 'raggioMagia', 'dannoAlleati', 'vitaAlleati', 'magickaPct',
+  'sanguinaCaricato', 'paralisiCaricato', 'caricaMassima', 'zoomArco', 'manoFerma', 'arcoMobile', 'scarica', 'raggioMagia', 'dannoAlleati', 'vitaAlleati', 'magickaPct',
   'evocazionePerenne', 'difesaForgiata', 'dannoForgiato', 'pesoForgiato',
   'avvelena', 'lamaAria', 'penetraPesanti', 'terremoto', 'frecceTrapassano', 'risparmioFrecce', 'scaricaPiu', 'combustione', 'catena', 'richiamoDoppio', 'banchetto',
   'medicoCampo', 'doppiaDose', 'durataPozioni', 'forgiaDoppia',
