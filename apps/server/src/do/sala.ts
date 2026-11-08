@@ -39,6 +39,6 @@ export function accoda(coda: SqInput[], f: SqInput, max: number, mira = false): 
   while (coda.length > max) {
     const old = coda.shift()!, h = coda[0]!;
     h[2] |= old[2];
-    if (mira && old[3] && !h[3]) h[3] = old[3];
+    if (mira && old[3] && !h[3]) { h[3] = old[3]; if (old[4]) h[4] = old[4]; }
   }
 }

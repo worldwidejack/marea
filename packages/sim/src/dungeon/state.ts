@@ -54,14 +54,14 @@ export type HeroRt = {
    *  verso il colpo letale mentre tieni il colpo, e se il colpo che sta partendo è quello letale. */
   cdScarica: number; raffica: number; raffT: number; massimaP: number; massimo: boolean;
   /** Magia a raggio (Fuoco/Elettricità continua, Cura/Furia a flusso, magie.ts): tick da quando è accesa (0 = spenta), metri liberi davanti all'eroe, elemento. */
-  canale: number; canaleLen: number; canaleEl?: SpellElement;
+  canale: number; canaleLen: number; canaleEl?: SpellElement; canaleFin?: number;
   /** Diga dei Disertori: tick fino a cui i rottami non lo riprendono; Vento in Poppa dell'Albero della «Stella del Mattino» (unici.ts):
    *  cariche di Brezza, metri corsi verso la prossima, e se il colpo in corso è quello che le ha consumate (l'onda d'urto).
    *  Tempio della «Doppia Nera»: tick rimasti «In Fresca», metri corsi verso la carica e se il colpo in corso solleva l'onda di neve.
    *  Santuario del Capo Ardente: cariche di Vampa (Manto del Primo Lucignolo) e se il raggio di fuoco in corso è sovralimentato. */
   rottT: number; brezza: number; brezzaM: number; poppa: boolean; fresca: number; frescaM: number; ondaNeve: boolean; vampa: number; sovralimentata: boolean;
-  /** Baita: direzione di scivolamento sul Ghiaccio Vivo [dx, dz] o null; tick fino a cui dura l'assideramento. */
-  slideDir?: [number, number] | null; slideP?: [number, number] | null; assiderato?: number;
+  /** Baita: scivolamento sul Ghiaccio Vivo [dx, dz] o null, fine dell'assideramento. Prima persona: alzo della mira ([cos, sen], alzo.ts), bottino a mano (fruga.ts). */
+  slideDir?: [number, number] | null; slideP?: [number, number] | null; assiderato?: number; alzo?: readonly [number, number]; fruga?: true;
 };
 export type EnemyState = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'morto';
 export type Enemy = {
@@ -126,8 +126,8 @@ export type Proj = {
   da?: number;
   /** Arpione (Drone Idro-Ragno): chi è preso è tirato di `tira` m all'indietro lungo il volo in `tiraT` tick. */
   tira?: number; tiraT?: number; spinge?: number;
-  /** Magie: fattore di Grandi Magie (assente = 1). Frecce: livello dell'Automira (assente = 0). */
-  mole?: number; guida?: number;
+  /** Magie: fattore di Grandi Magie (assente = 1). Tirato con l'alzo (alzo.ts): colpisce i nemici alla loro altezza, il soffitto lo ferma. */
+  mole?: number; alzo?: true;
   /** Magie: elemento (Combustione, Catena di fulmini, Cura, Furia). */
   elemento?: SpellElement;
   /** Bomba (magie.ts): dove atterra (x, z); vola sopra muri e nemici e scoppia a terra. Elettriche: rallenta chi colpisce. Supporto: cura o furia. */
@@ -145,7 +145,7 @@ export type Geyser = { id: number; x: number; z: number; r: number; t: number; a
   /** Fucina: è una palla di magma del Mastro Forgiatore; dove cade lascia una pozza che brucia (fuoco.ts). */
   magma?: { durata: number; raggio: number; dps: number; secondi: number };
   /** Diga: è una cannonata della salva del Capitano Vaelen. Santuario: `da` id di chi l'ha lanciato, `evoca` cosa fa nascere, `riparo` non colpisce chi sta al riparo di un braciere, `spegne` spegne i bracieri vicini, `senzaDanno` solo l'evocazione. */
-  cannone?: true; da?: number; evoca?: string; riparo?: true; spegne?: true; senzaDanno?: true };
+  cannone?: true; da?: number; evoca?: string; riparo?: true; spegne?: true; senzaDanno?: true; /** Lanciato da (x, z): in prima persona lo si vede volare. */ o?: [number, number] };
 /** Archivio: una corrente d'aria (le celle e i numeri stanno in map.venti); `ferma` = il suo timone è girato. */
 export type Corrente = { n: number; ferma: boolean };
 /** Fucina: chiazza di fuoco a terra (scia della Fornace Semovente, pozza di magma) fino al tick `fine`: chi ci sta dentro brucia. */

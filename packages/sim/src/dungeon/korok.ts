@@ -42,7 +42,7 @@ function cerchio(s: DungeonState, e: Enemy, x: number, z: number, r: number, cad
 function globo(s: DungeonState, e: Enemy): void {
   const S = e.def.korok!.sputo, h = s.hero, dx = h.x - e.x, dz = h.z - e.z, d = Math.sqrt(dx * dx + dz * dz);
   const k = d > S.gittata && d > 1e-6 ? S.gittata / d : 1, p = inArena(s, e.x + dx * k, e.z + dz * k, 1);
-  cerchio(s, e, p.x, p.z, S.raggio, S.caduta, S.danno, { spegne: true, magma: { durata: S.fuoco.durata, raggio: S.raggio * 0.8, dps: S.fuoco.dps, secondi: S.fuoco.secondi } });
+  cerchio(s, e, p.x, p.z, S.raggio, S.caduta, S.danno, { spegne: true, magma: { durata: S.fuoco.durata, raggio: S.raggio * 0.8, dps: S.fuoco.dps, secondi: S.fuoco.secondi }, o: [e.x, e.z] });
 }
 
 /** Comincia un attacco (telegrafato in `prepara`): i cerchi compaiono subito. */

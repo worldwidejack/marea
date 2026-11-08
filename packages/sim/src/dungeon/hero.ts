@@ -9,11 +9,11 @@ import { add, ev, evocaAlleato, secToTicks } from './state.ts';
 import { buff, hitEnemy, rallentaNemico } from './combat.ts';
 import { lineOfSight, moveCircle } from './map.ts';
 import {
-  BEVE_TICKS, COLPI, COS_BOMBA, COS_CONO_ARCO, COS_RAGGIO, COS_SEMICERCHIO, FRECCIA_Y, GIRO_TEMPO, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y, HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS,
+  SPAZIO_FP, BEVE_TICKS, COLPI, COS_BOMBA, COS_CONO_ARCO, COS_RAGGIO, COS_SEMICERCHIO, FRECCIA_Y, GIRO_TEMPO, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y, HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS,
 } from './tuning.ts';
 import { stepSchivata, velocitaSchivata } from './schivata.ts';
 import { faseSwing, sweepTo, swept, swingStyle } from './swing.ts';
-import { aimDir } from './mira.ts'; import { consuma, rebuild } from './zaino.ts';
+import { aimDir } from './mira.ts'; import { alza, alzoDir } from './alzo.ts'; import { consuma, rebuild } from './zaino.ts';
 import { apriValvola, valvolaVicina } from './acque.ts'; import { giraTimone, timoneVicino } from './vento.ts';
 import { alto } from './muove.ts'; import { accendi, braciereVicino } from './braci.ts'; import { aimAlleato, canale, fermaCanale, isSupporto, lanciaBomba } from './magie.ts';
 import { caricaBarriera, caricaBrezza, caricaVampa, consumaVampa, eco, fineColpo, inizioColpo, inizioPoppa, molla, moltCaricaPoppa, moltRitmo, spintaPoppa, stepUnici, stordisci } from './unici.ts';
@@ -182,8 +182,8 @@ function shoot(s: DungeonState, dir: Mira): void {
     id: s.nextId++, tipo: 'freccia', x: h.x + h.fx * 0.4, y: FRECCIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v,
     g: traits.noGravita ? 0 : fr.gravita * (a.traits.carillon?.gravita ?? 1), danno: (a.danno + fr.danno) * t * (1 + buff(s, 'dannoArco')), life: VOLO_MAX_TICKS,
     traits, raggio: 0, colpiti: [], dalNemico: false, contundente: !!traits.sbilancia, magico: false, arrowId: fr.id, da: s.cur,
-    ...(s.runHero.perk?.automira ? { guida: s.runHero.perk.automira } : {}),
   });
+  alza(s, s.proj[s.proj.length - 1]!); // prima persona: dagli occhi, dove punta il mirino
 }
 
 function cast(s: DungeonState, dir: Mira): void {
@@ -221,6 +221,7 @@ function cast(s: DungeonState, dir: Mira): void {
     traits: sp.sanguina ? { sanguina: sp.sanguina } : {}, raggio: sp.raggio * (vampa ? vampa.raggioMolt : 1), colpiti: [], dalNemico: false, contundente: false, magico: true, arrowId: null, da: s.cur,
     ...(mole > 1 ? { mole } : {}), ...(sp.elemento ? { elemento: sp.elemento } : {}), ...(sp.rallenta ? { rallenta: sp.rallenta } : {}), ...(vampa ? { vampa: true as const } : {}),
   });
+  alza(s, s.proj[s.proj.length - 1]!);
 }
 
 /** C: alterna arma e magia in mano (v6). Senza una magia preparata non succede niente. Con `stato` scrive anche l'equipaggiamento
@@ -280,7 +281,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   h.prevA = inp.a; h.prevC = inp.c; h.prevD = inp.d; h.prevE = !!inp.e;
   stepSchivata(h, inp);
   if (h.act === 'schiva') aDown = false;
-  const dir = aimDir(inp.m);
+  const dir = aimDir(inp.m); h.alzo = alzoDir(inp.p) ?? undefined; // l'alzo vale solo col mirino (dir)
   // uscita: A sulla scala vince su tutto
   if (aDown && vicinoUscita(s)) { s.done = true; s.outcome = 'uscito'; ev(s, { t: 'uscita' }); return; }
   // Drenaggio: A accanto a una valvola chiusa la gira (e non attacca)
@@ -385,7 +386,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   // i nemici sono solidi: l'eroe non li attraversa
   for (const e of s.enemies) {
     if (e.st === 'morto' || (e.alleato && !evocazioneNemica(s, e)) || e.def.muove === 'vola') continue; // chi vola passa sopra
-    const dx = h.x - e.x, dz = h.z - e.z, d2 = dx * dx + dz * dz, rr = rh.raggio + e.def.raggio;
+    const dx = h.x - e.x, dz = h.z - e.z, d2 = dx * dx + dz * dz, rr = rh.raggio + e.def.raggio + (h.fruga ? SPAZIO_FP : 0);
     if (d2 >= rr * rr || d2 < 1e-12) continue;
     const d = Math.sqrt(d2), k = (rr - d) / d;
     moveCircle(s.map, h, dx * k, dz * k, rh.raggio);

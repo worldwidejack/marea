@@ -119,6 +119,11 @@ export const SUONI: Record<SuonoId, Ricetta> = {
   altare: (m, t) => { campana(m, t, hz(76), 0.09, 1.1); campana(m, t + 0.15, hz(83), 0.07, 1.1); campana(m, t + 0.3, hz(88), 0.06, 1.3); },
   vuoto: (m, t) => m.tono({ f: 180, f2: 140, onda: 'square', t, dur: 0.12, vol: 0.06, lp: 900 }),
   goccia: (m, t) => { const f = 1100 * vari(0.25); for (const [dt, v] of [[0, 0.05], [0.18, 0.018]] as const) m.tono({ f, f2: f * 1.7, onda: 'sine', t: t + dt, dur: 0.06, vol: v }); },
+  // prima persona: bip d'avviso (k = 1 più acuto e secco), battito (k = 1 più forte), il mondo che rallenta, il colpo furtivo
+  pericolo: (m, t, k) => m.tono({ f: k ? 1320 : 990, onda: 'square', t, dur: k ? 0.05 : 0.07, vol: k ? 0.07 : 0.05, lp: 2600 }),
+  cuore: (m, t, k) => { for (const [dt, v] of [[0, 1], [0.16, 0.7]] as const) m.tono({ f: 62, f2: 40, onda: 'sine', t: t + dt, dur: 0.12, vol: (k ? 0.26 : 0.17) * v }); },
+  rallenty: (m, t) => { m.tono({ f: 420, f2: 140, onda: 'triangle', t, dur: 0.45, vol: 0.08, lp: 1200 }); m.soffio({ tipo: 'lowpass', f: 1400, f2: 300, t, dur: 0.5, vol: 0.06, a: 0.05 }); },
+  furtivo: (m, t) => { m.soffio({ f: 3200, q: 2, t, dur: 0.07, vol: 0.12 }); m.tono({ f: hz(81), onda: 'impulso', t: t + 0.03, dur: 0.12, vol: 0.07, lp: 4200 }); m.tono({ f: hz(74), onda: 'impulso', t: t + 0.12, dur: 0.22, vol: 0.06, lp: 4200 }); },
   // ---- Tempesta: Arrembaggio ----
   cannone: (m, t) => {
     m.tono({ f: 95 * vari(0.06), f2: 38, onda: 'square', t, dur: 0.32, vol: 0.16, lp: 700 }); // botto

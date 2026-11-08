@@ -6,6 +6,7 @@ import { newLot } from '../src/economy/actions.ts';
 import { dungeon, createPartyRun, stepParty } from '../src/dungeon/dungeon.ts';
 import type { DungeonState } from '../src/dungeon/dungeon.ts';
 import { AIM_N, aimDir, aimIndex } from '../src/dungeon/mira.ts';
+import { ALZO_N } from '../src/dungeon/alzo.ts';
 import { decodeDungeon, encodeDungeon, isPackedDungeon, packDungeon, quantizeDungeon, replayDungeon, replayParty, unpackDungeon } from '../src/dungeon/replay.ts';
 import { newEnemy } from '../src/dungeon/state.ts';
 import type { DungeonInput, PackedDungeon } from '../src/dungeon/types.ts';
@@ -13,7 +14,7 @@ import { applyRpgAction, parseRpgAction } from '../src/rpg/actions.ts';
 import { finishDungeon, startDungeon } from '../src/rpg/run.ts';
 import { buildRunHero } from '../src/rpg/derived.ts';
 import { heroOf, newHero } from '../src/rpg/hero.ts';
-import { SQ_MIRA_MAX, isSqInput } from '../../protocol/src/squadra.ts';
+import { SQ_ALZO_MAX, SQ_MIRA_MAX, isSqInput } from '../../protocol/src/squadra.ts';
 import { createRng } from '../src/rng.ts';
 import { conEroe } from '../src/dungeon/state.ts';
 import { arena, heroBase, inp, playAuto, run } from './dungeon_util.ts';
@@ -49,6 +50,7 @@ test('mira: ogni indice è un versore e aimIndex lo ritrova; fuori scala o assen
   assert.deepEqual([aimIndex(1, 0), aimIndex(0, 1), aimIndex(-1, 0), aimIndex(0, -1), aimIndex(0, 0)], [1, 61, 121, 181, 0]);
   for (const m of [0, -1, AIM_N + 1, 1.5, NaN, undefined]) assert.equal(aimDir(m), null, String(m));
   assert.equal(SQ_MIRA_MAX, AIM_N, 'il protocollo della squadra conosce lo stesso massimo');
+  assert.equal(SQ_ALZO_MAX, ALZO_N, 'e lo stesso alzo massimo');
 });
 
 test('mischia in prima persona: con la mira il colpo va dove si guarda, senza mira resta quella assistita', () => {
@@ -84,8 +86,9 @@ test('mira: il log con la mira (formato 2) fa il giro senza perdite; senza mira 
   // un log del formato 1 scritto a mano si legge ancora
   assert.deepEqual(decodeDungeon(b64([1, 0x08, 0x05]), 100), [[1, 0, 0, 1]]);
   assert.deepEqual(decodeDungeon(b64([2, 0x08, 0x05, 7]), 100), [[1, 0, 0, 1, 7]], 'e uno del formato 2');
-  // forma: la mira va da 0 a AIM_N, intera, e le righe hanno 4 o 5 numeri
-  for (const bad of [[[1, 0, 0, 0, AIM_N + 1]], [[1, 0, 0, 0, -1]], [[1, 0, 0, 0, 1.5]], [[1, 0, 0, 0, 1, 1]]]) assert.equal(isPackedDungeon(bad, 10), false, JSON.stringify(bad));
+  // forma: la mira va da 0 a AIM_N, intera, l'alzo da 0 ad ALZO_N, e le righe hanno da 4 a 6 numeri
+  for (const bad of [[[1, 0, 0, 0, AIM_N + 1]], [[1, 0, 0, 0, -1]], [[1, 0, 0, 0, 1.5]], [[1, 0, 0, 0, 1, ALZO_N + 1]], [[1, 0, 0, 0, 1, 1, 1]]]) assert.equal(isPackedDungeon(bad, 10), false, JSON.stringify(bad));
+  assert.equal(isPackedDungeon([[1, 0, 0, 0, 1, 1]], 10), true, 'mira e alzo');
   assert.equal(decodeDungeon(b64([2, 0x08, 0x05, AIM_N + 1]), 100), null, 'byte di mira fuori scala');
   assert.equal(decodeDungeon(b64([2, 0x08, 0x05]), 100), null, 'riga del formato 2 senza il byte di mira');
   // quantizzazione: una mira non valida diventa «nessuna mira»
@@ -94,7 +97,7 @@ test('mira: il log con la mira (formato 2) fa il giro senza perdite; senza mira 
   assert.equal(quantizeDungeon({ ...inp(), m: 9 }).m, 9);
   // protocollo della squadra: [mx, my, bit, mira?]
   assert.ok(isSqInput([0, 0, 1]) && isSqInput([0, 0, 1, 5]) && isSqInput([0, 0, 1, 0]));
-  for (const bad of [[0, 0, 1, SQ_MIRA_MAX + 1], [0, 0, 1, -1], [0, 0, 1, 2.5], [0, 0, 1, 5, 5], [0, 0]]) assert.equal(isSqInput(bad), false, JSON.stringify(bad));
+  for (const bad of [[0, 0, 1, SQ_MIRA_MAX + 1], [0, 0, 1, -1], [0, 0, 1, 2.5], [0, 0, 1, 5, 5, 5], [0, 0, 1, 5, SQ_ALZO_MAX + 1], [0, 0]]) assert.equal(isSqInput(bad), false, JSON.stringify(bad));
 });
 
 test('mira: l’arco tira dove punta il mouse (anche se un nemico sta da un’altra parte); senza mira vale quella assistita', () => {

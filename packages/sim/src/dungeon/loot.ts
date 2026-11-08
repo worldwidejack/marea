@@ -19,13 +19,14 @@ export function pesoZaino(s: DungeonState): number {
   return p;
 }
 
-/** Raccoglie in automatico i bottini su cui l'eroe passa: monete sempre, oggetti finché il peso lo permette. */
-/** Insieme: ogni eroe in gioco raccoglie la sua parte di ogni bottino. */
+/** Raccoglie in automatico i bottini su cui l'eroe passa: monete sempre, oggetti finché il peso lo permette. Chi fruga a mano (prima
+ *  persona, fruga.ts) no. Insieme: ogni eroe in gioco raccoglie la sua parte di ogni bottino. */
 export function pickup(s: DungeonState): void {
   const prima = s.cur;
   for (const i of s.eroi.length > 1 ? inGioco(s) : [prima]) {
     s.cur = i;
     const h = s.hero, r = s.runHero.raggio + RAGGIO_RACCOLTA;
+    if (h.fruga) continue;
     for (const l of s.loot) {
       const p = parte(s, l);
       if (p.vuoto) continue;
@@ -63,8 +64,9 @@ function take(s: DungeonState, l: LootParte): void {
   l.vuoto = Object.keys(l.items).length === 0 && l.monete === 0;
 }
 
-/** C'è qualcosa in questo bottino che entra nello zaino? (per l'autopilot) */
+/** C'è qualcosa in questo bottino che entra nello zaino? (per l'autopilot: chi fruga a mano non raccoglie passandoci sopra, quindi no) */
 export function fits(s: DungeonState, bottino: Loot): boolean {
+  if (s.hero.fruga) return false;
   const l = parte(s, bottino);
   if (l.vuoto) return false;
   if (l.monete > 0) return true;

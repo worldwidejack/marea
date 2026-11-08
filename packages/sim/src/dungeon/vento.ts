@@ -117,5 +117,5 @@ export function bombaDa(s: DungeonState, e: Enemy): void {
   if (!b) return;
   e.cdTiro = secToTicks(b.ricarica);
   const h = s.hero;
-  s.geyser.push({ id: s.nextId++, x: h.x, z: h.z, r: b.raggio, t: 0, avviso: secToTicks(b.caduta), getto: secToTicks(0.25), danno: b.danno, colpiti: [], spinta: b.spinta });
+  s.geyser.push({ id: s.nextId++, x: h.x, z: h.z, r: b.raggio, t: 0, avviso: secToTicks(b.caduta), getto: secToTicks(0.25), danno: b.danno, colpiti: [], spinta: b.spinta, o: [e.x, e.z] });
 }

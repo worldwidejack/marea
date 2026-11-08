@@ -22,7 +22,7 @@ import { varchiDi } from './custode.ts';
 import { scudoSu } from './vaelen.ts';
 import { secToTicks } from './state.ts';
 import { HZ } from './tuning.ts';
-import { paralizzato, rallentato, sanguinante, scaricaDi } from './perk.ts';
+import { alRallentatore, paralizzato, rallentato, sanguinante, scaricaDi } from './perk.ts';
 import { baitaMondo, baitaNemico } from './baita_vista.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -78,7 +78,7 @@ export function viewOf(s: DungeonState): DungeonView {
       ...inMano(s),
       ...(s.correnti.length ? { vento: !s.done && nelVento(s), riparo: !s.done && alRiparo(s) } : s.map.bracieri.length ? { riparo: !s.done && alRiparoBraciere(s, h.x, h.z) } : {}), ...(h.spT > 0 ? { spinto: true } : {}), ...(h.slideDir ? { scivola: h.slideDir } : {}),
       ...(fucina(s) ? { brucia: h.brucia > 0, bagnato: !s.done && inGetto(s, h.x, h.z) } : {}),
-      ...unici(s),
+      ...unici(s), ...(alRallentatore(s) ? { rallenty: true } : {}),
     },
     nemici: s.enemies.map((e) => {
       const a = enemyAnim(e);
@@ -97,7 +97,7 @@ export function viewOf(s: DungeonState): DungeonView {
     venti: s.map.venti.map((v) => ({ n: v.n, dx: v.dx, dz: v.dz, ...statoVento(s, v) })),
     timoni: s.map.timoni.map((t) => ({ x: t.x, z: t.z, n: t.n, fermo: !!s.correnti.find((c) => c.n === t.n)?.ferma })),
     vicinoTimone: !s.done && s.map.timoni.length > 0 && timoneVicino(s) >= 0,
-    geyser: s.geyser.map((g) => ({ id: g.id, x: g.x, z: g.z, r: g.r, getto: g.t > g.avviso, t: g.t > g.avviso ? Math.min(1, (g.t - g.avviso) / g.getto) : Math.min(1, g.t / g.avviso), ...(g.spinta !== undefined ? { bomba: true } : {}), ...(g.magma ? { magma: true } : {}), ...(g.cannone ? { cannone: true } : {}), ...(g.riparo ? { onda: true } : {}), ...(g.evoca ? { evoca: true } : {}) })),
+    geyser: s.geyser.map((g) => ({ id: g.id, x: g.x, z: g.z, r: g.r, getto: g.t > g.avviso, t: g.t > g.avviso ? Math.min(1, (g.t - g.avviso) / g.getto) : Math.min(1, g.t / g.avviso), ...(g.spinta !== undefined ? { bomba: true } : {}), ...(g.magma ? { magma: true } : {}), ...(g.cannone ? { cannone: true } : {}), ...(g.riparo ? { onda: true } : {}), ...(g.evoca ? { evoca: true } : {}), ...(g.o ? { da: [r2(g.o[0]), r2(g.o[1])] as [number, number] } : {}) })),
     lave: s.map.lave.map((v) => ({ n: v.n, ...statoLava(s, v) })),
     fuochi: s.fuochi.map((f) => ({ id: f.id, x: f.x, z: f.z, r: f.r, t: Math.max(0, Math.min(1, 1 - (f.fine - s.tick) / f.durata)), ...(f.amico ? { amico: true } : {}) })),
     lancette: s.map.lancette.map((l) => { const [dx, dz] = lancettaDir(l, s.tick); return { n: l.n, x: l.x, z: l.z, dx, dz, lunga: l.lunga, largo: l.largo, giro: l.giro }; }),
@@ -214,9 +214,9 @@ function perkVista(s: DungeonState): { scarica?: number; massima?: number } {
   return o;
 }
 /** Il raggio acceso dell'eroe di turno (niente chiave se è spento). */
-function canaleVista(s: DungeonState): { canale?: { len: number; el?: import('@marea/content/rpg.ts').SpellElement } } {
+function canaleVista(s: DungeonState): { canale?: { len: number; el?: import('@marea/content/rpg.ts').SpellElement; fin?: number; n?: number } } {
   const h = s.hero;
-  return h.canale > 0 ? { canale: { len: r2(h.canaleLen), ...(h.canaleEl ? { el: h.canaleEl } : {}) } } : {};
+  return h.canale > 0 ? { canale: { len: r2(h.canaleLen), ...(h.canaleEl ? { el: h.canaleEl } : {}), ...(h.canaleFin !== undefined && h.canaleFin < h.canaleLen ? { fin: r2(h.canaleFin) } : {}), ...(h.alzo ? { n: r2(h.alzo[1]) } : {}) } } : {};
 }
 /** La magia in mano all'eroe di turno (niente chiave con l'arma in mano). */
 function inMano(s: DungeonState): { magia?: string } {

@@ -213,7 +213,10 @@ export function closePanels(): void {
     sheet.classList.remove('on'); sheet.replaceChildren();
   }
 }
-export function isPanelOpen(): boolean { return view !== null; }
+export function isPanelOpen(): boolean { return view !== null || altri.some((f) => f()); }
+/** Altre finestre che fermano la partita come la scheda (la finestra del bottino della prima persona): ritorna chi la toglie. */
+export function registraFinestra(aperta: () => boolean): () => void { altri.push(aperta); return () => { const i = altri.indexOf(aperta); if (i >= 0) altri.splice(i, 1); }; }
+const altri: (() => boolean)[] = [];
 /** Dungeon insieme (#118): un'azione dello zaino è arrivata dal server (turno): la scheda aperta si ridisegna. */
 export function refreshBag(): void { if (bag && view) render(); }
 

@@ -117,5 +117,7 @@ export const BRUCIA_NUMERO = Math.round(0.5 * HZ);
 export const FUOCHI_MAX = 48;
 export const COS_SCAFANDRO = 0.8;
 export const RETRO_SCAFANDRO = -0.5;
+/** Prima persona: i nemici restano almeno a questa distanza in più dall'eroe (gli occhi non finiscono dentro di loro). */
+export const SPAZIO_FP = 0.35;
 /** Danno minimo di un colpo andato a segno. */
 export const DANNO_MIN = 1;

@@ -47,7 +47,7 @@ function carica(s: DungeonState, e: Enemy): void {
     if (inMuro(s, x, z)) continue;
     s.geyser.push({
       id: s.nextId++, x, z, r: L.raggio, t: 0, avviso: secToTicks(L.carica), getto: secToTicks(0.25), danno: L.danno, colpiti: [], da: e.id,
-      magma: { durata: L.fuoco.durata, raggio: L.raggio * 0.8, dps: L.fuoco.dps, secondi: L.fuoco.secondi },
+      magma: { durata: L.fuoco.durata, raggio: L.raggio * 0.8, dps: L.fuoco.dps, secondi: L.fuoco.secondi }, o: [e.x, e.z],
     });
   }
   setState(e, 'prepara', secToTicks(L.carica));

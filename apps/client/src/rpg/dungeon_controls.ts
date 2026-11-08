@@ -92,7 +92,7 @@ const CSS = `
 
 export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; hero(): HeroState | null; onPreferito(p: Preferito): void; blocked(): boolean; yaw(): number; insieme?: boolean; valvola?: string; timone?: string;
   /** Prima persona: `clic` false = quel clic serviva solo a riprendere il mouse, non attacca; `riprendi` = la pausa si chiude col bottone. */
-  fp?: { clic(): boolean; riprendi(): void } }): Controls {
+  fp?: { clic(): boolean; riprendi(): void; /** Un tasto per la prima persona (E sul bottino sotto il mirino): true = preso lì. */ tasto(e: KeyboardEvent): boolean } }): Controls {
   if (!document.getElementById('mz-dng-ctrl-style')) { const st = document.createElement('style'); st.id = 'mz-dng-ctrl-style'; st.textContent = CSS; document.head.appendChild(st); }
   o.root.classList.add('mz-dng'); // la schivata (#btnSchiva) prende il posto di D
   let dLatch = false, eLatch = false, aLatch = false, mouseA = false, asking = false, pausa = false;
@@ -168,6 +168,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
     if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat && performance.now() - persoT > 300) { if (pref.aperto) pref.chiudi(); else if (asking) setAsk(false); else setPausa(!pausa); } return; }
     if (asking && (e.code === 'Enter' || e.code === 'KeyY')) { e.preventDefault(); e.stopImmediatePropagation(); setAsk(false); o.onAbort(); return; }
     if (e.code === 'KeyI') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) openZaino(); return; }
+    if (o.fp && !pausa && !asking && !pref.aperto && o.fp.tasto(e)) { e.preventDefault(); e.stopImmediatePropagation(); return; } // E sul bottino: fruga
     if (e.code === 'KeyR' || e.code === 'KeyE') {
       e.preventDefault(); e.stopImmediatePropagation();
       if (e.repeat || pausa || asking || pref.aperto) return;

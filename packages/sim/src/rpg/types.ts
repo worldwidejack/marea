@@ -131,8 +131,8 @@ export type RunPerk = {
   sanguina?: number; paralisi?: number;
   /** Carica massima: secondi di carica per il colpo letale. */
   massima?: number;
-  /** Automira: 1 leggera, 2 forte (indice in RPG.perk.automira + 1). */
-  automira?: number;
+  /** Occhio d'aquila (con l'arco teso la vista stringe: solo resa) e Mano ferma (con l'arco teso il mondo rallenta: sim/dungeon/perk.ts). */
+  zoomArco?: boolean; manoFerma?: boolean;
   /** Arciere Mobile: con l'arco in tensione cammini a velocità piena. Scarica: la raffica di frecce con E. */
   arcoMobile?: boolean; scarica?: boolean;
   /** Evocazioni: moltiplicatori di danno e vita degli alleati; `perenne` = durano finché non muoiono (Patto di sangue); `max` = quanti insieme

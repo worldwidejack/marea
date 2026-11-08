@@ -1,6 +1,8 @@
 import { schivaColpo } from './schivata.ts';
 // Proiettili 2,5D: frecce con gravità (a terra o su un muro si fermano), magie dritte con esplosione, tiri dei nemici sull'eroe.
 // Archivio: l'arpione del Drone Idro-Ragno, se prende, tira l'eroe verso chi l'ha lanciato (vento.ts, spinta da fuori).
+// Prima persona (alzo.ts): i colpi dell'eroe tirati con l'alzo prendono i nemici alla loro altezza, si fermano al soffitto e le magie scoppiano anche a terra.
+// Mano ferma (perk): mentre il mondo rallenta (`soloEroe`) si muovono soltanto i colpi dell'eroe.
 import { DT } from '../constants.ts';
 import type { DungeonState, Enemy, Proj } from './state.ts';
 import { ev, finita, inGioco } from './state.ts';
@@ -8,7 +10,8 @@ import { hitEnemy, hitHero } from './combat.ts';
 import { isOpaque } from './map.ts';
 import { ALTEZZA_BERSAGLIO, HZ } from './tuning.ts';
 import { spingi } from './vento.ts';
-import { effettiMagia, guidaFreccia } from './perk.ts';
+import { effettiMagia } from './perk.ts';
+import { SOFFITTO_Y, haSoffitto, inAltezza } from './alzo.ts';
 import { scoppio } from './magie.ts';
 import { caricaVampa, chiazzaVampa } from './unici.ts';
 import { tiroSuAlleato } from './contro_alleati.ts';
@@ -35,7 +38,7 @@ function da(p: Proj): { ox: number; oz: number } {
 function hitFoes(s: DungeonState, p: Proj): boolean {
   let first: Enemy | null = null, fd = Infinity;
   for (const e of s.enemies) {
-    if (!ostile(s, e) || p.colpiti.includes(e.id)) continue;
+    if (!ostile(s, e) || p.colpiti.includes(e.id) || (p.alzo && !inAltezza(s, e, p.y, MARGINE * (p.mole ?? 1)))) continue;
     const dx = e.x - p.x, dz = e.z - p.z, r = e.def.raggio + MARGINE * (p.mole ?? 1), d2 = dx * dx + dz * dz; // Grandi Magie: contatto più largo
     if (d2 <= r * r && d2 < fd) { fd = d2; first = e; }
   }
@@ -83,18 +86,18 @@ function colpisciEroe(s: DungeonState, p: Proj, x: number, z: number): void {
 }
 
 /** Insieme: un tiro nemico prende il primo eroe in gioco che tocca; quelli degli eroi lavorano sull'eroe che li ha tirati (xp, uccisioni). */
-export function stepProjectiles(s: DungeonState): void {
+export function stepProjectiles(s: DungeonState, soloEroe = false): void {
   if (!s.proj.length) return;
   const prima = s.cur;
-  try { muovi(s); } finally { s.cur = prima; }
+  try { muovi(s, soloEroe); } finally { s.cur = prima; }
 }
-function muovi(s: DungeonState): void {
+function muovi(s: DungeonState, soloEroe: boolean): void {
   const multi = s.eroi.length > 1, keep: Proj[] = [];
   const h = s.hero, rh = s.runHero;
   for (const p of s.proj) {
+    if (soloEroe && p.dalNemico) { keep.push(p); continue; }
     if (multi && !p.dalNemico) s.cur = p.da ?? 0;
     p.life--;
-    if (p.guida) guidaFreccia(s, p); // Automira
     p.vy -= p.g * DT;
     if (p.bomba) { // Bomba: vola in alto sopra muri e nemici e scoppia dove atterra (magie.ts)
       p.x += p.vx * DT; p.y += p.vy * DT; p.z += p.vz * DT;
@@ -108,13 +111,14 @@ function muovi(s: DungeonState): void {
     let fine = false;
     for (let i = 0; i < n && !fine; i++) {
       p.x += sx / n; p.y += sy / n; p.z += sz / n;
-      if (p.y <= 0) { p.y = 0; fine = true; break; }
-      if (isOpaque(s.map, Math.floor(p.x / s.map.tile), Math.floor(p.z / s.map.tile))) {
-        if (p.magico && !p.dalNemico && p.raggio > 0) explode(s, p);
-        if (p.magico && !p.dalNemico && p.vampa) chiazzaVampa(s, p.x, p.z);
-        fine = true; break;
+      const tetto = !!p.alzo && p.y > SOFFITTO_Y && haSoffitto(s);
+      if (p.y <= 0 || tetto || isOpaque(s.map, Math.floor(p.x / s.map.tile), Math.floor(p.z / s.map.tile))) {
+        // a terra la freccia si pianta; contro un muro (e, mirate in alto o in basso, contro soffitto e pavimento) le magie scoppiano
+        if (p.magico && !p.dalNemico && p.raggio > 0 && (p.y > 0 || p.alzo)) explode(s, p);
+        if (p.magico && !p.dalNemico && p.vampa && (p.y > 0 || p.alzo)) chiazzaVampa(s, p.x, p.z);
+        p.y = Math.max(0, p.y); fine = true; break;
       }
-      if (p.y > ALTEZZA_BERSAGLIO) continue;
+      if (!p.alzo && p.y > ALTEZZA_BERSAGLIO) continue;
       if (p.dalNemico && tiroSuAlleato(s, p, MARGINE)) { fine = true; break; } // le evocazioni fanno da scudo
       if (p.dalNemico && multi) {
         for (const k of inGioco(s)) {

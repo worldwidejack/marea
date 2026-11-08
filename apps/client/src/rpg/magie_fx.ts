@@ -4,10 +4,13 @@
 // - Bombe: a terra, dove atterreranno, un cerchio col raggio dello scoppio che si riempie mentre la bomba arriva; allo scoppio un'onda,
 //   un lampo e qualche pezzo che schizza (rosso/arancio/giallo il fuoco, giallo/azzurro l'elettricità).
 // - Ombra di mira: mentre punti una bomba, a terra dove atterrerebbe, un disco scuro col raggio dello scoppio (solo nella tua scena: gli altri non la vedono).
-// Vale per l'eroe di questo client e per i compagni (`compagni[].canale`).
+// Vale per l'eroe di questo client e per i compagni (`compagni[].canale`). Prima persona: il tuo raggio parte dalla punta della bacchetta e va
+// dove guardi, anche in alto e in basso (la sim lo accorcia a pavimento, soffitto e muri), e finisce sul primo nemico che prende, con le
+// scintille dove tocca; quello dei compagni sale e scende col loro alzo.
 import * as THREE from 'three';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
 import { MAGIA_Y } from '@marea/sim/dungeon/tuning.ts';
+import { OCCHI_Y } from '@marea/sim/dungeon/alzo.ts';
 import { PAL } from '../ui/style.ts';
 
 export type MagieFx = {
@@ -37,8 +40,9 @@ const FP = { giri: 1.1, a0: 0.018, a1: 0.085, lato: 1.1, d0: 0.6 };
 const inMondo = (s: number, d1: number): number => { const d = 1 / (1 / FP.d0 + (1 / d1 - 1 / FP.d0) * s); return (d - FP.d0) / (d1 - FP.d0); };
 const SCALA_FP: Record<'fuoco' | 'cura' | 'furia', readonly string[]> = { fuoco: [PAL.sabbiaChiara, PAL.giallo, PAL.arancio, PAL.rosso], cura: [PAL.sabbiaChiara, PAL.erbaChiara, PAL.erba, PAL.acquaBassa], furia: [PAL.giallo, PAL.arancio, PAL.rosso, PAL.rosaNeon] };
 
-/** Prima persona: `origine` = dove sta in mondo la punta della bacchetta: il tuo raggio parte da lì e scorre verso il bersaglio. */
-export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?: () => THREE.Vector3 } = {}): MagieFx {
+/** Prima persona: `origine` = dove sta in mondo la punta della bacchetta (il tuo raggio parte da lì e scorre verso il bersaglio), `sguardo` =
+ *  la direzione degli occhi (il raggio va di lì). */
+export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?: () => THREE.Vector3; sguardo?: () => THREE.Vector3 } = {}): MagieFx {
   const root = new THREE.Group(); root.name = 'magie_fx'; scene.add(root);
   const box = new THREE.BoxGeometry(1, 1, 1);
   const mats = new Map<string, THREE.MeshBasicMaterial>();
@@ -49,7 +53,7 @@ export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?:
   };
 
   // ---- raggi: uno per eroe in gioco (indice = `io` per te, 100 + i per i compagni), riusati
-  type Raggio = { g: THREE.Group; segs: THREE.Mesh[]; glow: THREE.Mesh };
+  type Raggio = { g: THREE.Group; segs: THREE.Mesh[]; glow: THREE.Mesh; colpo: THREE.Mesh[] };
   const raggi = new Map<number, Raggio>();
   const raggio = (k: number): Raggio => {
     let r = raggi.get(k);
@@ -58,7 +62,8 @@ export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?:
       const segs: THREE.Mesh[] = [];
       for (let i = 0; i < Math.max(SEG_FUOCO, SEG_ELETTRO, o.origine ? SEG_FP : 0); i++) { const m = new THREE.Mesh(box, mat(PAL.arancio)); m.renderOrder = 3; g.add(m); segs.push(m); }
       const glow = new THREE.Mesh(box, mat(PAL.giallo, 0.35)); glow.renderOrder = 2; g.add(glow);
-      r = { g, segs, glow }; raggi.set(k, r);
+      const colpo = Array.from({ length: 5 }, () => { const m = new THREE.Mesh(box, mat(PAL.giallo)); m.renderOrder = 3; m.visible = false; g.add(m); return m; });
+      r = { g, segs, glow, colpo }; raggi.set(k, r);
     }
     return r;
   };
@@ -70,9 +75,9 @@ export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?:
     m.scale.set(w, h, Math.max(0.01, len));
     m.lookAt(b);
   };
-  const disegna = (r: Raggio, x: number, z: number, fx: number, fz: number, len: number, el: El, t: number, seed: number): void => {
-    const e = el ?? 'fuoco', col = COL[e], fase = Math.floor(t * (e === 'fuoco' ? 14 : 15)) + seed * 31;
-    const y = floorY + MAGIA_Y - 0.05, x0 = x + fx * 0.45, z0 = z + fz * 0.45;
+  const disegna = (r: Raggio, x: number, z: number, fx: number, fz: number, len0: number, el: El, t: number, seed: number, n = 0): void => {
+    const e = el ?? 'fuoco', col = COL[e], fase = Math.floor(t * (e === 'fuoco' ? 14 : 15)) + seed * 31, cn = Math.sqrt(Math.max(0, 1 - n * n)), len = len0 * cn;
+    const y = floorY + MAGIA_Y - 0.05, x0 = x + fx * 0.45, z0 = z + fz * 0.45, sale = cn > 1e-3 ? n / cn : 0; // un compagno in prima persona: il raggio sale o scende col suo alzo
     const L = Math.max(0.3, len - 0.45);
     r.g.visible = true;
     if (e === 'fuoco' || e === 'cura' || e === 'furia') {
@@ -83,7 +88,7 @@ export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?:
         const k = (i + 0.5) / SEG_FUOCO, w = (0.16 + 0.42 * k) * (0.7 + 0.3 * rnd(fase + i));
         const j = (rnd(fase * 3 + i) - 0.5) * 0.7 * k, jy = (rnd(fase * 5 + i) - 0.5) * 0.35 * k;
         m.visible = true; m.material = mat(col[(i + fase) % col.length]!);
-        m.position.set(x0 + fx * L * k - fz * j, y + jy + 0.08 * k, z0 + fz * L * k + fx * j);
+        m.position.set(x0 + fx * L * k - fz * j, y + jy + 0.08 * k + sale * L * k, z0 + fz * L * k + fx * j);
         m.scale.setScalar(w); m.rotation.set(rnd(fase + i * 7) * 3, rnd(fase + i * 11) * 3, 0);
       }
       r.glow.visible = false;
@@ -94,22 +99,31 @@ export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?:
         const m = r.segs[i]!;
         if (i >= SEG_ELETTRO) { m.visible = false; continue; }
         const k1 = (i + 1) / SEG_ELETTRO, j = (rnd(fase * 7 + i) - 0.5) * 0.7 * (i === SEG_ELETTRO - 1 ? 0 : 1), jy = (rnd(fase * 11 + i) - 0.5) * 0.4 * (i === SEG_ELETTRO - 1 ? 0 : 1);
-        const nx = x0 + fx * L * k1 - fz * j, nz = z0 + fz * L * k1 + fx * j, ny = y + jy;
+        const nx = x0 + fx * L * k1 - fz * j, nz = z0 + fz * L * k1 + fx * j, ny = y + jy + sale * L * k1;
         a3.set(px, py, pz); b3.set(nx, ny, nz);
         m.visible = true; m.material = mat(i % 2 ? PAL.acquaBassa : PAL.giallo);
         tratto(m, a3, b3, 0.12, 0.12);
         px = nx; pz = nz; py = ny;
       }
       r.glow.visible = true; r.glow.material = mat(PAL.acquaBassa, 0.16);
-      a3.set(x0, y, z0); b3.set(x0 + fx * L, y, z0 + fz * L); tratto(r.glow, a3, b3, 0.4, 0.4);
+      a3.set(x0, y, z0); b3.set(x0 + fx * L, y + sale * L, z0 + fz * L); tratto(r.glow, a3, b3, 0.4, 0.4);
     }
   };
 
   /** Prima persona: il tuo raggio visto dagli occhi. Dalla punta della bacchetta al bersaglio, sottile vicino e largo in fondo: i pezzi scorrono via
    *  dalla mano, così si legge come un flusso e non copre la vista. */
   const disegnaFp = (r: Raggio, da: THREE.Vector3, x: number, z: number, fx: number, fz: number, len: number, el: El, t: number): void => {
-    const e = el ?? 'fuoco', fine = b3.set(x + fx * len, floorY + MAGIA_Y, z + fz * len), dx = fine.x - da.x, dy = fine.y - da.y, dz = fine.z - da.z, sc = Math.floor(t * 30), d1 = Math.max(FP.d0 + 0.5, Math.sqrt(dx * dx + dy * dy + dz * dz) + FP.d0);
+    const e = el ?? 'fuoco', occhi = o.sguardo?.(), sc = Math.floor(t * 30);
+    // dagli occhi lungo lo sguardo per `len` m (la sim l'ha già fermato a muri, pavimento, soffitto o sul primo nemico): lì finisce
+    const fine = occhi ? b3.set(x + occhi.x * len, floorY + OCCHI_Y + occhi.y * len, z + occhi.z * len) : b3.set(x + fx * len, floorY + MAGIA_Y, z + fz * len);
+    const dx = fine.x - da.x, dy = fine.y - da.y, dz = fine.z - da.z, d1 = Math.max(FP.d0 + 0.5, Math.sqrt(dx * dx + dy * dy + dz * dz) + FP.d0);
     r.g.visible = true; r.glow.visible = false;
+    // dove tocca: scintille (elettricità) o lingue di fuoco che schizzano, ridisegnate a scatti
+    const cc = COL[e], lon = Math.min(1, Math.max(0.15, (d1 - FP.d0) / 4)); // da vicino le scintille si stringono: non devono coprire la vista
+    r.colpo.forEach((m, i) => {
+      const f = Math.floor(t * 16) + i * 7, gx = (rnd(f) - 0.5) * 0.5 * lon, gy = rnd(f + 3) * 0.45 * lon, gz = (rnd(f + 5) - 0.5) * 0.5 * lon;
+      m.visible = true; m.material = mat(cc[(i + f) % cc.length]!); m.position.set(fine.x + gx, fine.y + gy - 0.1 * lon, fine.z + gz); m.scale.setScalar((0.06 + rnd(f + 9) * 0.08) * lon); m.rotation.set(f, f * 0.7, 0);
+    });
     if (e === 'elettricita') {
       let px = da.x, py = da.y, pz = da.z;
       const fase = Math.floor(t * 15), nx = -fz, nz = fx;
@@ -181,10 +195,10 @@ export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?:
       // raggi: il tuo e quelli dei compagni
       nRaggi = 0;
       const usati = new Set<number>();
-      const accendi = (k: number, x: number, z: number, fx: number, fz: number, c: { len: number; el?: El } | undefined): void => {
+      const accendi = (k: number, x: number, z: number, fx: number, fz: number, c: { len: number; el?: El; fin?: number; n?: number } | undefined): void => {
         if (!c) return;
         usati.add(k); nRaggi++;
-        if (k === 0 && o.origine) disegnaFp(raggio(k), o.origine(), x, z, fx, fz, c.len, c.el, t); else disegna(raggio(k), x, z, fx, fz, c.len, c.el, t, k);
+        if (k === 0 && o.origine) disegnaFp(raggio(k), o.origine(), x, z, fx, fz, c.fin ?? c.len, c.el, t); else { disegna(raggio(k), x, z, fx, fz, c.fin ?? c.len, c.el, t, k, c.n ?? 0); for (const m of raggio(k).colpo) m.visible = false; }
       };
       accendi(0, hero.x, hero.z, v.hero.fx, v.hero.fz, v.hero.canale);
       for (const c of v.compagni) accendi(100 + c.i, c.x, c.z, c.fx, c.fz, c.canale);

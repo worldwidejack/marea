@@ -105,7 +105,7 @@ function palla(s: DungeonState, e: Enemy): void {
   if (isSolid(s.map, Math.floor(x / s.map.tile), Math.floor(z / s.map.tile))) return;
   s.geyser.push({
     id: s.nextId++, x, z, r: M.raggio, t: 0, avviso: secToTicks(M.caduta), getto: secToTicks(0.25), danno: M.danno, colpiti: [],
-    magma: { durata: M.fuoco, raggio: M.raggio * 0.8, dps: M.dps, secondi: M.secondi },
+    magma: { durata: M.fuoco, raggio: M.raggio * 0.8, dps: M.dps, secondi: M.secondi }, o: [e.x, e.z],
   });
 }
 
