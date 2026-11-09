@@ -8,8 +8,8 @@ import type { DungeonDef } from './rpg_types.ts';
  *  [cx, cz, fx, fz] di ogni squadra, in ordine: la squadra di k eroi parte dalle prime k. */
 export type ArenaMappa = DungeonDef & { formati: number[]; spawn: [number, number, number, number][][] };
 export type ArenaGladiatore = { nome: string; look: { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number } };
-/** Una dote della build: moltiplica Vita, Stamina o Magicka (massimo e ricarica); `colore` = chiave di PAL del bagliore attorno all'eroe. */
-export type ArenaDote = { id: string; nome: string; descr: string; colore: string; vita?: number; stamina?: number; magicka?: number };
+/** Una dote della build: moltiplica Vita, Stamina o Magicka (massimo e ricarica) e, se c'è, il passo; `colore` = chiave di PAL del bagliore attorno all'eroe. */
+export type ArenaDote = { id: string; nome: string; descr: string; colore: string; vita?: number; stamina?: number; magicka?: number; passo?: number };
 /** Numeri dell'Arena di un'arma (danno a colpo, colpi al secondo, secondi di carica, moltiplicatore del caricato, portata in m) o dell'arco
  *  (danno della freccia a piena tensione, secondi per tenderlo). */
 export type ArenaArma = { danno: number; colpi?: number; carica?: number; caricaMolt?: number; portata?: number; tensione?: number };

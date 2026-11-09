@@ -41,6 +41,8 @@ const CSS = `
 body.mz-arena #mzDngHud { display: none !important; }
 body.mz-arena #joystick { bottom: calc(${SAFE} + 92px) !important; }
 body.mz-arena #btnA, body.mz-arena #btnB { bottom: calc(${SAFE} + 96px) !important; }
+body.mz-arena #btnSchiva { bottom: calc(${SAFE} + 190px) !important; }
+body.mz-arena.mz-dng-aimon #btnSchiva { right: calc(max(16px, env(safe-area-inset-right, 0px)) + 30px) !important; bottom: calc(${SAFE} + 236px) !important; }
 body.mz-arena .mz-mira { bottom: calc(${SAFE} + 88px) !important; }
 body.mz-arena.mz-dng-aimon #btnA { display: none !important; }
 body.mz-arena.mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-right, 0px)) + 116px) !important; }

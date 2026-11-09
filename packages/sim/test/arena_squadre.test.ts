@@ -186,8 +186,8 @@ describe('Arena a squadre — erba alta', () => {
     s.eroi[3]!.hero.x = h0.x + 20; s.eroi[3]!.hero.z = h0.z + 6;
     assert.ok(actDuello(d, 2, { t: 'slot', n: 1 }));
     passi(d, 70, (i) => (i === 2 ? { ...fermo(), a: true, m: aimIndex(-1, 0) } : fermo()));
-    for (let t = 0; t < 200 && h0.vita >= 150; t++) stepDuello(d, d.eroi.map(fermo));
-    assert.ok(h0.vita < 150, 'il fulmine l\'ha preso');
+    for (let t = 0; t < 200 && h0.vita >= 120; t++) stepDuello(d, d.eroi.map(fermo));
+    assert.ok(h0.vita < 120, 'il fulmine l\'ha preso');
     assert.equal(scoperto(s, 0), true, 'colpito = scoperto');
     assert.equal(visibileDa(s, 0, 1), true);
   });

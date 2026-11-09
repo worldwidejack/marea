@@ -72,7 +72,7 @@ function variante(dote: string, s: ArenaSlot | null): RunHero {
   const k = { vita: d.vita ?? 1, magicka: d.magicka ?? 1, stamina: d.stamina ?? 1 };
   const max = { vita: Math.round(B.attributi.vita * k.vita), magicka: Math.round(B.attributi.magicka * k.magicka), stamina: Math.round(B.attributi.stamina * k.stamina) };
   const regen = { vita: r2(B.regen.vita * k.vita), magicka: r2(B.regen.magicka * k.magicka), stamina: r2(B.regen.stamina * k.stamina) };
-  const peso = slotArma(s) ? itemDef(s.arma).peso : B.passo.neutro, passo = passoDi(peso);
+  const peso = slotArma(s) ? itemDef(s.arma).peso : B.passo.neutro, passo = r2(passoDi(peso) * (d.passo ?? 1));
   let arma = rh.arma, frecce = rh.frecce;
   const n = slotArma(s) ? B.armi[s.arma] : undefined;
   if (n && arma.kind === 'arco') {

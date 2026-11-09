@@ -2,7 +2,7 @@
 // l'autopilota dei dungeon, ma contro gli avversari. Sceglie l'avversario più vicino che la sua squadra vede (chi sta nell'erba alta non lo
 // vede: gli va incontro dove l'ha visto l'ultima volta, se no verso la partenza avversaria e poi il centro), lo slot giusto per la distanza
 // (mischia vicino, arco o magia lontano se lo vede), gli va incontro lungo il campo BFS, colpisce quando è in portata, tende l'arco fino in
-// fondo e mira davvero con arco e magie (dov'è l'avversario, con un po' d'anticipo se si muove), lancia l'ulti quando è piena e serve (ultiOra). Non tocca lo stato del duello: la sua memoria sta in una WeakMap e quello che fa passa da input e azioni,
+// fondo, schiva (non sempre, come una persona) i caricati che stanno per partire e i proiettili in arrivo, mira davvero con arco e magie (dov'è l'avversario, con un po' d'anticipo se si muove), lancia l'ulti quando è piena e serve (ultiOra). Non tocca lo stato del duello: la sua memoria sta in una WeakMap e quello che fa passa da input e azioni,
 // registrati come quelli di un giocatore.
 import { arenaMappa } from '@marea/content/arena.ts';
 import type { Rng } from '../rng.ts';
@@ -13,6 +13,7 @@ import { visibileDa } from '../dungeon/erba.ts';
 import { bfs, cellCenter, cellOf, clearPath, lineOfSight, stepDown } from '../dungeon/map.ts';
 import type { ArenaAzione, DuelloState } from './duello.ts';
 import { arenaUlti } from '@marea/content/arena.ts';
+import { RPG } from '@marea/content/rpg.ts';
 import { lungoRaggio } from './ulti.ts';
 import { aimIndex } from '../dungeon/mira.ts';
 
@@ -27,6 +28,28 @@ function mem(d: DuelloState, i: number): Mem {
 const norm = (x: number, z: number) => { const l = Math.sqrt(x * x + z * z); return l > 1e-6 ? { x: x / l, z: z / l } : { x: 0, z: 0 }; };
 
 type Tipo = 'mischia' | 'arco' | 'magia' | 'evoca' | 'cura' | null;
+/** Da dove scappare adesso (direzione della schivata), o null: un avversario vicino che sta per colpire (caricato quasi pieno o colpo appena
+ *  partito) o un suo proiettile che sta per arrivare. */
+function minaccia(d: DuelloState, i: number): { x: number; z: number } | null {
+  const s = d.s, h = s.eroi[i]!.hero;
+  for (let j = 0; j < s.eroi.length; j++) {
+    const r = s.eroi[j]!, o = r.hero;
+    if (d.squadre[j] === d.squadre[i] || r.done) continue;
+    const dx = h.x - o.x, dz = h.z - o.z, dist = Math.sqrt(dx * dx + dz * dz), via = dist > 1e-6 ? { x: dx / dist, z: dz / dist } : { x: 1, z: 0 };
+    if (o.act === 'carica' && o.carica > 0.7 && dist < r.runHero.arma.portata + 1.2) return via;
+    if (o.act === 'swing' && o.actT < 5 && o.caricato && dist < r.runHero.arma.portata + 0.6) return via;
+  }
+  for (const p of s.proj) {
+    if (p.da === undefined || d.squadre[p.da] === d.squadre[i]) continue;
+    const v2 = p.vx * p.vx + p.vz * p.vz;
+    if (v2 < 1e-6) continue;
+    const rx = h.x - p.x, rz = h.z - p.z, t = (rx * p.vx + rz * p.vz) / v2;
+    if (t < 0 || t > 0.35) continue;
+    const cx = rx - p.vx * t, cz = rz - p.vz * t;
+    if (cx * cx + cz * cz < 0.8 * 0.8) { const l = Math.sqrt(v2), lato = cx * -p.vz + cz * p.vx >= 0 ? 1 : -1; return { x: (-p.vz / l) * lato, z: (p.vx / l) * lato }; }
+  }
+  return null;
+}
 /** L'ulti piena serve adesso? Furia e Aura vicino all'avversario (l'Aura anche sotto metà vita), Scatto e Velo per andargli incontro o
  *  scappare, il Raggio e l'Arpione se è davanti, dritto e in portata. */
 function ultiOra(d: DuelloState, i: number, dist: number, vede: boolean, dx: number, dz: number): boolean {
@@ -86,6 +109,11 @@ export function botArena(d: DuelloState, i: number, rng: Rng): { input: DungeonI
   }
   // raggio della Marea in corso: lo tiene su di lui
   if (m && d.ul[i]!.fase !== 'no' && d.ul[i]!.id === 'marea' && o) return { input: { ...NO_DUNGEON_INPUT, mx: dx, my: dz }, azione: null };
+  // la schivata: costa Vigore, la si tiene per quando serve (riflessi umani: non sempre in tempo)
+  if (d.fase === 'gioca' && h.act !== 'schiva' && !((h.rollCd ?? 0) > 0) && h.stamina >= RPG.schivata.stamina) {
+    const fuga = minaccia(d, i);
+    if (fuga && rng.next() < 0.15) return { input: { ...NO_DUNGEON_INPUT, mx: fuga.x, my: fuga.z, roll: true }, azione: null };
+  }
   // lo slot giusto per la distanza (non più di uno al secondo)
   if (d.tick - m.slotT > 60) {
     const tipi = e.varianti.map(tipoDi), ok = (t: Tipo, n: number) => tipi[n] === t && (t !== 'arco' || (rt.frecce[n] ?? 0) > 0 || n === rt.slot && h.frecce > 0);

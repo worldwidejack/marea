@@ -24,8 +24,8 @@ personaggio**: abilità, perk, zaino e armature non c'entrano, si parte tutti ug
 All'ingresso del colosseo (**ENTRA NEL COLOSSEO**, o A vicino al portone) si apre il pannello con **LE TUE BUILD**: se ne salvano fino a 3
 (schede BUILD 1-3, + NUOVA), si gioca con quella scelta; si salvano col personaggio (`HeroState.arena`, `POST /api/rpg {t:'arena'}`). Ogni
 build è uguale per tutti e ha:
-- una **dote** al posto dell'armatura: +50% di **Vita**, di **Vigore** o di **Magicka** (massimo e ricarica), con un leggero bagliore attorno
-  all'eroe, rosso, verde o blu;
+- una **dote** al posto dell'armatura: +20% di **Vita**, o +50% di **Vigore** o di **Magicka** (massimo e ricarica), con un leggero bagliore
+  attorno all'eroe, rosso, verde o blu (la Vita era +50%, ma vinceva tre partite su quattro: parte 7);
 - **2 slot** tra le armi (una per tipo, tutte di ferro: nunchaku, katana, ascia, lancia, spadone, martello, arco) e le magie (fuoco ed
   elettricità a proiettile, raggio e bomba; Cura e Furia **solo a squadre**: nel 1 contro 1 quello slot resta vuoto; niente evocazioni);
 - un'**ulti** a scelta tra sei (parte 7).
@@ -34,7 +34,8 @@ Niente pozioni né anelli; l'arco ha 18 frecce a round. Senza niente negli slot 
 ### Interfaccia Utente (fatta)
 - In alto il **tabellone**: la tua vita (con Magicka e Stamina sotto), il tempo del round e i round vinti a pallini, la vita dell'avversario.
 - In basso la **barra**: i 2 slot (tocco su telefono 390×844, tasti **1-2** su PC) e il bottone tondo dell'**ulti**, che si riempie dal basso
-  e si accende quando è piena (tocco, tasto **F**). Sullo slot si vede quante frecce restano (arco) o quanta Magicka costa (magie).
+  e si accende quando è piena (tocco, tasto **F**). La **schivata** come nei dungeon (bottone Schiva, tasto **V**): costa Vigore e mentre
+  rotoli i colpi non ti prendono. Sullo slot si vede quante frecce restano (arco) o quanta Magicka costa (magie).
 - Joystick di movimento, A e B come sempre (alzati sopra la barra); con l'arco o una magia in mano, al telefono il **joystick di mira** al
   posto di A, al PC il clic sinistro tenuto e la mira verso il cursore, come nei dungeon. E: la Scarica dell'arco (perk).
 - Menu (Esc o il bottone in alto a destra): RIPRENDI e **ARRENDITI** (con conferma).
@@ -57,8 +58,8 @@ Niente pozioni né anelli; l'arco ha 18 frecce a round. Senza niente negli slot 
   e magia sono fissi, scritti in `arena.json` → `build` (`buildArenaEroe` di `sim/rpg/arena.ts`).
 - **Niente one-shot**: nessun colpo supera `arena.dannoMax` (92) di `balance.json`.
 - **Il peso conta**: col martello in mano si va un po' più piano (−11%), con nunchaku e arco un po' più svelti (+2%): `build.passo`.
-- **Il Vigore paga i colpi**: ogni colpo di mischia e ogni freccia costa Stamina (un secondo di colpi di fila `staminaAlSecondo`, il caricato
-  ×1,5); a secco non si attacca finché non torna. Così il Vigore è la «Magicka» delle armi.
+- **Il Vigore paga i colpi**: la schivata, la corsa, ogni colpo di mischia e ogni freccia costano Stamina (un secondo di colpi di fila `staminaAlSecondo`, il caricato
+  ×1,5); senza il Vigore che costa il colpo non si attacca finché non torna. Così il Vigore è la «Magicka» delle armi.
 - **Indipendenza**: il bilanciamento dell'Arena non tocca i dungeon (stessi hash, stessa fixture d'oro).
 
 ## 5. Com'è fatta adesso (17 ott 2026, #373)
@@ -170,13 +171,13 @@ suo, un kit in `rpg/arena_kit.ts` e una riga in `STYLE` di `rpg/dungeon_scene.ts
 Una a scelta nella build. Si **carica giocando** (`arena.json` → `ulti.carica`): un po' al secondo, di più col danno dato e un po' col danno
 preso; piena a 100 (circa una volta a round), si lancia col bottone tondo o con **F**. Mentre è in corso non si carica. **[proposta]** La carica
 **resta da un round all'altro**: chi perde un round spesso ce l'ha pronta nel successivo. Codice in `sim/arena/ulti.ts`, sopra la sim del round.
-- **Furia**: danni ×2 per 6 s (armi e magie; il tetto contro i one-shot resta).
-- **Scatto**: passo ×2 per 8 s, la corsa non consuma Vigore.
+- **Furia**: danni ×2 per 5 s (armi e magie; il tetto contro i one-shot resta).
+- **Scatto**: passo ×2 per 10 s, la corsa non consuma Vigore.
 - **Aura di cura**: per 6 s cura te e i compagni entro 4 m.
 - **Raggio della Marea** (la kamehameha): fermo, carichi 0,7 s una sfera d'acqua, poi un raggio dritto fino al primo muro per 1,5 s che
   colpisce tutti gli avversari sulla linea; col joystick lo giri, piano. Chi carica e spara non si muove: si può schivare girandogli attorno.
 - **Arpione**: un gancio dritto davanti (11 m); chi prende viene tirato fino a te, preso un po' di danno, e resta fermo un attimo.
-- **Velo di nebbia**: per 6 s gli avversari non ti vedono, come nell'erba alta (anche fuori dall'erba); attaccando ti scopri.
+- **Velo di nebbia**: per 8 s gli avversari non ti vedono, come nell'erba alta (anche fuori dall'erba); attaccando ti scopri.
 
 ### Come si vede
 - Il **bagliore della dote** (`rpg/arena_fx.ts`): un guscio trasparente attorno all'eroe e un anello a terra, a scatti, rosso (Vita), verde
@@ -188,4 +189,6 @@ preso; piena a 100 (circa una volta a round), si lancia col bottone tondo o con 
 I numeri delle armi e delle magie (`build.armi`, `build.magie`) vengono da migliaia di partite simulate tra gladiatori automatici con build a
 caso (2 slot, dote e ulti a caso, ulti accese): il danno di ogni arma e magia è stato corretto a piccoli passi finché ognuna vince tra il 45% e
 il 55% delle partite in cui c'è. Il gladiatore tira con arco e magie mirando davvero (con un po' d'anticipo); non schiva e non scappa, quindi
-le ulti di movimento (Scatto, Velo) nelle simulazioni contano meno che tra persone: per quelle si è tenuto conto anche di questo.
+le ulti di movimento (Scatto, Velo) nelle simulazioni contano meno che tra persone: per quelle si è tenuto conto anche di questo. Il gladiatore
+schiva come una persona (non sempre in tempo) i caricati che stanno per partire e i proiettili in arrivo. Con +50% la Vita vinceva il 75% delle
+partite e il Vigore il 27%: con la Vita a +20% e il colpo che parte solo se hai il Vigore che costa, le tre doti stanno tra il 45 e il 54%.

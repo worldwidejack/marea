@@ -4,7 +4,7 @@
 // Raggio della Marea: fermo, carica e poi un raggio dritto che si gira piano; Arpione: un gancio dritto, chi prende viene tirato fino a te e
 // resta stordito; Velo: per un po' gli avversari non ti vedono, come nell'erba alta (dungeon/erba.ts). Chi carica, spara, lancia o è tirato sta
 // fermo: il suo input non conta.
-// Vigore: i colpi di mischia e le frecce costano Stamina (RunWeapon.fatica); a secco non si attacca finché non torna.
+// Vigore: i colpi di mischia e le frecce costano Stamina (RunWeapon.fatica); senza il Vigore che costa il colpo non si attacca finché non torna.
 // Pura e deterministica: solo + − × ÷ e Math.sqrt.
 import { ARENA, arenaUlti } from '@marea/content/arena.ts';
 import { DT } from '../constants.ts';
@@ -59,7 +59,7 @@ export function attivaUlti(d: D, i: number): boolean {
   return true;
 }
 
-/** Gli input del tick: fermi quelli presi da un'ulti; chi è a secco di Vigore non comincia un colpo. Chi carica o spara il raggio della Marea
+/** Gli input del tick: fermi quelli presi da un'ulti; chi non ha il Vigore che costa un colpo non lo comincia. Chi carica o spara il raggio della Marea
  *  si gira piano verso dove spinge il joystick. */
 export function inputUlti(d: D, inputs: readonly DungeonInput[]): DungeonInput[] {
   return inputs.map((inp, i) => {
@@ -70,7 +70,7 @@ export function inputUlti(d: D, inputs: readonly DungeonInput[]): DungeonInput[]
       return { ...NO_DUNGEON_INPUT };
     }
     const h = r.hero, f = r.runHero.arma.fatica ?? 0;
-    return f > 0 && !h.incanta && h.act === 'idle' && h.stamina < 1 && inp.a ? { ...inp, a: false } : inp;
+    return f > 0 && !h.incanta && h.act === 'idle' && h.stamina < f && inp.a ? { ...inp, a: false } : inp;
   });
 }
 /** Il raggio si gira verso (mx, my) di al massimo `giro` al secondo (in radianti, circa): niente trigonometria, una media normalizzata. */

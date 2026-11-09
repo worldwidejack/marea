@@ -5,7 +5,7 @@
 // finale (arena_hud.ts). 1v1, 2v2 o 3v3: `squadre` dice di chi è ognuno.
 // Erba alta: gli avversari che non vedo (nascosti, sim/dungeon/erba.ts) non si disegnano né hanno il nome; io, se sono nascosto, lo leggo in un
 // cartello. Se sono a terra la camera segue un compagno.
-// Ogni tick un DungeonInput (joystick, A e B di game/input.ts più clic, joystick di mira, mouse), quantizzato come nei dungeon. Le azioni
+// Ogni tick un DungeonInput (joystick, A, B e la schivata di game/input.ts più clic, joystick di mira, mouse), quantizzato come nei dungeon. Le azioni
 // della barra (slot, ulti, resa) sono azioni del duello (actDuello). Bagliore della dote ed effetti delle ulti: arena_fx.ts.
 // Online (`o.rete`): come i dungeon insieme, il mio input va al server una volta per turno (SQ_TICKS tick) se cambia, le azioni pure; il
 // duello avanza SOLO coi turni del server (stessi per tutti), col cuscinetto contro i ritardi e la corsa per recuperare. Linea persa:
@@ -78,8 +78,8 @@ export const arenaLink = { auto: false };
 const CUSCINETTO = 2 * SQ_TICKS, SVELTO = 4 * SQ_TICKS, RECUPERO = 30 * SQ_TICKS;
 const END_WAIT = 90; // tick di scritta finale prima della scheda
 const CAM_VERSO = 5;
-const bitsOf = (f: DungeonInput) => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0) | (f.e ? 16 : 0);
-const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...(x[3] ? { m: x[3] } : {}) });
+const bitsOf = (f: DungeonInput) => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0) | (f.e ? 16 : 0) | (f.roll ? 32 : 0);
+const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...((x[2] & 32) !== 0 ? { roll: true } : {}), ...(x[3] ? { m: x[3] } : {}) });
 
 export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
   const rete = o.rete ?? null, io = o.io;
@@ -261,7 +261,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     }
     const a = f.a || c.a || aTap, punta = mouse && mira() ? mouse.verso(h.x, h.z)?.m ?? 0 : 0;
     const m = aTap ? 0 : c.m || (a || h.act === 'tende' || h.act === 'punta' ? punta : 0);
-    return { mx: f.mx, my: f.my, a, b: f.b, c: false, d: false, ...(c.e ? { e: true } : {}), ...(m ? { m } : {}) };
+    return { mx: f.mx, my: f.my, a, b: f.b, c: false, d: false, ...(c.e ? { e: true } : {}), ...(f.roll ? { roll: true } : {}), ...(m ? { m } : {}) };
   }
 
   // ---- da solo (stanza di prova): un tick per frame, i gladiatori fanno gli altri ----

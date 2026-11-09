@@ -56,7 +56,7 @@ export default async function (ctx) {
   await ctx.test('telefono: ?arena=banco entra subito nel duello; conto alla rovescia fermi, poi VIA', async () => {
     await ctx.waitState(pb, (st) => st.arenaDuello?.phase === 'play', 60000);
     const s0 = ar(await ctx.getState(pb));
-    assert(s0.fase === 'conta' && s0.round === 0 && s0.vita.join() === '150,150', 'all’inizio (dote Vita): ' + JSON.stringify(s0));
+    assert(s0.fase === 'conta' && s0.round === 0 && s0.vita.join() === '120,120', 'all’inizio (dote Vita): ' + JSON.stringify(s0));
     assert(await pb.isVisible('#mzArenaBarra') && await pb.isVisible('#mzArenaTop'), 'barra degli slot o tabellone assenti');
     assert(!(await pb.isVisible('#mzTop')), 'la barra in alto della superficie è ancora visibile');
     const box = await pb.locator('#mzArenaBarra').boundingBox();
@@ -85,7 +85,7 @@ export default async function (ctx) {
   });
   await ctx.test('telefono: col pilota si combatte (vite che scendono, mai un colpo da 100), poi ARRENDITI → SCONFITTA → pannello', async () => {
     await pb.evaluate(() => window.__game.test.arenaAuto(true));
-    await ctx.waitState(pb, (st) => st.arenaDuello && (st.arenaDuello.vita[0] < 150 || st.arenaDuello.vita[1] < 150), 60000);
+    await ctx.waitState(pb, (st) => st.arenaDuello && (st.arenaDuello.vita[0] < 120 || st.arenaDuello.vita[1] < 120), 60000);
     await ctx.shot(pb, 'lotta');
     await pb.evaluate(() => window.__game.test.arenaAuto(false));
     await pb.tap('#mzArenaMenuBtn');
