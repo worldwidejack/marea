@@ -139,7 +139,7 @@ const VISTE = ['S', 'SSE', 'SE', 'ESE', 'E', 'ENE', 'NE', 'NNE', 'N'];
 // le viste e i disegni di ogni personaggio vengono dai dati: le opzioni del 3/11 hanno solo SE, in piedi + 4 della camminata
 let MOSSE = [], VISTEP = VISTE, CICLO = [];
 const NOMI = { protagonista: 'protagonista', viandante: 'viandante', scugnizzo: 'scugnizzo', 'f3-prova': 'F3' };
-const GRUPPI = { pixellab: 'PixelLab (prova)', opzioni: 'opzioni pensate per 64', atelier: "dall'Atelier" };
+const GRUPPI = { pixellab: 'PixelLab', opzioni: 'opzioni pensate per 64', atelier: "dall'Atelier" };
 const nome = (p) => D.personaggi[p].nome && D.personaggi[p].gruppo !== 'atelier' ? D.personaggi[p].nome : NOMI[p] ?? p;
 function forma() {
   const sp = Object.keys(D.personaggi[st.p].alti[st.alto]);
