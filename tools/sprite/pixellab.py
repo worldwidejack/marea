@@ -19,6 +19,9 @@ Uso:
   pixellab.py modifica <sprite.png> "<cosa cambia>" <uscita.png> [--seme N]
                                                            lo stesso sprite con una modifica a parole (edit-image-pixen):
                                                            faccia, posa e pixel restano (1 generazione)
+  pixellab.py personaggio <sprite_south.png> "<descrizione>" [--seme N]
+                                                           le 8 direzioni da uno sprite da davanti (create-character-v3, 1 generazione a 64x64);
+                                                           stampa l'id, poi `scarica <id> <cartella>`
 Le direzioni sono quelle di PixelLab: south, south-east, east, north-east, north, north-west, west, south-west.
 """
 import json
@@ -157,6 +160,21 @@ def modifica(sprite, descrizione, uscita, seme=None):
     print(uscita, json.dumps(r.get('usage')))
 
 
+def personaggio(sprite, descrizione, seme=None):
+    import base64
+    b = base64.b64encode(open(sprite, 'rb').read()).decode()
+    r = api('POST', '/create-character-v3', {'description': descrizione, 'reference_image': {'type': 'base64', 'base64': b, 'format': 'png'},
+                                             'n_directions': 8, 'view': 'low top-down', 'template_id': 'mannequin', 'no_background': True,
+                                             **({'seed': seme} if seme is not None else {})})
+    print(json.dumps({k: r.get(k) for k in ('character_id', 'background_job_id', 'status', 'usage')}))
+    job = r.get('background_job_id')
+    if job:
+        j = aspetta(job)
+        print(job, j['status'], json.dumps(j.get('usage')))
+        r = j.get('last_response') or r
+    print('id personaggio:', r.get('character_id'))
+
+
 def main():
     a = sys.argv[1:]
     if not a:
@@ -184,6 +202,8 @@ def main():
         testo(a[1], a[2], o.get('--lato', 64), o.get('--seme'))
     elif a[0] == 'modifica':
         modifica(a[1], a[2], a[3], int(a[a.index('--seme') + 1]) if '--seme' in a else None)
+    elif a[0] == 'personaggio':
+        personaggio(a[1], a[2], int(a[a.index('--seme') + 1]) if '--seme' in a else None)
     elif a[0] == 'lavoro':
         print(json.dumps(api('GET', f'/background-jobs/{a[1]}'), indent=1)[:3000])
 
