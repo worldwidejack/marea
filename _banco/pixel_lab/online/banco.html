@@ -145,7 +145,7 @@ function forma() {
   const sp = Object.keys(D.personaggi[st.p].alti[st.alto]);
   VISTEP = VISTE.filter((v) => sp.some((x) => x.startsWith(v + '_')));
   MOSSE = [...new Set(sp.map((x) => x.slice(x.indexOf('_') + 1)))];
-  const giro = MOSSE.filter((m) => m.startsWith('camminata_'));
+  const giro = MOSSE.filter((m) => m.startsWith('camminata_') || m.startsWith('onda_'));
   CICLO = (giro.length ? giro : MOSSE.filter((m) => m.startsWith('passo_'))).map((m) => MOSSE.indexOf(m));
 }
 const BW = 72, BH = 100; // la finestra del Borgo, in pixel di gioco
