@@ -4,9 +4,8 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { ARENA, ARENA_SQUADRA_MAX, arenaMappa, mappaPer, validateArena } from '@marea/content/arena.ts';
 import { RPG } from '@marea/content/rpg.ts';
-import { newHero } from '../src/rpg/hero.ts';
 import { buildArenaEroe } from '../src/rpg/arena.ts';
-import type { ArenaLoadout, HeroState } from '../src/rpg/types.ts';
+import type { ArenaBuild } from '../src/rpg/types.ts';
 import { actDuello, CONTA_TICKS, createDuello, formatoDi, hashDuello, replayDuello, ROUND_TICKS, stepDuello, viewDuello } from '../src/arena/duello.ts';
 import type { ArenaAzioni, DuelloState } from '../src/arena/duello.ts';
 import { botArena } from '../src/arena/bot.ts';
@@ -19,15 +18,9 @@ import { aim } from '../src/dungeon/hero.ts';
 import { scoperto, scopri, visibileDa } from '../src/dungeon/erba.ts';
 
 const fermo = (): DungeonInput => ({ ...NO_DUNGEON_INPUT });
-/** Un combattente: spadone, arco e un fulmine, armatura di ferro e una pozione. */
-function forte(arma = 'spadone_ferro'): HeroState {
-  const h = newHero();
-  h.inv = { ...h.inv, [arma]: 1, armatura_ferro: 1, arco_ferro: 1, pozione_vita: 1 }; h.magie = [...new Set([...h.magie, 'fulmine'])];
-  const l: ArenaLoadout = { corpo: 'armatura_ferro', slot: [{ arma }, { arma: 'arco_ferro' }, { magia: 'fulmine' }, null], pozioni: ['pozione_vita', null] };
-  h.arena = l;
-  return h;
-}
-const eroiDi = (n: number) => Array.from({ length: n }, (_, i) => { const h = forte(i % 2 ? 'martello_ferro' : 'spadone_ferro'); return buildArenaEroe(h, h.arena!); });
+/** Un combattente: un'arma pesante e il fulmine. */
+const forte = (arma = 'spadone_ferro'): ArenaBuild => ({ dote: 'vita', slot: [{ arma }, { magia: 'fulmine' }], ulti: 'furia' });
+const eroiDi = (n: number) => Array.from({ length: n }, (_, i) => buildArenaEroe(forte(i % 2 ? 'martello_ferro' : 'spadone_ferro')));
 /** Duello di `n` per squadra già al via. */
 function alVia(n: number, mappa: string, seed = 5): DuelloState {
   const d = createDuello({ seed, eroi: eroiDi(2 * n), ...formatoDi(n, mappa) });
@@ -187,14 +180,14 @@ describe('Arena a squadre — erba alta', () => {
   it('un colpo preso nell\'erba scopre chi lo prende, anche se non lo si vedeva', () => {
     const d = alVia(2, 'giardino'), s = d.s, [cx, cz] = erbe(d)[0]!;
     posa(d, 0, cx, cz);
-    // l'avversario 2 è a 6 m dietro l'erba, tira una freccia nella sua direzione senza vederlo
+    // l'avversario 2 è a 6 m dietro l'erba, lancia un fulmine nella sua direzione senza vederlo
     const h0 = s.eroi[0]!.hero, h2 = s.eroi[2]!.hero;
     h2.x = h0.x + 6; h2.z = h0.z; h2.fx = -1; h2.fz = 0;
     s.eroi[3]!.hero.x = h0.x + 20; s.eroi[3]!.hero.z = h0.z + 6;
     assert.ok(actDuello(d, 2, { t: 'slot', n: 1 }));
     passi(d, 70, (i) => (i === 2 ? { ...fermo(), a: true, m: aimIndex(-1, 0) } : fermo()));
-    for (let t = 0; t < 200 && h0.vita >= 100; t++) stepDuello(d, d.eroi.map(fermo));
-    assert.ok(h0.vita < 100, 'la freccia l\'ha preso');
+    for (let t = 0; t < 200 && h0.vita >= 150; t++) stepDuello(d, d.eroi.map(fermo));
+    assert.ok(h0.vita < 150, 'il fulmine l\'ha preso');
     assert.equal(scoperto(s, 0), true, 'colpito = scoperto');
     assert.equal(visibileDa(s, 0, 1), true);
   });

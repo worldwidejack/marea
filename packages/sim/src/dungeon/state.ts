@@ -222,8 +222,8 @@ export type DungeonState = EroeRt & {
   /** Diga dei Disertori (diga.ts): i piloni dell'arena già fracassati (uguali per tutti, indice in map.piloni). Negli altri dungeon vuoti. Santuario del Capo Ardente (braci.ts): `bracieri` quali sono accesi (indice in map.bracieri). */
   piloni: boolean[]; bracieri: boolean[];
   /** Arena PvP (pvp.ts, docs/ARENA.md): la squadra di ogni eroe; quelli di squadre diverse si colpiscono. `rivela[i]` = fino a che tick l'eroe i
-   *  è scoperto anche nell'erba alta (erba.ts). Assente nei dungeon. Fuori dall'hash (lo mette in hash il duello). */
-  pvp?: { squadre: number[]; rivela: number[] };
+   *  è scoperto anche nell'erba alta (erba.ts), `velo[i]` col Velo di nebbia (un'ulti). Assente nei dungeon. Fuori dall'hash (ci pensa il duello). */
+  pvp?: { squadre: number[]; rivela: number[]; velo?: number[] };
   /** Baita: stanze con ghiaccio sciolto (colonnine attivate); pozzanghere attive; bandierine dello slalom. */
   sciolti: number[];
   pozzanghere: Pozzanghera[];

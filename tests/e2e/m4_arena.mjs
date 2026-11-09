@@ -1,9 +1,9 @@
 // Arena PvP (docs/ARENA.md) senza server (net=0). Telefono 390×844: l'Isola dell'Arena c'è (portone del colosseo, ENTRA vicino), il
-// pannello del colosseo (set del duello: vestizione, 4 slot, frecce degli archi, 2 pozioni; senza link solo ALLENAMENTO), si cambia uno
-// slot dal pannello; ?arena=banco entra subito nell'allenamento contro l'avversario automatico: conto alla rovescia (fermi), VIA, la barra
-// dei 4 slot e le 2 pozioni in basso (tocco), il joystick di mira con l'arco, il tabellone in alto; col pilota si combatte (vita che scende,
-// nessun colpo da 100); ARRENDITI dal menu → scheda SCONFITTA → di nuovo il pannello. PC 1280×720: tasti 1-4 cambiano slot, 5 beve,
-// clic sinistro attacca, Esc apre il menu. Screenshot in tests/out/shots/m4_arena_*.png.
+// pannello del colosseo (le build: dote, 2 slot tra armi e magie, ulti, + NUOVA; senza link solo ALLENAMENTO), si cambiano slot, dote e ulti;
+// ?arena=banco entra subito nell'allenamento contro l'avversario automatico: conto alla rovescia (fermi), VIA, la barra coi 2 slot e il
+// bottone dell'ulti in basso (tocco), il joystick di mira con l'arco, il tabellone in alto; l'ulti piena si lancia col tocco; col pilota si
+// combatte (vita che scende, nessun colpo da 100); ARRENDITI dal menu → scheda SCONFITTA → di nuovo il pannello. PC 1280×720: tasti 1-2
+// cambiano slot, F lancia l'ulti, clic sinistro attacca, Esc apre il menu. Screenshot in tests/out/shots/m4_arena_*.png.
 export const timeout = 300000;
 
 export default async function (ctx) {
@@ -14,7 +14,7 @@ export default async function (ctx) {
   const p = await ctx.open('?test=1&net=0');
   await ctx.waitReady(p.page, 20000);
   const page = p.page;
-  await ctx.test('telefono: l’Isola dell’Arena col portone del colosseo; ENTRA apre il pannello del set', async () => {
+  await ctx.test('telefono: l’Isola dell’Arena col portone del colosseo; ENTRA apre il pannello delle build', async () => {
     await ctx.waitState(page, (st) => !!st.arena?.spot, 30000);
     assert(await page.evaluate(() => window.__game.test.arenaVai()), 'isola dell’Arena non trovata');
     await ctx.waitState(page, (st) => st.arena.near === true, 10000);
@@ -24,17 +24,26 @@ export default async function (ctx) {
     await page.tap('#mzArenaEntra');
     await page.waitForSelector('#mzColosseo.on', { timeout: 40000 });
     const st = await ctx.getState(page);
-    assert(st.colosseo.aperto && st.colosseo.set.slot.length === 4 && st.colosseo.set.pozioni.length === 2, 'pannello: ' + JSON.stringify(st.colosseo));
+    assert(st.colosseo.aperto && st.colosseo.build.slot.length === 2 && st.colosseo.builds.build.length === 1, 'pannello: ' + JSON.stringify(st.colosseo));
     assert(await page.isDisabled('#mzColosseo [data-act=coda]'), 'senza link la coda veloce non dev’essere attiva');
     assert(!(await page.isDisabled('#mzColosseo [data-act=allenamento]')), 'ALLENAMENTO spento');
-    // lo slot 4 (vuoto): la lista delle scelte (l'eroe di partenza ha già tutto negli altri slot: resta «Niente»)
-    await page.tap('#mzColosseo .riga.q .cella:nth-child(4)');
+    // lo slot 2: la lista di armi e magie, si sceglie il fulmine
+    await page.tap('#mzColosseo .cella[data-slot="1"]');
     await page.waitForSelector('#mzColosseo .lista.on', { timeout: 5000 });
     await ctx.shot(page, 'pannello_lista');
     const n = await page.locator('#mzColosseo .lista.on button').count();
-    assert(n >= 1, 'lista vuota');
-    await page.tap('#mzColosseo .lista.on button[data-id=""]');
-    await page.waitForTimeout(200);
+    assert(n >= 12, 'lista corta: ' + n);
+    assert(!(await page.locator('#mzColosseo .lista.on button[data-id="magia:lupo_spettrale"]').count()), 'le evocazioni non ci sono');
+    await page.tap('#mzColosseo .lista.on button[data-id="magia:fulmine"]');
+    // la dote e l'ulti
+    await page.tap('#mzColosseo .cella[data-dote=vigore]');
+    await page.tap('#mzColosseo .cella[data-ulti]');
+    await page.waitForSelector('#mzColosseo .lista.on button[data-id=arpione]', { timeout: 5000 });
+    await page.tap('#mzColosseo .lista.on button[data-id=arpione]');
+    await ctx.waitState(page, (s) => s.colosseo.build.dote === 'vigore' && s.colosseo.build.ulti === 'arpione' && s.colosseo.build.slot[1]?.magia === 'fulmine', 5000);
+    // una seconda build
+    await page.tap('#mzColosseo [data-build=nuova]');
+    await ctx.waitState(page, (s) => s.colosseo.builds.build.length === 2 && s.colosseo.builds.scelta === 1, 5000);
     await ctx.shot(page, 'pannello');
     await page.tap('#mzColosseo .mz-x');
     await ctx.waitState(page, (s) => s.colosseo.aperto === false, 5000);
@@ -47,16 +56,16 @@ export default async function (ctx) {
   await ctx.test('telefono: ?arena=banco entra subito nel duello; conto alla rovescia fermi, poi VIA', async () => {
     await ctx.waitState(pb, (st) => st.arenaDuello?.phase === 'play', 60000);
     const s0 = ar(await ctx.getState(pb));
-    assert(s0.fase === 'conta' && s0.round === 0 && s0.vita.join() === '100,100', 'all’inizio: ' + JSON.stringify(s0));
+    assert(s0.fase === 'conta' && s0.round === 0 && s0.vita.join() === '150,150', 'all’inizio (dote Vita): ' + JSON.stringify(s0));
     assert(await pb.isVisible('#mzArenaBarra') && await pb.isVisible('#mzArenaTop'), 'barra degli slot o tabellone assenti');
     assert(!(await pb.isVisible('#mzTop')), 'la barra in alto della superficie è ancora visibile');
     const box = await pb.locator('#mzArenaBarra').boundingBox();
     assert(box && box.x >= 8 && box.x + box.width <= 390 - 8 && box.y + box.height <= 844, 'la barra esce dallo schermo: ' + JSON.stringify(box));
-    assert((await pb.locator('#mzArenaBarra button').count()) === 6, 'servono 4 slot e 2 pozioni');
+    assert((await pb.locator('#mzArenaBarra button').count()) === 3, 'servono 2 slot e l’ulti');
     await ctx.shot(pb, 'conta');
     await ctx.waitState(pb, (st) => st.arenaDuello?.fase === 'gioca', 15000);
   });
-  await ctx.test('telefono: la barra cambia slot col tocco (arco → joystick di mira), la pozione si beve una volta', async () => {
+  await ctx.test('telefono: la barra cambia slot col tocco (arco → joystick di mira); l’ulti piena si lancia col tocco', async () => {
     await pb.tap('#mzArenaBarra button[data-act=slot][data-n="1"]');
     await ctx.waitState(pb, (st) => st.arenaDuello?.slot === 1, 5000);
     await pb.waitForSelector('#mzArenaMira.on', { timeout: 5000 });
@@ -64,12 +73,19 @@ export default async function (ctx) {
     await ctx.shot(pb, 'arco');
     await pb.tap('#mzArenaBarra button[data-act=slot][data-n="0"]');
     await ctx.waitState(pb, (st) => st.arenaDuello?.slot === 0, 5000);
-    await pb.tap('#mzArenaBarra button[data-act=pozione][data-n="0"]');
-    await pb.waitForSelector('#mzArenaBarra button.pz.usata', { timeout: 5000 });
+    await pb.tap('#mzArenaBarra button[data-act=ulti]');
+    await pb.waitForTimeout(300);
+    assert(ar(await ctx.getState(pb)).ulti[0].fase === 'no', 'vuota non parte');
+    assert(await pb.evaluate(() => window.__game.test.arenaCarica(0)), 'carica di prova');
+    await pb.waitForSelector('#mzArenaBarra button.ul.pronta', { timeout: 5000 });
+    await ctx.shot(pb, 'ulti_pronta');
+    await pb.tap('#mzArenaBarra button[data-act=ulti]');
+    await ctx.waitState(pb, (st) => st.arenaDuello?.ulti[0].fase === 'su', 5000);
+    await pb.waitForSelector('#mzArenaBarra button.ul.attiva', { timeout: 5000 });
   });
   await ctx.test('telefono: col pilota si combatte (vite che scendono, mai un colpo da 100), poi ARRENDITI → SCONFITTA → pannello', async () => {
     await pb.evaluate(() => window.__game.test.arenaAuto(true));
-    await ctx.waitState(pb, (st) => st.arenaDuello && (st.arenaDuello.vita[0] < 100 || st.arenaDuello.vita[1] < 100), 60000);
+    await ctx.waitState(pb, (st) => st.arenaDuello && (st.arenaDuello.vita[0] < 150 || st.arenaDuello.vita[1] < 150), 60000);
     await ctx.shot(pb, 'lotta');
     await pb.evaluate(() => window.__game.test.arenaAuto(false));
     await pb.tap('#mzArenaMenuBtn');
@@ -92,17 +108,18 @@ export default async function (ctx) {
   const d = await ctx.open('?test=1&net=0&arena=banco', { viewport: ctx.B.DESKTOP });
   await ctx.waitReady(d.page, 20000);
   const pd = d.page;
-  await ctx.test('PC: tasti 1-4 cambiano slot, 5 beve, clic attacca, Esc apre il menu', async () => {
+  await ctx.test('PC: tasti 1-2 cambiano slot, F lancia l’ulti, clic attacca, Esc apre il menu', async () => {
     await ctx.waitState(pd, (st) => st.arenaDuello?.fase === 'gioca', 60000);
-    for (const [k, n] of [['Digit2', 1], ['Digit3', 2], ['Digit1', 0]]) {
+    for (const [k, n] of [['Digit2', 1], ['Digit1', 0]]) {
       await pd.keyboard.press(k);
       await ctx.waitState(pd, (st, n) => st.arenaDuello?.slot === n, 5000, n);
     }
-    await pd.keyboard.press('Digit4'); // vuoto: non cambia
+    await pd.keyboard.press('Digit3'); // non c'è: non cambia
     await pd.waitForTimeout(200);
-    assert(ar(await ctx.getState(pd)).slot === 0, 'lo slot vuoto si è preso');
-    await pd.keyboard.press('Digit5');
-    await pd.waitForSelector('#mzArenaBarra button.pz.usata', { timeout: 5000 });
+    assert(ar(await ctx.getState(pd)).slot === 0, 'lo slot 3 non esiste');
+    await pd.evaluate(() => window.__game.test.arenaCarica(0));
+    await pd.keyboard.press('KeyF');
+    await ctx.waitState(pd, (st) => st.arenaDuello?.ulti[0].fase === 'su', 5000);
     // verso l'avversario e qualche colpo col clic
     await pd.keyboard.down('KeyD'); await pd.waitForTimeout(2500); await pd.keyboard.up('KeyD');
     for (let i = 0; i < 4; i++) { await pd.mouse.click(640, 360); await pd.waitForTimeout(250); }

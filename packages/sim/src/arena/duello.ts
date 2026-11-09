@@ -2,9 +2,9 @@
 // del dungeon su una mappa dell'Arena (ARENA.mappe) con gli eroi in due squadre (s.pvp): vita, posizioni, slot, frecce e pozioni tornano come
 // all'inizio. Il round: `conta` secondi di conto alla rovescia (fermi), `secondi` di gioco, poi `pausa` col risultato. Vince il round la squadra
 // che resta in piedi; a tempo scaduto quella con più Vita in tutto (sotto `pariSotto` punti di differenza è pari e non conta); cadute insieme =
-// pari. La partita finisce a `vittorie` round vinti, alla resa di tutta una squadra (azione `resa`: anche il server la mette per chi ha perso la
+// pari. Nel 1 contro 1 Cura e Furia non valgono: i loro slot restano vuoti. Ulti e Vigore dei colpi: ulti.ts (la carica resta tra i round). La partita finisce a `vittorie` round vinti, alla resa di tutta una squadra (azione `resa`: anche il server la mette per chi ha perso la
 // linea troppo a lungo; chi si arrende da una squadra di più resta fuori dai round che seguono) o dopo `massimo` round (più round vinti, o pareggio).
-// Azioni tra due tick, come il menu del dungeon: `slot` (barra dei 4 slot), `pozione` (i 2 bottoni), `resa`; registrate [tick, eroe, azione]
+// Azioni tra due tick, come il menu del dungeon: `slot` (la barra degli slot), `ulti`, `resa`; registrate [tick, eroe, azione]
 // e rigiocate dal server (replayDuello). Erba alta: chi ci sta dentro non lo vedono gli avversari (dungeon/erba.ts).
 // Pura e deterministica: niente funzioni trascendenti (regola di dungeon/types.ts).
 import { ARENA, ARENA_SQUADRA_MAX, arenaMappa } from '@marea/content/arena.ts';
@@ -14,15 +14,16 @@ import type { ArenaEroe } from '../rpg/arena.ts';
 import { createParty, conEroe, secToTicks } from '../dungeon/state.ts';
 import type { DungeonState } from '../dungeon/state.ts';
 import { stepParty } from '../dungeon/dungeon.ts';
-import { applyPotion } from '../dungeon/hero.ts';
 import { fermaCanale } from '../dungeon/magie.ts';
-import { nellErba, visibileDa } from '../dungeon/erba.ts';
+import { nellErba, velato, visibileDa } from '../dungeon/erba.ts';
 import { hashOf, viewOf } from '../dungeon/view.ts';
 import { frameOfRiga } from '../dungeon/replay.ts';
 import type { DungeonEvent, DungeonInput, DungeonView, PackedDungeon } from '../dungeon/types.ts';
 import { NO_DUNGEON_INPUT } from '../dungeon/types.ts';
+import { attivaUlti, dopoUlti, fermo, inputUlti, nuovaUlti, roundUlti, ultiView } from './ulti.ts';
+import type { UltiRt, UltiView } from './ulti.ts';
 
-export type ArenaAzione = { t: 'slot'; n: number } | { t: 'pozione'; n: number } | { t: 'resa' };
+export type ArenaAzione = { t: 'slot'; n: number } | { t: 'ulti' } | { t: 'resa' };
 /** [tick, eroe, azione] con tick non decrescenti (= passi del duello già fatti quando l'azione è avvenuta). */
 export type ArenaAzioni = [number, number, ArenaAzione][];
 export type DuelloFase = 'conta' | 'gioca' | 'pausa' | 'finita';
@@ -31,9 +32,9 @@ export type RoundEsito = { vincitore: number | null; perche: 'ko' | 'tempo' | 'p
 /** Esito della partita: la squadra che ha vinto (null = pareggio), come, round vinti da ciascuna squadra. */
 export type DuelloEsito = { vincitore: number | null; perche: 'round' | 'resa' | 'pari'; vinti: number[] };
 /** Eventi del duello in questo tick (oltre a quelli della sim del round, in `s.eventi`). */
-export type DuelloEvento = { t: 'via'; round: number } | { t: 'round'; round: number; esito: RoundEsito } | { t: 'fine'; esito: DuelloEsito };
-/** Per eroe, nel round: slot in mano, frecce rimaste per slot (gli archi), pozioni già bevute. */
-export type DuelloEroeRt = { slot: number; frecce: number[]; bevute: boolean[] };
+export type DuelloEvento = { t: 'via'; round: number } | { t: 'round'; round: number; esito: RoundEsito } | { t: 'fine'; esito: DuelloEsito } | { t: 'ulti'; i: number; id: string };
+/** Per eroe, nel round: slot in mano, frecce rimaste per slot (gli archi). */
+export type DuelloEroeRt = { slot: number; frecce: number[] };
 /** Chi partecipa e dove: la squadra (0 o 1) di ogni eroe, in ordine (tutte e due le squadre dello stesso numero, da 1 a 3), e la mappa. */
 export type DuelloFormato = { squadre: number[]; mappa: string };
 
@@ -46,6 +47,8 @@ export type DuelloState = {
   fase: DuelloFase; faseT: number;
   /** La partita del round (sim del dungeon con s.pvp) e lo stato degli slot di ogni eroe; `fuori[i]`: l'eroe i si è arreso, non gioca più. */
   s: DungeonState; rt: DuelloEroeRt[]; fuori: boolean[];
+  /** L'ulti di ogni eroe (ulti.ts): la carica resta da un round all'altro. */
+  ul: UltiRt[];
   esito: DuelloEsito | null;
   eventi: DuelloEvento[];
 };
@@ -55,6 +58,11 @@ export const CONTA_TICKS = secToTicks(R.conta), ROUND_TICKS = secToTicks(R.secon
 /** Il duello più lungo possibile (tutti i round a tempo pieno) più un margine: oltre, il replay si ferma. */
 export const MAX_TICKS_DUELLO = (CONTA_TICKS + ROUND_TICKS + PAUSA_TICKS) * R.massimo + 600;
 
+/** Nel 1 contro 1 gli slot con Cura o Furia restano vuoti (se non resta niente, com'era). */
+function senzaSupporto(e: ArenaEroe): ArenaEroe {
+  const varianti = e.varianti.map((v) => (v?.manoMagia && v.magia !== null && v.magie[v.magia]?.scuola === 'supporto' ? null : v));
+  return varianti.some((v) => v) ? { ...e, varianti } : e;
+}
 /** Il primo slot pieno (quello con cui si parte). */
 const primoSlot = (e: ArenaEroe): number => Math.max(0, e.varianti.findIndex((v) => v !== null));
 const varianteDi = (e: ArenaEroe, n: number): RunHero => (e.varianti[n] ?? e.varianti[primoSlot(e)])!;
@@ -70,7 +78,8 @@ export function createDuello(o: { seed: number; eroi: readonly ArenaEroe[]; squa
   if (o.eroi.length !== squadre.length || k < 1 || k > ARENA_SQUADRA_MAX || squadre.length !== 2 * k || squadre.some((q) => q !== 0 && q !== 1) || squadre.filter((q) => q === 1).length !== k) throw new Error('Duello: servono due squadre uguali di 1-3 eroi');
   if (o.eroi.some((e) => !e.varianti.some((v) => v))) throw new Error('Duello: eroe senza armi né pugni');
   if (arenaMappa(mappa).spawn.some((l) => l.length < k)) throw new Error(`Duello: la mappa ${mappa} non è per ${k} eroi a squadra`);
-  const d = { v: 1, seed: o.seed >>> 0, eroi: o.eroi, squadre, mappa, tick: 0, round: 0, vinti: [0, 0], rounds: [], fase: 'conta', faseT: 0, fuori: o.eroi.map(() => false), esito: null, eventi: [] } as unknown as DuelloState;
+  const eroi = k === 1 ? o.eroi.map(senzaSupporto) : o.eroi;
+  const d = { v: 1, seed: o.seed >>> 0, eroi, squadre, mappa, tick: 0, round: 0, vinti: [0, 0], rounds: [], fase: 'conta', faseT: 0, fuori: o.eroi.map(() => false), ul: eroi.map(nuovaUlti), esito: null, eventi: [] } as unknown as DuelloState;
   nuovoRound(d);
   return d;
 }
@@ -87,8 +96,9 @@ function nuovoRound(d: DuelloState): void {
     if (d.fuori[i]) fuoriGioco(r);
   });
   d.s = s;
-  d.rt = d.eroi.map((e) => ({ slot: primoSlot(e), frecce: e.varianti.map((v) => v?.frecce?.n ?? 0), bevute: e.pozioni.map(() => false) }));
-  d.eroi.forEach((e, i) => { const h = s.eroi[i]!.hero; h.pozioni = e.pozioni.length; h.frecce = d.rt[i]!.frecce[d.rt[i]!.slot] ?? 0; });
+  d.rt = d.eroi.map((e) => ({ slot: primoSlot(e), frecce: e.varianti.map((v) => v?.frecce?.n ?? 0) }));
+  d.eroi.forEach((_, i) => { const h = s.eroi[i]!.hero; h.pozioni = 0; h.frecce = d.rt[i]!.frecce[d.rt[i]!.slot] ?? 0; });
+  roundUlti(d);
   d.fase = 'conta'; d.faseT = 0;
 }
 const fuoriGioco = (r: DungeonState['eroi'][number]): void => { r.done = true; r.outcome = 'morto'; r.hero.vita = 0; };
@@ -108,7 +118,8 @@ export function stepDuello(d: DuelloState, inputs: readonly DungeonInput[]): voi
     if (++d.faseT >= PAUSA_TICKS) { d.round++; nuovoRound(d); }
     return;
   }
-  stepParty(d.s, inputs);
+  stepParty(d.s, inputUlti(d, inputs));
+  dopoUlti(d);
   d.faseT++;
   const inPiedi = [0, 1].map((q) => d.s.eroi.some((r, i) => d.squadre[i] === q && !r.done));
   if (!inPiedi[0] || !inPiedi[1]) fineRound(d, !inPiedi[0] && !inPiedi[1] ? { vincitore: null, perche: 'pari' } : { vincitore: inPiedi[0] ? 0 : 1, perche: 'ko' });
@@ -145,20 +156,13 @@ export function actDuello(d: DuelloState, i: number, a: ArenaAzione): DungeonEve
   }
   if (s.eroi[i]!.done || (d.fase !== 'gioca' && d.fase !== 'conta')) return null;
   if (a.t === 'slot') {
-    if (!Number.isInteger(a.n) || a.n === rt.slot || !e.varianti[a.n]) return null;
+    if (!Number.isInteger(a.n) || a.n === rt.slot || !e.varianti[a.n] || fermo(d, i)) return null;
     return conEroe(s, i, () => cambiaSlot(d, i, a.n));
   }
-  if (a.t === 'pozione') {
-    const p = e.pozioni[a.n];
-    if (d.fase !== 'gioca' || !Number.isInteger(a.n) || !p || rt.bevute[a.n]) return null;
-    rt.bevute[a.n] = true;
-    return conEroe(s, i, () => {
-      applyPotion(s, p);
-      const h = s.hero;
-      h.pozioni = rt.bevute.filter((x) => !x).length;
-      if (h.act === 'idle') { h.act = 'beve'; h.actT = 0; h.actDur = secToTicks(0.4); }
-      return [{ t: 'pozione', id: p.id }];
-    });
+  if (a.t === 'ulti') {
+    if (!attivaUlti(d, i)) return null;
+    d.eventi.push({ t: 'ulti', i, id: d.ul[i]!.id });
+    return [];
   }
   return null;
 }
@@ -192,9 +196,11 @@ export type DuelloView = {
   fase: DuelloFase; round: number; vinti: number[]; rounds: RoundEsito[]; esito: DuelloEsito | null;
   /** Secondi che mancano: al via (conto alla rovescia), alla fine del round (gioco), al round dopo (pausa). */
   secondi: number;
-  slot: number; frecce: number[]; bevute: boolean[];
-  /** La mia squadra, e se gli avversari non mi vedono (sono nell'erba alta). */
+  slot: number; frecce: number[];
+  /** La mia squadra, e se gli avversari non mi vedono (sono nell'erba alta o nel Velo). */
   mia: number; nascosto: boolean;
+  /** Le ulti di tutti (in ordine di eroe): la mia per il bottone, quelle degli altri per disegnarle. */
+  ulti: UltiView[];
   altri: DuelloAltro[];
   dungeon: DungeonView;
   eventi: DuelloEvento[];
@@ -213,15 +219,15 @@ export function viewDuello(d: DuelloState, io: number): DuelloView {
   return {
     fase: d.fase, round: d.round, vinti: [...d.vinti], rounds: d.rounds.map((r) => ({ ...r })), esito: d.esito ? { ...d.esito, vinti: [...d.esito.vinti] } : null,
     secondi: Math.max(0, Math.ceil(resto / 60)),
-    slot: rt.slot, frecce: rt.frecce.map((n, k) => (k === rt.slot ? s.eroi[io]!.hero.frecce : n)), bevute: [...rt.bevute],
-    mia, nascosto: nellErba(s, io) && !visibileDa(s, io, 1 - mia), altri,
+    slot: rt.slot, frecce: rt.frecce.map((n, k) => (k === rt.slot ? s.eroi[io]!.hero.frecce : n)),
+    mia, nascosto: (nellErba(s, io) || velato(s, io)) && !visibileDa(s, io, 1 - mia), altri, ulti: d.ul.map(ultiView),
     dungeon, eventi: d.eventi,
   };
 }
 
 /** Hash dello stato del duello (round, vinti, fase, slot e scorte, squadre, erba, più lo stato della sim del round con tutti gli eroi). */
 export function hashDuello(d: DuelloState): number {
-  return hashJson({ v: d.v, seed: d.seed, squadre: d.squadre, mappa: d.mappa, tick: d.tick, round: d.round, vinti: d.vinti, rounds: d.rounds, fase: d.fase, faseT: d.faseT, esito: d.esito, rt: d.rt, fuori: d.fuori, rivela: d.s.pvp?.rivela ?? [], s: hashOf(d.s) });
+  return hashJson({ v: d.v, seed: d.seed, squadre: d.squadre, mappa: d.mappa, tick: d.tick, round: d.round, vinti: d.vinti, rounds: d.rounds, fase: d.fase, faseT: d.faseT, esito: d.esito, rt: d.rt, fuori: d.fuori, ul: d.ul, rivela: d.s.pvp?.rivela ?? [], velo: d.s.pvp?.velo ?? [], s: hashOf(d.s) });
 }
 
 export type DuelloRisultato = { esito: DuelloEsito | null; rounds: RoundEsito[]; ticks: number; hash: number };
@@ -255,6 +261,7 @@ export function parseArenaAzione(v: unknown): ArenaAzione | null {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
   const o = v as Record<string, unknown>, n = o['n'];
   if (o['t'] === 'resa') return { t: 'resa' };
-  if ((o['t'] === 'slot' || o['t'] === 'pozione') && typeof n === 'number' && Number.isInteger(n) && n >= 0 && n < (o['t'] === 'slot' ? ARENA.slot : ARENA.pozioni)) return { t: o['t'], n };
+  if (o['t'] === 'ulti') return { t: 'ulti' };
+  if (o['t'] === 'slot' && typeof n === 'number' && Number.isInteger(n) && n >= 0 && n < ARENA.slot) return { t: 'slot', n };
   return null;
 }

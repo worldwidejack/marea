@@ -1,14 +1,15 @@
 # MAREA — Isola dell'Arena (GDD e com'è ora)
 
 > Documento di riferimento della modalità PvP e dell'Isola dell'Arena. Le parti 1-4 sono il design di Riccardo; la parte 5 dice com'è fatto
-> il duello (17 ott 2026, #373), la parte 6 le squadre, l'erba alta e le mappe (23 ott 2026, #567). Le voci **[proposta]** sono scelte di Claude dove il design non diceva niente: si cambiano nei JSON di
+> il duello (17 ott 2026, #373), la parte 6 le squadre, l'erba alta e le mappe (23 ott 2026, #567), la parte 7 le build uguali per tutti e
+> le ulti (9 nov 2026, #697). Le voci **[proposta]** sono scelte di Claude dove il design non diceva niente: si cambiano nei JSON di
 > `packages/content/src/arena/arena.json` (col perché nella PR). Mappa del codice: `MAPPA.md`; messaggi: `packages/protocol/src/arena.ts`.
 
 ---
 
 ## 1. Visione del Gioco
-Una modalità PvP in stile *Brawl Stars* su un'isola nuova dell'arcipelago («Isola dell'Arena»), con il combattimento, le armi, le armature, le
-magie e le pozioni dei dungeon.
+Una modalità PvP in stile *Brawl Stars* su un'isola nuova dell'arcipelago («Isola dell'Arena»), col combattimento dei dungeon ma **senza il
+personaggio**: abilità, perk, zaino e armature non c'entrano, si parte tutti uguali e conta la build scelta prima della partita (parte 7).
 
 ### Modalità
 - **1v1 (Duello rapido)**: la prima versione, al meglio dei 3 round. **Fatta.**
@@ -19,20 +20,21 @@ magie e le pozioni dei dungeon.
 
 ## 2. Regole di Gioco & Loadout
 
-### Set Pre-Partita (fatto)
-All'ingresso del colosseo (**ENTRA NEL COLOSSEO**, o A vicino al portone) si apre il pannello del colosseo col **set del duello**, scelto tra
-quello che hai nello **zaino e nel Forziere**, e salvato col personaggio (`HeroState.arena`, `POST /api/rpg {t:'arena'}`):
-- **Vestizione**: armatura (o veste) e due anelli.
-- **4 slot rapidi**: armi, archi o magie conosciute, intercambiabili al volo (la stessa arma o magia una volta sola).
-- **Frecce per l'arco**: ogni arco ha il suo tipo di freccia, **18 a duello** **[proposta]**, fuori dagli slot; senza sceglierne uno, frecce di legno.
-- **2 pozioni rapide**: una a testa per round **[proposta]**.
-- **[proposta]** In Arena non si consuma e non si perde niente: frecce, pozioni e armi di vetro tornano come prima a ogni round, lo zaino e
-  l'equipaggiamento dei dungeon non cambiano. Senza niente negli slot si combatte coi pugni.
+### Build Pre-Partita (fatta, 9 nov 2026)
+All'ingresso del colosseo (**ENTRA NEL COLOSSEO**, o A vicino al portone) si apre il pannello con **LE TUE BUILD**: se ne salvano fino a 3
+(schede BUILD 1-3, + NUOVA), si gioca con quella scelta; si salvano col personaggio (`HeroState.arena`, `POST /api/rpg {t:'arena'}`). Ogni
+build è uguale per tutti e ha:
+- una **dote** al posto dell'armatura: +50% di **Vita**, di **Vigore** o di **Magicka** (massimo e ricarica), con un leggero bagliore attorno
+  all'eroe, rosso, verde o blu;
+- **2 slot** tra le armi (una per tipo, tutte di ferro: nunchaku, katana, ascia, lancia, spadone, martello, arco) e le magie (fuoco ed
+  elettricità a proiettile, raggio e bomba; Cura e Furia **solo a squadre**: nel 1 contro 1 quello slot resta vuoto; niente evocazioni);
+- un'**ulti** a scelta tra sei (parte 7).
+Niente pozioni né anelli; l'arco ha 18 frecce a round. Senza niente negli slot si combatte coi pugni.
 
 ### Interfaccia Utente (fatta)
 - In alto il **tabellone**: la tua vita (con Magicka e Stamina sotto), il tempo del round e i round vinti a pallini, la vita dell'avversario.
-- In basso la **barra**: i 4 slot (tocco su telefono 390×844, tasti **1-4** su PC) con le 2 pozioni ai lati (tocco, tasti **5-6** o Q/R).
-  Sullo slot si vede quante frecce restano (archi) o quanta Magicka costa (magie).
+- In basso la **barra**: i 2 slot (tocco su telefono 390×844, tasti **1-2** su PC) e il bottone tondo dell'**ulti**, che si riempie dal basso
+  e si accende quando è piena (tocco, tasto **F**). Sullo slot si vede quante frecce restano (arco) o quanta Magicka costa (magie).
 - Joystick di movimento, A e B come sempre (alzati sopra la barra); con l'arco o una magia in mano, al telefono il **joystick di mira** al
   posto di A, al PC il clic sinistro tenuto e la mira verso il cursore, come nei dungeon. E: la Scarica dell'arco (perk).
 - Menu (Esc o il bottone in alto a destra): RIPRENDI e **ARRENDITI** (con conferma).
@@ -45,23 +47,19 @@ quello che hai nello **zaino e nel Forziere**, e salvato col personaggio (`HeroS
 - **Cura a bomba**: lancio ad area che cura alleati ed evocazioni nella zona d'impatto.
 - **Furia a flusso**: raggio continuo che aumenta velocità e danno di un singolo alleato o evocazione.
 - **Furia a bomba**: lancio ad area che potenzia per qualche secondo chi si trova nel raggio d'azione.
-- In Arena valgono **solo su di te, sui compagni e sulle tue evocazioni**, mai sull'avversario; **[proposta]** senza nessuno dei tuoi davanti
-  il flusso va su di te e la bomba ti cade ai piedi (così servono anche nel duello 1v1).
-- La loro potenza sale con l'abilità **Supporto** (`RPG.md` §3) ma in Arena non supera **× 1,25** il valore del libro (`arena.supportoMax`).
+- In Arena valgono **solo nelle partite a squadre** e **solo su di te e sui compagni**, mai sull'avversario; senza nessuno dei tuoi davanti
+  il flusso va su di te e la bomba ti cade ai piedi. I loro numeri in Arena sono fissi (`arena.json` → `build.magie`).
 
 ---
 
-## 4. Principi di Bilanciamento PvP (Step 1)
-- **Statistiche normalizzate**: tutti partono con 100 di Vita, 100 di Magicka e 100 di Stamina (`buildArenaHero`).
-- **Perk attivi ma calibrati**: i danni sono × `arena.dannoMolt` (0,45) e mai oltre `arena.dannoMax` (92 su 100): niente one-shot.
-- **Evocazioni accessibili**: con un perk di Evocazione le creature più forti si lanciano anche consumando tutta la Magicka. **[proposta]**
-  Sugli eroi il loro danno è scalato come quello delle armi (× `dannoMolt`); attaccano l'eroe avversario e le sue evocazioni, e sono bersagli
-  per lui. Le evocazioni dell'avversario si vedono **rosse** (le tue viola).
+## 4. Principi di Bilanciamento PvP
+- **Tutti uguali**: 100 di Vita, Magicka e Stamina (più la dote), niente armatura, niente perk né abilità; danni, velocità e costi di ogni arma
+  e magia sono fissi, scritti in `arena.json` → `build` (`buildArenaEroe` di `sim/rpg/arena.ts`).
+- **Niente one-shot**: nessun colpo supera `arena.dannoMax` (92) di `balance.json`.
+- **Il peso conta**: col martello in mano si va un po' più piano (−11%), con nunchaku e arco un po' più svelti (+2%): `build.passo`.
+- **Il Vigore paga i colpi**: ogni colpo di mischia e ogni freccia costa Stamina (un secondo di colpi di fila `staminaAlSecondo`, il caricato
+  ×1,5); a secco non si attacca finché non torna. Così il Vigore è la «Magicka» delle armi.
 - **Indipendenza**: il bilanciamento dell'Arena non tocca i dungeon (stessi hash, stessa fixture d'oro).
-- **[proposta]** Gli effetti dei perk che lavorano sui nemici del dungeon (sanguinamento, paralisi, veleno, Lama d'aria, Terremoto, Eco della
-  Marea, Combustione, Automira) sugli eroi non valgono: conta il danno. Il Patto di sangue non porta la creatura nel duello.
-
----
 
 ## 5. Com'è fatta adesso (17 ott 2026, #373)
 
@@ -79,9 +77,9 @@ dritta. Tutto in vista: niente nebbia dei dungeon. Formato dei dungeon (`ARENA.m
 
 ### Il duello 1v1
 - **Trovare l'avversario**: **CODA VELOCE** (il primo che c'è) o **SFIDA UN AMICO** (CREA SALA dà un codice di 4 lettere da dire all'amico,
-  che lo scrive e preme ENTRA). **ALLENAMENTO**: contro l'avversario automatico, con una copia del tuo set, senza server né premio.
+  che lo scrive e preme ENTRA). **ALLENAMENTO**: contro l'avversario automatico, con la tua stessa build, senza server né premio.
 - **Round** **[proposta]**: 3 s di conto alla rovescia (fermi, si può già cambiare slot), 90 s di gioco, 3 s col risultato. Ogni round riparte
-  da capo: vita, posizioni, slot, frecce e pozioni.
+  da capo: vita, posizioni, slot e frecce (la carica dell'ulti no: resta).
 - **Vince il round** chi resta in piedi; caduti insieme = pari. **A tempo scaduto** **[proposta]** vince chi ha più Vita; sotto 1 punto di
   differenza è pari (non conta).
 - **Vince la partita** chi arriva a 2 round; **[proposta]** dopo 5 round si chiude comunque (più round vinti, se no pareggio).
@@ -97,13 +95,13 @@ dritta. Tutto in vista: niente nebbia dei dungeon. Formato dei dungeon (`ARENA.m
   **tetto di 150 monete al giorno** (giorno UTC), come i Templari. Il lotto tiene vinte, perse e pari (`LotState.arena`).
 
 ### Prove
-- **Ombra di mira**: con una magia a bomba (Bomba di fuoco o elettrica, Cura e Furia a bomba) in mano, mentre si mira a terra c'è un disco scuro col
+- **Ombra di mira**: con una magia a bomba in mano, mentre si mira a terra c'è un disco scuro col
   raggio dello scoppio e l'anello del colore della magia, dove la bomba atterrerebbe (stessa distanza della sim: nemico davanti, se no nel vuoto, un
   muro la accorcia). La vede solo chi mira: ogni client la disegna nella sua scena.
 - **Stanza di prova senza server**: `?test=1&net=0&arena=banco` entra subito nell'allenamento contro l'avversario automatico (`sim/arena/bot.ts`).
   `?arena=1`: il bottone ⚔ porta al colosseo.
-- Test: `packages/sim/test/arena_duello.test.ts` (set, colpi tra eroi, evocazioni, Cura e Furia, pozioni, round, pareggio a tempo, resa, replay
-  uguale tra client e server, premio), `packages/sim/test/arena_squadre.test.ts` (2v2 e 3v3, mappe, erba alta), `packages/sim/test/arena_bot.test.ts` (build casuali, set a mano, distanza della bomba), `tests/e2e/m4_arena.mjs` e
+- Test: `packages/sim/test/arena_duello.test.ts` (build, fotografia, colpi tra eroi, Vigore, Cura e Furia solo a squadre, le sei ulti, round,
+  pareggio a tempo, resa, replay uguale tra client e server, premio), `packages/sim/test/arena_squadre.test.ts` (2v2 e 3v3, mappe, erba alta), `packages/sim/test/arena_bot.test.ts` (build casuali, distanza della bomba), `tests/e2e/m4_arena.mjs` e
   `m4_arena_squadre.mjs` (telefono e PC), `tests/e2e/m4_arena_server.mjs` (client finti contro il server: coda, sala, linea persa e ripresa,
   resa, premio, 2v2 coi gladiatori).
 
@@ -132,18 +130,15 @@ dritta. Tutto in vista: niente nebbia dei dungeon. Formato dei dungeon (`ARENA.m
 - **Coda veloce a squadre**: si parte con 2×f persone, o dopo 10 s (`arena.json` → `rete.attesaBotSecondi`) con chi c'è **[proposta]**; le persone si
   alternano tra le squadre (squadre pari). **Sala con codice**: la squadra di chi l'ha aperta si riempie per prima (l'amico che entra col codice
   gioca con te), poi l'altra; chi l'ha aperta preme **PARTI ORA**, o si parte da soli a sala piena.
-- I posti vuoti li prendono i **gladiatori automatici** (`sim/arena/bot.ts`, nomi e look in `arena.json` → `gladiatori`): hanno una copia del set di
+- I posti vuoti li prendono i **gladiatori automatici** (`sim/arena/bot.ts`, nomi e look in `arena.json` → `gladiatori`): hanno una copia della build di
   una delle persone, e i loro input li decide il server (stesso turno delle persone, stesso replay). Se non resta nessuna persona, si arrendono.
 - **[proposta]** Se tra gli **avversari** ci sono gladiatori niente monete (si contano vinte e perse): non si fa il pieno contro i bot. Con i
   gladiatori solo nella tua squadra il premio c'è. L'ALLENAMENTO locale resta senza server né premio: tu (e i compagni) contro i gladiatori,
   con la mappa a scelta o a caso.
-- **Gladiatori dell'allenamento a squadre (2v2 e 3v3)**: ognuno ha il suo set. Di default **build casuale**, tirata a ogni partita
-  (`sim/rpg/arena_bot.ts`): i 4 slot si dividono a sorte tra armi (archi compresi, con una freccia a caso) e magie; con 3 o 4 armi un'**armatura**,
-  con 3 o 4 magie una **veste da mago**, con 2 e 2 un vestito qualsiasi (armatura o veste); due anelli e due pozioni a caso, almeno una magia che
-  fa danno o evoca. Il caso pesca solo tra gli oggetti comuni (niente unici). Nel pannello, sezione **GLADIATORI DELL'ALLENAMENTO**: un tocco su un
-  gladiatore (compagni prima, poi avversari) apre lo stesso editor del tuo set (vestizione, anelli, 4 slot, frecce, pozioni) con **tutto il
-  catalogo e tutte le magie** (anche gli unici), partendo dalla build casuale appena tirata; **BUILD CASUALE** lo rimette al caso, **IL TUO SET**
-  torna al tuo. Perk e abilità dei gladiatori sono quelli del tuo personaggio. Nel duello 1v1 il gladiatore resta una copia del tuo set.
+- **Gladiatori dell'allenamento a squadre (2v2 e 3v3)**: ognuno ha la sua build. Di default **build casuale**, tirata a ogni partita
+  (`sim/rpg/arena_bot.ts`): dote e ulti a caso, due slot diversi di cui almeno uno d'attacco. Nel pannello, sezione **GLADIATORI
+  DELL'ALLENAMENTO**: un tocco su un gladiatore (compagni prima, poi avversari) apre lo stesso editor della tua build; **BUILD CASUALE** lo
+  rimette al caso, **LA TUA BUILD** torna alla tua. Nel duello 1v1 il gladiatore ha la tua stessa build.
 
 ### Erba alta (come in Brawl Stars)
 - Le celle `E` (legenda `erba`): chi ci sta dentro **non lo vedono gli avversari**: non si disegna, niente nome, la mira assistita non lo punta.
@@ -152,7 +147,7 @@ dritta. Tutto in vista: niente nebbia dei dungeon. Formato dei dungeon (`ARENA.m
   colpo (`balance.json` → `arena.erba`: `raggio`, `rivela`; `sim/dungeon/erba.ts`).
 - A chi sta nell'erba un cartello dice «NELL'ERBA: NON TI VEDONO». Nella scena: una macchia scura e ciuffi alti fino a ~1 m; attorno a chi
   cammina l'erba si abbassa (la finestra sull'eroe), così ci si vede sempre.
-- I gladiatori rispettano l'erba: non vedono chi è nascosto, lo cercano dove l'hanno visto l'ultima volta. Le evocazioni invece vedono tutti.
+- I gladiatori rispettano l'erba: non vedono chi è nascosto, lo cercano dove l'hanno visto l'ultima volta.
 - Il client riceve gli stessi turni di tutti e ha tutto lo stato (come in ogni partita a turni): l'erba nasconde sullo schermo e alla mira, non
   protegge da chi modifica il client.
 
@@ -166,3 +161,31 @@ partenze e che tutto il pavimento si raggiunga. La mappa di ogni partita la sceg
   quattro attorno al centro. Stile `rovine`.
 Una mappa nuova è una voce in `arena.json` → `mappe` (`rows` con `E` per l'erba, `legenda`, `formati`, `spawn` per squadra) e, se serve un aspetto
 suo, un kit in `rpg/arena_kit.ts` e una riga in `STYLE` di `rpg/dungeon_scene.ts`.
+
+---
+
+## 7. Build, doti e ulti (9 nov 2026, #697)
+
+### Le ulti
+Una a scelta nella build. Si **carica giocando** (`arena.json` → `ulti.carica`): un po' al secondo, di più col danno dato e un po' col danno
+preso; piena a 100 (circa una volta a round), si lancia col bottone tondo o con **F**. Mentre è in corso non si carica. **[proposta]** La carica
+**resta da un round all'altro**: chi perde un round spesso ce l'ha pronta nel successivo. Codice in `sim/arena/ulti.ts`, sopra la sim del round.
+- **Furia**: danni ×2 per 6 s (armi e magie; il tetto contro i one-shot resta).
+- **Scatto**: passo ×2 per 8 s, la corsa non consuma Vigore.
+- **Aura di cura**: per 6 s cura te e i compagni entro 4 m.
+- **Raggio della Marea** (la kamehameha): fermo, carichi 0,7 s una sfera d'acqua, poi un raggio dritto fino al primo muro per 1,5 s che
+  colpisce tutti gli avversari sulla linea; col joystick lo giri, piano. Chi carica e spara non si muove: si può schivare girandogli attorno.
+- **Arpione**: un gancio dritto davanti (11 m); chi prende viene tirato fino a te, preso un po' di danno, e resta fermo un attimo.
+- **Velo di nebbia**: per 6 s gli avversari non ti vedono, come nell'erba alta (anche fuori dall'erba); attaccando ti scopri.
+
+### Come si vede
+- Il **bagliore della dote** (`rpg/arena_fx.ts`): un guscio trasparente attorno all'eroe e un anello a terra, a scatti, rosso (Vita), verde
+  (Vigore) o blu (Magicka); con Furia o Scatto in corso si accende di più. Aura: l'anello verde col raggio dell'aura. Velo: la nebbia grigia
+  (la vedono solo lui e i compagni). Marea: la sfera e il raggio d'acqua. Arpione: la punta e la corda. Gli avversari nascosti non mostrano niente.
+- Quando qualcuno lancia l'ulti, sopra la testa compare il suo nome.
+
+### Bilanciamento: come è stato fatto
+I numeri delle armi e delle magie (`build.armi`, `build.magie`) vengono da migliaia di partite simulate tra gladiatori automatici con build a
+caso (2 slot, dote e ulti a caso, ulti accese): il danno di ogni arma e magia è stato corretto a piccoli passi finché ognuna vince tra il 45% e
+il 55% delle partite in cui c'è. Il gladiatore tira con arco e magie mirando davvero (con un po' d'anticipo); non schiva e non scappa, quindi
+le ulti di movimento (Scatto, Velo) nelle simulazioni contano meno che tra persone: per quelle si è tenuto conto anche di questo.

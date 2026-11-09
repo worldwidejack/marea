@@ -304,9 +304,6 @@
   "packages/sim/src/rpg/pala.ts": [
    "nomeBucaDono"
   ],
-  "packages/sim/src/rpg/parse.ts": [
-   "parseLoadout"
-  ],
   "packages/sim/src/sparo/bot.ts": [
    "ARMA_NEMICO"
   ],

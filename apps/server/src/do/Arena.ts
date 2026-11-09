@@ -3,9 +3,9 @@
 // Formato `f` = eroi per squadra (1, 2 o 3). Coda: `?modo=coda&f=2`; nel duello (f=1) i primi due si sfidano, nei formati a squadre si parte
 // quando ci sono 2×f persone o, passato ARENA.rete.attesaBotSecondi, con chi c'è (gli altri posti sono dei gladiatori automatici: arena_squadre.ts).
 // Sala: `?modo=sala&f=2` apre una sala con un codice da dire agli amici, che entrano con `?modo=sala&codice=XXXX`; si parte quando è piena o
-// quando chi l'ha aperta manda `via`. Trovati i partecipanti, il DO del lotto di ciascuno apre il duello (`arena_start`: la fotografia del set)
+// quando chi l'ha aperta manda `via`. Trovati i partecipanti, il DO del lotto di ciascuno apre il duello (`arena_start`: la fotografia della build)
 // → `parte` a tutti; quando hanno caricato (o dopo ARENA.rete.caricoSecondi) parte l'orologio: ogni SQ_TURNO_MS un turno con l'ultimo input di
-// ciascuno (quello dei gladiatori lo decide il server, sim/arena/bot.ts) e le azioni della barra (slot, pozioni, resa), mandato a tutti. Il DO
+// ciascuno (quello dei gladiatori lo decide il server, sim/arena/bot.ts) e le azioni della barra (slot, ulti, resa), mandato a tutti. Il DO
 // fa girare lo stesso duello (sim/arena/duello.ts): così sa quando finisce; allora lo rigioca dal log (replayDuello), e l'esito del replay
 // decide: `arena_fine` nel lotto di ciascuno (premio col tetto del giorno, niente se tra gli avversari c'erano gladiatori) e `fine` a tutti.
 // Linea persa (socket caduta senza `esco`): il duello si ferma e aspetta ARENA.rete.staccatoSecondi; chi torna (`?run=&idx=&n=`) riceve i
@@ -181,7 +181,7 @@ export class Arena extends DurableObject<Env> {
     me.arreso = true; me.staccato = 0; me.coda = []; me.az = [{ t: 'resa' }];
   }
 
-  /** Trovati i partecipanti (persone, in ordine di arrivo, con la squadra di ciascuna): ogni lotto apre il duello e fa la fotografia del set; i
+  /** Trovati i partecipanti (persone, in ordine di arrivo, con la squadra di ciascuna): ogni lotto apre il duello e fa la fotografia della build; i
    *  posti vuoti sono dei gladiatori col set di una delle persone; poi `parte` a tutti. */
   private async parti(umani: Conn[], f: number, squadre: (0 | 1)[]): Promise<void> {
     const runId = crypto.randomUUID(), seed = crypto.getRandomValues(new Uint32Array(1))[0]! >>> 1, now = Date.now();

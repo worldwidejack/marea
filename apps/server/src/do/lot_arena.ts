@@ -1,14 +1,13 @@
-// Arena PvP nel DO del lotto (docs/ARENA.md, CONTRACTS «Arena»): solo dal DO Arena, mai dal Worker. Il set del duello si salva con
+// Arena PvP nel DO del lotto (docs/ARENA.md, CONTRACTS «Arena»): solo dal DO Arena, mai dal Worker. Le build del duello si salvano con
 // POST /api/rpg {t:'arena'} come le altre azioni del personaggio.
-// POST /arena_start {run, idx} → il duello `run` è aperto nel lotto (questo giocatore è l'eroe idx) → {eroe} = la fotografia del set
-// (buildArenaEroe del set salvato, ripulito di quello che non hai più: zaino e Forziere) · /arena_fine {run, ruolo, senzaPremio?} → premio
+// POST /arena_start {run, idx} → il duello `run` è aperto nel lotto (questo giocatore è l'eroe idx) → {eroe} = la fotografia della
+// build scelta (buildArenaEroe) · /arena_fine {run, ruolo, senzaPremio?} → premio
 // entro il tetto del giorno (finishArena; senzaPremio: c'erano gladiatori automatici tra gli avversari) → {premio, pieno, tetto, lot}.
 import { ARENA_SQUADRA_MAX } from '@marea/content/arena.ts';
 import type { LotState } from '@marea/sim/economy/types.ts';
 import { finishArena, startArena } from '@marea/sim/arena/premio.ts';
 import type { ArenaRuolo } from '@marea/sim/arena/premio.ts';
-import { buildArenaEroe, loadoutDi, pulisciLoadout } from '@marea/sim/rpg/arena.ts';
-import { available } from '@marea/sim/rpg/bag.ts';
+import { buildArenaEroe, buildScelta } from '@marea/sim/rpg/arena.ts';
 import { heroOf } from '@marea/sim/rpg/hero.ts';
 import { json } from '../http.ts';
 
@@ -21,8 +20,7 @@ export function arenaRoute(lot: LotState, act: string, body: Record<string, unkn
   if (act === 'arena_start') {
     const idx = body['idx'];
     if (typeof idx !== 'number' || !Number.isInteger(idx) || idx < 0 || idx >= 2 * ARENA_SQUADRA_MAX) return json({ error: 'Duello non valido' }, 400);
-    const h = heroOf(lot), ha = (id: string) => available(lot, h, id);
-    const eroe = buildArenaEroe(h, pulisciLoadout(h, loadoutDi(h), ha));
+    const eroe = buildArenaEroe(buildScelta(heroOf(lot)));
     const next = startArena(lot, run, idx, now);
     save(next);
     return json({ eroe });

@@ -260,7 +260,7 @@ export function beviNow(s: DungeonState, id: string): DungeonEvent[] | null {
   return [{ t: 'pozione', id }];
 }
 
-export function applyPotion(s: DungeonState, p: RunPotion): void {
+function applyPotion(s: DungeonState, p: RunPotion): void {
   const h = s.hero, rh = s.runHero;
   consuma(s, p.id, s.usati);
   if (p.cura.vita) { h.vita = Math.min(rh.max.vita, h.vita + p.cura.vita); curaCompagni(s, p.cura.vita); } if (p.cura.magicka) h.magicka = Math.min(rh.max.magicka, h.magicka + p.cura.magicka);
@@ -368,8 +368,8 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   const arcoLibero = !!rh.perk?.arcoMobile && h.act === 'tende';
   const lento = !arcoLibero && h.act !== 'idle' && h.act !== 'tira' && h.act !== 'lancia';
   h.running = h.moving && inp.b && !lento && !arcoLibero && h.stamina > 0;
-  let v = h.running ? rh.corsa * (1 + buff(s, 'velocitaCorsa')) : rh.camminata * (1 + buff(s, 'furiaVel'));
-  if (h.running) h.stamina = Math.max(0, h.stamina - rh.staminaCorsa * DT);
+  let v = (h.running ? rh.corsa * (1 + buff(s, 'velocitaCorsa')) : rh.camminata * (1 + buff(s, 'furiaVel'))) * (1 + buff(s, 'passo')); // passo: lo Scatto dell'Arena
+  if (h.running && !buff(s, 'corsaGratis')) h.stamina = Math.max(0, h.stamina - rh.staminaCorsa * DT);
   if (lento) v *= rh.mentreCarichi;
   if (h.lento > 0) v *= h.lentoMolt; // Tubo-strisciante
   v *= (1 - malusDi(s)) * rh.armatura.velocitaMolt;

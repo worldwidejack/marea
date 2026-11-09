@@ -40,5 +40,13 @@ export const CSS_COLOSSEO = `
 .mz-col .attesa .quanti { display: block; font-size: 13px; font-weight: normal; color: ${L.inchiostro2}; margin: 2px 0 6px; }
 .mz-col .formati.m { grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); }
 .mz-col .formati.m button { min-height: 36px; font-size: 12px; }
+.mz-col .formati.schede { grid-template-columns: repeat(4, 1fr); }
+.mz-col .formati.schede button.piu { border-style: dashed; color: ${L.inchiostro2}; }
+.mz-col .cella.dote small { color: ${L.inchiostro2}; }
+.mz-col .cella.spenta { opacity: .55; }
+.mz-col .riga.u { grid-template-columns: 1fr; }
+.mz-col .riga.u .cella { min-height: 52px; }
+.mz-col .lista .uico { width: 26px; text-align: center; color: ${L.oroScuro}; font-size: 18px; }
+.mz-col .lista button small { max-width: 58%; text-align: right; }
 .mz-col .mappe { color: ${L.inchiostro2}; font-size: 11px; letter-spacing: .05em; margin: 6px 0 4px; }
 `;

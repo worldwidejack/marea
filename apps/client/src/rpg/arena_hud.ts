@@ -1,26 +1,27 @@
 // HUD e controlli del duello dell'Arena (docs/ARENA.md §2): in alto il tabellone (a sinistra la mia squadra, a destra l'altra, una barra di vita
 // per eroe con il nome; in mezzo i round vinti a pallini e il tempo del round), sotto la mia Magicka e Stamina; un cartello dice se sono nell'erba
-// alta (nessun avversario mi vede) o a terra; in basso la barra dei 4 slot rapidi con le 2 pozioni ai lati (tocco su telefono, tasti 1-4 e
-// 5-6 o Q-R su PC); joystick di movimento, A e B di game/input.ts alzati sopra la barra; con l'arco o una magia in mano il joystick di mira
+// alta o nel Velo (nessun avversario mi vede) o a terra; in basso la barra degli slot col bottone tondo dell'ulti che si riempie (tocco su
+// telefono, tasti 1-2 e F su PC); joystick di movimento, A e B di game/input.ts alzati sopra la barra; con l'arco o una magia in mano il joystick di mira
 // (mira_stick.ts) al posto di A, col mouse il clic sinistro tenuto e la mira verso il cursore come nei dungeon. Menu (Esc): RIPRENDI e
 // ARRENDITI (con conferma). Scritte grandi: conto alla rovescia, VIA!, round vinto o perso, e la scheda finale con l'esito e il premio.
 // Solo colori di palette, bordi netti; numeri del danno, barre delle evocazioni e nome sopra l'avversario li fa dungeon_hud.ts.
-import type { RunHero, RunPotion } from '@marea/sim/rpg/types.ts';
+import type { RunHero } from '@marea/sim/rpg/types.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
 import type { DuelloEsito, DuelloView } from '@marea/sim/arena/duello.ts';
 import { spellDef } from '@marea/content/rpg.ts';
+import { arenaUlti } from '@marea/content/arena.ts';
 import { PAL, el } from '../ui/style.ts';
 import { iconaMagia, iconOf, itemIcon } from './items_ui.ts';
 import { createMiraStick } from './mira_stick.ts';
 import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type ArenaControlli = {
-  /** Un campione per tick: A in più (clic, joystick di mira), mira, tocco veloce, Scarica (E), slot e pozione scelti adesso (null = no). */
-  sample(): { a: boolean; m: number; tap: boolean; e: boolean; slot: number | null; pozione: number | null };
+  /** Un campione per tick: A in più (clic, joystick di mira), mira, tocco veloce, Scarica (E), slot scelto adesso (null = no), ulti premuta. */
+  sample(): { a: boolean; m: number; tap: boolean; e: boolean; slot: number | null; ulti: boolean };
   miraDir(): { x: number; z: number } | null;
   setMira(on: boolean): void;
   readonly paused: boolean;
-  /** Tabellone, barre, slot e pozioni dalla vista del duello. `slot` = le RunHero dei miei slot (icone), `pozioni` le mie pozioni rapide. */
+  /** Tabellone, barre, slot e ulti dalla vista del duello. `slot` = le RunHero dei miei slot (icone), `ulti` = l'id della mia. */
   set(v: DuelloView, nomi: readonly string[]): void;
   /** Scritta grande per un attimo (VIA!, ROUND VINTO…) o, con ms 0, finché non la si toglie (null). */
   grande(text: string | null, color?: string, sub?: string, ms?: number): void;
@@ -68,8 +69,11 @@ body.mz-arena.mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-rig
 .mz-ar-barra button { position: relative; width: 52px; height: 52px; padding: 0; display: flex; align-items: center; justify-content: center; background: ${L.carta}; border: 3px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; color: ${L.inchiostro}; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .mz-ar-barra button.cur { border-color: ${L.acqua}; background: rgba(110,74,32,.97); transform: translateY(-4px); }
 .mz-ar-barra button.vuoto, .mz-ar-barra button.no { opacity: .45; }
-.mz-ar-barra button.pz { background: rgba(44,107,63,.86); border-radius: 50%; }
-.mz-ar-barra button.pz.usata { background: rgba(35,32,31,.7); opacity: .4; }
+.mz-ar-barra button.ul { width: 60px; height: 60px; margin-top: -8px; border-radius: 50%; overflow: hidden; background: ${L.cartaScura}; border-color: ${L.oroScuro}; font: 700 10px ${FONT_LIBRO}; }
+.mz-ar-barra button.ul > u { position: absolute; left: 0; right: 0; bottom: 0; background: ${L.oroChiaro}; text-decoration: none; }
+.mz-ar-barra button.ul > span { position: relative; text-align: center; line-height: 1; padding: 0 3px; text-shadow: 1px 1px 0 ${L.cartaChiara}; }
+.mz-ar-barra button.ul.pronta { border-color: ${L.acqua}; box-shadow: 0 0 0 3px ${L.oroChiaro}, 0 3px 0 ${L.inchiostro}; }
+.mz-ar-barra button.ul.attiva { border-color: ${L.rosso}; }
 .mz-ar-barra button i { position: absolute; left: 3px; top: 1px; font: 700 11px ${FONT_LIBRO}; font-style: normal; color: ${L.inchiostro2}; text-shadow: 1px 1px 0 ${L.inchiostro}; }
 .mz-ar-barra button b { position: absolute; right: 3px; bottom: 1px; font: 700 11px ${FONT_LIBRO}; color: ${P.acquaBassa}; text-shadow: 1px 1px 0 ${L.inchiostro}; }
 .mz-ar-barra button:active { transform: translateY(2px); }
@@ -105,10 +109,10 @@ const nomeSlot = (rh: RunHero | null): string => {
   return rh.arma.id && hasItem(rh.arma.id) ? itemDef(rh.arma.id).nome : 'Pugni';
 };
 
-export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement; yaw(): number; slot: readonly (RunHero | null)[]; pozioni: readonly RunPotion[]; insieme: boolean; squadre: readonly number[]; io: number; onResa(): void }): ArenaControlli {
+export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement; yaw(): number; slot: readonly (RunHero | null)[]; ulti: string; insieme: boolean; squadre: readonly number[]; io: number; onResa(): void }): ArenaControlli {
   if (!document.getElementById('mz-arena-style')) { const st = document.createElement('style'); st.id = 'mz-arena-style'; st.textContent = CSS; document.head.appendChild(st); }
   document.body.classList.add('mz-arena');
-  let slotL: number | null = null, pozL: number | null = null, aLatch = false, mouseA = false, eLatch = false, pausa = false, chiedi = false;
+  let slotL: number | null = null, ultiL = false, aLatch = false, mouseA = false, eLatch = false, pausa = false, chiedi = false;
   const keys = new Set<string>();
   const btn = (cls: string, act: string, ...kids: (Node | string)[]) => { const b = el('button', cls); b.type = 'button'; b.dataset['act'] = act; b.append(...kids); return b; };
   const stop = (e: HTMLElement) => { for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation()); };
@@ -135,26 +139,23 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
   top.append(io.box, mid, lui.box);
   const badge = el('div', 'mz mz-ar-badge'); badge.id = 'mzArenaBadge';
 
-  // ---- barra degli slot e delle pozioni ----
+  // ---- barra degli slot e dell'ulti ----
   const barra = el('div', 'mz mz-ar-barra'); barra.id = 'mzArenaBarra';
-  const pz = o.pozioni.map((p, n) => {
-    const b = btn('pz', 'pozione', ...(hasItem(p.id) ? [iconOf(itemDef(p.id), 26)] : []), el('i', '', String(5 + n)));
-    b.dataset['n'] = String(n); b.title = `${hasItem(p.id) ? itemDef(p.id).nome : p.id} (tasto ${5 + n})`;
-    return b;
-  });
+  const U = arenaUlti(o.ulti), ultiFill = el('u');
+  const ultiB = btn('ul', 'ulti', ultiFill, el('span', '', U.nome.split(' ')[0]!.toUpperCase()), el('i', '', 'F'));
+  ultiB.title = `${U.nome}: ${U.descr} (tasto F)`; ultiB.setAttribute('aria-label', U.nome);
   const slots = o.slot.map((rh, n) => {
     const ico = iconaSlot(rh, 30);
     const b = btn(rh ? '' : 'vuoto', 'slot', ...(ico ? [ico] : []), el('i', '', String(n + 1)), el('b'));
     b.dataset['n'] = String(n); b.title = `${nomeSlot(rh)} (tasto ${n + 1})`; b.setAttribute('aria-label', nomeSlot(rh));
     return b;
   });
-  barra.append(...(pz[0] ? [pz[0]] : []), ...slots, ...pz.slice(1));
+  barra.append(...slots, ultiB);
   barra.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     const b = (e.target as HTMLElement).closest<HTMLElement>('button');
     if (!b || pausa || chiedi) return;
-    const n = Number(b.dataset['n']);
-    if (b.dataset['act'] === 'slot') slotL = n; else pozL = n;
+    if (b.dataset['act'] === 'slot') slotL = Number(b.dataset['n']); else ultiL = true;
   });
   stop(barra);
 
@@ -185,12 +186,12 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const kd = (e: KeyboardEvent) => {
     if (e.altKey || e.ctrlKey || e.metaKey || fine.classList.contains('on')) return;
     if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) { if (chiedi) setChiedi(false); else setPausa(!pausa); } return; }
-    const n = /^(?:Digit|Numpad)([1-6])$/.exec(e.code)?.[1];
-    const k = n ? Number(n) : e.code === 'KeyQ' ? 5 : e.code === 'KeyR' ? 6 : 0;
-    if (k || e.code === 'KeyE') {
+    const n = /^(?:Digit|Numpad)([1-9])$/.exec(e.code)?.[1];
+    const k = n ? Number(n) : 0;
+    if (k || e.code === 'KeyE' || e.code === 'KeyF') {
       e.preventDefault(); e.stopImmediatePropagation(); // i numeri qui non fanno le emote
       if (e.repeat || pausa || chiedi) return;
-      if (e.code === 'KeyE') { eLatch = true; keys.add('KeyE'); } else if (k <= 4) slotL = k - 1; else pozL = k - 5;
+      if (e.code === 'KeyE') { eLatch = true; keys.add('KeyE'); } else if (e.code === 'KeyF') ultiL = true; else if (k <= o.slot.length) slotL = k - 1;
     }
   };
   const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
@@ -206,8 +207,8 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
     get paused() { return pausa || chiedi; },
     sample() {
       const st = stick.sample();
-      const out = { a: aLatch || mouseA || st.held, m: st.m, tap: st.tap, e: eLatch || keys.has('KeyE'), slot: slotL, pozione: pozL };
-      aLatch = eLatch = false; slotL = pozL = null;
+      const out = { a: aLatch || mouseA || st.held, m: st.m, tap: st.tap, e: eLatch || keys.has('KeyE'), slot: slotL, ulti: ultiL };
+      aLatch = eLatch = ultiL = false; slotL = null;
       return out;
     },
     miraDir: () => stick.dir(),
@@ -228,11 +229,12 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
         tempo.classList.toggle('poco', v.fase === 'gioca' && sec <= 10);
         dots.replaceChildren(...v.rounds.map((r) => el('i', r.vincitore === null ? 'pari' : r.vincitore === mia ? 'mio' : 'suo')));
         // cartello: a terra (guardi i compagni) o nell'erba alta (nessun avversario ti vede)
-        const testo = giu && v.fase === 'gioca' ? 'SEI A TERRA' : v.nascosto ? 'NELL’ERBA: NON TI VEDONO' : '';
+        const velo = v.ulti[o.io]?.id === 'velo' && v.ulti[o.io]?.fase === 'su';
+        const testo = giu && v.fase === 'gioca' ? 'SEI A TERRA' : v.nascosto ? (velo ? 'NEL VELO: NON TI VEDONO' : 'NELL’ERBA: NON TI VEDONO') : '';
         badge.textContent = testo; badge.classList.toggle('on', !!testo); badge.classList.toggle('giu', giu);
         if (testo) badge.style.top = `${Math.round(top.getBoundingClientRect().bottom) + 8}px`; // sotto il tabellone, alto quanto serve
       }
-      const sb = `${v.slot}|${v.frecce.join(',')}|${v.bevute.join(',')}|${Math.floor(h.magicka)}|${v.fase}`;
+      const ul = v.ulti[o.io], sb = `${v.slot}|${v.frecce.join(',')}|${Math.floor(h.magicka)}|${v.fase}|${ul ? `${Math.round(ul.carica * 20)}${ul.fase}` : ''}`;
       if (sb === sigBar) return;
       sigBar = sb;
       slots.forEach((b, n) => {
@@ -243,7 +245,10 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
         else if (rh?.arma.kind === 'arco') { cnt = String(v.frecce[n] ?? 0); b.classList.toggle('no', (v.frecce[n] ?? 0) <= 0); }
         (b.lastChild as HTMLElement).textContent = cnt;
       });
-      pz.forEach((b, n) => b.classList.toggle('usata', !!v.bevute[n] || v.fase !== 'gioca'));
+      // l'ulti: si riempie dal basso a scatti di 5%, pronta = bordo acceso, attiva = bordo rosso
+      ultiFill.style.height = `${Math.round((ul?.carica ?? 0) * 20) * 5}%`;
+      ultiB.classList.toggle('pronta', !!ul && ul.carica >= 1 && ul.fase === 'no');
+      ultiB.classList.toggle('attiva', !!ul && ul.fase !== 'no');
     },
     grande(text, color = P.sabbiaChiara, sub = '', ms = 1200) {
       clearTimeout(bigT);

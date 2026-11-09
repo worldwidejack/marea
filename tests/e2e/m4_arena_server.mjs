@@ -75,19 +75,19 @@ export default async function (ctx) {
     const post = async (tok, p, b) => { const r = await fetch(base + p, { method: 'POST', headers: { 'x-token': tok, 'content-type': 'application/json' }, body: JSON.stringify(b ?? {}) }); return { status: r.status, body: await r.json() }; };
     const lot = async (tok) => (await (await fetch(base + '/api/lot', { headers: { 'x-token': tok } })).json());
 
-    await ctx.test('set del duello: si salva col personaggio, quello che non hai no, i dungeon non cambiano', async () => {
+    await ctx.test('build del duello: si salvano col personaggio, quelle fuori catalogo no, i dungeon non cambiano', async () => {
       const prima = await lot('tok_ada');
-      const set = { corpo: 'armatura_legno', slot: [{ magia: 'fiammata' }, { arma: 'katana_legno' }, null, { arma: 'arco_legno', frecce: 'frecce_legno' }], pozioni: ['pozione_vita_minore', null] };
-      const ok = await post('tok_ada', '/api/rpg', { azione: { t: 'arena', loadout: set } });
+      const builds = { build: [{ dote: 'vita', slot: [{ arma: 'katana_ferro' }, { arma: 'arco_ferro' }], ulti: 'furia' }, { dote: 'magia', slot: [{ magia: 'fiammata' }, { arma: 'katana_ferro' }], ulti: 'marea' }], scelta: 1 };
+      const ok = await post('tok_ada', '/api/rpg', { azione: { t: 'arena', builds } });
       assert(ok.status === 200, 'salvataggio: ' + ok.status + ' ' + JSON.stringify(ok.body).slice(0, 200));
-      assert(canon(ok.body.hero.arena) === canon(set), 'set salvato: ' + JSON.stringify(ok.body.hero.arena));
+      assert(canon(ok.body.hero.arena) === canon(builds), 'build salvate: ' + JSON.stringify(ok.body.hero.arena));
       assert(JSON.stringify(ok.body.hero.equip) === JSON.stringify(prima.hero?.equip ?? ok.body.hero.equip) && JSON.stringify(ok.body.hero.inv) === JSON.stringify(prima.hero?.inv ?? ok.body.hero.inv), 'equipaggiamento o zaino cambiati');
-      const no = await post('tok_ada', '/api/rpg', { azione: { t: 'arena', loadout: { ...set, slot: [{ arma: 'spadone_meteorite' }, null, null, null] } } });
-      assert(no.status >= 400 && /Non hai/.test(no.body.error), 'un set con quello che non hai: ' + no.status + ' ' + JSON.stringify(no.body));
+      const no = await post('tok_ada', '/api/rpg', { azione: { t: 'arena', builds: { build: [{ dote: 'vita', slot: [{ arma: 'spadone_meteorite' }, null], ulti: 'furia' }], scelta: 0 } } });
+      assert(no.status >= 400 && /non valida/.test(no.body.error), 'una build fuori catalogo: ' + no.status + ' ' + JSON.stringify(no.body));
     });
 
     let ada, bea, parte;
-    await ctx.test('coda veloce: i primi due si sfidano, stesso seed, fotografie del set, duello aperto nel lotto', async () => {
+    await ctx.test('coda veloce: i primi due si sfidano, stesso seed, fotografie della build, duello aperto nel lotto', async () => {
       const no = await fetch(base + '/ws/arena');
       assert(no.status === 426, 'senza WebSocket: ' + no.status);
       ada = await entra('ada', 'modo=coda');
@@ -98,8 +98,8 @@ export default async function (ctx) {
       assert(pa.seed === pb.seed && pa.run === pb.run && pa.io === 0 && pb.io === 1 && pa.eroi.length === 2, 'parte: ' + JSON.stringify([pa.run, pb.run, pa.io, pb.io]));
       assert(pa.eroi[0].id === 'ada' && pa.eroi[1].id === 'bea' && JSON.stringify(pa.eroi) === JSON.stringify(pb.eroi), 'eroi diversi tra i due');
       const v0 = pa.eroi[0].eroe.varianti;
-      assert(v0.length === ARENA.slot && v0[0]?.manoMagia && v0[1]?.arma.id === 'katana_legno' && v0[2] === null && v0[3]?.frecce?.n === ARENA.frecce, 'il set di ada nella fotografia: ' + JSON.stringify(v0.map((v) => v && [v.arma.id, v.manoMagia, v.frecce?.n])));
-      assert(v0.every((v) => !v || (v.arena && v.max.vita === 100)), 'fotografia non da Arena');
+      assert(v0.length === ARENA.slot && v0[0]?.manoMagia && v0[1]?.arma.id === 'katana_ferro' && pa.eroi[0].eroe.ulti === 'marea' && pa.eroi[0].eroe.dote === 'magia', 'la build scelta di ada nella fotografia: ' + JSON.stringify(v0.map((v) => v && [v.arma.id, v.manoMagia])));
+      assert(v0.every((v) => !v || (v.arena && v.max.vita === 100 && v.max.magicka === 150)), 'fotografia non da Arena');
       for (const [tok, idx] of [['tok_ada', 0], ['tok_bea', 1]]) {
         const p = (await lot(tok)).arena?.pending;
         assert(p && p.run === pa.run && p.idx === idx, 'duello nel lotto: ' + JSON.stringify(p));
