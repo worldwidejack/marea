@@ -2,11 +2,12 @@
 // fuoco). Il pomello sceglie la direzione come il joystick di movimento (su = verso dove guarda la camera); oltre la zona morta la mira è
 // «agganciata» (il dito è «tenuto») finché non lasci: tornare al centro non annulla, tiene l'ultima direzione. Un dito solo. Lasciare dopo
 // aver mirato è il «rilascio» (l'arco parte, la magia parte, il colpo parte); un tocco veloce che non esce dalla zona morta è un `tap`
-// (nei Templari: colpo assistito come prima). L'indice d'angolo `m` è quello della sim (dungeon/mira.ts) sui versori in assi mondo.
+// (nei Templari: colpo assistito come prima). Anche lo stick destro del controller (comandi/pad.ts) mira così: spinto = tieni, lasciato = rilascio. L'indice d'angolo `m` è quello della sim (dungeon/mira.ts) sui versori in assi mondo.
 import { aimDir, aimIndex } from '@marea/sim/dungeon/mira.ts';
 import { screenToWorld } from '../game/input.ts';
 import { PAL, el } from '../ui/style.ts';
 import { pomello } from '../ui/comandi_touch.ts';
+import { padMira } from '../comandi/pad.ts';
 
 const MIRA = 108, KNOB = 44, MIRA_R = 36, MIRA_DEAD = 0.3, TAP_MS = 350; // px: anello, pomello, corsa del pomello; zona morta (frazione della corsa); durata massima di un tap
 const RIGHT = 'max(16px, env(safe-area-inset-right, 0px))', SAFE = 'env(safe-area-inset-bottom, 0px)';
@@ -46,10 +47,11 @@ export type MiraStick = {
   dispose(): void;
 };
 
-export function createMiraStick(o: { id: string; yaw(): number; blocked(): boolean }): MiraStick {
+export function createMiraStick(o: { id: string; yaw(): number; blocked(): boolean; senzaPad?: boolean }): MiraStick {
   if (!document.getElementById('mz-mira-style')) { const st = document.createElement('style'); st.id = 'mz-mira-style'; st.textContent = CSS; document.head.appendChild(st); }
   const aim = el('div', 'mz mz-mira'); aim.id = o.id;
   const knob = el('i'); aim.append(knob);
+  let padTieni = false, padRel = false, padM = 0, padForza = 0; // lo stick destro del controller
   let id: number | null = null, on = false, held = false, rel = false, tap = false, m = 0, t0 = 0, touchSeen = false, forza = 0;
   const paint = (x: number, y: number) => { knob.style.transform = `translate(${x * MIRA_R}px, ${y * MIRA_R}px)`; aim.classList.toggle('tieni', held); };
   const move = (e: PointerEvent) => {
@@ -85,8 +87,14 @@ export function createMiraStick(o: { id: string; yaw(): number; blocked(): boole
   return {
     el: aim,
     sample() {
-      const out = { held, rel, tap, m: held || rel ? m : 0 };
-      rel = false; tap = false;
+      const p = o.senzaPad ? { x: 0, y: 0 } : padMira(), len = Math.sqrt(p.x * p.x + p.y * p.y);
+      if (len > MIRA_DEAD && !o.blocked()) {
+        const w = screenToWorld(p.x / len, p.y / len, o.yaw());
+        padM = aimIndex(w.mx, w.my) || padM; padForza = len; padTieni = true;
+      } else if (padTieni) { padTieni = false; padRel = true; }
+      const dito = held || rel, pad = padTieni || padRel;
+      const out = { held: held || padTieni, rel: rel || padRel, tap, m: pad ? padM : dito ? m : 0 };
+      rel = false; tap = false; padRel = false;
       return out;
     },
     setOn(want) {
@@ -97,8 +105,8 @@ export function createMiraStick(o: { id: string; yaw(): number; blocked(): boole
       return on;
     },
     get on() { return on; },
-    dir() { const d = held ? aimDir(m) : null; return d ? { x: d[0], z: d[1] } : null; },
-    forza: () => forza,
+    dir() { const d = padTieni ? aimDir(padM) : held ? aimDir(m) : null; return d ? { x: d[0], z: d[1] } : null; },
+    forza: () => (padTieni || padRel ? padForza : forza),
     cancel,
     dispose() {
       removeEventListener('pointerup', up as EventListener); removeEventListener('pointercancel', up as EventListener); removeEventListener('pointerdown', seen, true);

@@ -1,7 +1,9 @@
 // Prima persona nei dungeon: dove si guarda. Da PC il mouse catturato (pointer lock): il primo clic lo prende, Esc lo lascia e apre la pausa,
 // zaino e pannelli lo liberano e alla chiusura torna da solo. Dal telefono, in orizzontale e a due pollici: il joystick resta a sinistra e il
 // pollice destro trascinato sulla parte destra gira la visuale, anche partendo dal bottone A (si colpisce e si mira insieme).
+// Col controller (comandi/pad.ts) lo stick destro gira la visuale: più lo spingi, più va veloce.
 import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
+import { padMira } from '../comandi/pad.ts';
 
 export type Sguardo = {
   /** Rad: yaw 0 = guarda verso −Z, + verso sinistra; pitch + in su. `scala`: quanto gira per un movimento (lo zoom dell'arco la abbassa). */
@@ -20,7 +22,7 @@ export type Sguardo = {
   dispose(): void;
 };
 
-const SENS_MOUSE = 0.0021, SENS_DITO = 0.0058, SALTO_MAX = 240;
+const SENS_MOUSE = 0.0021, SENS_DITO = 0.0058, SALTO_MAX = 240, VEL_PAD = { yaw: 2.8, pitch: 1.8 }; // rad/s a stick tutto spinto
 const PITCH_SU = (70 * Math.PI) / 180, PITCH_GIU = (-85 * Math.PI) / 180;
 const CSS = `
 .mz.mz-dng-titolo b, .mz.mz-dng-titolo small { color: ${L.cartaChiara}; }
@@ -33,7 +35,7 @@ const CSS = `
 export function creaSguardo(o: { canvas: HTMLCanvasElement; root: HTMLElement; yaw: number; onPerso(): void }): Sguardo {
   if (!document.getElementById('mz-fp-style')) { const st = document.createElement('style'); st.id = 'mz-fp-style'; st.textContent = CSS; document.head.appendChild(st); }
   const tocco = matchMedia('(pointer: coarse)').matches;
-  let dy = 0, dp = 0, daNoi = false, attivoOra = false;
+  let dy = 0, dp = 0, daNoi = false, attivoOra = false, tPad = performance.now();
   const dita = new Map<number, { x: number; y: number }>();
   const clamp = (p: number) => Math.max(PITCH_GIU, Math.min(PITCH_SU, p));
   const gira = (a0: number, b0: number) => { const a = a0 * api.scala, b = b0 * api.scala; api.yaw += a; const p = clamp(api.pitch + b); dp += p - api.pitch; api.pitch = p; dy += a; };
@@ -81,6 +83,9 @@ export function creaSguardo(o: { canvas: HTMLCanvasElement; root: HTMLElement; y
     },
     frame(attivo) {
       attivoOra = attivo;
+      const ora = performance.now(), dt = Math.min(0.1, (ora - tPad) / 1000); tPad = ora;
+      const sp = padMira();
+      if (attivo && (sp.x || sp.y)) gira(-sp.x * (0.45 + 0.55 * Math.abs(sp.x)) * VEL_PAD.yaw * dt, -sp.y * (0.45 + 0.55 * Math.abs(sp.y)) * VEL_PAD.pitch * dt); // curva morbida: piano per i ritocchi, forte per girarsi
       avviso.style.display = api.verticale ? 'flex' : 'none';
       if (tocco) return;
       const preso = document.pointerLockElement === o.canvas;

@@ -10,6 +10,7 @@ import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { DI_SERIE, PAD_SEC, SPENTO, VISTE, VOLUMI } from '../render/viste.ts';
 import { setVolumi } from '../audio/ponte.ts';
 import { FLAGS } from '../flags.ts';
+import { inCattura } from '../comandi/mappa.ts';
 import type { Impostazioni } from '../render/viste.ts';
 import { FONT_LIBRO, LIBRO as L } from './libro_colori.ts';
 
@@ -72,7 +73,7 @@ export type ImpostazioniPanel = { open(): void; close(): void; isOpen(): boolean
 
 export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazioni): void }): ImpostazioniPanel {
   injectUiStyle(); injectStyle();
-  let cur = loadImpostazioni(), open = false;
+  let cur = loadImpostazioni(), open = false, comandi: { dispose(): void } | null = null;
   const touch = typeof matchMedia === 'function' && matchMedia('(any-pointer: coarse)').matches; // «Una mano» solo dove si gioca col dito
   const sheet = el('div', 'mz mz-sheet mz-side'); sheet.id = 'mzSet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Impostazioni');
   const head = el('div', 'mz-head'); head.append(el('div', 'mz-title', 'Impostazioni'));
@@ -99,7 +100,9 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
     });
     return row;
   };
+  const esciComandi = () => { comandi?.dispose(); comandi = null; };
   function render(): void {
+    esciComandi();
     body.replaceChildren();
     const cam = el('div', 'mz-set-sec'); cam.append(el('div', 'mz-set-lbl', 'Camera'));
     const row = el('div', 'mz-set-cams');
@@ -125,6 +128,11 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
         body.appendChild(r);
       }
     }
+    const cmd = el('button', 'mz-set-row'); cmd.type = 'button'; cmd.dataset['set'] = 'comandi';
+    const ct = el('span'); ct.append(el('span', '', 'Comandi e controller'), el('span', 'q', 'cambia i tasti, collega un controller'));
+    cmd.append(ct, el('span', 'sw', '›'));
+    cmd.addEventListener('click', () => { void import('./comandi_ui.ts').then((m) => { if (open && !comandi) comandi = m.creaComandi(body, render); }); }); // la schermata dei comandi è un chunk: si scarica solo se la apri
+    body.appendChild(cmd);
     if (!cur.graficaAlta) return;
     body.append(
       toggleRow('meteo', 'Meteo', 'nuvole, pioggia e temporali: lo stesso cielo per tutti'),
@@ -134,11 +142,12 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
   const btn = topButton({ root: o.root, id: 'mzSetBtn', order: 5, label: '', title: 'Impostazioni', onClick: () => (open ? close() : show()) });
   btn.el.insertBefore(gearIcon(), btn.el.firstChild);
   const onKey = (e: KeyboardEvent) => {
+    if (inCattura()) return; // la schermata Comandi sta aspettando un tasto
     if (e.key === 'Escape') { e.preventDefault(); close(); }
     e.stopPropagation(); // col pannello aperto i tasti non arrivano al gioco
   };
   function show(): void { if (open) return; open = true; render(); sheet.classList.add('on'); btn.setOn(true); addEventListener('keydown', onKey, true); }
-  function close(): void { if (!open) return; open = false; sheet.classList.remove('on'); btn.setOn(false); removeEventListener('keydown', onKey, true); }
+  function close(): void { if (!open) return; open = false; esciComandi(); sheet.classList.remove('on'); btn.setOn(false); removeEventListener('keydown', onKey, true); }
   x.addEventListener('click', close);
   render();
   o.onChange(cur); setVolumi(cur.musica, cur.effetti);

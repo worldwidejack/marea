@@ -1,5 +1,6 @@
 // Input (WP2): tastiera WASD/frecce + joystick touch (#joystick) + bottoni A/B (#btnA #btnB). Il vettore esce in ASSI MONDO:
 // "su" sullo schermo = direzione in cui guarda la camera proiettata a terra (yaw 45° → nord-ovest, −x −z).
+// Controller (comandi/pad.ts): lo stick sinistro e la croce muovono in analogico; A e B arrivano come tasti sintetici (Spazio, Maiusc).
 // Un campione per tick (main.ts). Nessun doppio evento: solo pointer events; un tocco più breve di un tick viene comunque visto (latch).
 // «Una mano» (#143, Impostazioni, solo touch): niente joystick fisso; nasce dove il dito tocca il canvas e, dopo il rilascio, resta lì
 // (più chiaro) per i secondi scelti: un tocco sopra o appena fuori lo riprende col centro di prima, altrove ne nasce uno nuovo.
@@ -10,6 +11,7 @@ import { creaComandoSchivata } from './schivata_input.ts';
 import type { InputFrame } from '@marea/sim';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { pomello, tieniPremuto } from '../ui/comandi_touch.ts';
+import { eDelPad, padMovimento } from '../comandi/pad.ts';
 import { FONT_LIBRO, LIBRO as L } from '../ui/kit.ts';
 
 export type Input = {
@@ -41,7 +43,9 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
   const keys = new Set<string>();
   let aLatch = false, bLatch = false;
   const CTRL_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  const DIREZIONI = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', ...CTRL_KEYS]);
   const kd = (e: KeyboardEvent) => {
+    if (DIREZIONI.has(e.code) && eDelPad(e)) return; // le direzioni del controller le leggo in analogico (padMovimento)
     if (CTRL_KEYS.has(e.code) && !e.metaKey && !e.ctrlKey) e.preventDefault();
     if (e.repeat) return; // niente doppio evento dal tasto tenuto premuto
     keys.add(e.code);
@@ -166,6 +170,8 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
       const shift = keys.has('ShiftLeft') || keys.has('ShiftRight');
       if (sx || sy) {
         const d = Math.hypot(sx, sy), mag = shift ? 1 : KEY_WALK; sx = (sx / d) * mag; sy = (sy / d) * mag; src = 'key';
+      } else if (padMovimento().x || padMovimento().y) {
+        ({ x: sx, y: sy } = padMovimento()); src = 'pad';
       } else {
         const d = Math.hypot(jx, jy); // 0..1 (il pomello è già limitato a R)
         if (d > DEAD) { const mag = (d - DEAD) / (1 - DEAD); sx = (jx / d) * mag; sy = (jy / d) * mag; src = 'stick'; }

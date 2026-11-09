@@ -63,8 +63,10 @@ import { collegaTasti } from './avvio/tasti.ts';
 import { creaRegistro } from './avvio/registro.ts';
 import { azioneA } from './avvio/azione_a.ts';
 import { apriHome } from './avvio/home.ts';
+import { avviaComandi } from './avvio/comandi.ts';
 
 async function boot(): Promise<void> {
+  avviaComandi(); // prima di tutto: la rimappa dei tasti dev'essere il primo ascoltatore della finestra
   const home = apriHome(); // schermata iniziale (avvio/home.ts): il mondo carica dietro
   if (FLAGS.invito && !FLAGS.token) { await home.gioca; await entraConInvito(FLAGS.invito); } // link di gruppo: GIOCA, il nome, poi si riparte col token
   installTestApi(__BUILD__);
