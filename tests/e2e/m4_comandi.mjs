@@ -1,4 +1,4 @@
-// Comandi (#698): controller e tasti rimappabili. Un controller finto (navigator.getGamepads) muove l'eroe in analogico, i suoi pulsanti
+// Comandi: controller e tasti rimappabili. Un controller finto (navigator.getGamepads) muove l'eroe in analogico, i suoi pulsanti
 // arrivano come tasti del gioco, e un tasto cambiato nella schermata «Comandi e controller» (Impostazioni) fa quello che ha preso, mentre
 // il vecchio non fa più niente. Le scelte restano dopo il ricaricamento. Screenshot a 390×844 e su desktop.
 export const timeout = 240000;

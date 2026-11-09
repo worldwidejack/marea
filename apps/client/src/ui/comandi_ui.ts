@@ -1,4 +1,4 @@
-// La schermata «Comandi e controller» (#698), dentro le Impostazioni: per ogni azione due tasti della tastiera e un pulsante del
+// La schermata «Comandi e controller», dentro le Impostazioni: per ogni azione due tasti della tastiera e un pulsante del
 // controller. Tocchi uno slot, poi premi il tasto (o il pulsante del controller) che vuoi: Esc annulla, ⌫ lo svuota. Se il tasto era
 // di un'altra azione, quella lo perde e te lo dico. Si usa col dito come col mouse: i controller Bluetooth si collegano al telefono.
 import { AZIONI, GRUPPI, SLOT, nomePad, nomeTasto } from '../comandi/azioni.ts';

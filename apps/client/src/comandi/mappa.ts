@@ -1,4 +1,4 @@
-// La mappa dei comandi (#698): quali tasti e quale pulsante del controller fanno cosa, salvata su questo dispositivo (localStorage).
+// La mappa dei comandi: quali tasti e quale pulsante del controller fanno cosa, salvata su questo dispositivo (localStorage).
 // Il gioco legge i codici di serie (KeyE, Space…) in una cinquantina di posti: invece di toccarli tutti, un ascoltatore in capture
 // (`avviaRimappa`, il primo della finestra) traduce i tasti veri nel codice di serie dell'azione e rilancia un tasto sintetico.
 // Un tasto di serie che hai cambiato non fa più niente (se nessun'altra azione lo usa). Con Ctrl/Alt/Cmd, in un campo di testo o mentre

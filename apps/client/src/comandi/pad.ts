@@ -1,4 +1,4 @@
-// Il controller (#698): Gamepad API del browser, quindi vale su computer e su telefono (Bluetooth o cavo). Il ciclo gira solo mentre
+// Il controller: Gamepad API del browser, quindi vale su computer e su telefono (Bluetooth o cavo). Il ciclo gira solo mentre
 // un controller è collegato. Stick sinistro e croce = muoversi (analogico per input.ts, e come WASD sintetici per chi legge i tasti,
 // tipo lo snowboard); stick destro = mira nei dungeon e nei Templari (rpg/mira_stick.ts); ogni altro pulsante lancia il tasto di serie
 // dell'azione che gli hai dato (mappa.ts), così funziona in tutte le modalità senza che ognuna lo sappia.

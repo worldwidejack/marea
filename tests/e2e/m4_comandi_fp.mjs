@@ -1,4 +1,4 @@
-// Controller nel dungeon in prima persona (#698), su wrangler dev locale come m2_prima_persona: lo stick destro gira la visuale (e non
+// Controller nel dungeon in prima persona, su wrangler dev locale come m2_prima_persona: lo stick destro gira la visuale (e non
 // fa attaccare), X apre il bottino sotto il mirino (come E) e Y lo prende (come R). Controller finto via navigator.getGamepads.
 import fs from 'node:fs';
 import net from 'node:net';

@@ -1,4 +1,4 @@
-// Comandi (#698): rimappa dei tasti e controller, accesi una volta all'avvio. La schermata per cambiarli sta nelle Impostazioni (ui/comandi_ui.ts).
+// Comandi: rimappa dei tasti e controller, accesi una volta all'avvio. La schermata per cambiarli sta nelle Impostazioni (ui/comandi_ui.ts).
 import { azioneDi } from '../comandi/azioni.ts';
 import { avviaRimappa, impostaPad, impostaTasto, padDi, tastoDi } from '../comandi/mappa.ts';
 import { avviaPad, padCollegato, padMira, padMovimento } from '../comandi/pad.ts';

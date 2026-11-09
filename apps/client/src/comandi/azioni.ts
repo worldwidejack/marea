@@ -1,4 +1,4 @@
-// Le azioni che si possono rimappare (#698): per ognuna i tasti di serie sulla tastiera (fino a due) e il pulsante di serie del controller.
+// Le azioni che si possono rimappare: per ognuna i tasti di serie sulla tastiera (fino a due) e il pulsante di serie del controller.
 // Il gioco continua a leggere i codici di sempre (KeyE, Space…): la mappa (mappa.ts) traduce quello che premi nel codice di serie dell'azione.
 // Per questo `tasti[0]` e `tasti[1]` sono i codici che il resto del codice si aspetta, e non vanno cambiati senza cambiare chi li legge.
 // Pulsanti del controller = indici della mappatura «standard» del browser (Xbox: A B X Y; PlayStation: ✕ ○ □ △ negli stessi posti).
