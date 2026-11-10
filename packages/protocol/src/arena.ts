@@ -4,7 +4,7 @@
 // chi la apre riceve un codice di ARENA.rete.codice lettere da dire agli amici, che entrano con `?modo=sala&codice=XXXX`; la prima squadra si
 // riempie per prima e chi l'ha aperta preme `via` quando basta: i posti vuoti sono dei gladiatori). Poi come i dungeon insieme (squadra.ts): il
 // server raccoglie gli input di tutti e ogni SQ_TURNO_MS manda a tutti un turno (un input per eroe che vale SQ_TICKS tick, più le azioni della
-// barra: slot, pozioni, resa); ogni client fa girare lo stesso duello con gli stessi turni. Gli input dei gladiatori li decide il server e li
+// barra: slot, ulti, resa); ogni client fa girare lo stesso duello con gli stessi turni. Gli input dei gladiatori li decide il server e li
 // mette nel turno come quelli di una persona. Il server fa girare anche lui il duello, a fine partita lo rigioca dal log (replayDuello) e decide
 // l'esito: premio nel lotto di ciascuno (niente se tra gli avversari c'erano gladiatori) e `fine` a tutti.
 // Linea persa: il duello si ferma (`attesa`) e chi è caduto ha ARENA.rete.staccatoSecondi per ricollegarsi (`?run=&idx=&n=`, n = il prossimo
@@ -18,7 +18,7 @@ import type { SqInput } from './squadra.ts';
 export { SQ_TICKS, SQ_TURNO_MS } from './squadra.ts';
 export type { SqInput } from './squadra.ts';
 export type ArMembro = { id: string; nome: string };
-/** Un duellante: chi è, come si veste, e la fotografia del suo set (le RunHero degli slot e le pozioni). `bot`: gladiatore automatico. */
+/** Un duellante: chi è, come si veste, e la fotografia della sua build (le RunHero degli slot, la dote e l'ulti). `bot`: gladiatore automatico. */
 export type ArEroe = ArMembro & { look: Look; eroe: ArenaEroe; bot?: true };
 /** Un turno: un input per eroe (in ordine), azioni [eroe, azione] da fare prima del primo tick del turno. */
 export type ArTurno = { t: 'T'; n: number; f: SqInput[]; az?: [number, ArenaAzione][] };
@@ -30,7 +30,7 @@ export type ArClientMsg =
   | { t: 'carico' }
   /** Input per il prossimo turno (solo se è cambiato: il server ripete l'ultimo). */
   | { t: 'in'; f: SqInput }
-  /** Azione della barra (slot, pozione, resa): va nel prossimo turno. */
+  /** Azione della barra (slot, ulti, resa): va nel prossimo turno. */
   | { t: 'az'; a: ArenaAzione }
   /** Chi ha aperto la sala: si parte adesso, i posti vuoti li prendono i gladiatori. */
   | { t: 'via' }

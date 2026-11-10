@@ -1,9 +1,52 @@
 {
   "round": { "conta": 3, "secondi": 90, "pausa": 3, "vittorie": 2, "massimo": 5, "pariSotto": 1 },
-  "slot": 4,
+  "slot": 2,
   "frecce": 18,
-  "frecceBase": "frecce_legno",
-  "pozioni": 2,
+  "frecceBase": "frecce_ferro",
+  "build": {
+    "salvate": 3,
+    "attributi": { "vita": 100, "magicka": 100, "stamina": 100 },
+    "regen": { "vita": 0, "magicka": 6, "stamina": 10 },
+    "doti": [
+      { "id": "vita", "nome": "Vita", "descr": "+20% di Vita", "colore": "rosso", "vita": 1.2 },
+      { "id": "vigore", "nome": "Vigore", "descr": "+50% di Vigore e di ricarica: più colpi, frecce e corsa", "colore": "erba", "stamina": 1.5 },
+      { "id": "magia", "nome": "Magicka", "descr": "+50% di Magicka e di ricarica: più magie", "colore": "acqua", "magicka": 1.5 }
+    ],
+    "passo": { "neutro": 6, "perKg": 0.008 },
+    "staminaAlSecondo": 20, "staminaCaricato": 1.5, "staminaFreccia": 12,
+    "armi": {
+      "nunchaku_ferro": { "danno": 5, "colpi": 2.5, "carica": 0.6, "caricaMolt": 2, "portata": 1.4 },
+      "katana_ferro": { "danno": 7.1, "colpi": 1.7, "carica": 0.9, "caricaMolt": 2.5, "portata": 1.8 },
+      "ascia_ferro": { "danno": 10.1, "colpi": 1.15, "carica": 1.1, "caricaMolt": 2.8, "portata": 1.6 },
+      "lancia_ferro": { "danno": 10.4, "colpi": 1.1, "carica": 1.2, "caricaMolt": 2.6, "portata": 3 },
+      "spadone_ferro": { "danno": 15.2, "colpi": 0.8, "carica": 1.5, "caricaMolt": 2.7, "portata": 2.2 },
+      "martello_ferro": { "danno": 23.9, "colpi": 0.55, "carica": 2, "caricaMolt": 3, "portata": 1.9 },
+      "arco_ferro": { "danno": 9.2, "tensione": 0.9 }
+    },
+    "magie": {
+      "fiammata": { "danno": 6.9, "costo": 14, "ricarica": 0.4 },
+      "fulmine": { "danno": 6.9, "costo": 20, "ricarica": 0.6 },
+      "fuoco_continuo": { "danno": 13.8, "costo": 20 },
+      "elettro_continuo": { "danno": 12, "costo": 15 },
+      "bomba_fuoco": { "danno": 19.6, "costo": 35, "ricarica": 1.5 },
+      "bomba_elettrica": { "danno": 15.9, "costo": 30, "ricarica": 1.5 },
+      "cura_flusso": { "cura": 16, "costo": 18 },
+      "cura_bomba": { "cura": 30, "costo": 40, "ricarica": 1.5 },
+      "furia_flusso": { "costo": 18 },
+      "furia_bomba": { "costo": 40, "ricarica": 1.5 }
+    }
+  },
+  "ulti": {
+    "carica": { "max": 100, "alSecondo": 0.8, "dato": 0.6, "preso": 0.4 },
+    "lista": [
+      { "id": "furia", "nome": "Furia", "descr": "Danni ×2 per 5 secondi", "secondi": 5, "danno": 1 },
+      { "id": "scatto", "nome": "Scatto", "descr": "Velocità ×2 per 10 secondi, la corsa non stanca", "secondi": 10, "passo": 1 },
+      { "id": "aura", "nome": "Aura di cura", "descr": "Per 6 secondi cura te e i compagni vicini (4,5 vita al secondo)", "secondi": 6, "cura": 4.5, "raggio": 4 },
+      { "id": "marea", "nome": "Raggio della Marea", "descr": "Fermo, carichi e spari un gran raggio d'acqua dritto davanti", "carica": 0.7, "secondi": 1.5, "danno": 26, "gittata": 14, "larghezza": 0.6, "giro": 1.2 },
+      { "id": "arpione", "nome": "Arpione", "descr": "Lo lanci dritto: chi prendi viene tirato fino a te e resta stordito un attimo", "velocita": 24, "gittata": 11, "danno": 12, "tiro": 18, "stordito": 0.7 },
+      { "id": "velo", "nome": "Velo di nebbia", "descr": "Per 8 secondi gli avversari non ti vedono, come nell'erba alta", "secondi": 8, "raggio": 2 }
+    ]
+  },
   "premio": { "vinta": 30, "persa": 10, "tetto": 150 },
   "rete": { "staccatoSecondi": 20, "caricoSecondi": 20, "codice": 4, "attesaBotSecondi": 10 },
   "gladiatori": [

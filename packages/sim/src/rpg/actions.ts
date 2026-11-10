@@ -13,7 +13,7 @@ import { hasItem, itemDef } from './items.ts';
 import { inVendita, offertaLosca, prezzoLosco } from './contrabbando.ts';
 import { inVetrinaBottega, livelloFabbro } from '../economy/botteghe.ts';
 import { prezzoVetrina } from './botteghe.ts';
-import { erroreLoadout, pulisciLoadout } from './arena.ts';
+import { erroreBuilds } from './arena.ts';
 import type { EquipSlot, HeroState, ItemDef, RpgAction } from './types.ts';
 
 export { parseRpgAction } from './parse.ts';
@@ -197,10 +197,10 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
       break;
     }
     case 'arena': {
-      // il set del duello (docs/ARENA.md §2): solo quello che hai, nello zaino o nel Forziere; non tocca l'equipaggiamento dei dungeon
-      const why = erroreLoadout(h, a.loadout, (id) => available(lot, h, id));
+      // le build del duello (docs/ARENA.md §2): uguali per tutti, non c'entrano con lo zaino né con l'equipaggiamento dei dungeon
+      const why = erroreBuilds(a.builds);
       if (why) throw err('equip', why);
-      h = { ...h, arena: pulisciLoadout(h, a.loadout, (id) => available(lot, h, id)) };
+      h = { ...h, arena: { build: a.builds.build.map((b) => ({ dote: b.dote, slot: b.slot.map((s) => (s ? { ...s } : null)), ulti: b.ulti })), scelta: a.builds.scelta } };
       break;
     }
     case 'contrabbando': {

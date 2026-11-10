@@ -1,7 +1,8 @@
 // Erba alta dell'Arena (docs/ARENA.md): come i cespugli di Brawl Stars. Chi sta su una cella `erba` della mappa non lo vedono gli avversari
 // (i compagni sì): né sullo schermo (viewDuello) né per la mira assistita. Lo scoprono: un avversario entro RPG.arena.erba.raggio m, e per
 // RPG.arena.erba.rivela s chi attacca o prende un colpo (`s.pvp.rivela[i]` = fino a che tick). Si può essere colpiti anche senza essere visti:
-// proiettili, scoppi e mischia valgono come sempre. Fuori da un duello (senza `s.pvp`) tutti si vedono.
+// proiettili, scoppi e mischia valgono come sempre. Il Velo di nebbia (un'ulti, `s.pvp.velo`) fa lo stesso dovunque si stia. Fuori da un
+// duello (senza `s.pvp`) tutti si vedono.
 // Determinismo: solo + − × ÷ (regola di dungeon/types.ts).
 import { RPG } from '@marea/content/rpg.ts';
 import { cellOf } from './map.ts';
@@ -16,6 +17,8 @@ export function nellErba(s: DungeonState, j: number): boolean {
   return c >= 0 && s.map.erba[c] === 1;
 }
 
+/** L'eroe j ha addosso il Velo di nebbia. */
+export const velato = (s: DungeonState, j: number): boolean => (s.pvp?.velo?.[j] ?? 0) > s.tick;
 /** L'eroe j si è scoperto (ha attaccato o è stato colpito da poco). */
 export const scoperto = (s: DungeonState, j: number): boolean => (s.pvp?.rivela[j] ?? 0) > s.tick;
 
@@ -27,7 +30,7 @@ export function scopri(s: DungeonState, j: number): void {
 /** La squadra `squadra` vede l'eroe j: un compagno sì, e chi non sta nell'erba, e chi è scoperto, e chi ha un avversario vicino. */
 export function visibileDa(s: DungeonState, j: number, squadra: number): boolean {
   const p = s.pvp, o = s.eroi[j];
-  if (!p || !o || p.squadre[j] === squadra || o.done || !nellErba(s, j) || scoperto(s, j)) return true;
+  if (!p || !o || p.squadre[j] === squadra || o.done || !(nellErba(s, j) || velato(s, j)) || scoperto(s, j)) return true;
   const R = RPG.arena.erba.raggio;
   for (let i = 0; i < s.eroi.length; i++) {
     const a = s.eroi[i]!;

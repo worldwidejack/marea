@@ -2,7 +2,7 @@
 // l'autopilota dei dungeon, ma contro gli avversari. Sceglie l'avversario più vicino che la sua squadra vede (chi sta nell'erba alta non lo
 // vede: gli va incontro dove l'ha visto l'ultima volta, se no verso la partenza avversaria e poi il centro), lo slot giusto per la distanza
 // (mischia vicino, arco o magia lontano se lo vede), gli va incontro lungo il campo BFS, colpisce quando è in portata, tende l'arco fino in
-// fondo, beve sotto metà vita. Non tocca lo stato del duello: la sua memoria sta in una WeakMap e quello che fa passa da input e azioni,
+// fondo, schiva (non sempre, come una persona) i caricati che stanno per partire e i proiettili in arrivo, mira davvero con arco e magie (dov'è l'avversario, con un po' d'anticipo se si muove), lancia l'ulti quando è piena e serve (ultiOra). Non tocca lo stato del duello: la sua memoria sta in una WeakMap e quello che fa passa da input e azioni,
 // registrati come quelli di un giocatore.
 import { arenaMappa } from '@marea/content/arena.ts';
 import type { Rng } from '../rng.ts';
@@ -12,18 +12,55 @@ import type { RunHero } from '../rpg/types.ts';
 import { visibileDa } from '../dungeon/erba.ts';
 import { bfs, cellCenter, cellOf, clearPath, lineOfSight, stepDown } from '../dungeon/map.ts';
 import type { ArenaAzione, DuelloState } from './duello.ts';
+import { arenaUlti } from '@marea/content/arena.ts';
+import { RPG } from '@marea/content/rpg.ts';
+import { lungoRaggio } from './ulti.ts';
+import { aimIndex } from '../dungeon/mira.ts';
 
 type Punto = { x: number; z: number };
-type Mem = { field: Int32Array; goal: number; fieldT: number; prevA: boolean; tieni: number; lato: number; latoT: number; slotT: number; visto: Punto | null; giro: number };
+type Mem = { field: Int32Array; goal: number; fieldT: number; prevA: boolean; tieni: number; lato: number; latoT: number; slotT: number; visto: Punto | null; giro: number; prima: Punto | null };
 const MEM = new WeakMap<DuelloState, Mem[]>();
 function mem(d: DuelloState, i: number): Mem {
   let all = MEM.get(d);
   if (!all) { all = []; MEM.set(d, all); }
-  return (all[i] ??= { field: new Int32Array(d.s.map.w * d.s.map.h), goal: -1, fieldT: -999, prevA: false, tieni: 0, lato: 1, latoT: 0, slotT: 0, visto: null, giro: 0 });
+  return (all[i] ??= { field: new Int32Array(d.s.map.w * d.s.map.h), goal: -1, fieldT: -999, prevA: false, tieni: 0, lato: 1, latoT: 0, slotT: 0, visto: null, giro: 0, prima: null });
 }
 const norm = (x: number, z: number) => { const l = Math.sqrt(x * x + z * z); return l > 1e-6 ? { x: x / l, z: z / l } : { x: 0, z: 0 }; };
 
 type Tipo = 'mischia' | 'arco' | 'magia' | 'evoca' | 'cura' | null;
+/** Da dove scappare adesso (direzione della schivata), o null: un avversario vicino che sta per colpire (caricato quasi pieno o colpo appena
+ *  partito) o un suo proiettile che sta per arrivare. */
+function minaccia(d: DuelloState, i: number): { x: number; z: number } | null {
+  const s = d.s, h = s.eroi[i]!.hero;
+  for (let j = 0; j < s.eroi.length; j++) {
+    const r = s.eroi[j]!, o = r.hero;
+    if (d.squadre[j] === d.squadre[i] || r.done) continue;
+    const dx = h.x - o.x, dz = h.z - o.z, dist = Math.sqrt(dx * dx + dz * dz), via = dist > 1e-6 ? { x: dx / dist, z: dz / dist } : { x: 1, z: 0 };
+    if (o.act === 'carica' && o.carica > 0.7 && dist < r.runHero.arma.portata + 1.2) return via;
+    if (o.act === 'swing' && o.actT < 5 && o.caricato && dist < r.runHero.arma.portata + 0.6) return via;
+  }
+  for (const p of s.proj) {
+    if (p.da === undefined || d.squadre[p.da] === d.squadre[i]) continue;
+    const v2 = p.vx * p.vx + p.vz * p.vz;
+    if (v2 < 1e-6) continue;
+    const rx = h.x - p.x, rz = h.z - p.z, t = (rx * p.vx + rz * p.vz) / v2;
+    if (t < 0 || t > 0.35) continue;
+    const cx = rx - p.vx * t, cz = rz - p.vz * t;
+    if (cx * cx + cz * cz < 0.8 * 0.8) { const l = Math.sqrt(v2), lato = cx * -p.vz + cz * p.vx >= 0 ? 1 : -1; return { x: (-p.vz / l) * lato, z: (p.vx / l) * lato }; }
+  }
+  return null;
+}
+/** L'ulti piena serve adesso? Furia e Aura vicino all'avversario (l'Aura anche sotto metà vita), Scatto e Velo per andargli incontro o
+ *  scappare, il Raggio e l'Arpione se è davanti, dritto e in portata. */
+function ultiOra(d: DuelloState, i: number, dist: number, vede: boolean, dx: number, dz: number): boolean {
+  const u = d.ul[i]!, h = d.s.eroi[i]!.hero, rh = d.s.eroi[i]!.runHero, U = arenaUlti(u.id);
+  if (u.carica < 100 || u.fase !== 'no' || !vede) return false;
+  if (u.id === 'furia') return dist < 3.5;
+  if (u.id === 'aura') return dist < 5 || h.vita < rh.max.vita * 0.5;
+  if (u.id === 'scatto' || u.id === 'velo') return dist > 6 || h.vita < rh.max.vita * 0.4;
+  const l = Math.max(1e-6, dist), lungo = lungoRaggio(d.s, h.x, h.z, dx / l, dz / l, U.gittata ?? 10);
+  return dist < (U.gittata ?? 10) - 1 && lungo >= dist - 0.5;
+}
 function tipoDi(v: RunHero | null): Tipo {
   if (!v) return null;
   if (v.manoMagia && v.magia !== null) { const sp = v.magie[v.magia]!; return sp.evoca ? 'evoca' : sp.cura || sp.furia ? 'cura' : 'magia'; }
@@ -59,12 +96,23 @@ export function botArena(d: DuelloState, i: number, rng: Rng): { input: DungeonI
   const s = d.s, me = s.eroi[i], j = bersaglio(d, i), lui = j === null ? null : s.eroi[j]!;
   if (!me || d.fase === 'finita' || me.done) return { input: { ...NO_DUNGEON_INPUT }, azione: null };
   const m = mem(d, i), h = me.hero, o = lui?.hero ?? null, rt = d.rt[i]!, e = d.eroi[i]!;
+  // quanto si è mosso l'avversario dall'ultimo tick (per l'anticipo della mira)
+  const vx = o && m.prima ? (o.x - m.prima.x) * 60 : 0, vz = o && m.prima ? (o.z - m.prima.z) * 60 : 0;
+  m.prima = o ? { x: o.x, z: o.z } : null;
   if (o) m.visto = { x: o.x, z: o.z };
   const dx = o ? o.x - h.x : 0, dz = o ? o.z - h.z : 0, dist = o ? Math.sqrt(dx * dx + dz * dz) : Infinity, vede = !!o && lineOfSight(s.map, h.x, h.z, o.x, o.z);
-  // pozione sotto metà vita (quella che cura di più tra quelle rimaste)
-  if (d.fase === 'gioca' && h.vita < me.runHero.max.vita * 0.5) {
-    const k = e.pozioni.map((p, n) => ({ n, v: rt.bevute[n] ? -1 : p.cura.vita ?? 0 })).sort((a, b) => b.v - a.v)[0];
-    if (k && k.v > 0) return { input: { ...NO_DUNGEON_INPUT }, azione: { t: 'pozione', n: k.n } };
+  // l'ulti, quando serve: prima si gira verso di lui (il raggio e l'arpione partono dritti davanti)
+  if (d.fase === 'gioca' && ultiOra(d, i, dist, vede, dx, dz)) {
+    const l = Math.max(1e-6, dist);
+    if ((h.fx * dx + h.fz * dz) / l > 0.97) return { input: { ...NO_DUNGEON_INPUT }, azione: { t: 'ulti' } };
+    return { input: { ...NO_DUNGEON_INPUT, mx: (dx / l) * 0.2, my: (dz / l) * 0.2 }, azione: null };
+  }
+  // raggio della Marea in corso: lo tiene su di lui
+  if (m && d.ul[i]!.fase !== 'no' && d.ul[i]!.id === 'marea' && o) return { input: { ...NO_DUNGEON_INPUT, mx: dx, my: dz }, azione: null };
+  // la schivata: costa Vigore, la si tiene per quando serve (riflessi umani: non sempre in tempo)
+  if (d.fase === 'gioca' && h.act !== 'schiva' && !((h.rollCd ?? 0) > 0) && h.stamina >= RPG.schivata.stamina) {
+    const fuga = minaccia(d, i);
+    if (fuga && rng.next() < 0.15) return { input: { ...NO_DUNGEON_INPUT, mx: fuga.x, my: fuga.z, roll: true }, azione: null };
   }
   // lo slot giusto per la distanza (non più di uno al secondo)
   if (d.tick - m.slotT > 60) {
@@ -96,7 +144,15 @@ export function botArena(d: DuelloState, i: number, rng: Rng): { input: DungeonI
   }
   if (m.tieni > 0) { m.tieni--; a = true; }
   m.prevA = a;
-  return { input: { mx: mv.x, my: mv.z, a, b: dist > 8 && tipo === 'mischia' && h.stamina > 30, c: false, d: false }, azione: null };
+  // con l'arco o una magia la mira va su di lui, a metà dell'anticipo giusto (un umano medio)
+  let mira = 0;
+  if (o && vede && (tipo === 'arco' || tipo === 'magia') && (a || h.act === 'tende' || h.act === 'punta')) {
+    const sp = rh.magia !== null ? rh.magie[rh.magia] : undefined;
+    const v = tipo === 'arco' ? Math.max(8, rh.arma.gittata + (rh.frecce?.gittata ?? 0)) : sp?.forma === 'bomba' ? dist / Math.max(0.2, sp.volo ?? 1) : sp?.forma === 'raggio' ? 1e9 : Math.max(6, sp?.velocita ?? 12);
+    const t = (dist / v) * 0.5;
+    mira = aimIndex(o.x + vx * t - h.x, o.z + vz * t - h.z);
+  }
+  return { input: { mx: mv.x, my: mv.z, a, b: dist > 8 && tipo === 'mischia' && h.stamina > 30, c: false, d: false, ...(mira ? { m: mira } : {}) }, azione: null };
 }
 
 /** Direzione verso (gx, gz): dritto se il corridoio è libero, se no lungo il campo BFS dalla meta (rifatto ogni mezzo secondo). */

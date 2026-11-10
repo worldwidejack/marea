@@ -42,16 +42,17 @@ export type HeroState = {
   lanterne?: Record<string, number>;
   /** Patto di sangue (perk): la creatura evocata ancora viva (id del nemico evocato), che ti segue di dungeon in dungeon e sull'isola. Assente = nessuna. */
   evocato?: string;
-  /** Arena (docs/ARENA.md): il set del duello, scelto all'ingresso del colosseo. Non tocca `equip` né lo zaino (in Arena non si consuma
-   *  niente). Assente = quello di partenza fatto da `equip` (rpg/arena.ts, loadoutDi). */
-  arena?: ArenaLoadout;
+  /** Arena (docs/ARENA.md): le build salvate e quella scelta. Non c'entrano col resto del personaggio. Assente (o di prima) = BUILD_BASE
+   *  (rpg/arena.ts, buildsDi). */
+  arena?: ArenaBuilds;
 };
 
-/** Uno slot rapido dell'Arena: un'arma o un arco dello zaino (con l'arco, `frecce` = il tipo di freccia; assente = ARENA.frecceBase), o una
- *  magia conosciuta. */
-export type ArenaSlot = { arma: string; frecce?: string } | { magia: string };
-/** Il set del duello (docs/ARENA.md §2): vestizione, ARENA.slot slot rapidi (null = vuoto), ARENA.pozioni pozioni rapide (null = nessuna). */
-export type ArenaLoadout = { corpo?: string; anello1?: string; anello2?: string; slot: (ArenaSlot | null)[]; pozioni: (string | null)[] };
+/** Uno slot della build dell'Arena: un'arma di ARENA.build.armi (id del catalogo) o una magia di ARENA.build.magie. */
+export type ArenaSlot = { arma: string } | { magia: string };
+/** La build del duello (docs/ARENA.md §2): la dote (id di ARENA.build.doti), ARENA.slot slot (null = vuoto) e l'ulti (id di ARENA.ulti.lista). */
+export type ArenaBuild = { dote: string; slot: (ArenaSlot | null)[]; ulti: string };
+/** Le build salvate (da 1 a ARENA.build.salvate) e l'indice di quella scelta. */
+export type ArenaBuilds = { build: ArenaBuild[]; scelta: number };
 
 /** Voce del catalogo (generata dalla sim: tipo × materiale + oggetti scritti a mano). La UI la usa per nome, peso, descrizione e statistiche. */
 export type ItemDef = {
@@ -99,6 +100,8 @@ export type RunWeapon = {
   traits: Traits;
   /** Armi fragili (R-rpg, facoltativo): colpi già dati con la copia in uso prima della spedizione (HeroState.usura). */
   usura?: number;
+  /** Arena: il Vigore che costa un colpo (una freccia); assente = niente (i dungeon). */
+  fatica?: number;
 };
 export type RunArrows = { id: string; n: number; danno: number; gittata: number; gravita: number; traits: Traits };
 export type RunArmor = {
@@ -234,8 +237,8 @@ export type RpgAction =
   | { t: 'vetrina'; bottega: 'fabbro' | 'alchimista'; item: string; n: number }
   /** Contrabbandiere del Porto: compra la merce di oggi o gli vendi roba dello zaino (monete). */
   | { t: 'contrabbando'; op: 'compra' | 'vendi'; item: string; n: number }
-  /** Arena: salva il set del duello (controllato con erroreLoadout di rpg/arena.ts). */
-  | { t: 'arena'; loadout: ArenaLoadout }
+  /** Arena: salva le build del duello e quella scelta (controllate con erroreBuilds di rpg/arena.ts). */
+  | { t: 'arena'; builds: ArenaBuilds }
   /** Indossa l'armatura anche fuori dal dungeon (nell'overworld) invece del vestito estetico. */
   | { t: 'armatura_fuori'; attiva?: boolean };
 

@@ -1,5 +1,5 @@
-// @marea/content/arena.ts: dati dell'Arena PvP (docs/ARENA.md): round del duello, loadout (slot, frecce, pozioni), premio col tetto del
-// giorno, rete (attesa di chi perde la linea), gladiatori automatici e le mappe (stesso formato dei dungeon). Entry separata da
+// @marea/content/arena.ts: dati dell'Arena PvP (docs/ARENA.md): round del duello, la build (doti, armi e magie coi numeri dell'Arena,
+// uguali per tutti), le ulti, premio col tetto del giorno, rete (attesa di chi perde la linea), gladiatori automatici e le mappe (stesso formato dei dungeon). Entry separata da
 // index.ts: la carica solo il chunk dell'Arena e il server. Formule in @marea/sim/arena.
 import cfg from './arena/arena.json' with { type: 'json' };
 import type { DungeonDef } from './rpg_types.ts';
@@ -8,13 +8,37 @@ import type { DungeonDef } from './rpg_types.ts';
  *  [cx, cz, fx, fz] di ogni squadra, in ordine: la squadra di k eroi parte dalle prime k. */
 export type ArenaMappa = DungeonDef & { formati: number[]; spawn: [number, number, number, number][][] };
 export type ArenaGladiatore = { nome: string; look: { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number } };
+/** Una dote della build: moltiplica Vita, Stamina o Magicka (massimo e ricarica) e, se c'è, il passo; `colore` = chiave di PAL del bagliore attorno all'eroe. */
+export type ArenaDote = { id: string; nome: string; descr: string; colore: string; vita?: number; stamina?: number; magicka?: number; passo?: number };
+/** Numeri dell'Arena di un'arma (danno a colpo, colpi al secondo, secondi di carica, moltiplicatore del caricato, portata in m) o dell'arco
+ *  (danno della freccia a piena tensione, secondi per tenderlo). */
+export type ArenaArma = { danno: number; colpi?: number; carica?: number; caricaMolt?: number; portata?: number; tensione?: number };
+/** Numeri dell'Arena di una magia (gli altri restano quelli del libro): danno (al secondo per i raggi), cura, costo, ricarica. */
+export type ArenaMagia = { danno?: number; cura?: number; costo?: number; ricarica?: number };
+/** Un'ulti: id, nome, descrizione e i suoi numeri (secondi, danno, raggio…: li legge sim/arena/ulti.ts). */
+export type ArenaUlti = { id: string; nome: string; descr: string; secondi?: number; danno?: number; passo?: number; cura?: number; raggio?: number;
+  carica?: number; gittata?: number; larghezza?: number; giro?: number; velocita?: number; tiro?: number; stordito?: number };
+export type ArenaBuildCfg = {
+  /** Build che si possono salvare; Vita, Magicka e Stamina di tutti e la loro ricarica al secondo. */
+  salvate: number; attributi: { vita: number; magicka: number; stamina: number }; regen: { vita: number; magicka: number; stamina: number };
+  doti: ArenaDote[];
+  /** Il passo con l'arma in mano: × (1 + (neutro − peso) × perKg); le magie pesano `neutro`. */
+  passo: { neutro: number; perKg: number };
+  /** Il Vigore che costano i colpi: un secondo di colpi di fila `staminaAlSecondo` (il caricato × `staminaCaricato`), una freccia `staminaFreccia`. */
+  staminaAlSecondo: number; staminaCaricato: number; staminaFreccia: number;
+  /** Le armi della build (id del catalogo, tutte dello stesso materiale) e le magie (id di spells.json: niente evocazioni). */
+  armi: Record<string, ArenaArma>; magie: Record<string, ArenaMagia>;
+};
 export type ArenaCfg = {
   /** Round del duello: `conta` s di conto alla rovescia, `secondi` di gioco, `pausa` s tra un round e l'altro; vince chi arriva a
    *  `vittorie` round; dopo `massimo` round la partita si chiude comunque. A tempo scaduto vince chi ha più Vita (a squadre: la somma):
    *  sotto `pariSotto` punti di differenza il round è pari (non conta). */
   round: { conta: number; secondi: number; pausa: number; vittorie: number; massimo: number; pariSotto: number };
-  /** Slot rapidi (armi o magie), frecce per ogni arco (fuori dagli slot), tipo di freccia se non se ne sceglie uno, pozioni rapide. */
-  slot: number; frecce: number; frecceBase: string; pozioni: number;
+  /** Slot della build (armi o magie), frecce per l'arco (fuori dagli slot) e il loro tipo. */
+  slot: number; frecce: number; frecceBase: string;
+  build: ArenaBuildCfg;
+  /** Le ulti: la carica (piena a `max`: tanti punti al secondo di gioco e per punto di danno dato e preso) e l'elenco. */
+  ulti: { carica: { max: number; alSecondo: number; dato: number; preso: number }; lista: ArenaUlti[] };
   /** Monete del personaggio a fine partita (vinta, persa) e tetto del giorno UTC. Pareggio, resa e partita lasciata: niente. */
   premio: { vinta: number; persa: number; tetto: number };
   /** Rete: secondi che il duello aspetta chi ha perso la linea (poi è sconfitta), secondi di attesa del caricamento, lettere del codice della
@@ -31,6 +55,8 @@ export const ARENA = cfg as unknown as ArenaCfg;
 export const ARENA_SQUADRA_MAX = 3;
 
 /** La mappa col suo id (il colosseo se non c'è). */
+/** L'ulti col suo id (la prima se non c'è). */
+export function arenaUlti(id: string): ArenaUlti { return ARENA.ulti.lista.find((u) => u.id === id) ?? ARENA.ulti.lista[0]!; }
 export function arenaMappa(id: string): ArenaMappa { return ARENA.mappe.find((m) => m.id === id) ?? ARENA.mappe[0]!; }
 /** La mappa di una partita a squadre di `formato` eroi (1, 2 o 3): una di quelle che lo prevedono, scelta dal seed. */
 export function mappaPer(formato: number, seed: number): ArenaMappa {
@@ -44,7 +70,11 @@ export function validateArena(): string[] {
   const errs: string[] = [], c = ARENA, r = c.round;
   const pos = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0;
   if (![r.conta, r.secondi, r.pausa, r.vittorie, r.massimo].every(pos) || r.massimo < r.vittorie * 2 - 1) errs.push('arena: round non validi');
-  if (!pos(c.slot) || c.slot > 9 || !pos(c.frecce) || !pos(c.pozioni) || c.pozioni > 4) errs.push('arena: slot, frecce o pozioni non validi');
+  if (!pos(c.slot) || c.slot > 9 || !pos(c.frecce)) errs.push('arena: slot o frecce non validi');
+  const b = c.build;
+  if (!pos(b.salvate) || !b.doti.length || !Object.keys(b.armi).length || !Object.keys(b.magie).length) errs.push('arena: build non valida');
+  for (const a of Object.values(b.armi)) if (!pos(a.danno) || !(pos(a.colpi) || pos(a.tensione))) errs.push('arena: arma senza danno o velocità');
+  if (!c.ulti.lista.length || !pos(c.ulti.carica.max) || new Set(c.ulti.lista.map((u) => u.id)).size !== c.ulti.lista.length) errs.push('arena: ulti non valide');
   if (!(c.premio.vinta >= 0 && c.premio.persa >= 0 && c.premio.tetto >= c.premio.vinta)) errs.push('arena: premio non valido');
   if (!pos(c.rete.attesaBotSecondi)) errs.push('arena: attesa dei gladiatori non valida');
   if (c.gladiatori.length < ARENA_SQUADRA_MAX * 2 - 1) errs.push('arena: servono almeno 5 gladiatori automatici');

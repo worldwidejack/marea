@@ -5,8 +5,8 @@
 // finale (arena_hud.ts). 1v1, 2v2 o 3v3: `squadre` dice di chi è ognuno.
 // Erba alta: gli avversari che non vedo (nascosti, sim/dungeon/erba.ts) non si disegnano né hanno il nome; io, se sono nascosto, lo leggo in un
 // cartello. Se sono a terra la camera segue un compagno.
-// Ogni tick un DungeonInput (joystick, A e B di game/input.ts più clic, joystick di mira, mouse), quantizzato come nei dungeon. Le azioni
-// della barra (slot, pozione, resa) sono azioni del duello (actDuello).
+// Ogni tick un DungeonInput (joystick, A, B e la schivata di game/input.ts più clic, joystick di mira, mouse), quantizzato come nei dungeon. Le azioni
+// della barra (slot, ulti, resa) sono azioni del duello (actDuello). Bagliore della dote ed effetti delle ulti: arena_fx.ts.
 // Online (`o.rete`): come i dungeon insieme, il mio input va al server una volta per turno (SQ_TICKS tick) se cambia, le azioni pure; il
 // duello avanza SOLO coi turni del server (stessi per tutti), col cuscinetto contro i ritardi e la corsa per recuperare. Linea persa:
 // la rete prova a ricollegarsi (arena_menu.ts) e il duello aspetta. Fine: il server manda `fine` con l'esito del suo replay e il premio.
@@ -16,7 +16,7 @@ import * as THREE from 'three';
 import { createRng } from '@marea/sim';
 import type { InputFrame, Rng } from '@marea/sim';
 import type { Look } from '@marea/protocol';
-import { arenaMappa } from '@marea/content/arena.ts';
+import { ARENA, arenaMappa, arenaUlti } from '@marea/content/arena.ts';
 import { actDuello, createDuello, hashDuello, stepDuello, viewDuello } from '@marea/sim/arena/duello.ts';
 import type { ArenaAzione, DuelloEsito, DuelloState, DuelloView } from '@marea/sim/arena/duello.ts';
 import { botArena } from '@marea/sim/arena/bot.ts';
@@ -46,6 +46,8 @@ import type { MagieFx } from './magie_fx.ts';
 import { createMouse } from './dungeon_mouse.ts';
 import type { Mouse } from './dungeon_mouse.ts';
 import { createArenaHud } from './arena_hud.ts';
+import { createArenaFx } from './arena_fx.ts';
+import type { ArenaFx } from './arena_fx.ts';
 import type { ArenaControlli } from './arena_hud.ts';
 
 /** Un duellante come lo vede il client: nome, look, la fotografia del set. */
@@ -76,8 +78,8 @@ export const arenaLink = { auto: false };
 const CUSCINETTO = 2 * SQ_TICKS, SVELTO = 4 * SQ_TICKS, RECUPERO = 30 * SQ_TICKS;
 const END_WAIT = 90; // tick di scritta finale prima della scheda
 const CAM_VERSO = 5;
-const bitsOf = (f: DungeonInput) => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0) | (f.e ? 16 : 0);
-const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...(x[3] ? { m: x[3] } : {}) });
+const bitsOf = (f: DungeonInput) => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0) | (f.e ? 16 : 0) | (f.roll ? 32 : 0);
+const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...((x[2] & 32) !== 0 ? { roll: true } : {}), ...(x[3] ? { m: x[3] } : {}) });
 
 export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
   const rete = o.rete ?? null, io = o.io;
@@ -85,7 +87,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
   const mia = d.squadre[io]!, nomi = o.eroi.map((e) => e.nome), mappa = arenaMappa(d.mappa);
   let phase: Phase = 'loading', wait = 0, view: DuelloView = viewDuello(d, io), auto: Rng | null = null;
   const botRng: Rng[] = o.eroi.map((_, j) => createRng(o.seed).fork('bot' + j));
-  let sc: DungeonScene | null = null, actors: Actors | null = null, hud: DungeonHud | null = null, ahud: ArenaControlli | null = null, gfx: MagieFx | null = null, mouse: Mouse | null = null;
+  let sc: DungeonScene | null = null, actors: Actors | null = null, hud: DungeonHud | null = null, ahud: ArenaControlli | null = null, gfx: MagieFx | null = null, mouse: Mouse | null = null, afx: ArenaFx | null = null;
   /** Gli eroi: ognuno in un gruppo suo (si nasconde intero: avatar, arma, scie). */
   const eroi: (HeroActor | null)[] = [], gruppi: THREE.Scene[] = [], armi: (string | null)[] = o.eroi.map(() => null);
   let resolve!: (v: { esito: DuelloEsito | null; rivincita: boolean }) => void;
@@ -97,7 +99,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
 
   const cleanup = () => {
     phase = 'over';
-    mouse?.dispose(); ctx.canvas.style.cursor = ''; ahud?.dispose(); hud?.dispose(); actors?.dispose(); gfx?.dispose(); for (const e of eroi) e?.dispose(); for (const g of gruppi) g.removeFromParent(); sc?.dispose();
+    mouse?.dispose(); ctx.canvas.style.cursor = ''; ahud?.dispose(); afx?.dispose(); hud?.dispose(); actors?.dispose(); gfx?.dispose(); for (const e of eroi) e?.dispose(); for (const g of gruppi) g.removeFromParent(); sc?.dispose();
     ctx.renderer.setScene(null);
   };
   const chiudi = (esito: DuelloEsito | null, rivincita: boolean) => { if (phase === 'over') return; cleanup(); resolve({ esito, rivincita }); };
@@ -127,9 +129,10 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
       }));
       actors = createActors({ loader: ctx.loader, scene: sc });
       gfx = createMagieFx(sc.scene, sc.floorY);
+      afx = createArenaFx(sc.scene, sc.floorY, d.eroi.map((e) => e.dote));
       if ((phase as Phase) === 'over') { cleanup(); return; }
       hud = createDungeonHud({ root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera, hero: d.s.eroi[io]!.runHero, stile: 'colosseo' });
-      ahud = createArenaHud({ root: ctx.root, canvas: ctx.canvas, yaw: () => ctx.renderer.diorama.yaw, slot: o.eroi[io]!.eroe.varianti, pozioni: o.eroi[io]!.eroe.pozioni, insieme: !!rete, squadre: d.squadre, io, onResa: () => azione({ t: 'resa' }) });
+      ahud = createArenaHud({ root: ctx.root, canvas: ctx.canvas, yaw: () => ctx.renderer.diorama.yaw, slot: d.eroi[io]!.varianti, ulti: d.eroi[io]!.ulti, insieme: !!rete, squadre: d.squadre, io, onResa: () => azione({ t: 'resa' }) });
       mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: sc.floorY });
       tickAttori();
       ctx.renderer.setScene(sc.scene);
@@ -160,6 +163,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     if (!ahud) return;
     for (const e of d.eventi) {
       if (e.t === 'via') ahud.grande('VIA!', PAL.giallo, `Round ${e.round + 1}`, 900);
+      else if (e.t === 'ulti') { const p = eroi[e.i]; if (p && gruppi[e.i]?.visible && hud) hud.number(p.head(), arenaUlti(e.id).nome.toUpperCase(), d.squadre[e.i] === mia ? 'cura' : 'dato', true); }
       else if (e.t === 'round') {
         const w = e.esito.vincitore, txt = w === null ? 'PARI' : w === mia ? 'ROUND VINTO' : 'ROUND PERSO';
         ahud.grande(txt, w === null ? PAL.pietra : w === mia ? PAL.erbaChiara : PAL.rosso, e.esito.perche === 'tempo' ? 'tempo scaduto: vince la squadra con più vita' : e.esito.perche === 'pari' ? 'nessun punto' : `${d.vinti[mia]} a ${d.vinti[1 - mia]}`, 2400);
@@ -245,7 +249,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
   function inputOra(f: InputFrame): DungeonInput {
     const c = ahud!.sample();
     if (c.slot !== null) azione({ t: 'slot', n: c.slot });
-    if (c.pozione !== null) azione({ t: 'pozione', n: c.pozione });
+    if (c.ulti) azione({ t: 'ulti' });
     if (auto) { const b = botArena(d, io, auto); if (b.azione) azione(b.azione); return b.input; }
     const h = d.s.eroi[io]!.hero;
     if (c.tap && mira()) tapT = 120;
@@ -257,7 +261,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     }
     const a = f.a || c.a || aTap, punta = mouse && mira() ? mouse.verso(h.x, h.z)?.m ?? 0 : 0;
     const m = aTap ? 0 : c.m || (a || h.act === 'tende' || h.act === 'punta' ? punta : 0);
-    return { mx: f.mx, my: f.my, a, b: f.b, c: false, d: false, ...(c.e ? { e: true } : {}), ...(m ? { m } : {}) };
+    return { mx: f.mx, my: f.my, a, b: f.b, c: false, d: false, ...(c.e ? { e: true } : {}), ...(f.roll ? { roll: true } : {}), ...(m ? { m } : {}) };
   }
 
   // ---- da solo (stanza di prova): un tick per frame, i gladiatori fanno gli altri ----
@@ -351,6 +355,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
       sc.update(p.x, p.z, t);
       actors.update(alpha, dt, t, { x: p.x, z: p.z });
       gfx?.update(t, { x: p.x, z: p.z }, view.dungeon);
+      afx?.update(t, eroi.map((e, j) => (e && gruppi[j]?.visible ? e.avatar.object.position : null)), view);
       ahud.set(view, nomi);
       hud.bars(actors.bars());
       // nomi e vita: i compagni in verde, gli avversari che si vedono in rosso
@@ -374,8 +379,10 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     r.hero.x = (Number(cx) + 0.5) * d.s.map.tile; r.hero.z = (Number(cz) + 0.5) * d.s.map.tile;
     return true;
   });
+  // test (hook arenaCarica): l'ulti dell'eroe j piena, per provarla subito (solo nella stanza di prova: online la carica la decidono i turni)
+  registerTestHook('arenaCarica', (j) => { const u = d.ul[Number(j)]; if (!u || rete || phase === 'over') return false; u.carica = ARENA.ulti.carica.max; return true; });
   registerStateProvider('arenaDuello', () => (phase === 'over' ? null : {
-    phase, fase: d.fase, round: d.round, vinti: [...d.vinti], esito: d.esito, tick: d.tick, io, slot: view.slot, secondi: view.secondi, mappa: d.mappa, squadre: [...d.squadre],
+    phase, fase: d.fase, round: d.round, vinti: [...d.vinti], esito: d.esito, tick: d.tick, io, slot: view.slot, ulti: view.ulti, secondi: view.secondi, mappa: d.mappa, squadre: [...d.squadre],
     vita: d.s.eroi.map((r) => Math.round(r.hero.vita * 10) / 10), pos: d.s.eroi.map((r) => [Math.round(r.hero.x * 100) / 100, Math.round(r.hero.z * 100) / 100]),
     nascosto: view.nascosto, nascosti: view.altri.filter((a) => a.nascosto).map((a) => a.i), visibili: gruppi.map((g) => !!g?.visible),
     turni: rete?.turni.length ?? 0, ombra, firme: { ...firme }, auto: !!auto, pausa: !!ahud?.paused, finale: finaleAperto,
