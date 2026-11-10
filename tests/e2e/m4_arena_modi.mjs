@@ -103,7 +103,7 @@ export default async function (ctx) {
     await allena(page, 'rapina', 2);
     const s = ar(await ctx.getState(page));
     assert(s.casseforti.length === 2 && s.punti.join() === '100,100' && s.vita.length === 4, 'casseforti: ' + JSON.stringify(s.casseforti));
-    assert((await page.textContent('#mzArenaTop')).includes('100%'), 'il tabellone mostra la cassaforte');
+    await page.waitForFunction(() => (document.querySelector('#mzArenaTop')?.textContent ?? '').includes('100%'), null, { timeout: 10000 }); // il tabellone mostra la cassaforte
     await ctx.shot(page, 'rapina');
     await esci(page);
   });
