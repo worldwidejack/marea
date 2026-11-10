@@ -111,7 +111,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const tE = tieniPremuto(E.b, { premi: () => (eLatch = true), classe: 'on', ferma: true });
 
   // ---- joystick di mira (telefono, arco o magia in mano): trascini = punti e tiri, lasci = l'arco parte dove puntavi (mira_stick.ts) ----
-  const stick = createMiraStick({ id: 'mzDngMira', yaw: o.yaw, blocked: () => pausa || asking || o.blocked() });
+  const stick = createMiraStick({ id: 'mzDngMira', yaw: o.yaw, blocked: () => pausa || asking || o.blocked(), senzaPad: !!o.fp });
   const btn = (cls: string, act: string, ...kids: (Node | string)[]) => { const b = el('button', cls); b.type = 'button'; b.dataset['act'] = act; b.append(...kids); return b; };
 
   // ---- in alto a destra: Zaino e Pausa ----
