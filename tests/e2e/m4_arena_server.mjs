@@ -99,7 +99,7 @@ export default async function (ctx) {
       assert(pa.eroi[0].id === 'ada' && pa.eroi[1].id === 'bea' && JSON.stringify(pa.eroi) === JSON.stringify(pb.eroi), 'eroi diversi tra i due');
       const v0 = pa.eroi[0].eroe.varianti;
       assert(v0.length === ARENA.slot && v0[0]?.manoMagia && v0[1]?.arma.id === 'katana_ferro' && pa.eroi[0].eroe.ulti === 'marea' && pa.eroi[0].eroe.dote === 'magia', 'la build scelta di ada nella fotografia: ' + JSON.stringify(v0.map((v) => v && [v.arma.id, v.manoMagia])));
-      assert(v0.every((v) => !v || (v.arena && v.max.vita === 100 && v.max.magicka === 150)), 'fotografia non da Arena');
+      assert(v0.every((v) => !v || (v.arena && v.max.vita === 100 && v.max.magicka === 130)), 'fotografia non da Arena');
       for (const [tok, idx] of [['tok_ada', 0], ['tok_bea', 1]]) {
         const p = (await lot(tok)).arena?.pending;
         assert(p && p.run === pa.run && p.idx === idx, 'duello nel lotto: ' + JSON.stringify(p));
