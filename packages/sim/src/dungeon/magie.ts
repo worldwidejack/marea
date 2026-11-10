@@ -10,10 +10,11 @@ import type { DungeonState, Enemy, HeroRt, Proj } from './state.ts';
 import { add, ev, secToTicks } from './state.ts';
 import { buff, hitEnemy } from './combat.ts';
 import type { HitSrc } from './combat.ts';
+import { visibileDa } from './erba.ts';
 import { isOpaque, lineOfSight } from './map.ts';
 import { effettiMagia } from './perk.ts';
 import { caricaVampa, chiazzaVampa, consumaVampa } from './unici.ts';
-import { amica, colpisciEroe, compagno, eroiNelCerchio, eroiNemici, ostile } from './pvp.ts';
+import { amica, colpisciEroe, compagno, eroiNelCerchio, eroiNemici, ostile, squadraDi } from './pvp.ts';
 import { BOMBA_G, BOMBA_LATO, BOMBA_VUOTO, CANALE_EFFETTI, CANALE_OGNI, HZ, MAGIA_Y } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -22,12 +23,12 @@ const r2 = (v: number): number => Math.round(v * 100) / 100;
 export const isSupporto = (sp: RunSpell): boolean => Boolean(sp.cura || sp.furia);
 
 /** Mira assistita verso l'alleato o evocazione più vicino nel cono davanti all'eroe (o entro `fallback`). */
-export function aimAlleato(s: DungeonState, range: number, cosMin: number, fallback: number): { x: number; z: number } | null {
+export function aimAlleato(s: DungeonState, range: number, cosMin: number, fallback: number, vista = true): { x: number; z: number } | null {
   const h = s.hero;
   let best: { x: number; z: number } | null = null, bd = Infinity, near: { x: number; z: number } | null = null, nd = Infinity;
   const valuta = (tx: number, tz: number, raggio: number): void => {
     const dx = tx - h.x, dz = tz - h.z, d = Math.sqrt(dx * dx + dz * dz), reach = d - raggio;
-    if (!lineOfSight(s.map, h.x, h.z, tx, tz)) return;
+    if (vista && !lineOfSight(s.map, h.x, h.z, tx, tz)) return;
     const dot = d > 1e-6 ? (dx * h.fx + dz * h.fz) / d : 1;
     if (reach <= range && dot >= cosMin && d < bd) { bd = d; best = { x: tx, z: tz }; }
     if (reach <= fallback && d < nd) { nd = d; near = { x: tx, z: tz }; }
@@ -205,7 +206,7 @@ export function fermaCanale(s: DungeonState, sp?: RunSpell): void {
 // ---------- bomba ----------
 
 /** A che distanza dall'eroe di turno atterra una bomba lanciata verso (fx, fz): sul nemico (o alleato, se di supporto) davanti, se no nel vuoto,
- *  mai oltre il primo muro. Lo usa lanciaBomba e il client per l'ombra di mira (non cambia lo stato). */
+ *  oltre i muri in Arena. Lo usano lanciaBomba e il client per l'ombra di mira. */
 export function distanzaBomba(s: DungeonState, sp: RunSpell, fx: number, fz: number): number {
   const h = s.hero, max = sp.gittata ?? 9, supp = isSupporto(sp), A = h.alzo;
   // prima persona: atterra dove lo sguardo tocca terra (guardando in su, in fondo alla gittata), o su chi sta davanti prima di lì
@@ -220,6 +221,7 @@ export function distanzaBomba(s: DungeonState, sp: RunSpell, fx: number, fz: num
   // Arena: le bombe d'attacco puntano anche l'avversario davanti
   for (const j of eroiNemici(s)) {
     if (supp) break;
+    if (!visibileDa(s, j, squadraDi(s, s.cur))) continue;
     const th = s.eroi[j]!.hero, raggio = s.eroi[j]!.runHero.raggio;
     const dx = th.x - h.x, dz = th.z - h.z, lungo = dx * fx + dz * fz;
     if (lungo < 0.8 || lungo > fin || Math.abs(dx * fz - dz * fx) > BOMBA_LATO + raggio) continue;
@@ -235,11 +237,15 @@ export function distanzaBomba(s: DungeonState, sp: RunSpell, fx: number, fz: num
     }
     if (s.pvp && vicino === Infinity) d = 0.4; // Arena: senza compagni davanti la Cura e la Furia a bomba cadono ai tuoi piedi
   }
-  return Math.min(d, libera(s, fx, fz, max));
+  if (!s.pvp) return Math.min(d, libera(s, fx, fz, max));
+  // La traiettoria passa sopra gli ostacoli. Se il punto di caduta è su un muro, arretra fino a terra libera.
+  const t = s.map.tile;
+  while (d > 0.4 && isOpaque(s.map, Math.floor((h.x + fx * d) / t), Math.floor((h.z + fz * d) / t))) d -= t / 8;
+  return Math.max(0.4, d);
 }
 
 /** Lancia la bomba in alto nella direzione dell'eroe: atterra sul primo nemico (o alleato, se di supporto) lungo la mira, se no a 3/4
- *  della gittata; un muro in mezzo la fa cadere prima. Vola `volo` s lungo un arco (gravità BOMBA_G) e arriva a terra proprio al tick giusto. */
+ *  della gittata. Vola `volo` s lungo un arco (gravità BOMBA_G) e arriva a terra proprio al tick giusto. */
 export function lanciaBomba(s: DungeonState, sp: RunSpell): void {
   const h = s.hero, supp = isSupporto(sp), vampa = !supp && sp.elemento === 'fuoco' ? consumaVampa(s) : null;
   if (supp) add(s.xp, 'supporto', sp.costo * RPG.xp.supportoLancio);

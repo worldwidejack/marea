@@ -19,6 +19,7 @@ import { createRng } from '../src/rng.ts';
 import { packDungeon, quantizeDungeon } from '../src/dungeon/replay.ts';
 import type { DungeonInput } from '../src/dungeon/types.ts';
 import { NO_DUNGEON_INPUT } from '../src/dungeon/types.ts';
+import { lineOfSight, moveCircle } from '../src/dungeon/map.ts';
 import { aimIndex } from '../src/dungeon/mira.ts';
 import { aim } from '../src/dungeon/hero.ts';
 import { scoperto, scopri, visibileDa } from '../src/dungeon/erba.ts';
@@ -90,6 +91,25 @@ describe('Arena — le build', () => {
 });
 
 describe('Arena — combattimento tra eroi', () => {
+  it('recupera Vita dopo una pausa, anche schivando, e ricomincia ad aspettare dopo un attacco', () => {
+    const d = alVia(katana, katana, 10), h = d.s.eroi[A]!.hero;
+    const { attesa, alSecondo } = ARENA.build.recuperoVita;
+    h.vita = 50;
+    passi(d, attesa * 60 - 1);
+    assert.equal(h.vita, 50);
+    passi(d, 60, { ...fermo(), roll: true });
+    assert.ok(Math.abs(h.vita - (50 + alSecondo)) < 0.001);
+    passi(d, 4, { ...fermo(), a: true });
+    const vita = h.vita;
+    passi(d, attesa * 60 - 1);
+    assert.equal(h.vita, vita);
+    passi(d, attesa * 60);
+    assert.ok(h.vita > vita);
+    h.vita = PIENA - 0.01;
+    passi(d, 1);
+    assert.equal(h.vita, PIENA);
+  });
+
   const spadone = build([{ arma: 'spadone_ferro' }, null]);
 
   it('la mischia colpisce l\'avversario, mai un colpo solo che uccide', () => {
@@ -143,6 +163,18 @@ describe('Arena — combattimento tra eroi', () => {
     assert.ok(d.s.eroi[B]!.hero.vita < dopoFreccia, 'la magia è arrivata');
     actPartita(d, A, { t: 'slot', n: 0 });
     assert.equal(d.s.eroi[A]!.hero.frecce, ARENA.frecce - 1);
+  });
+
+  it('le bombe possono atterrare e colpire oltre un muro', () => {
+    const d = alVia(build([{ magia: 'bomba_elettrica' }, null]), katana);
+    const a = d.s.eroi[A]!.hero, b = d.s.eroi[B]!.hero;
+    a.x = 30; b.x = 37; b.z = 17.5;
+    assert.equal(lineOfSight(d.s.map, a.x, a.z, b.x, b.z), false);
+    passi(d, 3, { ...fermo(), a: true });
+    passi(d, 1);
+    assert.deepEqual(d.s.proj[0]?.bomba, [b.x, b.z]);
+    passi(d, 90);
+    assert.ok(b.vita < PIENA);
   });
 
   it('Cura e Furia: tutti contro tutti lo slot resta vuoto, con dei compagni no', () => {
@@ -254,6 +286,27 @@ describe('Arena — le ulti', () => {
     assert.ok(viewPartita(d, B).altri.find((x) => x.i === A)!.nascosto);
     passi(d, 3, { ...fermo(), a: true });
     assert.equal(visibileDa(d.s, A, 1), true, 'attaccando si scopre');
+  });
+});
+
+describe('Arena — passaggi', () => {
+  it('si passa tra la palma e il relitto; il tronco e le pareti restano solidi', () => {
+    const seed = 3, eroi = Array.from({ length: 10 }, () => buildArenaEroe(katana));
+    const d = createPartita({ seed, eroi, ...formatoDi('sopravvivenza', 1, seed, 'naufragio') });
+    const { map } = d.s, r = d.s.eroi[0]!.runHero.raggio;
+    const bordoPalma = { x: 22.25, z: 12.5 };
+    moveCircle(map, bordoPalma, 0, 1, r);
+    assert.deepEqual(bordoPalma, { x: 22.25, z: 13.5 });
+    const controTronco = { x: 23, z: 12 };
+    moveCircle(map, controTronco, 0, 1, r);
+    assert.ok(controTronco.z < 12.5);
+    const scoglio = { x: 33, z: 10 };
+    moveCircle(map, scoglio, 0, 1, r);
+    assert.ok(scoglio.z < 10);
+
+    const stelle = alVia(katana, katana).s.map, bordoSiepe = { x: 10.1, z: 16.3 };
+    moveCircle(stelle, bordoSiepe, 0, 1, r);
+    assert.deepEqual(bordoSiepe, { x: 10.1, z: 17.3 });
   });
 });
 

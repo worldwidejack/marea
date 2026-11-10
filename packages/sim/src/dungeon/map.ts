@@ -5,6 +5,8 @@ import type { DungeonDef } from '@marea/content/rpg.ts';
 export type Spawn = { cx: number; cz: number; ch: string };
 export type DMap = {
   id: string; w: number; h: number; tile: number;
+  tondi?: ReadonlyMap<number, number>;
+  rettangoli?: ReadonlyMap<number, readonly [number, number]>;
   /** 1 = non calpestabile (muro, vuoto, colonna). */
   solid: Uint8Array;
   /** 1 = blocca la vista e i proiettili (muro, colonna; il vuoto no). */
@@ -61,7 +63,7 @@ export type DMap = {
 
 /** Quel che serve a collisioni, vista e distanze: anche griglie che non sono un dungeon (l'arena dei Templari, con le porte che si aprono). */
 /** `tondi`: celle piene che fermano come un cerchio al centro (indice della cella → raggio), non come il quadrato intero: i tronchi. */
-export type Griglia = Pick<DMap, 'w' | 'h' | 'tile' | 'solid' | 'opaque'> & { tondi?: ReadonlyMap<number, number> };
+export type Griglia = Pick<DMap, 'w' | 'h' | 'tile' | 'solid' | 'opaque' | 'tondi' | 'rettangoli'>;
 
 const MAPS = new WeakMap<DungeonDef, DMap>();
 
@@ -70,6 +72,7 @@ export function parseDungeon(def: DungeonDef): DMap {
   if (cached) return cached;
   const h = def.rows.length, w = Math.max(...def.rows.map((r) => r.length)), tile = def.tile;
   const solid = new Uint8Array(w * h), opaque = new Uint8Array(w * h);
+  const tondi = new Map<number, number>(), rettangoli = new Map<number, readonly [number, number]>();
   let exit: { cx: number; cz: number } | null = null;
   const nemici: DMap['nemici'] = [], forzieri: DMap['forzieri'] = [], libri: DMap['libri'] = [], altari: DMap['altari'] = [], floor: number[] = [];
   const bacini = new Map<number, number[]>(), valvole: DMap['valvole'] = [];
@@ -88,7 +91,11 @@ export function parseDungeon(def: DungeonDef): DMap {
       else if (ch !== '.') {
         const l = def.legenda[ch];
         if (!l) throw new Error(`Dungeon ${def.id}: lettera '${ch}' senza legenda (${cx},${cz})`);
-        if (l.colonna) { solid[i] = 1; opaque[i] = 1; continue; }
+        if (l.colonna) {
+          solid[i] = 1; opaque[i] = 1;
+          if (l.raggioColonna !== undefined) tondi.set(i, l.raggioColonna);
+          continue;
+        }
         // Diga: i piloni dell'arena sono colonne che la carica del capo può fracassare
         if (l.pilone) { solid[i] = 1; opaque[i] = 1; piloni.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, i }); continue; }
         // Santuario: il braciere è un cesto di pietra col fuoco dentro: non ci si cammina ma ci si vede sopra
@@ -102,7 +109,16 @@ export function parseDungeon(def: DungeonDef): DMap {
         if (valvola !== undefined) valvole.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, n: valvola });
         if (l.nemico) nemici.push(l.capo ? { cx, cz, ch, tipo: l.nemico, capo: true } : { cx, cz, ch, tipo: l.nemico });
         // grata: solida per chi cammina, non opaca; sopra può partire un nemico (il Drone Idro-Ragno)
-        if (l.grata) { solid[i] = 1; grata[i] = 1; grate.push(i); continue; }
+        if (l.grata) {
+          solid[i] = 1; grata[i] = 1; grate.push(i);
+          if (l.profonditaGrata !== undefined) {
+            // Stesso orientamento della scena: orizzontale con una grata di fianco.
+            const diFianco = [cx - 1, cx + 1].some((x) => def.legenda[def.rows[cz]![x] ?? '']?.grata);
+            const meta = l.profonditaGrata / 2;
+            rettangoli.set(i, diFianco ? [tile / 2, meta] : [meta, tile / 2]);
+          }
+          continue;
+        }
         if (l.forziere) forzieri.push({ cx, cz, ch, tabella: l.forziere });
         if (l.libro) libri.push({ cx, cz, ch, item: l.libro });
         if (l.altare) altari.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, ...(l.asciutti ? { asciutti: l.asciutti } : {}), ...(l.ferme ? { ferme: l.ferme } : {}) });
@@ -157,6 +173,7 @@ export function parseDungeon(def: DungeonDef): DMap {
     return { n: l.n, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, lunga: l.lunga, giro: l.giro, fase: l.fase, largo: l.largo, danno: l.danno, spinta: l.spinta, pausa: l.pausa };
   });
   const m: DMap = {
+    ...(tondi.size ? { tondi } : {}), ...(rettangoli.size ? { rettangoli } : {}),
     id: def.id, w, h, tile, solid, opaque, exit: { ...ex, x: (ex.cx + 0.5) * tile, z: (ex.cz + 0.5) * tile }, spawn, nemici, forzieri, libri, altari, floor,
     bacini: [...bacini].sort((a, b) => a[0] - b[0]).map(([n, celle]) => ({ n, celle })), valvole, venti, zona, timoni, grate, grata,
     lave, lava, getti, getto, lancette, sarcofago, rottami, piloni, erba, ghiaccio, bracieri,
@@ -185,7 +202,8 @@ function resolve(m: Griglia,p: { x: number; z: number }, r: number): void {
   for (let cz = r0; cz <= r1; cz++)
     for (let cx = c0; cx <= c1; cx++) {
       if (!isSolid(m, cx, cz)) continue;
-      const tr = m.tondi && cx >= 0 && cz >= 0 && cx < m.w && cz < m.h ? m.tondi.get(cz * m.w + cx) : undefined;
+      const indice = cx >= 0 && cz >= 0 && cx < m.w && cz < m.h ? cz * m.w + cx : -1;
+      const tr = m.tondi?.get(indice);
       if (tr !== undefined) { // tronco: cerchio contro cerchio
         const ox = p.x - (cx + 0.5) * t, oz = p.z - (cz + 0.5) * t, d2 = ox * ox + oz * oz, rr = r + tr;
         if (d2 >= rr * rr) continue;
@@ -193,7 +211,10 @@ function resolve(m: Griglia,p: { x: number; z: number }, r: number): void {
         if (d > 1e-9) { p.x += (ox / d) * (rr - d); p.z += (oz / d) * (rr - d); } else p.z += rr;
         continue;
       }
-      const nx = Math.max(cx * t, Math.min((cx + 1) * t, p.x)), nz = Math.max(cz * t, Math.min((cz + 1) * t, p.z));
+      const rettangolo = m.rettangoli?.get(indice);
+      const rx = rettangolo ? t / 2 - rettangolo[0] : 0, rz = rettangolo ? t / 2 - rettangolo[1] : 0;
+      const x0 = cx * t + rx, x1 = (cx + 1) * t - rx, z0 = cz * t + rz, z1 = (cz + 1) * t - rz;
+      const nx = Math.max(x0, Math.min(x1, p.x)), nz = Math.max(z0, Math.min(z1, p.z));
       const dx = p.x - nx, dz = p.z - nz, d2 = dx * dx + dz * dz;
       if (d2 >= r * r) continue;
       if (d2 > 1e-12) {
@@ -201,9 +222,9 @@ function resolve(m: Griglia,p: { x: number; z: number }, r: number): void {
         p.x += dx * k; p.z += dz * k;
       } else {
         // centro dentro la cella: esci dal lato più vicino
-        const l = p.x - cx * t, rr = (cx + 1) * t - p.x, u = p.z - cz * t, dd = (cz + 1) * t - p.z;
+        const l = p.x - x0, rr = x1 - p.x, u = p.z - z0, dd = z1 - p.z;
         const mn = Math.min(l, rr, u, dd);
-        if (mn === l) p.x = cx * t - r; else if (mn === rr) p.x = (cx + 1) * t + r; else if (mn === u) p.z = cz * t - r; else p.z = (cz + 1) * t + r;
+        if (mn === l) p.x = x0 - r; else if (mn === rr) p.x = x1 + r; else if (mn === u) p.z = z0 - r; else p.z = z1 + r;
       }
     }
 }

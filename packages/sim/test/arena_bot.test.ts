@@ -57,7 +57,7 @@ describe('arena: ombra di mira della bomba', () => {
       for (let t = 0; t < CONTA_TICKS; t++) stepPartita(d, d.eroi.map(() => ({ ...NO_DUNGEON_INPUT })));
       const me = d.s.eroi[0]!.hero, lui = d.s.eroi[2]!.hero;
       for (const j of [1, 3]) { d.s.eroi[j]!.hero.x = 3; d.s.eroi[j]!.hero.z = 3; } // gli altri due lontano
-      me.x = 5; me.z = 15; me.fx = 1; me.fz = 0; // sulla banchina sopra il canale, davanti c'è spazio
+      me.x = 5; me.z = 13; me.fx = 1; me.fz = 0; // sulla banchina sopra il canale, davanti c'è spazio
       if (davanti !== null) { lui.x = me.x + me.fx * davanti; lui.z = me.z + me.fz * davanti; } else { lui.x = me.x - me.fx * 30; lui.z = me.z - me.fz * 30; }
       d.s.cur = 0;
       const rh = d.s.eroi[0]!.runHero, sp = rh.magie[rh.magia!]!;

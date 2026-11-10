@@ -4,6 +4,9 @@
 // teste, l'erba alta nasconde gli avversari e non i compagni), Controllo 3v3 (la zona sale per chi ci sta), Rapinatori 2v2 (le casseforti al
 // 100%). Gladiatori dell'allenamento: casuali di default, la build gliela si può scegliere a mano; con una bomba in mano, mentre si mira, a
 // terra c'è l'ombra di dove atterra. Screenshot in tests/out/shots/m4_arena_modi_*.png.
+import * as THREE from 'three';
+import { creaVisibilitaArena } from '../../apps/client/src/rpg/arena_visibilita.ts';
+
 export const timeout = 300000;
 
 export default async function (ctx) {
@@ -37,6 +40,22 @@ export default async function (ctx) {
     if ((await ctx.getState(page)).arenaPartita?.finale) await page.tap('#mzArenaFine [data-act=esci]');
     await ctx.waitState(page, (st) => st.colosseo?.aperto === true && !st.arenaPartita, 15000);
   };
+
+  await ctx.test('erba alta: ricomparsa graduale dalla posizione aggiornata', () => {
+    const gruppo = new THREE.Scene(), mat = new THREE.MeshLambertMaterial();
+    gruppo.add(new THREE.Mesh(undefined, mat));
+    const vis = creaVisibilitaArena();
+    let riparte;
+    const attore = { avatar: { teleport: (x, z) => { riparte = [x, z]; } }, tick() {}, update() {} };
+    vis.tick(gruppo, attore, null);
+    assert(!gruppo.visible);
+    vis.tick(gruppo, attore, { x: 17, z: 11, fx: 1, fz: 0 });
+    assert(gruppo.visible && riparte?.[0] === 17 && riparte?.[1] === 11);
+    vis.update(gruppo, attore, 0, 0.1, false);
+    assert(mat.alphaHash && mat.opacity > 0 && mat.opacity < 1);
+    vis.update(gruppo, attore, 0, 0.1, false);
+    assert(!mat.alphaHash && mat.opacity === 1);
+  });
 
   const p = await ctx.open('?test=1&net=0');
   const page = p.page;
@@ -83,10 +102,13 @@ export default async function (ctx) {
       const out = {};
       T.arenaPosa(3, 8, 3); await frame(); out.avversario = S();   // avversario 3 nel prato, io alla partenza
       T.arenaPosa(1, 7, 2); await frame(); out.compagno = S();     // il mio compagno nel prato: si vede lo stesso
+      T.arenaPosa(3, 9, 5);
+      T.arenaPosa(0, 13, 1);
       return out;
     });
     assert(r.avversario.nascosti.includes(3) && r.avversario.visibili[3] === false, 'avversario nell’erba: ' + JSON.stringify(r.avversario.nascosti));
     assert(!r.compagno.nascosti.includes(1) && r.compagno.visibili[1] === true, 'il compagno nell’erba si vede');
+    await ctx.waitState(page, (st) => st.arenaPartita?.nascosto && st.arenaPartita.opacita[0] === 0.55 && st.arenaPartita.visibili[3] && st.arenaPartita.opacita[3] === 1);
     await page.waitForSelector('.mz-ar-segno', { state: 'visible', timeout: 5000 });
     await ctx.shot(page, 'stelle');
     await esci(page);

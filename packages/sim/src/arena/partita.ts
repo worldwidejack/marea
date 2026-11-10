@@ -11,6 +11,7 @@
 // Pura e deterministica: niente funzioni trascendenti (regola di dungeon/types.ts).
 import { ARENA, arenaMappa, arenaModo, eroiDi, mappaPer } from '@marea/content/arena.ts';
 import type { ArenaMappa, ArenaModo } from '@marea/content/arena.ts';
+import { DT } from '../constants.ts';
 import { hashJson } from '../hash.ts';
 import type { RunHero } from '../rpg/types.ts';
 import type { ArenaEroe } from '../rpg/arena.ts';
@@ -40,8 +41,8 @@ export type PartitaEsito = { vincitore: number | null; perche: 'ultimo' | 'zone'
 export type PartitaEvento = { t: 'via' } | { t: 'fine'; esito: PartitaEsito } | { t: 'ulti'; i: number; id: string } | { t: 'ko'; i: number; da: number }
   | { t: 'rinasce'; i: number } | { t: 'stelle'; q: number; n: number; da: number } | { t: 'rosse'; i: number; n: number } | { t: 'zona'; z: number; q: number }
   | { t: 'fuori'; q: number; posto: number };
-/** Per eroe: slot in mano, frecce rimaste per slot (gli archi). */
-export type PartitaEroeRt = { slot: number; frecce: number[] };
+/** Per eroe: slot in mano, frecce per slot e ultimo tick passato ad attaccare. */
+export type PartitaEroeRt = { slot: number; frecce: number[]; ultimoAttacco: number };
 /** Chi gioca e dove: modalità, eroi per squadra, mappa (id di ARENA.mappe). */
 export type PartitaFormato = { modo: ArenaModo; per: number; mappa: string };
 
@@ -69,6 +70,7 @@ export type PartitaState = {
 };
 
 const M = ARENA.modi;
+const RECUPERO = ARENA.build.recuperoVita, ATTESA_VITA = secToTicks(RECUPERO.attesa);
 export const CONTA_TICKS = secToTicks(M.conta), RINASCITA_TICKS = secToTicks(M.rinascita);
 /** La partita più lunga possibile più un margine: oltre, il replay si ferma. */
 export const MAX_TICKS_PARTITA = CONTA_TICKS + secToTicks(Math.max(...M.lista.map((m) => m.secondi))) + 600;
@@ -115,7 +117,7 @@ export function createPartita(o: { seed: number; eroi: readonly ArenaEroe[] } & 
   });
   const d: PartitaState = {
     v: 2, seed: o.seed >>> 0, eroi, modo: f.modo, per: f.per, mappa: f.mappa, squadre, nSquadre, tick: 0, fase: 'conta', faseT: 0,
-    s, rt: eroi.map((e) => ({ slot: primoSlot(e), frecce: e.varianti.map((x) => x?.frecce?.n ?? 0) })), fuori: eroi.map(() => false),
+    s, rt: eroi.map((e) => ({ slot: primoSlot(e), ultimoAttacco: CONTA_TICKS, frecce: e.varianti.map((x) => x?.frecce?.n ?? 0) })), fuori: eroi.map(() => false),
     var: v, base: [], ul: eroi.map(nuovaUlti), giu: eroi.map(() => false), torna: eroi.map(() => 0), ko: eroi.map(() => 0), cadute: eroi.map(() => 0),
     punti: Array.from({ length: nSquadre }, () => 0), rosse: [], mucchi: [], casse: [], nube: 0, taglia: [], zone: [], casseforti: [], esito: null, eventi: [],
   };
@@ -133,7 +135,7 @@ function rinasci(d: PartitaState, i: number): void {
   r.hero.x = (cx + 0.5) * s.map.tile; r.hero.z = (cz + 0.5) * s.map.tile; r.hero.fx = fx; r.hero.fz = fz;
   r.hero.protetto = secToTicks(M.protetto);
   r.runHero = varianteDi(d, i, slot); r.done = false; r.outcome = null;
-  d.rt[i] = { slot, frecce: e.varianti.map((x) => x?.frecce?.n ?? 0) };
+  d.rt[i] = { slot, ultimoAttacco: d.tick, frecce: e.varianti.map((x) => x?.frecce?.n ?? 0) };
   r.hero.frecce = d.rt[i]!.frecce[slot] ?? 0;
   if (s.pvp) { s.pvp.rivela[i] = 0; if (s.pvp.velo) s.pvp.velo[i] = 0; if (s.pvp.ultimo) s.pvp.ultimo[i] = -1; }
   rinasceUlti(d.ul[i]!);
@@ -153,6 +155,14 @@ export function stepPartita(d: PartitaState, inputs: readonly DungeonInput[]): v
     return;
   }
   stepParty(d.s, inputUlti(d, inputs));
+  d.s.eroi.forEach((r, i) => {
+    if (r.done) return;
+    const h = r.hero, rt = d.rt[i]!, u = d.ul[i]!;
+    const attacca = h.act !== 'idle' && h.act !== 'beve' && h.act !== 'schiva';
+    const ultiOffensiva = u.fase !== 'no' && (u.id === 'marea' || u.id === 'arpione');
+    if (attacca || h.canale > 0 || ultiOffensiva) rt.ultimoAttacco = d.tick;
+    else if (d.tick - rt.ultimoAttacco >= ATTESA_VITA) h.vita = Math.min(r.runHero.max.vita, h.vita + RECUPERO.alSecondo * DT);
+  });
   dopoUlti(d);
   d.faseT++;
   d.s.loot.length = 0; // in Arena non si fruga
