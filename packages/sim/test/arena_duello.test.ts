@@ -78,15 +78,15 @@ describe('Arena — le build', () => {
     const e = buildArenaEroe(build([{ arma: 'martello_ferro' }, { arma: 'arco_ferro' }], 'vigore', 'scatto'));
     const [m, a] = e.varianti as [NonNullable<typeof e.varianti[0]>, NonNullable<typeof e.varianti[0]>];
     assert.equal(e.dote, 'vigore'); assert.equal(e.ulti, 'scatto');
-    for (const v of [m, a]) { assert.ok(v.arena); assert.equal(v.max.vita, ARENA.build.attributi.vita); assert.equal(v.max.stamina, ARENA.build.attributi.stamina * 1.5); assert.equal(v.perk, undefined); assert.equal(v.armatura.difesa, 0); }
+    for (const v of [m, a]) { assert.ok(v.arena); assert.equal(v.max.vita, ARENA.build.attributi.vita); assert.equal(v.max.stamina, ARENA.build.attributi.stamina * 2); assert.equal(v.perk, undefined); assert.equal(v.armatura.difesa, 0); }
     assert.equal(m.arma.danno, ARENA.build.armi['martello_ferro']!.danno);
     assert.equal(a.arma.kind, 'arco'); assert.equal(a.frecce?.n, ARENA.frecce); assert.equal(a.arma.danno, ARENA.build.armi['arco_ferro']!.danno);
     assert.ok(m.camminata < a.camminata, 'il martello rallenta, l\'arco no');
     assert.equal(m.camminata, Math.round(RPG.movimento.camminata * passoDi(20) * 100) / 100);
     const v = buildArenaEroe(build([{ magia: 'fulmine' }, null], 'magia')).varianti[0]!;
-    assert.ok(v.manoMagia); assert.equal(v.max.magicka, 150); assert.equal(v.regen.magicka, ARENA.build.regen.magicka * 1.5);
+    assert.ok(v.manoMagia); assert.equal(v.max.magicka, 130); assert.equal(v.regen.magicka, Math.round(ARENA.build.regen.magicka * 1.3 * 100) / 100);
     assert.equal(v.magie[0]!.costo, ARENA.build.magie['fulmine']!.costo);
-    assert.equal(buildArenaEroe(build([{ arma: 'katana_ferro' }, null], 'vita')).varianti[0]!.max.vita, 120);
+    assert.equal(buildArenaEroe(build([{ arma: 'katana_ferro' }, null], 'vita')).varianti[0]!.max.vita, 110);
     assert.equal(erroreBuild(BUILD_BASE), null);
   });
 });
@@ -99,7 +99,7 @@ describe('Arena — combattimento tra eroi', () => {
     passi(d, 4, { ...fermo(), a: true });
     passi(d, 60);
     const v1 = d.s.eroi[1]!.hero.vita;
-    assert.ok(v1 < 120 && v1 > 8, `colpito ma vivo (${v1})`);
+    assert.ok(v1 < 110 && v1 > 8, `colpito ma vivo (${v1})`);
     const e = d.s.eroi[1]!;
     e.hero.vita = 100;
     passi(d, 200, { ...fermo(), a: true });
@@ -124,7 +124,7 @@ describe('Arena — combattimento tra eroi', () => {
     assert.equal(h1.act, 'schiva', 'rotola');
     assert.ok(h1.stamina <= 100 - ARENA.build.staminaSchivata + 1, `la schivata costa Vigore (${h1.stamina})`);
     passi(d, 60);
-    assert.equal(h1.vita, 120, 'il colpo non l\'ha preso');
+    assert.equal(h1.vita, 110, 'il colpo non l\'ha preso');
     assert.equal(quantizeDungeon({ ...fermo(), roll: true }).roll, true);
   });
 
@@ -142,7 +142,7 @@ describe('Arena — combattimento tra eroi', () => {
     passi(d, 70, { ...fermo(), a: true, m: mira });
     passi(d, 90);
     const dopoFreccia = d.s.eroi[1]!.hero.vita;
-    assert.ok(dopoFreccia < 120, 'la freccia è arrivata');
+    assert.ok(dopoFreccia < 110, 'la freccia è arrivata');
     assert.equal(viewDuello(d, 0).frecce[0], ARENA.frecce - 1);
     assert.ok(actDuello(d, 0, { t: 'slot', n: 1 }));
     assert.equal(d.s.eroi[0]!.hero.incanta, true);
@@ -196,7 +196,7 @@ describe('Arena — le ulti', () => {
       const d = alVia(katana, katana);
       if (furia) { piena(d, 0); assert.ok(actDuello(d, 0, { t: 'ulti' })); }
       passi(d, 4, { ...fermo(), a: true }); passi(d, 40);
-      return 120 - d.s.eroi[1]!.hero.vita;
+      return 110 - d.s.eroi[1]!.hero.vita;
     };
     const [x, y] = [colpo(false), colpo(true)];
     assert.ok(x > 0 && Math.abs(y - 2 * x) < 0.6, `normale ${x}, con Furia ${y}`);
@@ -222,7 +222,7 @@ describe('Arena — le ulti', () => {
     passi(d, 120);
     const U = arenaUlti('aura');
     assert.ok(h.vita > 50 + (U.cura ?? 0) * 1.5, `${h.vita}`);
-    assert.equal(d.s.eroi[1]!.hero.vita, 120, 'l\'avversario no');
+    assert.equal(d.s.eroi[1]!.hero.vita, 110, 'l\'avversario no');
   });
 
   it('Raggio della Marea: fermo carica, poi colpisce chi è sulla linea', () => {
@@ -232,7 +232,7 @@ describe('Arena — le ulti', () => {
     passi(d, 20, { ...fermo(), mx: -1 });
     assert.equal(h.x, x0, 'mentre carica sta fermo');
     passi(d, 120);
-    assert.ok(d.s.eroi[1]!.hero.vita < 120 - 20, `${d.s.eroi[1]!.hero.vita}`);
+    assert.ok(d.s.eroi[1]!.hero.vita < 110 - 20, `${d.s.eroi[1]!.hero.vita}`);
   });
 
   it('Arpione: chi è preso viene tirato davanti e resta fermo un attimo', () => {
@@ -249,7 +249,7 @@ describe('Arena — le ulti', () => {
     assert.ok(preso, 'l\'arpione ha preso');
     assert.ok(vicino < 1.3, `tirato vicino (${vicino})`);
     assert.ok(fermoDopo, 'e resta fermo un attimo');
-    assert.ok(b.vita < 120);
+    assert.ok(b.vita < 110);
   });
 
   it('Velo di nebbia: gli avversari non ti vedono, finché non attacchi', () => {
@@ -319,7 +319,7 @@ describe('Arena — il duello al meglio di 3', () => {
     const [x0, x1] = arenaMappa('colosseo').spawn.map((l) => l[0]!);
     assert.equal(d.s.eroi[0]!.hero.x, (x0![0] + 0.5) * 2);
     assert.equal(d.s.eroi[1]!.hero.x, (x1![0] + 0.5) * 2);
-    assert.deepEqual(d.s.eroi.map((r) => r.hero.vita), [120, 120]);
+    assert.deepEqual(d.s.eroi.map((r) => r.hero.vita), [110, 110]);
     assert.equal(d.rt[0]!.slot, 0);
     assert.equal(viewDuello(d, 0).frecce[1], ARENA.frecce);
     const x = d.s.eroi[0]!.hero.x;

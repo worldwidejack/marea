@@ -24,8 +24,8 @@ personaggio**: abilità, perk, zaino e armature non c'entrano, si parte tutti ug
 All'ingresso del colosseo (**ENTRA NEL COLOSSEO**, o A vicino al portone) si apre il pannello con **LE TUE BUILD**: se ne salvano fino a 3
 (schede BUILD 1-3, + NUOVA), si gioca con quella scelta; si salvano col personaggio (`HeroState.arena`, `POST /api/rpg {t:'arena'}`). Ogni
 build è uguale per tutti e ha:
-- una **dote** al posto dell'armatura: +20% di **Vita**, o +50% di **Vigore** o di **Magicka** (massimo e ricarica), con un leggero bagliore
-  attorno all'eroe, rosso, verde o blu (la Vita era +50%, ma vinceva tre partite su quattro: parte 7);
+- una **dote** al posto dell'armatura: +10% di **Vita**, o +100% di **Vigore** o +30% di **Magicka** (massimo e ricarica), con un leggero bagliore
+  attorno all'eroe, rosso, verde o blu (la Vita era +50%, ma vinceva tre partite su quattro; dal 10 nov 2026, coi colpi senza Vigore, +10%: parte 7);
 - **2 slot** tra le armi (una per tipo, tutte di ferro: nunchaku, katana, ascia, lancia, spadone, martello, arco) e le magie (fuoco ed
   elettricità a proiettile, raggio e bomba; Cura e Furia **solo a squadre**: nel 1 contro 1 quello slot resta vuoto; niente evocazioni);
 - un'**ulti** a scelta tra sei (parte 7).
@@ -192,4 +192,7 @@ caso (2 slot, dote e ulti a caso, ulti accese): il danno di ogni arma e magia è
 il 55% delle partite in cui c'è. Il gladiatore tira con arco e magie mirando davvero (con un po' d'anticipo); non schiva e non scappa, quindi
 le ulti di movimento (Scatto, Velo) nelle simulazioni contano meno che tra persone: per quelle si è tenuto conto anche di questo. Il gladiatore
 schiva come una persona (non sempre in tempo) i caricati che stanno per partire e i proiettili in arrivo. Con +50% la Vita vinceva il 75% delle
-partite e il Vigore il 27%: con la Vita a +20% le tre doti stavano tra il 45 e il 54% (misurato quando i colpi costavano Vigore: da rifare ora che non lo costano).
+partite e il Vigore il 27%.
+**Rimisurato il 10 nov 2026** (#701, i colpi non costano più Vigore; 12.000 partite a build casuali, gladiatore contro gladiatore): danno di
+armi e magie corretto a piccoli passi finché ognuna vince 49-52%; dote Vita +10% (53%), Magicka +30% (53%), Vigore +100% (44%: il gladiatore
+schiva e corre poco, tra persone vale di più); ulti 39-57% (Scatto e Velo in basso, come prima, perché il gladiatore non le sa usare).
