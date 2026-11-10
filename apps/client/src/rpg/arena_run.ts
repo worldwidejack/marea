@@ -1,12 +1,7 @@
-// La partita dell'Arena lato client (docs/ARENA.md, PROTOCOL §10): prende il controllo del ciclo come la spedizione nel dungeon. La scena della
-// mappa (dungeon_scene.ts, tutta in vista), gli eroi (dungeon_hero.ts: io col mirino, gli altri col loro look, ognuno in un gruppo suo che si
-// nasconde intero), casse, casseforti e proiettili (dungeon_actors.ts), raggi e bombe (magie_fx.ts), numeri e nomi (dungeon_hud.ts), tabellone,
-// barra degli slot e scheda finale (arena_hud.ts), i segni della modalità (arena_segni.ts), bagliori ed effetti delle ulti (arena_fx.ts).
-// Gli avversari nascosti nell'erba alta non si disegnano; se sono a terra la camera segue un compagno (o chi mi ha buttato giù) finché rinasco.
-// Ogni tick un DungeonInput quantizzato come nei dungeon; le azioni della barra (slot, ulti, resa) sono azioni della partita (actPartita).
+// La partita dell'Arena lato client (docs/ARENA.md, PROTOCOL §10). Ogni eroe ha un gruppo suo: posa, equipaggiamento ed effetti.
+// Da terra la camera segue un compagno o chi mi ha buttato giù. Ogni tick usa un DungeonInput quantizzato.
 // Online (`o.rete`): il mio input va al server una volta per turno (SQ_TICKS tick) se cambia, le azioni pure; la partita avanza SOLO coi turni
 // del server, col cuscinetto contro i ritardi e la corsa per recuperare; alla fine il server manda `fine` con l'esito del suo replay e il premio.
-// Allenamento (senza `o.rete`): niente server, gli altri sono gladiatori automatici (sim/arena/bot.ts), un tick per frame; la pausa ferma tutto.
 import * as THREE from 'three';
 import { createRng } from '@marea/sim';
 import type { InputFrame, Rng } from '@marea/sim';
@@ -18,9 +13,9 @@ import type { ArenaAzione, PartitaEsito, PartitaState, PartitaView } from '@mare
 import { botArena } from '@marea/sim/arena/bot.ts';
 import type { ArenaEroe } from '@marea/sim/rpg/arena.ts';
 import { quantizeDungeon } from '@marea/sim/dungeon/replay.ts';
-import { aim } from '@marea/sim/dungeon/hero.ts';
-import { aimAlleato, distanzaBomba, isSupporto } from '@marea/sim/dungeon/magie.ts';
-import { COS_BOMBA, COS_CONO_ARCO, MAGIA_GITTATA } from '@marea/sim/dungeon/tuning.ts';
+import { aim, aimBomba } from '@marea/sim/dungeon/hero.ts';
+import { distanzaBomba } from '@marea/sim/dungeon/magie.ts';
+import { COS_CONO_ARCO, MAGIA_GITTATA } from '@marea/sim/dungeon/tuning.ts';
 import type { CompagnoView, DungeonEvent, DungeonInput, DungeonView } from '@marea/sim/dungeon/types.ts';
 import { NO_DUNGEON_INPUT } from '@marea/sim/dungeon/types.ts';
 import { SQ_TICKS } from '@marea/protocol/arena.ts';
@@ -45,6 +40,8 @@ import { createArenaHud } from './arena_hud.ts';
 import { createArenaFx } from './arena_fx.ts';
 import type { ArenaFx } from './arena_fx.ts';
 import type { ArenaControlli } from './arena_hud.ts';
+import { creaMiraBomba } from './arena_mira.ts';
+import { creaVisibilitaArena } from './arena_visibilita.ts';
 import { createArenaSegni } from './arena_segni.ts';
 import type { ArenaSegni } from './arena_segni.ts';
 
@@ -87,6 +84,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
   let sc: DungeonScene | null = null, actors: Actors | null = null, hud: DungeonHud | null = null, ahud: ArenaControlli | null = null, gfx: MagieFx | null = null, mouse: Mouse | null = null, afx: ArenaFx | null = null, segni: ArenaSegni | null = null;
   /** Gli eroi: ognuno in un gruppo suo (si nasconde intero: avatar, arma, scie). */
   const eroi: (HeroActor | null)[] = [], gruppi: THREE.Scene[] = [], armi: (string | null)[] = o.eroi.map(() => null);
+  const visibilita = o.eroi.map(creaVisibilitaArena), miraBomba = creaMiraBomba();
   let resolve!: (v: { esito: PartitaEsito | null; rivincita: boolean }) => void;
   const done = new Promise<{ esito: PartitaEsito | null; rivincita: boolean }>((r) => (resolve = r));
   const win = { mx: 0, my: 0, bits: 0, m: 0, n: 0 };
@@ -201,8 +199,8 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
       if (r.hero.arma.id !== armi[j]) { armi[j] = r.hero.arma.id; void a.setArma(r.hero.arma); }
       a.equip(r.runHero);
       const c = j === io ? null : v.compagni.find((x) => x.i === j);
-      gruppi[j]!.visible = j === io ? !r.done : !!c && !c.done;
-      if (j === io) a.tick(v.hero); else if (c && !c.done) a.tick(posaDi(c));
+      const posa = r.done ? null : j === io ? v.hero : c ? posaDi(c) : null;
+      visibilita[j]!.tick(gruppi[j]!, a, posa);
     });
     actors!.tick(v); gfx!.tick(v);
     miraOra(); ombraOra();
@@ -218,8 +216,8 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     return l > 1e-6 ? { x: dx / l, z: dz / l } : null;
   };
   const mira = () => { const h = d.s.eroi[io]!.hero; return h.incanta || h.arma.kind === 'arco'; };
-  /** La mira a mano di adesso (joystick di mira, o il cursore col mouse): null = niente, vale quella assistita. */
-  const miraManuale = () => { const h = d.s.eroi[io]!.hero; return ahud?.miraDir() ?? (mira() && !ahud?.paused ? mouse?.verso(h.x, h.z) ?? null : null); };
+  const bombaInMano = () => { const { hero, runHero: rh } = d.s.eroi[io]!; return hero.incanta && rh.magia !== null && rh.magie[rh.magia]?.forma === 'bomba'; };
+  const miraManuale = () => { const h = d.s.eroi[io]!.hero; return bombaInMano() && h.act === 'punta' ? miraBomba.dir() : ahud?.miraDir() ?? (mira() && !ahud?.paused ? mouse?.verso(h.x, h.z) ?? null : null); };
   const miraOra = (): void => {
     const v = miraManuale();
     if (!v) { eroi[io]!.mira(miraArco()); return; }
@@ -231,9 +229,10 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     const r = d.s.eroi[io]!, h = r.hero, rh = r.runHero, sp = rh.magia !== null ? rh.magie[rh.magia] : undefined;
     if (phase !== 'play' || d.fase !== 'gioca' || r.done || h.act !== 'punta' || sp?.forma !== 'bomba') return null;
     const prima = d.s.cur; d.s.cur = io;
-    let fx = h.fx, fz = h.fz;
-    if (!miraManuale()) {
-      const g = sp.gittata ?? MAGIA_GITTATA, e = isSupporto(sp) ? aimAlleato(d.s, g, COS_BOMBA, g * 0.5) : aim(d.s, g, COS_BOMBA, 0, true);
+    const manuale = miraManuale();
+    let fx = manuale?.x ?? h.fx, fz = manuale?.z ?? h.fz;
+    if (!manuale) {
+      const e = aimBomba(d.s, sp);
       const dx = e ? e.x - h.x : 0, dz = e ? e.z - h.z : 0, l = Math.sqrt(dx * dx + dz * dz);
       if (l > 1e-6) { fx = dx / l; fz = dz / l; }
     }
@@ -259,7 +258,8 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     }
     const a = f.a || c.a || aTap, punta = mouse && mira() ? mouse.verso(h.x, h.z)?.m ?? 0 : 0;
     const m = aTap ? 0 : c.m || (a || h.act === 'tende' || h.act === 'punta' ? punta : 0);
-    return { mx: f.mx, my: f.my, a, b: f.b, c: false, d: false, ...(c.e ? { e: true } : {}), ...(f.roll ? { roll: true } : {}), ...(m ? { m } : {}) };
+    const stabile = miraBomba.campiona(m, a, !aTap && bombaInMano() && (a || h.act === 'punta'));
+    return { mx: f.mx, my: f.my, a, b: f.b, c: false, d: false, ...(c.e ? { e: true } : {}), ...(f.roll ? { roll: true } : {}), ...(stabile ? { m: stabile } : {}) };
   }
 
   // ---- da solo (allenamento): un tick per frame, i gladiatori fanno gli altri ----
@@ -342,7 +342,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     },
     update(alpha, dt, t) {
       if (!sc || !actors || !hud || !ahud || phase === 'over' || phase === 'loading') return;
-      for (const e of eroi) e?.update(alpha, dt);
+      eroi.forEach((e, j) => { if (e) visibilita[j]!.update(gruppi[j]!, e, alpha, dt, j === io && view.nascosto); });
       const p = eroi[fuoco()]!.avatar.object.position;
       // la camera guarda un po' verso gli avversari che si vedono (il più vicino, al massimo CAM_VERSO m): si vedono tutti finché si è vicini
       let ox = 0, oz = 0, vicino = Infinity;
@@ -358,17 +358,17 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
       sc.update(p.x, p.z, t);
       actors.update(alpha, dt, t, { x: p.x, z: p.z });
       gfx?.update(t, { x: p.x, z: p.z }, view.dungeon);
-      const pos = eroi.map((e, j) => (e && gruppi[j]?.visible ? e.avatar.object.position : null));
+      const pos = eroi.map((e, j) => (e && gruppi[j]?.visible && (j === io || visibilita[j]!.opacita === 1) ? e.avatar.object.position : null));
       afx?.update(t, pos, view);
-      segni?.update(view, t, eroi.map((e, j) => (e && gruppi[j]?.visible ? e.head() : null)));
+      segni?.update(view, t, eroi.map((e, j) => (e && pos[j] ? e.head() : null)));
       ahud.set(view, nomi);
       hud.bars(actors.bars());
       // nomi e vita: i compagni in verde, gli avversari che si vedono in rosso
       hud.compagni(view.altri.flatMap((a) => {
         const g = gruppi[a.i];
-        if (a.giu || a.nascosto || !g?.visible) return [];
-        const pos = eroi[a.i]!.head().clone(); pos.y += 0.35;
-        return [{ pos, nome: nomi[a.i]!, frac: a.vita / Math.max(1, a.max), nemico: a.squadra !== mia }];
+        if (a.giu || a.nascosto || !g?.visible || !pos[a.i]) return [];
+        const testa = eroi[a.i]!.head().clone(); testa.y += 0.35;
+        return [{ pos: testa, nome: nomi[a.i]!, frac: a.vita / Math.max(1, a.max), nemico: a.squadra !== mia }];
       }));
       const cur = mouse?.attivo && mira() ? 'crosshair' : '';
       if (ctx.canvas.style.cursor !== cur) ctx.canvas.style.cursor = cur;
@@ -383,15 +383,13 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     if (!r || phase === 'over') return false;
     r.hero.x = (Number(cx) + 0.5) * d.s.map.tile; r.hero.z = (Number(cz) + 0.5) * d.s.map.tile; return true;
   });
-  // test (hook arenaCarica): l'ulti dell'eroe j piena, per provarla subito (solo nell'allenamento: online la carica la decidono i turni)
   registerTestHook('arenaCarica', (j) => { const u = d.ul[Number(j)]; if (!u || rete || phase === 'over') return false; u.carica = ARENA.ulti.carica.max; return true; });
-  // test (hook arenaTempo): salta avanti di `s` secondi di gioco (solo nell'allenamento): per vedere la nube stretta o la fine a tempo
   registerTestHook('arenaTempo', (s) => { if (rete || phase === 'over' || d.fase !== 'gioca') return false; d.faseT += Math.round(Number(s) * 60); return true; });
   registerStateProvider('arenaPartita', () => (phase === 'over' ? null : {
     phase, fase: d.fase, modo: d.modo, per: d.per, esito: d.esito, tick: d.tick, io, slot: view.slot, ulti: view.ulti, secondi: view.secondi, mappa: d.mappa, squadre: [...d.squadre],
     punti: [...d.punti], torna: view.torna, fuori: view.fuori, segno: view.segno, nube: view.nube, zone: view.zone, casseforti: view.casseforti, mucchi: view.mucchi.length, vive: view.vive,
     vita: d.s.eroi.map((r) => Math.round(r.hero.vita * 10) / 10), pos: d.s.eroi.map((r) => [Math.round(r.hero.x * 100) / 100, Math.round(r.hero.z * 100) / 100]),
-    nascosto: view.nascosto, nascosti: view.altri.filter((a) => a.nascosto).map((a) => a.i), visibili: gruppi.map((g) => !!g?.visible),
+    nascosto: view.nascosto, nascosti: view.altri.filter((a) => a.nascosto).map((a) => a.i), visibili: gruppi.map((g) => !!g?.visible), opacita: visibilita.map((v) => v.opacita),
     turni: rete?.turni.length ?? 0, ombra, firme: { ...firme }, auto: !!auto, pausa: !!ahud?.paused, finale: finaleAperto,
   }));
   return run;

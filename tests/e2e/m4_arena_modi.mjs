@@ -83,10 +83,19 @@ export default async function (ctx) {
       const out = {};
       T.arenaPosa(3, 8, 3); await frame(); out.avversario = S();   // avversario 3 nel prato, io alla partenza
       T.arenaPosa(1, 7, 2); await frame(); out.compagno = S();     // il mio compagno nel prato: si vede lo stesso
+      T.arenaPosa(3, 9, 5);
+      for (let i = 0; i < 10; i++) {
+        await new Promise(requestAnimationFrame);
+        if (S().visibili[3]) break;
+      }
+      out.uscita = S();
+      T.arenaPosa(0, 13, 1);
       return out;
     });
     assert(r.avversario.nascosti.includes(3) && r.avversario.visibili[3] === false, 'avversario nell’erba: ' + JSON.stringify(r.avversario.nascosti));
     assert(!r.compagno.nascosti.includes(1) && r.compagno.visibili[1] === true, 'il compagno nell’erba si vede');
+    assert(r.uscita.visibili[3] && r.uscita.opacita[3] > 0 && r.uscita.opacita[3] < 1, 'l’avversario riappare gradualmente');
+    await ctx.waitState(page, (st) => st.arenaPartita?.nascosto && st.arenaPartita.opacita[0] === 0.55 && st.arenaPartita.opacita[3] === 1);
     await page.waitForSelector('.mz-ar-segno', { state: 'visible', timeout: 5000 });
     await ctx.shot(page, 'stelle');
     await esci(page);

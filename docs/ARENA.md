@@ -65,6 +65,7 @@ Niente pozioni né anelli; l'arco ha 18 frecce (si riempiono quando si rinasce).
 - **Tutti uguali**: 100 di Vita, Magicka e Stamina (più la dote), niente armatura, niente perk né abilità; danni, velocità e costi di ogni arma
   e magia sono fissi, scritti in `arena.json` → `build` (`buildArenaEroe` di `sim/rpg/arena.ts`). Le monete rosse della Sopravvivenza sono
   l'unica cosa che cresce durante una partita.
+- **Recupero Vita**: dopo 4 s senza attaccare si recuperano 4 punti Vita al secondo, anche mentre ci si muove o si schiva.
 - **Niente one-shot**: nessun colpo supera `arena.dannoMax` (92) di `balance.json`.
 - **Il peso conta**: col martello in mano si va un po' più piano (−11%), con nunchaku e arco un po' più svelti (+2%): `build.passo`.
 - **Il Vigore è per correre e schivare, non per colpire**: i colpi e le frecce non costano niente (a Vigore finito sul telefono sembrava che le
@@ -117,8 +118,9 @@ Niente pozioni né anelli; l'arco ha 18 frecce (si riempiono quando si rinasce).
   dall'altra parte (o, nella Sopravvivenza, in un'altra squadra) e il premio c'è.
 
 ### Prove
+- **Bombe**: passano sopra muri e ostacoli e scoppiano dove atterrano.
 - **Ombra di mira**: con una magia a bomba in mano, mentre si mira a terra c'è un disco scuro col raggio dello scoppio dove la bomba
-  atterrerebbe. La vede solo chi mira.
+  atterrerebbe. La vede solo chi mira. La direzione delle bombe è smorzata per limitare gli scarti con joystick e mouse.
 - **Allenamento senza server**: `?test=1&net=0&arena=banco` entra subito nell'allenamento (Caccia alle stelle). `?arena=1`: il bottone ⚔ porta
   al colosseo. Hook di prova: `arenaGioca`, `arenaPosa`, `arenaCarica`, `arenaTempo` (avanti di N s), `arenaAuto` (il pilota gioca per me).
 - Test: `packages/sim/test/arena_partita.test.ts` (build, colpi tra eroi, Vigore, Cura e Furia, le sei ulti, erba alta, resa, premio),
@@ -138,7 +140,7 @@ Niente pozioni né anelli; l'arco ha 18 frecce (si riempiono quando si rinasce).
 Regole in `sim/arena/modi.ts`, numeri in `arena.json` → `modi`. Le mappe sono nel formato dei dungeon (2 m a cella), chiuse, con tutto il
 pavimento raggiungibile; quelle a due squadre sono **simmetriche** (ruotate di mezzo giro, casseforti e zone si scambiano). Segni nelle righe
 (pavimento): `K` cassa, `A` `B` le casseforti delle squadre 0 e 1, `1` `2` i centri delle zone; `E` erba alta, `C` colonna, `m` muretto basso
-(si tira sopra, non si passa). Una mappa nuova è una voce in `arena.json` → `mappe` con `modi` e `spawn` per squadra, più (per un aspetto
+(si tira sopra, non si passa). Le collisioni di colonne e recinzioni seguono il loro ingombro, lasciando liberi i passaggi laterali. Una mappa nuova è una voce in `arena.json` → `mappe` con `modi` e `spawn` per squadra, più (per un aspetto
 suo) un kit in `rpg/arena_kit.ts` e una riga in `STYLE` di `rpg/dungeon_scene.ts`.
 
 ### Sopravvivenza — Isola del Naufragio (34×34)
@@ -175,6 +177,7 @@ suo) un kit in `rpg/arena_kit.ts` e una riga in `STYLE` di `rpg/dungeon_scene.ts
 
 ### Erba alta (come in Brawl Stars)
 - Le celle `E`: chi ci sta dentro **non lo vedono gli avversari** (non si disegna, niente nome, la mira assistita non lo punta); i compagni sì.
+  Chi è nascosto vede il proprio eroe semitrasparente. Quando torna visibile agli avversari ricompare con una breve dissolvenza a pixel.
   Colpi, frecce, scoppi e mischia lo prendono lo stesso.
 - Lo **scoprono** **[proposta]**: un avversario entro 3 m, e per 1,2 s chi attacca o prende un colpo (`balance.json` → `arena.erba`).
 - I gladiatori rispettano l'erba: non vedono chi è nascosto, lo cercano dove l'hanno visto l'ultima volta.

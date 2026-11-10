@@ -153,6 +153,8 @@ export function botArena(d: PartitaState, i: number, rng: Rng): { input: Dungeon
   }
   if (d.fase !== 'gioca') return { input: { ...NO_DUNGEON_INPUT }, azione: null };
   const tipo = tipoDi(e.varianti[rt.slot] ?? null), rh = me.runHero;
+  const sp = rh.magia !== null ? rh.magie[rh.magia] : undefined;
+  const puoTirare = vede || (!!o && sp?.forma === 'bomba');
   // movimento: verso di lui (o la cosa da colpire) lungo il campo BFS; senza niente da colpire verso la meta (e lì ci gira attorno);
   // di lato ogni tanto quando si tira da lontano
   if (d.tick - m.latoT > 90) { m.latoT = d.tick; m.lato = rng.next() < 0.5 ? -1 : 1; }
@@ -161,7 +163,7 @@ export function botArena(d: PartitaState, i: number, rng: Rng): { input: Dungeon
   if (!o && mt) {
     if (dist2(mt.p, h) > mt.resta * mt.resta) mv = vai(d, m, h, mt.p.x, mt.p.z, rh.raggio);
     else { const u = norm(mt.p.x - h.x + m.lato * 0.7, mt.p.z - h.z - m.lato * 0.7); mv = { x: -u.z * m.lato * 0.5, z: u.x * m.lato * 0.5 }; }
-  } else if (o && (dist > lontano || !vede)) mv = vai(d, m, h, o.x, o.z, rh.raggio);
+  } else if (o && (dist > lontano || !puoTirare)) mv = vai(d, m, h, o.x, o.z, rh.raggio);
   else if (o && tipo !== 'mischia') { const u = norm(dx, dz); mv = { x: -u.z * m.lato * 0.6, z: u.x * m.lato * 0.6 }; }
   else if (o && !lui) mv = { x: (dx / Math.max(1e-6, dist)) * 0.15, z: (dz / Math.max(1e-6, dist)) * 0.15 }; // davanti alla cassa: girato verso di lei
   // Sopravvivenza: via dalla nube prima di tutto
@@ -171,12 +173,11 @@ export function botArena(d: PartitaState, i: number, rng: Rng): { input: Dungeon
   }
   // attacco: mischia in portata a colpi brevi (ogni tanto caricati), arco teso fino in fondo, magia a colpo singolo o raggio tenuto
   let a = false;
-  if (vede) {
+  if (puoTirare) {
     if (tipo === 'mischia' && dist <= rh.arma.portata + rh.raggio + 0.3 + (lui ? 0 : 0.4)) {
       if (m.tieni <= 0 && h.act === 'idle' && !m.prevA) m.tieni = lui && rng.next() < 0.25 ? Math.round(rh.arma.carica * 60) + 6 : 2;
     } else if (tipo === 'arco' && dist < 16 && h.frecce > 0) a = h.act !== 'tende' ? !m.prevA : h.carica < 1;
     else if ((tipo === 'magia' || tipo === 'evoca') && dist < (tipo === 'evoca' ? 12 : 9)) {
-      const sp = rh.magia !== null ? rh.magie[rh.magia] : undefined;
       if (sp && h.magicka >= sp.costo) a = sp.forma === 'raggio' ? dist < (sp.gittata ?? 5) : h.act !== 'punta' ? !m.prevA : false;
     } else if (tipo === 'cura' && h.vita < rh.max.vita * 0.8) a = !m.prevA;
   }
@@ -184,8 +185,7 @@ export function botArena(d: PartitaState, i: number, rng: Rng): { input: Dungeon
   m.prevA = a;
   // con l'arco o una magia la mira va su di lui, a metà dell'anticipo giusto (un umano medio)
   let mira = 0;
-  if (o && vede && (tipo === 'arco' || tipo === 'magia') && (a || h.act === 'tende' || h.act === 'punta')) {
-    const sp = rh.magia !== null ? rh.magie[rh.magia] : undefined;
+  if (o && puoTirare && (tipo === 'arco' || tipo === 'magia') && (a || h.act === 'tende' || h.act === 'punta')) {
     const v = tipo === 'arco' ? Math.max(8, rh.arma.gittata + (rh.frecce?.gittata ?? 0)) : sp?.forma === 'bomba' ? dist / Math.max(0.2, sp.volo ?? 1) : sp?.forma === 'raggio' ? 1e9 : Math.max(6, sp?.velocita ?? 12);
     const t = (dist / v) * 0.5;
     mira = aimIndex(o.x + vx * t - h.x, o.z + vz * t - h.z);

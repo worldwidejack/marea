@@ -1,16 +1,14 @@
 // Eroe nel dungeon: movimento (camminata, corsa a stamina), mischia normale/caricata con mira assistita, arco, magie, pozioni, uscita.
 import { RPG } from '@marea/content/rpg.ts';
 import type { SkillId, Traits } from '@marea/content/rpg.ts';
-import type { RunPotion, RunWeapon } from '../rpg/types.ts';
+import type { RunPotion, RunSpell, RunWeapon } from '../rpg/types.ts';
 import { DT } from '../constants.ts';
 import type { DungeonEvent, DungeonInput } from './types.ts';
 import type { DungeonState, Enemy } from './state.ts';
 import { add, ev, evocaAlleato, secToTicks } from './state.ts';
 import { buff, hitEnemy, rallentaNemico } from './combat.ts';
 import { lineOfSight, moveCircle } from './map.ts';
-import {
-  SPAZIO_FP, BEVE_TICKS, COLPI, COS_BOMBA, COS_CONO_ARCO, COS_RAGGIO, COS_SEMICERCHIO, FRECCIA_Y, GIRO_TEMPO, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y, HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS,
-} from './tuning.ts';
+import { SPAZIO_FP, BEVE_TICKS, COLPI, COS_BOMBA, COS_CONO_ARCO, COS_RAGGIO, COS_SEMICERCHIO, FRECCIA_Y, GIRO_TEMPO, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y, HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS } from './tuning.ts';
 import { stepSchivata, velocitaSchivata } from './schivata.ts';
 import { faseSwing, sweepTo, swept, swingStyle } from './swing.ts';
 import { aimDir } from './mira.ts'; import { alza, alzoDir } from './alzo.ts'; import { consuma, rebuild } from './zaino.ts';
@@ -55,6 +53,10 @@ export function aim(s: DungeonState, range: number, cosMin: number, fallback: nu
     if (p.near && p.near.d < nd) return p.near;
   }
   return best ?? near;
+}
+export function aimBomba(s: DungeonState, sp: RunSpell): { x: number; z: number } | null {
+  const g = sp.gittata ?? MAGIA_GITTATA;
+  return isSupporto(sp) ? aimAlleato(s, g, COS_BOMBA, g * 0.5, !s.pvp) : aim(s, g, COS_BOMBA, 0, !s.pvp);
 }
 function faceTo(s: DungeonState, e: { x: number; z: number } | null): void {
   if (!e) return;
@@ -208,8 +210,7 @@ function cast(s: DungeonState, dir: Mira): void {
     return;
   }
   if (sp.forma === 'bomba') { // lenta, in alto: atterra sul nemico (o alleato, se di supporto) che hai davanti e scoppia (magie.ts)
-    const g = sp.gittata ?? MAGIA_GITTATA;
-    if (!dir) faceTo(s, isSupporto(sp) ? aimAlleato(s, g, COS_BOMBA, g * 0.5) : aim(s, g, COS_BOMBA, 0, true));
+    if (!dir) faceTo(s, aimBomba(s, sp));
     lanciaBomba(s, sp);
     return;
   }

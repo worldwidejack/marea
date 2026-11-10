@@ -42,6 +42,10 @@ export type ArenaUlti = { id: string; nome: string; descr: string; secondi?: num
 export type ArenaBuildCfg = {
   /** Build che si possono salvare; Vita, Magicka e Stamina di tutti e la loro ricarica al secondo. */
   salvate: number; attributi: { vita: number; magicka: number; stamina: number }; regen: { vita: number; magicka: number; stamina: number };
+  /** Secondi senza attaccare e punti Vita recuperati al secondo. */
+  recuperoVita: { attesa: number; alSecondo: number };
+  /** Frazione della correzione angolare applicata per tick alla mira delle bombe. */
+  sensibilitaBomba: number;
   doti: ArenaDote[];
   /** Il passo con l'arma in mano: × (1 + (neutro − peso) × perKg); le magie pesano `neutro`. */
   passo: { neutro: number; perKg: number };
@@ -107,6 +111,8 @@ export function validateArena(): string[] {
   if (!arenaModo('stelle').stelle || !arenaModo('controllo').zona || !arenaModo('rapina').cassaforte) errs.push('arena: numeri delle modalità mancanti');
   if (!pos(c.slot) || c.slot > 9 || !pos(c.frecce)) errs.push('arena: slot o frecce non validi');
   const b = c.build;
+  if (!pos(b.recuperoVita.attesa) || !pos(b.recuperoVita.alSecondo)) errs.push('arena: recupero Vita non valido');
+  if (!pos(b.sensibilitaBomba) || b.sensibilitaBomba > 1) errs.push('arena: sensibilità delle bombe non valida');
   if (!pos(b.salvate) || !b.doti.length || !Object.keys(b.armi).length || !Object.keys(b.magie).length) errs.push('arena: build non valida');
   for (const a of Object.values(b.armi)) if (!pos(a.danno) || !(pos(a.colpi) || pos(a.tensione))) errs.push('arena: arma senza danno o velocità');
   if (!c.ulti.lista.length || !pos(c.ulti.carica.max) || new Set(c.ulti.lista.map((u) => u.id)).size !== c.ulti.lista.length) errs.push('arena: ulti non valide');
