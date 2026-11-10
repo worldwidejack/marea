@@ -130,7 +130,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
       tickAttori();
       ctx.renderer.setScene(sc.scene);
       const alto = ctx.canvas.clientHeight, largo = ctx.canvas.clientWidth; // più larghi che nei dungeon (si vedono gli avversari); telefono in orizzontale, la posizione principale: più vicini
-      ctx.renderer.diorama.setZoom(alto > largo * 1.2 ? 1.9 : largo > alto && alto < 520 ? 1.0 : 1.3);
+      ctx.renderer.diorama.setZoom(alto > largo * 1.2 ? 1.9 : largo > alto && alto < 520 ? 0.8 : 1.3);
       const v = view.dungeon;
       ctx.renderer.diorama.follow(v.hero.x, sc.floorY + 0.9, v.hero.z); ctx.renderer.diorama.snap?.();
       if (rete) rete.manda({ t: 'carico' });
