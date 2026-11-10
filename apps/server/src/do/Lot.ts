@@ -105,6 +105,13 @@ export class Lot extends DurableObject<Env> {
     const now = nowFromHeader(req);
     const act = url.pathname.replace(/^\/+/, '');
     try {
+      // prima il corpo, poi il lotto: nell'attesa del corpo entra anche un'altra richiesta, e col lotto già letto lavoravano tutte e due
+      // sulla stessa copia (due firme dello stesso amico nello stesso giorno, e la seconda cancellava quello che aveva salvato la prima)
+      let body: Record<string, unknown> = {};
+      if (req.method === 'POST') {
+        try { body = (await req.json()) as Record<string, unknown>; } catch { return json({ error: 'Richiesta non valida' }, 400); }
+        if (!body || typeof body !== 'object') return json({ error: 'Richiesta non valida' }, 400);
+      }
       const lot = this.load(owner, now);
       if (req.method === 'GET' && act === 'state') {
         const next = advance(lot, now);
@@ -112,9 +119,6 @@ export class Lot extends DurableObject<Env> {
         return json(next);
       }
       if (req.method !== 'POST') return json({ error: 'Metodo non consentito' }, 405);
-      let body: Record<string, unknown>;
-      try { body = (await req.json()) as Record<string, unknown>; } catch { return json({ error: 'Richiesta non valida' }, 400); }
-      if (!body || typeof body !== 'object') return json({ error: 'Richiesta non valida' }, 400);
       if (act === 'solo_start' || act === 'solo_play') return this.solo(lot, act, body, now, owner);
       if (RPG_ACTS.has(act)) {
         const g = lot.dungeon?.pending?.party;

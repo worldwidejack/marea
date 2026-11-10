@@ -126,6 +126,14 @@ export default async function (ctx) {
       assert(fc.items.filter((x) => x.tipo === 'visita' && x.da === 'anna').length === 1, 'righe di Carlo: ' + JSON.stringify(fc.items));
     });
 
+    await ctx.test('20 richieste in parallelo sullo stesso lotto: nessuna si perde', async () => {
+      // il lotto si legge dopo il corpo della richiesta: prima due richieste insieme partivano dalla stessa copia e 36 monete su 40 sparivano
+      const m0 = (await get('/api/lot', 'tokC')).body.monete;
+      const rs = await Promise.all(Array.from({ length: 20 }, () => post('/api/test/monete', 'tokC', { n: 1 })));
+      const m1 = (await get('/api/lot', 'tokC')).body.monete;
+      assert(rs.every((r) => r.status === 200) && m1 - m0 === 20, `monete +${m1 - m0} invece di +20 (${rs.map((r) => r.status)})`);
+    });
+
     await ctx.test('letto: { fino } porta nonLetti a 0, una riga nuova resta non letta; massimo 30 righe, recenti prima; 401 senza token, 400 fino rotto', async () => {
       const f0 = await feed('tokB');
       assert(f0.nonLetti > 0, 'Bruno senza righe non lette');
