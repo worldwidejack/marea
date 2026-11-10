@@ -34,7 +34,13 @@ export async function openPage(browser, url, { viewport = IPHONE } = {}) {
 export const waitReady = (page, timeout = 10000) => page.waitForFunction(() => window.__game && window.__game.ready === true, null, { timeout });
 export async function waitState(page, fnSrc, timeout = 10000, arg = null) {
   const fn = typeof fnSrc === 'function' ? fnSrc.toString() : fnSrc;
-  await page.waitForFunction(([f, a]) => { try { return (0, eval)('(' + f + ')')(window.__game.state(), a); } catch { return false; } }, [fn, arg], { timeout, polling: 100 });
+  const vero = ([f, a]) => { try { return (0, eval)('(' + f + ')')(window.__game.state(), a); } catch { return false; } };
+  try { await page.waitForFunction(vero, [fn, arg], { timeout, polling: 100 }); } catch (e) {
+    // su GitHub (2-4 fps) il polling gira coi timer della pagina, che mentre la pagina disegna restano fermi anche 8 s; una lettura diretta
+    // passa davanti: se adesso è vero, l'attesa è riuscita (m3_paesani: il dialogo aperto, «condizione adesso: true», attesa scaduta)
+    if (await page.evaluate(vero, [fn, arg]).catch(() => false)) return;
+    throw e;
+  }
 }
 export const getState = (page) => page.evaluate(() => window.__game.state());
 /** Fulvio parla a pagine (poche righe l'una): tocca AVANTI finché sulla scheda compare il bottone `act` (che si accende da solo dopo l'attesa dei tocchi). */
