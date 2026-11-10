@@ -71,7 +71,7 @@ export const ALTEZZA_EROE: readonly [number, number] = [0, 1.8];
 
 /** Il dungeon ha un soffitto (in prima persona si vede): il Portale del Vuoto e le arene sono all'aperto. */
 export const haSoffitto = (s: DungeonState): boolean => !APERTI.has(s.def.stile);
-const APERTI = new Set(['vuoto', 'colosseo', 'giardino', 'rovine']);
+const APERTI = new Set(['vuoto', 'naufragio', 'stelle', 'forte', 'porto']);
 
 /** Quanti metri (lungo il colpo) può fare un colpo mirato con la pendenza [c, n] dagli occhi prima del pavimento o del soffitto. */
 export function finoAlTetto(s: DungeonState, n: number): number {

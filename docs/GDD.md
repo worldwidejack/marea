@@ -35,7 +35,7 @@ Riferimenti: ogni format prende da un gioco di grande successo (Mario Kart e Did
 | **Templari** (birbasan): chiesa in rovina, borgo abbandonato, cimitero | sud | libera | ondate di crociati zombie, fino a 4 insieme (§13, `TEMPLARI.md`) |
 | **Corse** (Jack): prato, anello d'asfalto, tribune | nord-est | libera | il **Gran Premio**, a piedi dalle porte delle zone (`CORSE.md`) |
 | **Adrenalina** (birbasan): una montagna con la funivia | nord-ovest | la funivia ti fa salire dopo la **liberatoria** e col **Casco** in testa | discese contro i fantasmi degli amici (§14, `ADRENALINA.md`) |
-| **Arena** (Riccardo, da confermare con Jack): un colosseo | sud-est | libera | duello 1v1, 2v2 e 3v3 alla Brawl Stars, con erba alta, build uguali per tutti e ulti (`ARENA.md`) |
+| **Arena** (Riccardo, da confermare con Jack): un colosseo | sud-est | libera | quattro modalità alla Brawl Stars (Sopravvivenza, Caccia alle stelle, Controllo, Rapinatori), build uguali per tutti e ulti (`ARENA.md`) |
 | **Difesa**: L'orto, col casale e il mulino | ovest | libera | difesa a corsie alla Plants vs Zombies, 6 livelli + Sopravvivenza (`DIFESA.md`) |
 
 Sotto le isole c'è il **Mondo Sotterraneo**, coi dungeon (§12, `RPG.md`); sull'anello della **Laguna** quelli dell'Epopea della Regata. Il **Distretto Neon** e l'**Isola Selvaggia** sono facciate, da vedere dalla barca.
@@ -61,7 +61,7 @@ Il **protagonista** (Riccardo, 3 nov 2026, `avatar.json` `protagonista`): il rag
 Da dove arrivano (numeri e tetti nei JSON):
 - **minigiochi da soli**: premio a medaglie, più un extra all'oro per alcuni; premiate solo le prime partite del giorno (`balance.json` `solo`, `premioExtra` nel json del minigioco);
 - **Bacheca del Porto**: 3 missioni al giorno (`missioni.json`);
-- **Templari** e **Arena**: per ondata superata e per duello, con un tetto al giorno (`templari.json`, `arena.json` `premio`);
+- **Templari** e **Arena**: per ondata superata e per partita, con un tetto al giorno (`templari.json`, `arena.json` `premio`);
 - **dungeon**: dai nemici e dai forzieri (`rpg/loot.json`); il **Contrabbandiere** compra lo zaino, gli insetti e i pesci;
 - chi comincia ne ha `monete.partenza`.
 
@@ -142,7 +142,7 @@ Ogni minigioco: cartello regole di 3 s in italiano, si gioca con un pollice, anc
 
 **Discese dell'Adrenalina** (Isola dell'Adrenalina, §3): tre minigiochi nel formato comune (snowboard, bici downhill, lancio col paracadute), 60-120 s, su **piste fisse** disegnate a mano (verde → blu → rossa → nera) invece che generate dal seed, così record e fantasmi valgono. Si giocano in una **scena a parte** (la montagna da vicino) invece che in una schermata sopra il mondo. Niente bot: si corre contro il **fantasma** del record di un amico. Tutto in **`docs/ADRENALINA.md`**.
 
-**Duello dell'Arena** (Isola dell'Arena, §3): PvP 1v1, 2v2 o 3v3 al meglio di 3 round (3 s di conto alla rovescia, 90 s di gioco; a tempo scaduto vince chi ha più Vita), tutti uguali, niente colpi da un colpo solo. Conta solo la **build** (se ne salvano 3): una dote (+10% Vita, +100% Vigore o +30% Magicka), 2 tra armi e magie (Cura e Furia solo a squadre) e un'**ulti** a carica. Coda veloce, sala con codice per gli amici (i posti vuoti li prendono i gladiatori automatici), allenamento. Nell'**erba alta** delle mappe gli avversari non ti vedono (i compagni sì). Premio: 30 monete a vittoria, 10 a sconfitta, tetto 150 al giorno. Tutto in **`docs/ARENA.md`** (`arena/arena.json`).
+**Arena** (Isola dell'Arena, §3): PvP in quattro modalità, ognuna con la sua mappa: **Sopravvivenza** (10 da soli o 5 coppie, casse con le monete rosse, nube tossica che stringe), **Caccia alle stelle** (3v3, taglie di stelle), **Controllo** (3v3, zone da conquistare), **Rapinatori** (2v2 o 3v3, casseforti). Tutti uguali, niente colpi da un colpo solo. Conta solo la **build** (se ne salvano 3): una dote, 2 tra armi e magie e un'**ulti** a carica. Coda veloce, sala con codice, allenamento: i posti vuoti li prendono i gladiatori. Nell'**erba alta** non ti vedono. Premio: 30 monete a vittoria, 10 a sconfitta, tetto 150 al giorno. Tutto in **`docs/ARENA.md`** (`arena/arena.json`).
 
 ## 7. Sfide con posta
 Spente dal 30 set 2026 e tolte dal codice il 20 ott: si gioca da soli e si viene premiati dai minigiochi (§5, §6). Il codice di prima (Tavolo, posta, rotte del server) sta nel tag `archivio/spenti-sfide`. Al Tavolo del Porto c'è lo **Scacco in 3**: ti siedi e si apre la scacchiera, senza premio.

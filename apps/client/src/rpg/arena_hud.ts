@@ -1,13 +1,16 @@
-// HUD e controlli del duello dell'Arena (docs/ARENA.md §2): in alto il tabellone (a sinistra la mia squadra, a destra l'altra, una barra di vita
-// per eroe con il nome; in mezzo i round vinti a pallini e il tempo del round), sotto la mia Magicka e Stamina; un cartello dice se sono nell'erba
-// alta o nel Velo (nessun avversario mi vede) o a terra; in basso la barra degli slot col bottone tondo dell'ulti che si riempie (tocco su
-// telefono, tasti 1-2 e F su PC); joystick di movimento, A e B di game/input.ts alzati sopra la barra; con l'arco o una magia in mano il joystick di mira
-// (mira_stick.ts) al posto di A, col mouse il clic sinistro tenuto e la mira verso il cursore come nei dungeon. Menu (Esc): RIPRENDI e
-// ARRENDITI (con conferma). Scritte grandi: conto alla rovescia, VIA!, round vinto o perso, e la scheda finale con l'esito e il premio.
+// HUD e controlli delle partite dell'Arena (docs/ARENA.md §2): in alto il tabellone (a sinistra la mia squadra, una barra di vita per eroe col
+// nome; a destra l'altra squadra o, nella Sopravvivenza, quante squadre sono ancora in piedi; in mezzo il tempo e i punti della modalità: stelle,
+// % di conquista, % della cassaforte, il mio numero di monete rosse), sotto la mia Magicka e Stamina; un cartello dice se sono nell'erba alta o
+// nel Velo (nessun avversario mi vede), nella nube tossica, a terra (fra quanto rinasco) o fuori (a che posto); in basso la barra degli slot col
+// bottone tondo dell'ulti che si riempie (tocco su telefono, tasti 1-2 e F su PC); joystick di movimento, A e B di game/input.ts alzati sopra la
+// barra; con l'arco o una magia in mano il joystick di mira (mira_stick.ts) al posto di A, col mouse il clic sinistro tenuto e la mira verso il
+// cursore come nei dungeon. Menu (Esc): RIPRENDI e ARRENDITI (con conferma). Scritte grandi: conto alla rovescia, VIA!, stelle prese, zone,
+// e la scheda finale con l'esito e il premio.
 // Solo colori di palette, bordi netti; numeri del danno, barre delle evocazioni e nome sopra l'avversario li fa dungeon_hud.ts.
 import type { RunHero } from '@marea/sim/rpg/types.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
-import type { DuelloEsito, DuelloView } from '@marea/sim/arena/duello.ts';
+import type { PartitaEsito, PartitaView } from '@marea/sim/arena/partita.ts';
+import type { ArenaModo } from '@marea/content/arena.ts';
 import { spellDef } from '@marea/content/rpg.ts';
 import { arenaUlti } from '@marea/content/arena.ts';
 import { PAL, el } from '../ui/style.ts';
@@ -21,15 +24,15 @@ export type ArenaControlli = {
   miraDir(): { x: number; z: number } | null;
   setMira(on: boolean): void;
   readonly paused: boolean;
-  /** Tabellone, barre, slot e ulti dalla vista del duello. `slot` = le RunHero dei miei slot (icone), `ulti` = l'id della mia. */
-  set(v: DuelloView, nomi: readonly string[]): void;
-  /** Scritta grande per un attimo (VIA!, ROUND VINTO…) o, con ms 0, finché non la si toglie (null). */
+  /** Tabellone, barre, slot e ulti dalla vista della partita. `slot` = le RunHero dei miei slot (icone), `ulti` = l'id della mia. */
+  set(v: PartitaView, nomi: readonly string[]): void;
+  /** Scritta grande per un attimo (VIA!, ZONA CONQUISTATA…) o, con ms 0, finché non la si toglie (null). */
   grande(text: string | null, color?: string, sub?: string, ms?: number): void;
-  /** La scheda finale: esito, round, premio (null = ancora non si sa); risolve quando si preme ESCI (o RIVINCITA nella stanza di prova). */
-  finale(esito: DuelloEsito | null, io: number, premio: { monete: number; tetto: boolean } | null, rivincita: boolean): Promise<'esci' | 'rivincita'>;
+  /** La scheda finale: esito, punti, premio (null = ancora non si sa); risolve quando si preme ESCI (o RIVINCITA nell'allenamento). */
+  finale(esito: PartitaEsito | null, mia: number, premio: { monete: number; tetto: boolean } | null, rivincita: boolean): Promise<'esci' | 'rivincita'>;
   /** Il premio arriva dopo (dal server): si aggiorna la scheda finale già aperta. */
   premio(p: { monete: number; tetto: boolean }): void;
-  /** Linea persa dell'avversario: «aspetto…» coi secondi; null = tolto. */
+  /** Linea persa di un giocatore: «aspetto…» coi secondi; null = tolto. */
   attesa(text: string | null): void;
   hide(): void;
   dispose(): void;
@@ -61,12 +64,14 @@ body.mz-arena.mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-rig
 .mz-ar-bar.sottile { height: 6px; margin-top: 2px; border-width: 1px; }
 .mz-ar-bar i { position: absolute; top: 0; bottom: 0; left: 0; }
 .mz-ar-lato.lui .mz-ar-bar i { left: auto; right: 0; }
-.mz-ar-mid { flex: none; width: 70px; padding: 3px 0 4px; background: ${L.carta}; border: 2px solid ${L.acqua}; box-shadow: 0 3px 0 ${L.inchiostro}; text-align: center; }
+.mz-ar-mid { flex: none; width: 96px; padding: 3px 0 4px; background: ${L.carta}; border: 2px solid ${L.acqua}; box-shadow: 0 3px 0 ${L.inchiostro}; text-align: center; }
 .mz-ar-mid b { display: block; font-size: 19px; }
 .mz-ar-mid b.poco { color: ${L.rosso}; }
-.mz-ar-dots { display: flex; justify-content: center; gap: 3px; margin-top: 2px; }
-.mz-ar-dots i { width: 8px; height: 8px; background: ${L.cartaScura}; border: 1px solid ${L.inchiostro}; }
-.mz-ar-dots i.mio { background: ${L.acqua}; } .mz-ar-dots i.suo { background: ${L.rosso}; } .mz-ar-dots i.pari { background: ${L.inchiostro2}; }
+.mz-ar-mid span { font-size: 10px; letter-spacing: .5px; }
+.mz-ar-punti { display: flex; justify-content: center; align-items: center; gap: 4px; margin-top: 1px; font-weight: 700; font-size: 13px; }
+.mz-ar-punti .mio { color: ${L.acquaScura}; } .mz-ar-punti .suo { color: ${L.rosso}; }
+.mz-ar-lato.vive { flex: none; width: auto; min-width: 74px; text-align: center; }
+.mz-ar-lato.vive b { display: block; font-size: 19px; }
 .mz-ar-barra { position: absolute; left: 50%; bottom: calc(${SAFE} + 8px); transform: translateX(-50%); display: flex; gap: 6px; z-index: 14; touch-action: none; -webkit-user-select: none; user-select: none; }
 .mz-ar-barra button { position: relative; width: 52px; height: 52px; padding: 0; display: flex; align-items: center; justify-content: center; background: ${L.carta}; border: 3px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; color: ${L.inchiostro}; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .mz-ar-barra button.cur { border-color: ${L.acqua}; background: rgba(110,74,32,.97); transform: translateY(-4px); }
@@ -88,9 +93,6 @@ body.mz-arena.mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-rig
 .mz-ar-box .mz-btn { justify-content: center; }
 .mz-ar-box.vinta { border-color: ${L.acqua}; } .mz-ar-box.vinta > b { color: ${L.acquaScura}; }
 .mz-ar-box.persa { border-color: ${L.rosso}; } .mz-ar-box.persa > b { color: ${L.rosso}; }
-.mz-ar-rounds { display: flex; justify-content: center; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
-.mz-ar-rounds span { padding: 2px 6px; border: 2px solid ${L.inchiostro}; font-size: 12px; font-weight: 700; }
-.mz-ar-rounds .mio { background: ${L.acquaScura}; } .mz-ar-rounds .suo { background: ${L.rosso}; color: ${L.inchiostro}; } .mz-ar-rounds .pari { background: ${L.filo}; }
 .mz-ar-premio { font-weight: 700; color: ${L.acquaScura}; min-height: 20px; margin: 6px 0 2px; }
 .mz-ar-big { position: absolute; left: 50%; top: 36%; transform: translate(-50%, -50%); display: none; padding: 10px 22px; background: ${L.carta}; border: 3px solid ${L.oro}; box-shadow: 0 5px 0 ${L.inchiostro}; text-align: center; z-index: 18; pointer-events: none !important; font: 700 40px ${FONT_LIBRO}; white-space: nowrap; }
 .mz-ar-big.on { display: block; }
@@ -111,7 +113,7 @@ const nomeSlot = (rh: RunHero | null): string => {
   return rh.arma.id && hasItem(rh.arma.id) ? itemDef(rh.arma.id).nome : 'Pugni';
 };
 
-export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement; yaw(): number; slot: readonly (RunHero | null)[]; ulti: string; insieme: boolean; squadre: readonly number[]; io: number; onResa(): void }): ArenaControlli {
+export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement; yaw(): number; slot: readonly (RunHero | null)[]; ulti: string; insieme: boolean; squadre: readonly number[]; io: number; modo: ArenaModo; onResa(): void }): ArenaControlli {
   if (!document.getElementById('mz-arena-style')) { const st = document.createElement('style'); st.id = 'mz-arena-style'; st.textContent = CSS; document.head.appendChild(st); }
   document.body.classList.add('mz-arena');
   let slotL: number | null = null, ultiL = false, aLatch = false, mouseA = false, eLatch = false, pausa = false, chiedi = false;
@@ -132,12 +134,14 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
     });
     return { box, righe };
   };
-  const io = lato('io', mia), lui = lato('lui', 1 - mia);
+  const nSquadre = new Set(o.squadre).size, io = lato('io', mia), lui = nSquadre === 2 ? lato('lui', 1 - mia) : { box: el('div', 'mz-ar-lato lui vive'), righe: [] };
+  const vive = el('b', '', String(nSquadre));
+  if (nSquadre > 2) lui.box.append(el('span', '', 'IN PIEDI'), vive);
   const mag = el('div', 'mz-ar-bar sottile'), magI = el('i'); magI.style.background = P.acqua; mag.append(magI);
   const sta = el('div', 'mz-ar-bar sottile'), staI = el('i'); staI.style.background = P.erba; sta.append(staI);
   io.box.append(mag, sta);
-  const mid = el('div', 'mz-ar-mid'), tempo = el('b', '', '0:00'), dots = el('div', 'mz-ar-dots');
-  mid.append(el('span', '', 'ROUND'), tempo, dots);
+  const mid = el('div', 'mz-ar-mid'), tempo = el('b', '', '0:00'), punti = el('div', 'mz-ar-punti');
+  mid.append(el('span', '', ETICHETTA[o.modo]), tempo, punti);
   top.append(io.box, mid, lui.box);
   const badge = el('div', 'mz mz-ar-badge'); badge.id = 'mzArenaBadge';
 
@@ -165,10 +169,10 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const menuBtn = btn('mz mz-ar-menu-btn', 'menu', el('i'), el('i')); menuBtn.id = 'mzArenaMenuBtn'; menuBtn.title = 'Menu (Esc)'; menuBtn.setAttribute('aria-label', 'Menu');
   const menu = el('div', 'mz mz-ar-box'); menu.id = 'mzArenaMenu';
   const riprendi = btn('mz-btn green', 'riprendi', 'RIPRENDI'), arrenditi = btn('mz-btn ghost', 'resa', 'ARRENDITI');
-  menu.append(el('b', '', o.insieme ? 'Menu' : 'Pausa'), el('div', 'sub', o.insieme ? 'Il duello non si ferma' : 'Il duello ti aspetta'), riprendi, arrenditi);
+  menu.append(el('b', '', o.insieme ? 'Menu' : 'Pausa'), el('div', 'sub', o.insieme ? 'La partita non si ferma' : 'La partita ti aspetta'), riprendi, arrenditi);
   const ask = el('div', 'mz mz-ar-box persa'); ask.id = 'mzArenaResa';
   const si = btn('mz-btn', 'si', 'MI ARRENDO'), no = btn('mz-btn ghost', 'no', 'NO, COMBATTO');
-  ask.append(el('b', '', 'Arrendersi?'), el('div', 'sub', grandi > 1 ? 'Esci dalla partita: i tuoi compagni continuano senza di te' : 'Il duello finisce e vince l’avversario'), no, si);
+  ask.append(el('b', '', 'Arrendersi?'), el('div', 'sub', grandi > 1 ? 'Esci dalla partita: i tuoi compagni continuano senza di te' : 'Esci dalla partita: gli altri continuano'), no, si);
   const big = el('div', 'mz mz-ar-big'); big.id = 'mzArenaBig';
   const att = el('div', 'mz mz-ar-attesa'); att.id = 'mzArenaAttesa';
   const fine = el('div', 'mz mz-ar-box'); fine.id = 'mzArenaFine';
@@ -218,7 +222,8 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
     set(v, nomi) {
       const h = v.dungeon.hero, sec = v.secondi, giu = h.vita <= 0;
       const vita = (j: number) => (j === o.io ? { vita: h.vita, max: h.max.vita, giu } : v.altri.find((a) => a.i === j) ?? { vita: 0, max: 1, giu: true });
-      const sig = `${nomi.join('|')}|${Math.ceil(h.vita)}|${v.altri.map((a) => `${Math.ceil(a.vita)}${a.giu ? 'g' : ''}`).join(',')}|${Math.round(h.magicka)}|${Math.round(h.stamina)}|${v.fase}|${sec}|${v.rounds.length}|${v.nascosto}`;
+      const fuoriNube = !!v.nube && !giu && (h.x - v.nube.x) ** 2 + (h.z - v.nube.z) ** 2 > v.nube.r * v.nube.r;
+      const sig = `${nomi.join('|')}|${Math.ceil(h.vita)}|${Math.ceil(h.max.vita)}|${v.altri.map((a) => `${Math.ceil(a.vita)}${a.giu ? 'g' : ''}`).join(',')}|${Math.round(h.magicka)}|${Math.round(h.stamina)}|${v.fase}|${sec}|${v.punti.map(Math.floor).join(',')}|${v.nascosto}|${v.torna}|${v.fuori}|${v.vive}|${v.segno}|${fuoriNube}`;
       if (sig !== sigTop) {
         sigTop = sig;
         for (const r of [...io.righe, ...lui.righe]) {
@@ -229,11 +234,12 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
         magI.style.width = pct(h.magicka, h.max.magicka); staI.style.width = pct(h.stamina, h.max.stamina);
         tempo.textContent = v.fase === 'gioca' ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : v.fase === 'conta' ? String(sec) : '—';
         tempo.classList.toggle('poco', v.fase === 'gioca' && sec <= 10);
-        dots.replaceChildren(...v.rounds.map((r) => el('i', r.vincitore === null ? 'pari' : r.vincitore === mia ? 'mio' : 'suo')));
-        // cartello: a terra (guardi i compagni) o nell'erba alta (nessun avversario ti vede)
-        const velo = v.ulti[o.io]?.id === 'velo' && v.ulti[o.io]?.fase === 'su';
-        const testo = giu && v.fase === 'gioca' ? 'SEI A TERRA' : v.nascosto ? (velo ? 'NEL VELO: NON TI VEDONO' : 'NELL’ERBA: NON TI VEDONO') : '';
-        badge.textContent = testo; badge.classList.toggle('on', !!testo); badge.classList.toggle('giu', giu);
+        punti.replaceChildren(...puntiDi(v, mia));
+        vive.textContent = String(v.vive);
+        // cartello: a terra (fra quanto rinasci, o a che posto sei uscito), nella nube, nell'erba alta (nessun avversario ti vede)
+        const velo = v.ulti[o.io]?.id === 'velo' && v.ulti[o.io]?.fase === 'su', posto = v.modo === 'sopravvivenza' ? v.punti[mia] ?? 0 : 0;
+        const testo = giu && v.fase === 'gioca' ? (v.torna ? `RINASCI TRA ${v.torna}` : posto ? `SEI FUORI: ${posto}° POSTO` : 'SEI A TERRA') : fuoriNube ? 'NELLA NUBE: TORNA DENTRO!' : v.nascosto ? (velo ? 'NEL VELO: NON TI VEDONO' : 'NELL’ERBA: NON TI VEDONO') : '';
+        badge.textContent = testo; badge.classList.toggle('on', !!testo); badge.classList.toggle('giu', giu || fuoriNube);
         if (testo) badge.style.top = `${Math.round(top.getBoundingClientRect().bottom) + 8}px`; // sotto il tabellone, alto quanto serve
       }
       const ul = v.ulti[o.io], sb = `${v.slot}|${v.frecce.join(',')}|${Math.floor(h.magicka)}|${v.fase}|${ul ? `${Math.round(ul.carica * 20)}${ul.fase}` : ''}`;
@@ -263,8 +269,8 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
       setPausa(false); setChiedi(false); stick.cancel(); big.classList.remove('on');
       const vinta = !!esito && esito.vincitore === ioN, persa = !!esito && esito.vincitore !== null && esito.vincitore !== ioN;
       fine.className = `mz mz-ar-box on ${vinta ? 'vinta' : persa ? 'persa' : ''}`;
-      const titolo = !esito ? 'DUELLO ANNULLATO' : vinta ? 'VITTORIA!' : persa ? 'SCONFITTA' : 'PAREGGIO';
-      const perche = !esito ? 'Il duello si è interrotto' : esito.perche === 'resa' ? (vinta ? (grandi > 1 ? 'Gli avversari si sono arresi' : 'L’avversario si è arreso') : grandi > 1 ? 'La tua squadra si è arresa' : 'Ti sei arreso') : `${esito.vinti[ioN] ?? 0} a ${esito.vinti[1 - ioN] ?? 0}`;
+      const titolo = !esito ? 'PARTITA ANNULLATA' : vinta ? 'VITTORIA!' : persa ? 'SCONFITTA' : 'PAREGGIO';
+      const perche = !esito ? 'La partita si è interrotta' : percheDi(o.modo, esito, ioN, vinta, grandi > 1);
       premioEl = el('div', 'mz-ar-premio', premio ? testoPremio(premio) : o.insieme ? '…' : 'Allenamento: niente premio');
       const esci = btn('mz-btn green', 'esci', 'ESCI'), riv = btn('mz-btn ghost', 'rivincita', 'RIVINCITA');
       fine.replaceChildren(el('b', '', titolo), el('div', 'sub', perche), premioEl, ...(rivincita ? [riv] : []), esci);
@@ -288,3 +294,23 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
   };
 }
 const testoPremio = (p: { monete: number; tetto: boolean }) => (p.monete > 0 ? `+${p.monete} monete${p.tetto ? ' (tetto di oggi)' : ''}` : p.tetto ? 'Tetto di oggi raggiunto: niente monete' : 'Niente monete stavolta');
+
+/** L'etichetta della modalità in mezzo al tabellone. */
+const ETICHETTA: Record<ArenaModo, string> = { sopravvivenza: 'SOPRAVVIVENZA', stelle: 'STELLE', controllo: 'CONTROLLO', rapina: 'CASSAFORTE' };
+/** I punti sotto il tempo: le stelle o le % mie e dell'altra squadra; nella Sopravvivenza niente (sono a destra). */
+function puntiDi(v: PartitaView, mia: number): Node[] {
+  if (v.modo === 'sopravvivenza' || v.nSquadre !== 2) return [];
+  const f = (n: number) => (v.modo === 'stelle' ? `★${Math.round(n)}` : `${Math.floor(n)}%`);
+  return [el('i', 'mio', f(v.punti[mia] ?? 0)), el('i', '', '·'), el('i', 'suo', f(v.punti[1 - mia] ?? 0))];
+}
+/** Il perché sotto VITTORIA o SCONFITTA. */
+function percheDi(modo: ArenaModo, e: PartitaEsito, mia: number, vinta: boolean, squadra: boolean): string {
+  const io = e.punti[mia] ?? 0, lui = e.punti[1 - mia] ?? 0;
+  if (e.perche === 'resa') return vinta ? (squadra ? 'Gli avversari si sono arresi' : 'Gli altri si sono arresi') : squadra ? 'La tua squadra si è arresa' : 'Ti sei arreso';
+  if (modo === 'sopravvivenza') return vinta ? (e.perche === 'tempo' ? 'Tempo scaduto: avevi più vita di tutti' : 'Ultimo in piedi!') : io ? `${io}° posto su ${e.punti.length}` : 'Pari: siete caduti insieme';
+  if (e.perche === 'cassaforte') return vinta ? 'Avete rotto la cassaforte avversaria' : 'Hanno rotto la vostra cassaforte';
+  if (e.perche === 'zone') return vinta ? 'Avete conquistato tutte le zone' : 'Hanno conquistato tutte le zone';
+  if (modo === 'stelle') return `${Math.round(io)} stelle a ${Math.round(lui)}`;
+  if (modo === 'controllo') return `Conquista ${Math.floor(io)}% a ${Math.floor(lui)}%`;
+  return `Cassaforte al ${Math.floor(io)}% contro il ${Math.floor(lui)}%`;
+}

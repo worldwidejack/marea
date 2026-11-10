@@ -1,4 +1,4 @@
-// Il duello dell'Arena nel lotto (docs/ARENA.md §6): il DO Arena apre il duello nel lotto di ciascuno (startArena) e a fine partita, con
+// La partita dell'Arena nel lotto (docs/ARENA.md): il DO Arena apre la partita nel lotto di ciascuno (startArena) e a fine partita, con
 // l'esito che ha calcolato lui rigiocando il log, lo chiude (finishArena): monete del personaggio per la partita vinta o persa, entro il
 // tetto del giorno UTC; pareggio e resa niente. Il bilanciamento dei dungeon non cambia: si toccano solo le monete del lotto (#414) e LotState.arena.
 import { ARENA } from '@marea/content/arena.ts';
@@ -15,7 +15,7 @@ export function arenaOf(lot: LotState, nowMs: number): ArenaLotto {
   return a.giorno === g ? a : { ...a, giorno: g, preso: 0 };
 }
 
-/** Il DO Arena apre il duello `run` (questo giocatore è l'eroe `idx`): uno solo aperto, il nuovo sostituisce il vecchio (che non paga). */
+/** Il DO Arena apre la partita `run` (questo giocatore è l'eroe `idx`): una sola aperta, la nuova sostituisce la vecchia (che non paga). */
 export function startArena(lot: LotState, run: string, idx: number, nowMs: number): LotState {
   return { ...lot, version: lot.version + 1, arena: { ...arenaOf(lot, nowMs), pending: { run, idx, startMs: nowMs } } };
 }
@@ -24,9 +24,9 @@ export function startArena(lot: LotState, run: string, idx: number, nowMs: numbe
 export type ArenaRuolo = 'vinta' | 'persa' | 'pari' | 'arreso';
 export type ArenaFine = { lot: LotState; premio: number; pieno: number; tetto: boolean };
 
-/** Chiude il duello `run` col ruolo deciso dal DO Arena: premio entro il tetto di oggi, statistiche. Un duello che non è quello aperto
- *  (vecchio, o già chiuso) non paga niente e non cambia il lotto. `senzaPremio`: tra gli avversari c'erano gladiatori automatici (squadre
- *  incomplete): si contano vinte e perse ma non si pagano monete, così non si fa il pieno di monete contro i bot. */
+/** Chiude la partita `run` col ruolo deciso dal DO Arena: premio entro il tetto di oggi, statistiche. Una partita che non è quella aperta
+ *  (vecchia, o già chiusa) non paga niente e non cambia il lotto. `senzaPremio`: tra gli avversari non c'era nessuna persona (solo
+ *  gladiatori automatici): si contano vinte e perse ma non si pagano monete, così non si fa il pieno di monete contro i bot. */
 export function finishArena(lot0: LotState, run: string, ruolo: ArenaRuolo, nowMs: number, senzaPremio = false): ArenaFine {
   const a = arenaOf(lot0, nowMs);
   if (!a.pending || a.pending.run !== run) return { lot: lot0, premio: 0, pieno: 0, tetto: false };
