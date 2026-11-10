@@ -129,7 +129,8 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
       mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: sc.floorY });
       tickAttori();
       ctx.renderer.setScene(sc.scene);
-      ctx.renderer.diorama.setZoom(ctx.canvas.clientHeight > ctx.canvas.clientWidth * 1.2 ? 1.9 : 1.3); // più larghi che nei dungeon: gli avversari si devono vedere
+      const alto = ctx.canvas.clientHeight, largo = ctx.canvas.clientWidth; // più larghi che nei dungeon (si vedono gli avversari); telefono in orizzontale, la posizione principale: più vicini
+      ctx.renderer.diorama.setZoom(alto > largo * 1.2 ? 1.9 : largo > alto && alto < 520 ? 1.0 : 1.3);
       const v = view.dungeon;
       ctx.renderer.diorama.follow(v.hero.x, sc.floorY + 0.9, v.hero.z); ctx.renderer.diorama.snap?.();
       if (rete) rete.manda({ t: 'carico' });
@@ -216,8 +217,10 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     return l > 1e-6 ? { x: dx / l, z: dz / l } : null;
   };
   const mira = () => { const h = d.s.eroi[io]!.hero; return h.incanta || h.arma.kind === 'arco'; };
+  /** Il Raggio della Marea sta caricando o sparando: si gira con la mira (stick destro, mouse), senza tenere A. */
+  const miraUlti = () => { const u = d.ul[io]; return !!u && u.id === 'marea' && (u.fase === 'carica' || u.fase === 'fuoco'); };
   const bombaInMano = () => { const { hero, runHero: rh } = d.s.eroi[io]!; return hero.incanta && rh.magia !== null && rh.magie[rh.magia]?.forma === 'bomba'; };
-  const miraManuale = () => { const h = d.s.eroi[io]!.hero; return bombaInMano() && h.act === 'punta' ? miraBomba.dir() : ahud?.miraDir() ?? (mira() && !ahud?.paused ? mouse?.verso(h.x, h.z) ?? null : null); };
+  const miraManuale = () => { const h = d.s.eroi[io]!.hero; return bombaInMano() && h.act === 'punta' ? miraBomba.dir() : ahud?.miraDir() ?? ((mira() || miraUlti()) && !ahud?.paused ? mouse?.verso(h.x, h.z) ?? null : null); };
   const miraOra = (): void => {
     const v = miraManuale();
     if (!v) { eroi[io]!.mira(miraArco()); return; }
@@ -256,8 +259,8 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
       if (h.act === 'tende') aTap = h.carica < 1; else if (h.act === 'punta') aTap = false; else aTap = h.act === 'idle' && tapT >= 118;
       if (h.act === 'tira' || h.act === 'lancia') tapT = 0;
     }
-    const a = f.a || c.a || aTap, punta = mouse && mira() ? mouse.verso(h.x, h.z)?.m ?? 0 : 0;
-    const m = aTap ? 0 : c.m || (a || h.act === 'tende' || h.act === 'punta' ? punta : 0);
+    const um = miraUlti(), a = f.a || c.a || aTap, punta = mouse && (mira() || um) ? mouse.verso(h.x, h.z)?.m ?? 0 : 0;
+    const m = aTap ? 0 : c.m || (a || um || h.act === 'tende' || h.act === 'punta' ? punta : 0);
     const stabile = miraBomba.campiona(m, a, !aTap && bombaInMano() && (a || h.act === 'punta'));
     return { mx: f.mx, my: f.my, a, b: f.b, c: false, d: false, ...(c.e ? { e: true } : {}), ...(f.roll ? { roll: true } : {}), ...(stabile ? { m: stabile } : {}) };
   }
@@ -336,7 +339,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
       // conto alla rovescia: il numero grande (cambia una volta al secondo)
       const conta = d.fase === 'conta' ? view.secondi : -1;
       if (conta !== contaVista) { contaVista = conta; if (conta > 0) ahud.grande(String(conta), PAL.giallo, `${modo.nome} · ${mappa.nome}`, 0); }
-      ahud.setMira(phase === 'play' && mira() && d.fase === 'gioca' && !d.s.eroi[io]!.done);
+      ahud.setMira(phase === 'play' && (mira() || miraUlti()) && d.fase === 'gioca' && !d.s.eroi[io]!.done);
       // la rete chiusa a partita finita: la scheda arriva lo stesso
       if (rete?.fine && d.fase !== 'finita' && rete.turni.length === 0) { ctx.hud.toast('Il server ha chiuso la partita', 2500); phase = 'play'; toEnd(); }
     },
@@ -370,7 +373,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
         const testa = eroi[a.i]!.head().clone(); testa.y += 0.35;
         return [{ pos: testa, nome: nomi[a.i]!, frac: a.vita / Math.max(1, a.max), nemico: a.squadra !== mia }];
       }));
-      const cur = mouse?.attivo && mira() ? 'crosshair' : '';
+      const cur = mouse?.attivo && (mira() || miraUlti()) ? 'crosshair' : '';
       if (ctx.canvas.style.cursor !== cur) ctx.canvas.style.cursor = cur;
     },
     abort,

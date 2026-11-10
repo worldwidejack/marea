@@ -14,6 +14,7 @@ import { NO_DUNGEON_INPUT } from '../dungeon/types.ts';
 import { conEroe, secToTicks } from '../dungeon/state.ts';
 import type { DungeonState } from '../dungeon/state.ts';
 import { isOpaque, moveCircle } from '../dungeon/map.ts';
+import { aimDir } from '../dungeon/mira.ts';
 import { colpisciEroe, eroiNemici } from '../dungeon/pvp.ts';
 import { scopri } from '../dungeon/erba.ts';
 import type { ArenaEroe } from '../rpg/arena.ts';
@@ -61,13 +62,16 @@ export function attivaUlti(d: D, i: number): boolean {
 }
 
 /** Gli input del tick: fermi quelli presi da un'ulti; chi non ha il Vigore che costa una schivata non la comincia. Chi carica o spara il raggio della Marea
- *  si gira piano verso dove spinge il joystick. */
+ *  si gira verso dove punta la mira (stick destro o mouse), o dove spinge il joystick, di al massimo `giro` al secondo. */
 export function inputUlti(d: D, inputs: readonly DungeonInput[]): DungeonInput[] {
   return inputs.map((inp, i) => {
     const r = d.s.eroi[i], u = d.ul[i];
     if (!r || !u || r.done) return inp;
     if (fermo(d, i)) {
-      if ((u.fase === 'carica' || u.fase === 'fuoco') && (inp.mx || inp.my)) gira(u, inp.mx, inp.my, arenaUlti(u.id).giro ?? 1);
+      if (u.fase === 'carica' || u.fase === 'fuoco') {
+        const a = aimDir(inp.m), giro = arenaUlti(u.id).giro ?? 1; // la mira (stick destro, mouse) vince sul joystick di movimento
+        if (a) gira(u, a[0], a[1], giro); else if (inp.mx || inp.my) gira(u, inp.mx, inp.my, giro);
+      }
       return { ...NO_DUNGEON_INPUT };
     }
     return inp.roll && r.hero.stamina < ARENA.build.staminaSchivata ? { ...inp, roll: false } : inp;

@@ -1,5 +1,5 @@
-// HUD e controlli delle partite dell'Arena (docs/ARENA.md §2): in alto il tabellone (a sinistra la mia squadra, una barra di vita per eroe col
-// nome; a destra l'altra squadra o, nella Sopravvivenza, quante squadre sono ancora in piedi; in mezzo il tempo e i punti della modalità: stelle,
+// HUD e controlli delle partite dell'Arena (docs/ARENA.md §2): in alto il tabellone (a sinistra la mia barra di vita col
+// nome; a destra, solo nella Sopravvivenza, quante squadre sono ancora in piedi; in mezzo il tempo e i punti della modalità: stelle,
 // % di conquista, % della cassaforte, il mio numero di monete rosse), sotto la mia Magicka e Stamina; un cartello dice se sono nell'erba alta o
 // nel Velo (nessun avversario mi vede), nella nube tossica, a terra (fra quanto rinasco) o fuori (a che posto); in basso la barra degli slot col
 // bottone tondo dell'ulti che si riempie (tocco su telefono, tasti 1-2 e F su PC); joystick di movimento, A e B di game/input.ts alzati sopra la
@@ -49,13 +49,11 @@ body.mz-arena.mz-dng-aimon #btnSchiva { right: calc(max(16px, env(safe-area-inse
 body.mz-arena .mz-mira { bottom: calc(${SAFE} + 88px) !important; }
 body.mz-arena.mz-dng-aimon #btnA { display: none !important; }
 body.mz-arena.mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-right, 0px)) + 116px) !important; }
-.mz-ar-top { position: absolute; left: 50%; top: ${TOP}; transform: translateX(-50%); width: min(560px, calc(100% - 16px)); display: flex; align-items: flex-start; gap: 6px; z-index: 13; pointer-events: none !important; font-size: 12px; }
+.mz-ar-top { position: absolute; left: 50%; top: ${TOP}; transform: translateX(-50%); width: max-content; max-width: calc(100% - 16px); display: flex; align-items: flex-start; gap: 6px; z-index: 13; pointer-events: none !important; font-size: 12px; }
 .mz-ar-lato { flex: 1; min-width: 0; padding: 4px 6px 5px; background: ${L.carta}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; }
-.mz-ar-lato.lui { text-align: right; border-color: ${L.rosso}; }
+.mz-ar-lato.io { flex: none; width: 170px; }
+.mz-ar-lato.lui { flex: none; width: 96px; text-align: right; border-color: ${L.rosso}; }
 .mz-ar-lato .nome { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mz-ar-lato .eroe + .eroe { margin-top: 3px; }
-.mz-ar-lato.sq .nome { font-size: 11px; line-height: 1.05; }
-.mz-ar-lato.sq .mz-ar-bar { height: 8px; margin-top: 1px; }
 .mz-ar-lato .eroe.giu { opacity: .45; }
 .mz-ar-badge { position: absolute; left: 50%; top: calc(${TOP} + 74px); transform: translateX(-50%); padding: 4px 12px; background: ${L.carta}; border: 2px solid ${L.acqua}; box-shadow: 0 3px 0 ${L.inchiostro}; font-weight: 700; font-size: 13px; z-index: 13; pointer-events: none !important; display: none; white-space: nowrap; }
 .mz-ar-badge.on { display: block; }
@@ -124,17 +122,12 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
   // ---- tabellone ----
   const top = el('div', 'mz mz-ar-top'); top.id = 'mzArenaTop';
   const mia = o.squadre[o.io]!, grandi = o.squadre.filter((q) => q === mia).length;
-  /** Un lato del tabellone: una riga (nome e barra di vita) per eroe di quella squadra, io per primo. */
-  const lato = (cls: string, sq: number) => {
-    const box = el('div', `mz-ar-lato ${cls}${grandi > 1 ? ' sq' : ''}`);
-    const righe = o.squadre.flatMap((q, j) => (q === sq ? [j] : [])).sort((a, b) => (a === o.io ? -1 : b === o.io ? 1 : a - b)).map((j) => {
-      const riga = el('div', 'eroe'), nome = el('div', 'nome'), vita = el('div', 'mz-ar-bar'), vi = el('i');
-      vi.style.background = P.rosso; vita.append(vi); riga.append(nome, vita); box.append(riga);
-      return { j, riga, nome, vi };
-    });
-    return { box, righe };
-  };
-  const nSquadre = new Set(o.squadre).size, io = lato('io', mia), lui = nSquadre === 2 ? lato('lui', 1 - mia) : { box: el('div', 'mz-ar-lato lui vive'), righe: [] };
+  /** Il tabellone mostra solo la mia vita (nome e barra): quelle degli altri tolgono troppo spazio, soprattutto col telefono in orizzontale. */
+  const riga = el('div', 'eroe'), nome = el('div', 'nome'), vita = el('div', 'mz-ar-bar'), vi = el('i');
+  vi.style.background = P.rosso; vita.append(vi); riga.append(nome, vita);
+  const io = { box: el('div', 'mz-ar-lato io'), righe: [{ j: o.io, riga, nome, vi }] };
+  io.box.append(riga);
+  const nSquadre = new Set(o.squadre).size, lui = { box: el('div', 'mz-ar-lato lui vive') };
   const vive = el('b', '', String(nSquadre));
   if (nSquadre > 2) lui.box.append(el('span', '', 'IN PIEDI'), vive);
   const mag = el('div', 'mz-ar-bar sottile'), magI = el('i'); magI.style.background = P.acqua; mag.append(magI);
@@ -142,7 +135,8 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
   io.box.append(mag, sta);
   const mid = el('div', 'mz-ar-mid'), tempo = el('b', '', '0:00'), punti = el('div', 'mz-ar-punti');
   mid.append(el('span', '', ETICHETTA[o.modo]), tempo, punti);
-  top.append(io.box, mid, lui.box);
+  top.append(io.box, mid);
+  if (nSquadre > 2) top.append(lui.box); // solo «IN PIEDI» (Sopravvivenza): a due squadre l'altro lato non c'è
   const badge = el('div', 'mz mz-ar-badge'); badge.id = 'mzArenaBadge';
 
   // ---- barra degli slot e dell'ulti ----
@@ -178,7 +172,7 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const fine = el('div', 'mz mz-ar-box'); fine.id = 'mzArenaFine';
   for (const e of [menuBtn, menu, ask, fine]) stop(e);
   o.root.append(top, badge, barra, menuBtn, menu, ask, big, att, fine);
-  if (grandi > 1) menuBtn.style.top = `calc(${TOP} + ${grandi * 28 + 36}px)`; // sotto il tabellone, più alto con le squadre
+  if (nSquadre === 2) menuBtn.style.top = TOP; // senza il lato destro il menu sta in alto a destra
   const stick = createMiraStick({ id: 'mzArenaMira', yaw: o.yaw, blocked: () => pausa || chiedi });
   stop(stick.el); o.root.append(stick.el);
   const setPausa = (on: boolean) => { pausa = on; menu.classList.toggle('on', on); if (on) stick.cancel(); };
@@ -223,10 +217,10 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
       const h = v.dungeon.hero, sec = v.secondi, giu = h.vita <= 0;
       const vita = (j: number) => (j === o.io ? { vita: h.vita, max: h.max.vita, giu } : v.altri.find((a) => a.i === j) ?? { vita: 0, max: 1, giu: true });
       const fuoriNube = !!v.nube && !giu && (h.x - v.nube.x) ** 2 + (h.z - v.nube.z) ** 2 > v.nube.r * v.nube.r;
-      const sig = `${nomi.join('|')}|${Math.ceil(h.vita)}|${Math.ceil(h.max.vita)}|${v.altri.map((a) => `${Math.ceil(a.vita)}${a.giu ? 'g' : ''}`).join(',')}|${Math.round(h.magicka)}|${Math.round(h.stamina)}|${v.fase}|${sec}|${v.punti.map(Math.floor).join(',')}|${v.nascosto}|${v.torna}|${v.fuori}|${v.vive}|${v.segno}|${fuoriNube}`;
+      const sig = `${nomi.join('|')}|${Math.ceil(h.vita)}|${Math.ceil(h.max.vita)}|${Math.round(h.magicka)}|${Math.round(h.stamina)}|${v.fase}|${sec}|${v.punti.map(Math.floor).join(',')}|${v.nascosto}|${v.torna}|${v.fuori}|${v.vive}|${v.segno}|${fuoriNube}`;
       if (sig !== sigTop) {
         sigTop = sig;
-        for (const r of [...io.righe, ...lui.righe]) {
+        for (const r of io.righe) {
           if (r.nome.textContent !== nomi[r.j]) r.nome.textContent = nomi[r.j] ?? '';
           const x = vita(r.j);
           r.vi.style.width = pct(x.vita, x.max); r.riga.classList.toggle('giu', x.giu);

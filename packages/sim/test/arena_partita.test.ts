@@ -260,6 +260,27 @@ describe('Arena — le ulti', () => {
     assert.ok(d.s.eroi[B]!.hero.vita < PIENA - 20, `${d.s.eroi[B]!.hero.vita}`);
   });
 
+  it('Raggio della Marea: si gira con la mira (stick destro, mouse), non solo col joystick', () => {
+    const verso = (dx: number, dz: number) => {
+      const d = alVia(build([{ arma: 'katana_ferro' }, null], 'vita', 'marea'), katana, 8);
+      const h = d.s.eroi[A]!.hero; h.fx = 0; h.fz = 1; // guarda di lato: B è davanti a +x
+      piena(d, A); actPartita(d, A, { t: 'ulti' });
+      passi(d, 120, { ...fermo(), m: aimIndex(dx, dz) });
+      return d.s.eroi[B]!.hero.vita;
+    };
+    assert.ok(verso(1, 0) < PIENA - 20, 'mirata su B lo prende');
+    assert.equal(verso(-1, 0), PIENA, 'mirata dalla parte opposta no');
+  });
+
+  it('Arena: le magie elettriche non rallentano, hanno più raggio di quelle di fuoco', () => {
+    const e = buildArenaEroe(build([{ magia: 'fulmine' }, { magia: 'bomba_elettrica' }])), f = buildArenaEroe(build([{ magia: 'fiammata' }, { magia: 'bomba_fuoco' }]));
+    const [fulmine, bomba] = [e.varianti[0]!.magie[0]!, e.varianti[1]!.magie[0]!];
+    assert.equal(fulmine.rallenta, undefined); assert.equal(bomba.rallenta, undefined);
+    assert.ok(fulmine.raggio! > f.varianti[0]!.magie[0]!.raggio!, 'il proiettile è più largo');
+    assert.ok(bomba.raggio! > f.varianti[1]!.magie[0]!.raggio!, 'lo scoppio è più grande');
+    assert.ok(fulmine.costo < f.varianti[0]!.magie[0]!.costo + 1, 'costa meno del fuoco');
+  });
+
   it('Arpione: chi è preso viene tirato davanti e resta fermo un attimo', () => {
     const d = alVia(build([{ arma: 'katana_ferro' }, null], 'vita', 'arpione'), katana, 8);
     piena(d, A); actPartita(d, A, { t: 'ulti' });

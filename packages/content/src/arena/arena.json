@@ -41,11 +41,11 @@
     },
     "magie": {
       "fiammata": { "danno": 8.68, "costo": 14, "ricarica": 0.4 },
-      "fulmine": { "danno": 8.14, "costo": 20, "ricarica": 0.6 },
+      "fulmine": { "danno": 8.14, "costo": 12, "ricarica": 0.45, "raggio": 0.7, "senzaRallenta": true },
       "fuoco_continuo": { "danno": 14.21, "costo": 20 },
-      "elettro_continuo": { "danno": 12.42, "costo": 15 },
+      "elettro_continuo": { "danno": 12.42, "costo": 15, "gittata": 10, "larghezza": 0.8, "senzaRallenta": true },
       "bomba_fuoco": { "danno": 24.36, "costo": 35, "ricarica": 1.5 },
-      "bomba_elettrica": { "danno": 19.04, "costo": 30, "ricarica": 1.5 },
+      "bomba_elettrica": { "danno": 19.04, "costo": 30, "ricarica": 1.5, "raggio": 3.4, "senzaRallenta": true },
       "cura_flusso": { "cura": 16, "costo": 18 },
       "cura_bomba": { "cura": 30, "costo": 40, "ricarica": 1.5 },
       "furia_flusso": { "costo": 18 },
@@ -58,7 +58,7 @@
       { "id": "furia", "nome": "Furia", "descr": "Danni ×2 per 5 secondi", "secondi": 5, "danno": 1 },
       { "id": "scatto", "nome": "Scatto", "descr": "Velocità ×2 per 10 secondi, la corsa non stanca", "secondi": 10, "passo": 1 },
       { "id": "aura", "nome": "Aura di cura", "descr": "Per 6 secondi cura te e i compagni vicini (4,5 vita al secondo)", "secondi": 6, "cura": 4.5, "raggio": 4 },
-      { "id": "marea", "nome": "Raggio della Marea", "descr": "Fermo, carichi e spari un gran raggio d'acqua dritto davanti", "carica": 0.7, "secondi": 1.5, "danno": 26, "gittata": 14, "larghezza": 0.6, "giro": 1.2 },
+      { "id": "marea", "nome": "Raggio della Marea", "descr": "Fermo, carichi e spari un gran raggio d'acqua dritto davanti", "carica": 0.7, "secondi": 1.5, "danno": 31, "gittata": 14, "larghezza": 0.6, "giro": 3 },
       { "id": "arpione", "nome": "Arpione", "descr": "Lo lanci dritto: chi prendi viene tirato fino a te e resta stordito un attimo", "velocita": 24, "gittata": 11, "danno": 12, "tiro": 18, "stordito": 0.7 },
       { "id": "velo", "nome": "Velo di nebbia", "descr": "Per 8 secondi gli avversari non ti vedono, come nell'erba alta", "secondi": 8, "raggio": 2 }
     ]
