@@ -58,8 +58,9 @@ Niente pozioni né anelli; l'arco ha 18 frecce a round. Senza niente negli slot 
   e magia sono fissi, scritti in `arena.json` → `build` (`buildArenaEroe` di `sim/rpg/arena.ts`).
 - **Niente one-shot**: nessun colpo supera `arena.dannoMax` (92) di `balance.json`.
 - **Il peso conta**: col martello in mano si va un po' più piano (−11%), con nunchaku e arco un po' più svelti (+2%): `build.passo`.
-- **Il Vigore paga i colpi**: la schivata, la corsa, ogni colpo di mischia e ogni freccia costano Stamina (un secondo di colpi di fila `staminaAlSecondo`, il caricato
-  ×1,5); senza il Vigore che costa il colpo non si attacca finché non torna. Così il Vigore è la «Magicka» delle armi.
+- **Il Vigore è per correre e schivare, non per colpire**: i colpi e le frecce non costano niente (10 nov 2026: a Vigore finito sul telefono sembrava che
+  le armi non funzionassero). La corsa consuma Vigore, la schivata costa `build.staminaSchivata` (34, più dei 24 dei dungeon: senza il costo dei colpi sarebbe
+  troppo a buon mercato); senza il Vigore che costa non si rotola.
 - **Indipendenza**: il bilanciamento dell'Arena non tocca i dungeon (stessi hash, stessa fixture d'oro).
 
 ## 5. Com'è fatta adesso (17 ott 2026, #373)
@@ -191,4 +192,4 @@ caso (2 slot, dote e ulti a caso, ulti accese): il danno di ogni arma e magia è
 il 55% delle partite in cui c'è. Il gladiatore tira con arco e magie mirando davvero (con un po' d'anticipo); non schiva e non scappa, quindi
 le ulti di movimento (Scatto, Velo) nelle simulazioni contano meno che tra persone: per quelle si è tenuto conto anche di questo. Il gladiatore
 schiva come una persona (non sempre in tempo) i caricati che stanno per partire e i proiettili in arrivo. Con +50% la Vita vinceva il 75% delle
-partite e il Vigore il 27%: con la Vita a +20% e il colpo che parte solo se hai il Vigore che costa, le tre doti stanno tra il 45 e il 54%.
+partite e il Vigore il 27%: con la Vita a +20% le tre doti stavano tra il 45 e il 54% (misurato quando i colpi costavano Vigore: da rifare ora che non lo costano).

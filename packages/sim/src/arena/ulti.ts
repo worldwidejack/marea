@@ -4,9 +4,10 @@
 // Raggio della Marea: fermo, carica e poi un raggio dritto che si gira piano; Arpione: un gancio dritto, chi prende viene tirato fino a te e
 // resta stordito; Velo: per un po' gli avversari non ti vedono, come nell'erba alta (dungeon/erba.ts). Chi carica, spara, lancia o è tirato sta
 // fermo: il suo input non conta.
-// Vigore: i colpi di mischia e le frecce costano Stamina (RunWeapon.fatica); senza il Vigore che costa il colpo non si attacca finché non torna.
+// Vigore: serve a correre e a schivare, non a colpire; la schivata in Arena costa ARENA.build.staminaSchivata (più che nei dungeon).
 // Pura e deterministica: solo + − × ÷ e Math.sqrt.
 import { ARENA, arenaUlti } from '@marea/content/arena.ts';
+import { RPG } from '@marea/content/rpg.ts';
 import { DT } from '../constants.ts';
 import type { DungeonInput } from '../dungeon/types.ts';
 import { NO_DUNGEON_INPUT } from '../dungeon/types.ts';
@@ -59,7 +60,7 @@ export function attivaUlti(d: D, i: number): boolean {
   return true;
 }
 
-/** Gli input del tick: fermi quelli presi da un'ulti; chi non ha il Vigore che costa un colpo non lo comincia. Chi carica o spara il raggio della Marea
+/** Gli input del tick: fermi quelli presi da un'ulti; chi non ha il Vigore che costa una schivata non la comincia. Chi carica o spara il raggio della Marea
  *  si gira piano verso dove spinge il joystick. */
 export function inputUlti(d: D, inputs: readonly DungeonInput[]): DungeonInput[] {
   return inputs.map((inp, i) => {
@@ -69,8 +70,7 @@ export function inputUlti(d: D, inputs: readonly DungeonInput[]): DungeonInput[]
       if ((u.fase === 'carica' || u.fase === 'fuoco') && (inp.mx || inp.my)) gira(u, inp.mx, inp.my, arenaUlti(u.id).giro ?? 1);
       return { ...NO_DUNGEON_INPUT };
     }
-    const h = r.hero, f = r.runHero.arma.fatica ?? 0;
-    return f > 0 && !h.incanta && h.act === 'idle' && h.stamina < f && inp.a ? { ...inp, a: false } : inp;
+    return inp.roll && r.hero.stamina < ARENA.build.staminaSchivata ? { ...inp, roll: false } : inp;
   });
 }
 /** Il raggio si gira verso (mx, my) di al massimo `giro` al secondo (in radianti, circa): niente trigonometria, una media normalizzata. */
@@ -80,15 +80,14 @@ function gira(u: UltiRt, mx: number, my: number, giro: number): void {
   if (n > 1e-6) { u.fx = x / n; u.fz = z / n; }
 }
 
-/** Dopo il passo della sim: il Vigore dei colpi appena partiti, gli effetti delle ulti in corso, la carica. */
+/** Dopo il passo della sim: il di più del Vigore delle schivate appena partite, gli effetti delle ulti in corso, la carica. */
 export function dopoUlti(d: D): void {
   const s = d.s;
   for (let i = 0; i < d.ul.length; i++) {
     const u = d.ul[i]!, r = s.eroi[i]!, h = r.hero;
     if (u.stordito > 0) u.stordito--;
-    // Vigore: un colpo di mischia (il caricato di più) o una freccia appena partiti
-    const f = r.runHero.arma.fatica ?? 0;
-    if (f > 0 && h.act !== u.act && (h.act === 'swing' || (h.act === 'tira' && r.runHero.arma.kind === 'arco'))) h.stamina = Math.max(0, h.stamina - f * (h.act === 'swing' && h.caricato ? ARENA.build.staminaCaricato : 1));
+    // Vigore: la schivata appena partita costa più che nei dungeon (la sim ne ha tolto RPG.schivata.stamina)
+    if (h.act === 'schiva' && u.act !== 'schiva') h.stamina = Math.max(0, h.stamina - (ARENA.build.staminaSchivata - RPG.schivata.stamina));
     u.act = h.act;
     if (r.done) { if (u.fase !== 'no') { u.fase = 'no'; u.preso = -1; } continue; }
     if (u.fase !== 'no') effetto(d, i, u);

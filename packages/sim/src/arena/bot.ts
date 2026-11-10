@@ -12,8 +12,7 @@ import type { RunHero } from '../rpg/types.ts';
 import { visibileDa } from '../dungeon/erba.ts';
 import { bfs, cellCenter, cellOf, clearPath, lineOfSight, stepDown } from '../dungeon/map.ts';
 import type { ArenaAzione, DuelloState } from './duello.ts';
-import { arenaUlti } from '@marea/content/arena.ts';
-import { RPG } from '@marea/content/rpg.ts';
+import { ARENA, arenaUlti } from '@marea/content/arena.ts';
 import { lungoRaggio } from './ulti.ts';
 import { aimIndex } from '../dungeon/mira.ts';
 
@@ -110,7 +109,7 @@ export function botArena(d: DuelloState, i: number, rng: Rng): { input: DungeonI
   // raggio della Marea in corso: lo tiene su di lui
   if (m && d.ul[i]!.fase !== 'no' && d.ul[i]!.id === 'marea' && o) return { input: { ...NO_DUNGEON_INPUT, mx: dx, my: dz }, azione: null };
   // la schivata: costa Vigore, la si tiene per quando serve (riflessi umani: non sempre in tempo)
-  if (d.fase === 'gioca' && h.act !== 'schiva' && !((h.rollCd ?? 0) > 0) && h.stamina >= RPG.schivata.stamina) {
+  if (d.fase === 'gioca' && h.act !== 'schiva' && !((h.rollCd ?? 0) > 0) && h.stamina >= ARENA.build.staminaSchivata) {
     const fuga = minaccia(d, i);
     if (fuga && rng.next() < 0.15) return { input: { ...NO_DUNGEON_INPUT, mx: fuga.x, my: fuga.z, roll: true }, azione: null };
   }

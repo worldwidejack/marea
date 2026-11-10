@@ -1,5 +1,5 @@
 // Arena PvP (docs/ARENA.md): le build uguali per tutti (dote, 2 slot, ulti) salvate col personaggio, la fotografia coi numeri dell'Arena, colpi
-// tra eroi, Vigore dei colpi, Cura e Furia solo a squadre, le sei ulti, round al meglio di 3, pareggio a tempo, resa, replay del server uguale
+// tra eroi, Vigore della schivata, Cura e Furia solo a squadre, le sei ulti, round al meglio di 3, pareggio a tempo, resa, replay del server uguale
 // al client, premio col tetto del giorno.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -80,7 +80,6 @@ describe('Arena — le build', () => {
     assert.equal(e.dote, 'vigore'); assert.equal(e.ulti, 'scatto');
     for (const v of [m, a]) { assert.ok(v.arena); assert.equal(v.max.vita, ARENA.build.attributi.vita); assert.equal(v.max.stamina, ARENA.build.attributi.stamina * 1.5); assert.equal(v.perk, undefined); assert.equal(v.armatura.difesa, 0); }
     assert.equal(m.arma.danno, ARENA.build.armi['martello_ferro']!.danno);
-    assert.ok(m.arma.fatica! > 0, 'i colpi costano Vigore');
     assert.equal(a.arma.kind, 'arco'); assert.equal(a.frecce?.n, ARENA.frecce); assert.equal(a.arma.danno, ARENA.build.armi['arco_ferro']!.danno);
     assert.ok(m.camminata < a.camminata, 'il martello rallenta, l\'arco no');
     assert.equal(m.camminata, Math.round(RPG.movimento.camminata * passoDi(20) * 100) / 100);
@@ -108,18 +107,14 @@ describe('Arena — combattimento tra eroi', () => {
     assert.ok(e.hero.vita > 0 && e.hero.vita >= 100 - RPG.arena.dannoMax - 1, `niente one-shot (${e.hero.vita})`);
   });
 
-  it('i colpi costano Vigore: a secco non si attacca finché non torna', () => {
+  it('i colpi non costano Vigore: a Vigore zero si attacca lo stesso', () => {
     const d = alVia(katana, katana);
-    const h = d.s.eroi[0]!.hero, prima = h.stamina;
-    passi(d, 4, { ...fermo(), a: true }); passi(d, 2);
-    assert.ok(h.stamina < prima, `il colpo ha consumato (${prima} → ${h.stamina})`);
-    passi(d, 60);
+    const h = d.s.eroi[0]!.hero;
     h.stamina = 0;
     const v = d.s.eroi[1]!.hero.vita;
-    passi(d, 3, { ...fermo(), a: true });
-    assert.notEqual(h.act, 'press', 'a secco il colpo non parte');
-    passi(d, 40);
-    assert.equal(d.s.eroi[1]!.hero.vita, v);
+    passi(d, 4, { ...fermo(), a: true });
+    passi(d, 60);
+    assert.ok(d.s.eroi[1]!.hero.vita < v, 'il colpo parte e arriva');
   });
 
   it('la schivata: costa Vigore e chi rotola non prende il colpo; passa dalla rete', () => {
@@ -127,10 +122,18 @@ describe('Arena — combattimento tra eroi', () => {
     const h1 = d.s.eroi[1]!.hero;
     passi(d, 4, { ...fermo(), a: true }, { ...fermo(), mx: 1, roll: true });
     assert.equal(h1.act, 'schiva', 'rotola');
-    assert.ok(h1.stamina <= 100 - RPG.schivata.stamina + 1, `la schivata costa Vigore (${h1.stamina})`);
+    assert.ok(h1.stamina <= 100 - ARENA.build.staminaSchivata + 1, `la schivata costa Vigore (${h1.stamina})`);
     passi(d, 60);
     assert.equal(h1.vita, 120, 'il colpo non l\'ha preso');
     assert.equal(quantizeDungeon({ ...fermo(), roll: true }).roll, true);
+  });
+
+  it('la schivata non parte con meno Vigore di quel che costa', () => {
+    const d = alVia(katana, katana);
+    const h = d.s.eroi[0]!.hero;
+    h.stamina = ARENA.build.staminaSchivata - 1;
+    passi(d, 4, { ...fermo(), mx: 1, roll: true });
+    assert.notEqual(h.act, 'schiva', 'a corto di Vigore non rotola');
   });
 
   it('frecce e magie colpiscono l\'avversario; l\'arco consuma solo le sue frecce', () => {

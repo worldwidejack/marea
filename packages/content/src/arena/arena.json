@@ -9,11 +9,11 @@
     "regen": { "vita": 0, "magicka": 6, "stamina": 10 },
     "doti": [
       { "id": "vita", "nome": "Vita", "descr": "+20% di Vita", "colore": "rosso", "vita": 1.2 },
-      { "id": "vigore", "nome": "Vigore", "descr": "+50% di Vigore e di ricarica: più colpi, frecce e corsa", "colore": "erba", "stamina": 1.5 },
+      { "id": "vigore", "nome": "Vigore", "descr": "+50% di Vigore e di ricarica: più schivate e più corsa", "colore": "erba", "stamina": 1.5 },
       { "id": "magia", "nome": "Magicka", "descr": "+50% di Magicka e di ricarica: più magie", "colore": "acqua", "magicka": 1.5 }
     ],
     "passo": { "neutro": 6, "perKg": 0.008 },
-    "staminaAlSecondo": 20, "staminaCaricato": 1.5, "staminaFreccia": 12,
+    "staminaSchivata": 34,
     "armi": {
       "nunchaku_ferro": { "danno": 5, "colpi": 2.5, "carica": 0.6, "caricaMolt": 2, "portata": 1.4 },
       "katana_ferro": { "danno": 7.1, "colpi": 1.7, "carica": 0.9, "caricaMolt": 2.5, "portata": 1.8 },

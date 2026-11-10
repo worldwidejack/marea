@@ -77,12 +77,12 @@ function variante(dote: string, s: ArenaSlot | null): RunHero {
   const n = slotArma(s) ? B.armi[s.arma] : undefined;
   if (n && arma.kind === 'arco') {
     const t = n.tensione ?? arma.tempo;
-    arma = { ...arma, danno: n.danno, tempo: t, carica: t, fatica: B.staminaFreccia };
+    arma = { ...arma, danno: n.danno, tempo: t, carica: t };
     if (frecce) frecce = { ...frecce, danno: 0, n: ARENA.frecce };
   } else if (n && arma.kind === 'mischia') {
     const tempo = r2(1 / Math.max(0.05, n.colpi ?? 1));
-    arma = { ...arma, danno: n.danno, tempo, carica: n.carica ?? arma.carica, caricaMolt: n.caricaMolt ?? arma.caricaMolt, portata: n.portata ?? arma.portata, fatica: r2(B.staminaAlSecondo * tempo) };
-  } else arma = { ...arma, fatica: r2(B.staminaAlSecondo * arma.tempo) };
+    arma = { ...arma, danno: n.danno, tempo, carica: n.carica ?? arma.carica, caricaMolt: n.caricaMolt ?? arma.caricaMolt, portata: n.portata ?? arma.portata };
+  }
   const magie = rh.magie.map((sp) => {
     const m = B.magie[sp.id] ?? {};
     return { ...sp, ...(m.danno !== undefined ? { danno: m.danno } : {}), ...(m.cura !== undefined && sp.cura !== undefined ? { cura: m.cura } : {}), ...(m.costo !== undefined ? { costo: m.costo } : {}), ...(m.ricarica !== undefined ? { ricarica: m.ricarica } : {}) };
