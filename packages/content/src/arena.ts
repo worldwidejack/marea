@@ -24,8 +24,8 @@ export type ArenaBuildCfg = {
   doti: ArenaDote[];
   /** Il passo con l'arma in mano: × (1 + (neutro − peso) × perKg); le magie pesano `neutro`. */
   passo: { neutro: number; perKg: number };
-  /** Il Vigore che costano i colpi: un secondo di colpi di fila `staminaAlSecondo` (il caricato × `staminaCaricato`), una freccia `staminaFreccia`. */
-  staminaAlSecondo: number; staminaCaricato: number; staminaFreccia: number;
+  /** Il Vigore che costa una schivata in Arena (più di quella dei dungeon, RPG.schivata.stamina). I colpi non costano Vigore. */
+  staminaSchivata: number;
   /** Le armi della build (id del catalogo, tutte dello stesso materiale) e le magie (id di spells.json: niente evocazioni). */
   armi: Record<string, ArenaArma>; magie: Record<string, ArenaMagia>;
 };

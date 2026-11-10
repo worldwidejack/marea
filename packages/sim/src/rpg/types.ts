@@ -100,8 +100,6 @@ export type RunWeapon = {
   traits: Traits;
   /** Armi fragili (R-rpg, facoltativo): colpi già dati con la copia in uso prima della spedizione (HeroState.usura). */
   usura?: number;
-  /** Arena: il Vigore che costa un colpo (una freccia); assente = niente (i dungeon). */
-  fatica?: number;
 };
 export type RunArrows = { id: string; n: number; danno: number; gittata: number; gravita: number; traits: Traits };
 export type RunArmor = {

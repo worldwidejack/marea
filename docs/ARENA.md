@@ -24,8 +24,8 @@ personaggio**: abilità, perk, zaino e armature non c'entrano, si parte tutti ug
 All'ingresso del colosseo (**ENTRA NEL COLOSSEO**, o A vicino al portone) si apre il pannello con **LE TUE BUILD**: se ne salvano fino a 3
 (schede BUILD 1-3, + NUOVA), si gioca con quella scelta; si salvano col personaggio (`HeroState.arena`, `POST /api/rpg {t:'arena'}`). Ogni
 build è uguale per tutti e ha:
-- una **dote** al posto dell'armatura: +20% di **Vita**, o +50% di **Vigore** o di **Magicka** (massimo e ricarica), con un leggero bagliore
-  attorno all'eroe, rosso, verde o blu (la Vita era +50%, ma vinceva tre partite su quattro: parte 7);
+- una **dote** al posto dell'armatura: +10% di **Vita**, o +100% di **Vigore** o +30% di **Magicka** (massimo e ricarica), con un leggero bagliore
+  attorno all'eroe, rosso, verde o blu (la Vita era +50%, ma vinceva tre partite su quattro; dal 10 nov 2026, coi colpi senza Vigore, +10%: parte 7);
 - **2 slot** tra le armi (una per tipo, tutte di ferro: nunchaku, katana, ascia, lancia, spadone, martello, arco) e le magie (fuoco ed
   elettricità a proiettile, raggio e bomba; Cura e Furia **solo a squadre**: nel 1 contro 1 quello slot resta vuoto; niente evocazioni);
 - un'**ulti** a scelta tra sei (parte 7).
@@ -58,8 +58,9 @@ Niente pozioni né anelli; l'arco ha 18 frecce a round. Senza niente negli slot 
   e magia sono fissi, scritti in `arena.json` → `build` (`buildArenaEroe` di `sim/rpg/arena.ts`).
 - **Niente one-shot**: nessun colpo supera `arena.dannoMax` (92) di `balance.json`.
 - **Il peso conta**: col martello in mano si va un po' più piano (−11%), con nunchaku e arco un po' più svelti (+2%): `build.passo`.
-- **Il Vigore paga i colpi**: la schivata, la corsa, ogni colpo di mischia e ogni freccia costano Stamina (un secondo di colpi di fila `staminaAlSecondo`, il caricato
-  ×1,5); senza il Vigore che costa il colpo non si attacca finché non torna. Così il Vigore è la «Magicka» delle armi.
+- **Il Vigore è per correre e schivare, non per colpire**: i colpi e le frecce non costano niente (10 nov 2026: a Vigore finito sul telefono sembrava che
+  le armi non funzionassero). La corsa consuma Vigore, la schivata costa `build.staminaSchivata` (34, più dei 24 dei dungeon: senza il costo dei colpi sarebbe
+  troppo a buon mercato); senza il Vigore che costa non si rotola.
 - **Indipendenza**: il bilanciamento dell'Arena non tocca i dungeon (stessi hash, stessa fixture d'oro).
 
 ## 5. Com'è fatta adesso (17 ott 2026, #373)
@@ -191,4 +192,7 @@ caso (2 slot, dote e ulti a caso, ulti accese): il danno di ogni arma e magia è
 il 55% delle partite in cui c'è. Il gladiatore tira con arco e magie mirando davvero (con un po' d'anticipo); non schiva e non scappa, quindi
 le ulti di movimento (Scatto, Velo) nelle simulazioni contano meno che tra persone: per quelle si è tenuto conto anche di questo. Il gladiatore
 schiva come una persona (non sempre in tempo) i caricati che stanno per partire e i proiettili in arrivo. Con +50% la Vita vinceva il 75% delle
-partite e il Vigore il 27%: con la Vita a +20% e il colpo che parte solo se hai il Vigore che costa, le tre doti stanno tra il 45 e il 54%.
+partite e il Vigore il 27%.
+**Rimisurato il 10 nov 2026** (#701, i colpi non costano più Vigore; 12.000 partite a build casuali, gladiatore contro gladiatore): danno di
+armi e magie corretto a piccoli passi finché ognuna vince 49-52%; dote Vita +10% (53%), Magicka +30% (53%), Vigore +100% (44%: il gladiatore
+schiva e corre poco, tra persone vale di più); ulti 39-57% (Scatto e Velo in basso, come prima, perché il gladiatore non le sa usare).

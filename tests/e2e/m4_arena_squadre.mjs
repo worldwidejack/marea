@@ -76,7 +76,7 @@ export default async function (ctx) {
   await ctx.test('telefono: col pilota il 2v2 si combatte; ARRENDITI → SCONFITTA → pannello', async () => {
     await ctx.waitState(page, (st) => st.arenaDuello?.fase === 'gioca', 15000);
     await page.evaluate(() => window.__game.test.arenaAuto(true));
-    await ctx.waitState(page, (st) => st.arenaDuello && st.arenaDuello.vita.some((v) => v !== 100 && v !== 120), 60000);
+    await ctx.waitState(page, (st) => st.arenaDuello && st.arenaDuello.vita.some((v) => v !== 100 && v !== 110), 60000);
     await ctx.shot(page, 'giardino_lotta');
     await page.evaluate(() => window.__game.test.arenaAuto(false));
     await page.tap('#mzArenaMenuBtn');
@@ -112,7 +112,7 @@ export default async function (ctx) {
     await ctx.shot(p3, 'rovine_erba');
     await ctx.waitState(p3, (st) => st.arenaDuello?.fase === 'gioca', 15000);
     await p3.evaluate(() => window.__game.test.arenaAuto(true));
-    await ctx.waitState(p3, (st) => st.arenaDuello && st.arenaDuello.vita.some((v) => v !== 100 && v !== 120), 60000);
+    await ctx.waitState(p3, (st) => st.arenaDuello && st.arenaDuello.vita.some((v) => v !== 100 && v !== 110), 60000);
     await ctx.shot(p3, 'rovine_lotta');
   });
 
