@@ -121,6 +121,7 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => ['arrembaggio:tempesta', 'lava:vulcano'].every((id) => s.compass.shown.includes(id)), 5000);
     });
 
+    const prima = {}; // monete prima della fine della partita
     for (const g of GIOCHI) {
       await ctx.test(`${g.id}: al posto compare GIOCA, si apre la schermata (dentro il telefono), un ${g.id === 'lava' ? 'salto' : 'colpo'} tenendo premuto, metà partita`, async () => {
         await hook('spotVai', g.spot);
@@ -161,11 +162,14 @@ export default async function (ctx) {
         await ctx.shot(page, `iphone_${g.id}_4_meta`);
         const v = (await st())[g.id].view;
         assert(v.punti > 0, 'a metà partita niente punti: ' + JSON.stringify(v));
+        // il pilota subito: dopo FinoA la partita va avanti senza tocchi fino al test dopo (a 2-4 fps più di un secondo di gioco), e nella lava
+        // un muro alto in quel momento ti brucia (morto al tick ~1574 su GitHub)
+        prima[g.id] = (await st()).lot.monete;
+        await hook(g.id + 'Auto', true);
       });
 
       await ctx.test(`${g.id}: l'autopilota finisce la partita, il server rigioca e paga l'oro col premio extra; la scheda dice cosa hai fatto`, async () => {
-        const before = (await st()).lot.monete;
-        await hook(g.id + 'Auto', true);
+        const before = prima[g.id];
         await ctx.waitState(page, (s) => s.minigiochi.open === true, 120000);
         const s = await st(), r = s.minigiochi.last;
         ctx.log(`esito ${g.id} ${r.medal} ${r.score} · ${JSON.stringify(r.detail)}`);
