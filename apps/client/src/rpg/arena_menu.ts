@@ -1,16 +1,19 @@
 // Il colosseo dell'Arena (docs/ARENA.md §2, PROTOCOL §10): il pannello che si apre all'ingresso e la partita che ne parte.
 // Pannello: LE TUE BUILD (fino a ARENA.build.salvate, uguali per tutti: dote, 2 slot tra armi e magie, ulti; l'editor è arena_build_ui.ts; si
-// salvano col personaggio: POST /api/rpg {t:'arena'}), il formato (1 CONTRO 1, 2 CONTRO 2, 3 CONTRO 3) e i modi di giocare: CODA VELOCE (gli
-// altri che ci sono; a squadre, passati pochi secondi, i posti vuoti li prendono i gladiatori), SFIDA AMICI (apre una sala con un codice di 4
-// lettere, o si entra col codice dell'amico; chi la apre preme PARTI ORA), ALLENAMENTO (con i gladiatori automatici, senza server né premio;
-// a squadre ogni gladiatore ha una build casuale o una a scelta). Coda e sala sono il WebSocket /ws/arena (DO Arena); quando il server ha tutti
-// manda `parte` e comincia la partita (arena_run.ts) coi suoi turni. Linea persa durante la partita: ci si ricollega da soli (`?run=&idx=&n=`)
-// per ARENA.rete.staccatoSecondi. A fine partita la scheda dell'esito, il lotto riletto (il premio è nelle monete) e di nuovo il pannello.
+// salvano col personaggio: POST /api/rpg {t:'arena'}), la MODALITÀ (Sopravvivenza da soli o in coppia, Caccia alle stelle, Controllo,
+// Rapinatori 2 o 3 contro 3) e i modi di giocare: CODA VELOCE (gli altri che ci sono; passati pochi secondi i posti vuoti li prendono i
+// gladiatori), CREA SALA (un codice di 4 lettere da dire agli amici, o si entra col codice dell'amico; chi la apre preme PARTI ORA, anche da
+// solo), ALLENAMENTO (tu e i gladiatori automatici, senza server né premio; ogni gladiatore ha una build casuale o una a scelta). Con qualsiasi
+// numero di persone si gioca ogni modalità: i posti vuoti sono gladiatori. Coda e sala sono il WebSocket /ws/arena (DO Arena); quando il server
+// ha tutti manda `parte` e comincia la partita (arena_run.ts) coi suoi turni. Linea persa durante la partita: ci si ricollega da soli
+// (`?run=&idx=&n=`) per ARENA.rete.staccatoSecondi. A fine partita la scheda dell'esito, il lotto riletto (il premio è nelle monete) e di nuovo
+// il pannello.
 import { createRng } from '@marea/sim';
 import type { InputFrame, LotState } from '@marea/sim';
 import type { Look } from '@marea/protocol';
-import { ARENA, arenaMappa, mappaPer } from '@marea/content/arena.ts';
-import { formatoDi } from '@marea/sim/arena/duello.ts';
+import { ARENA, arenaModo, eroiDi } from '@marea/content/arena.ts';
+import type { ArenaModo } from '@marea/content/arena.ts';
+import { formatoDi } from '@marea/sim/arena/partita.ts';
 import { botBuildCasuale } from '@marea/sim/rpg/arena_bot.ts';
 import { buildArenaEroe, buildsDi, erroreBuild, erroreBuilds } from '@marea/sim/rpg/arena.ts';
 import { newHero } from '@marea/sim/rpg/hero.ts';
@@ -33,16 +36,16 @@ export type ColosseoCtx = RunCtx & { api: Api | null; getLot(): LotState | null;
 export type Colosseo = {
   apri(): void;
   readonly aperto: boolean;
-  /** Duello in corso (il ciclo chiama step e update al posto del mondo). */
+  /** Partita in corso (il ciclo chiama step e update al posto del mondo). */
   readonly active: boolean;
   step(f: InputFrame): void;
   update(alpha: number, dt: number, t: number): void;
-  /** Stanza di prova (?arena=banco): subito nel duello contro il bot. */
+  /** Stanza di prova (?arena=banco): subito nell'allenamento coi gladiatori. */
   allenamento(): void;
 };
 
-/** I formati: eroi per squadra (1 = duello, 2 = 2v2, 3 = 3v3) e come si chiamano sui bottoni. */
-const FORMATI = [1, 2, 3] as const;
+/** Come si chiama sul bottone una grandezza di squadra della modalità. */
+const nomePer = (m: ArenaModo, per: number): string => (m === 'sopravvivenza' ? (per === 1 ? 'DA SOLO (10)' : 'IN COPPIA (5×2)') : `${per} CONTRO ${per}`);
 
 export function createColosseo(c: ColosseoCtx): Colosseo {
   injectUiStyle();
@@ -78,14 +81,13 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
     riga.append(vai('‹ LA TUA BUILD', () => {}), vai('BUILD CASUALE', () => { bots[k] = null; }));
     return [el('h4', '', `GLADIATORE: ${nomeBot(k).toUpperCase()}`), riga];
   }
-  /** I gladiatori dell'allenamento a squadre (compagni, poi avversari): casuali di default, un tocco per sceglier loro la build. */
+  /** I gladiatori dell'allenamento (compagni, poi avversari): casuali di default, un tocco per sceglier loro la build. */
   function sezBot(): Node[] {
-    if (formato < 2) return [];
-    const riga = el('div', 'riga d');
-    for (let k = 0; k < 2 * formato - 1; k++) {
+    const riga = el('div', 'riga d'), n = eroiDi(arenaModo(modo), per);
+    for (let k = 0; k < n - 1; k++) {
       const b = el('button', 'cella') as HTMLButtonElement; b.type = 'button'; b.dataset['bot'] = String(k);
-      b.append(el('span', '', nomeBot(k)), el('small', '', `${k < formato - 1 ? 'compagno' : 'avversario'} · ${bots[k] ? 'a scelta' : 'casuale'}`));
-      b.addEventListener('click', () => { bots[k] ??= botBuildCasuale(createRng((Date.now() >>> 0) % 1_000_000).fork('bot' + k)); bot = k; scelta = null; err.textContent = ''; disegna(); });
+      b.append(el('span', '', nomeBot(k)), el('small', '', `${k < per - 1 ? 'compagno' : 'avversario'} · ${bots[k] ? 'a scelta' : 'casuale'}`));
+      b.addEventListener('click', () => { bots[k] ??= botBuildCasuale(createRng((Date.now() >>> 0) % 1_000_000).fork('bot' + k), per > 1); bot = k; scelta = null; err.textContent = ''; disegna(); });
       riga.append(b);
     }
     return [el('h4', '', 'GLADIATORI DELL’ALLENAMENTO'), el('div', 'stat', 'Solo per ALLENAMENTO: build casuale a ogni partita. Tocca un gladiatore per scegliergli la build.'), riga];
@@ -98,44 +100,64 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
     disegna();
   }
 
+  /** La modalità (a due per riga), quanti per squadra, la descrizione e la mappa (quella dell'allenamento, se ce n'è più d'una: in coda e in
+   *  sala la sceglie il server). */
+  function sezModo(): Node[] {
+    const kids: Node[] = [];
+    const mo = el('div', 'modi');
+    for (const m of ARENA.modi.lista) {
+      const b = el('button', m.id === modo ? 'sel' : '') as HTMLButtonElement; b.type = 'button'; b.dataset['modo'] = m.id;
+      b.append(m.nome.toUpperCase(), el('small', '', m.per.map((p) => nomePer(m.id, p).toLowerCase()).join(' o ')));
+      b.addEventListener('click', () => { if (modo !== m.id) { modo = m.id; per = m.per.includes(per) ? per : m.per[m.per.length - 1]!; bots.length = 0; } disegna(); });
+      mo.append(b);
+    }
+    kids.push(el('div', 'mappe', 'MODALITÀ'), mo, el('div', 'descr', arenaModo(modo).descr));
+    const M = arenaModo(modo);
+    if (M.per.length > 1) {
+      const fm = el('div', 'formati p');
+      for (const p of M.per) { const b = el('button', p === per ? 'sel' : '', nomePer(modo, p)) as HTMLButtonElement; b.type = 'button'; b.dataset['f'] = String(p); b.addEventListener('click', () => { per = p; bots.length = 0; disegna(); }); fm.append(b); }
+      kids.push(fm);
+    }
+    const elenco = ARENA.mappe.filter((m) => m.modi.includes(modo));
+    if (!elenco.some((m) => m.id === mappaScelta)) mappaScelta = '';
+    if (elenco.length > 1) {
+      const mp = el('div', 'formati m');
+      for (const m of [{ id: '', nome: 'A caso' }, ...elenco]) { const b = el('button', m.id === mappaScelta ? 'sel' : '', m.id ? m.nome.split(' ').slice(-1)[0]! : m.nome) as HTMLButtonElement; b.title = m.nome; b.type = 'button'; b.dataset['m'] = m.id; b.addEventListener('click', () => { mappaScelta = m.id; disegna(); }); mp.append(b); }
+      kids.push(el('div', 'mappe', 'MAPPA DELL’ALLENAMENTO'), mp);
+    } else kids.push(el('div', 'mappe', `MAPPA: ${(elenco[0]?.nome ?? '').toUpperCase()}`));
+    return kids;
+  }
   function disegna(): void {
     const a = c.getLot()?.arena, kids: Node[] = [];
     const oggi = a && a.giorno === Math.floor(Date.now() / 86_400_000) ? a.preso : 0;
     if (bot !== null) kids.push(...testaBot(bot));
     else {
       kids.push(el('div', 'stat', online() ? `Vinte ${a?.vinte ?? 0} · perse ${a?.perse ?? 0} · pari ${a?.pari ?? 0} · premio di oggi ${oggi}/${ARENA.premio.tetto} monete` : 'Senza link personale: solo allenamento'));
+      kids.push(...sezModo());
       kids.push(el('div', 'stat', 'In Arena si parte tutti uguali: conta solo la build, non il personaggio né lo zaino.'));
       kids.push(el('h4', '', 'LE TUE BUILD'), schedeBuild(builds, (n) => { builds = { ...builds, scelta: n }; scelta = null; disegna(); }, () => { builds = { build: [...builds.build, corr()], scelta: builds.build.length }; scelta = null; disegna(); }));
     }
-    kids.push(...editorBuild({ build: corr(), scelta, squadre: formato > 1, apri: (sc) => { scelta = sc; disegna(); }, metti }), ...(bot === null ? sezBot() : []), err);
+    kids.push(...editorBuild({ build: corr(), scelta, squadre: per > 1, apri: (sc) => { scelta = sc; disegna(); }, metti }), ...(bot === null ? sezBot() : []), err);
     corpo.replaceChildren(...kids);
     disegnaGioca();
   }
 
   // ---- giocare: coda, sala, allenamento ----
-  type Sessione = { ws: WebSocket; modo: 'coda' | 'sala'; codice: string; rete: (ArenaRete & { turni: ArTurno[]; ricevuti: number; attesaV: { chi: number; fino: number } | null; fineV: ArenaRete['fine']; chiusaV: boolean }) | null; run: string; idx: number; voluta: boolean; f: number; dentro: number; serve: number; host: boolean };
+  type Sessione = { ws: WebSocket; modo: 'coda' | 'sala'; codice: string; rete: (ArenaRete & { turni: ArTurno[]; ricevuti: number; attesaV: { chi: number; fino: number } | null; fineV: ArenaRete['fine']; chiusaV: boolean }) | null; run: string; idx: number; voluta: boolean; m: ArenaModo; f: number; dentro: number; serve: number; host: boolean };
   let sess: Sessione | null = null, run: ArenaRun | null = null, ultimo: unknown = null, codiceIn: HTMLInputElement | null = null;
-  /** Eroi per squadra della prossima partita (1 = duello, 2 = 2v2, 3 = 3v3). */
-  let formato = 1, mappaScelta = '';
+  /** La modalità della prossima partita, quanti per squadra, la mappa dell'allenamento ('' = a caso, se ce n'è più d'una). */
+  let modo: ArenaModo = 'stelle', per = 3, mappaScelta = '';
   const btn = (cls: string, act: string, testo: string, fn: () => void, dis = false) => { const b = el('button', `mz-btn ${cls}`, testo) as HTMLButtonElement; b.type = 'button'; b.dataset['act'] = act; b.disabled = dis; b.addEventListener('click', fn); return b; };
   function disegnaGioca(): void {
     const kids: Node[] = [];
     if (sess && !sess.rete) {
-      const s = sess, squadre = s.f > 1 && s.serve > 0;
-      attesaEl.replaceChildren(s.modo === 'coda' ? 'In coda: aspetto gli altri…' : s.codice ? 'Di’ questo codice ai tuoi amici:' : 'Apro la sala…', ...(s.codice ? [el('span', 'codice', s.codice)] : []),
-        ...(squadre ? [el('span', 'quanti', `${s.dentro} su ${s.serve}: i posti vuoti li prendono i gladiatori`)] : []));
+      const s = sess, quanti = s.serve > 0;
+      attesaEl.replaceChildren(s.modo === 'coda' ? `In coda per ${arenaModo(s.m).nome}: aspetto gli altri…` : s.codice ? 'Di’ questo codice ai tuoi amici:' : 'Apro la sala…', ...(s.codice ? [el('span', 'codice', s.codice)] : []),
+        ...(quanti ? [el('span', 'quanti', `${s.dentro} su ${s.serve}: i posti vuoti li prendono i gladiatori`)] : []));
       const annulla = btn('ghost', 'annulla', 'ANNULLA', () => esci());
-      kids.push(attesaEl, ...(s.modo === 'sala' && s.host && squadre ? [btn('coda', 'via', 'PARTI ORA', () => { if (s.ws.readyState === WebSocket.OPEN) s.ws.send(JSON.stringify({ t: 'via' } satisfies ArClientMsg)); })] : []), annulla);
+      kids.push(attesaEl, ...(s.modo === 'sala' && s.host && quanti ? [btn('coda', 'via', 'PARTI ORA', () => { if (s.ws.readyState === WebSocket.OPEN) s.ws.send(JSON.stringify({ t: 'via' } satisfies ArClientMsg)); })] : []), annulla);
     } else {
       const on = online();
-      const fm = el('div', 'formati');
-      for (const f of FORMATI) { const b = el('button', f === formato ? 'sel' : '', `${f} CONTRO ${f}`) as HTMLButtonElement; b.type = 'button'; b.dataset['f'] = String(f); b.addEventListener('click', () => { formato = f; disegna(); }); fm.append(b); }
-      // la mappa dell'allenamento: a caso o una a scelta (in coda e in sala la sceglie il server)
-      const elenco = ARENA.mappe.filter((m) => m.formati.includes(formato));
-      if (!elenco.some((m) => m.id === mappaScelta)) mappaScelta = '';
-      const mp = el('div', 'formati m');
-      for (const m of [{ id: '', nome: 'A caso' }, ...elenco]) { const b = el('button', m.id === mappaScelta ? 'sel' : '', m.id ? m.nome.split(' ')[0]! : m.nome) as HTMLButtonElement; b.title = m.nome; b.type = 'button'; b.dataset['m'] = m.id; b.addEventListener('click', () => { mappaScelta = m.id; disegnaGioca(); }); mp.append(b); }
-      kids.push(fm, el('div', 'mappe', 'MAPPA DELL’ALLENAMENTO (in coda la sceglie il server)'), mp);
       kids.push(btn('coda', 'coda', 'CODA VELOCE', () => void entra('coda'), !on));
       const due = el('div', 'due');
       due.append(btn('ghost', 'sala', 'CREA SALA', () => void entra('sala'), !on), btn('ghost', 'allenamento', 'ALLENAMENTO', () => void allena()));
@@ -158,18 +180,18 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
     try { c.setLot(await c.api!.rpg({ t: 'arena', builds })); salvato = JSON.stringify(builds); return null; } catch (e) { return e instanceof ApiError ? e.message : 'Build non salvata: riprova'; }
   }
 
-  async function entra(modo: 'coda' | 'sala', codice = ''): Promise<void> {
+  async function entra(come: 'coda' | 'sala', codice = ''): Promise<void> {
     if (sess || run || !online()) return;
     const why = await salva();
     if (why) { err.textContent = why; return; }
     const k = codice.trim().toUpperCase();
     if (codice && k.length !== ARENA.rete.codice) { err.textContent = `Il codice ha ${ARENA.rete.codice} lettere`; return; }
     const u = new URL('/ws/arena', location.href);
-    u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'; u.searchParams.set('t', FLAGS.token); u.searchParams.set('modo', modo); u.searchParams.set('f', String(formato));
+    u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'; u.searchParams.set('t', FLAGS.token); u.searchParams.set('modo', come); u.searchParams.set('m', modo); u.searchParams.set('f', String(per));
     if (k) u.searchParams.set('codice', k);
     let ws: WebSocket;
     try { ws = new WebSocket(u.toString()); } catch { err.textContent = 'Arena non disponibile, riprova'; return; }
-    const s: Sessione = { ws, modo, codice: '', rete: null, run: '', idx: 0, voluta: false, f: formato, dentro: 0, serve: 0, host: false };
+    const s: Sessione = { ws, modo: come, codice: '', rete: null, run: '', idx: 0, voluta: false, m: modo, f: per, dentro: 0, serve: 0, host: false };
     sess = s; disegnaGioca();
     collega(s, ws);
   }
@@ -186,7 +208,7 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
       riprova(s, Date.now() + ARENA.rete.staccatoSecondi * 1000);
     };
   }
-  /** Linea persa nel duello: ci si ricollega col numero del prossimo turno che si aspetta, finché c'è tempo. */
+  /** Linea persa in partita: ci si ricollega col numero del prossimo turno che si aspetta, finché c'è tempo. */
   function riprova(s: Sessione, fino: number): void {
     if (sess !== s || !s.rete || s.rete.fineV) return;
     if (Date.now() > fino) { s.rete.chiusaV = true; return; }
@@ -204,7 +226,7 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
   }
   function onMsg(s: Sessione, m: ArServerMsg): void {
     if (m.t === 'T') { if (s.rete && m.n === s.rete.ricevuti) { s.rete.turni.push(m); s.rete.ricevuti++; } return; }
-    if (m.t === 'attendi') { s.codice = m.codice; s.f = m.f ?? s.f; s.dentro = m.dentro ?? 0; s.serve = m.serve ?? 0; s.host = !!m.host; disegnaGioca(); return; }
+    if (m.t === 'attendi') { s.codice = m.codice; s.m = m.m; s.f = m.f; s.dentro = m.dentro; s.serve = m.serve; s.host = !!m.host; disegnaGioca(); return; }
     if (m.t === 'errore') { c.hud.toast(m.msg, 3000); err.textContent = m.msg; return; }
     if (m.t === 'attesa') { if (s.rete) s.rete.attesaV = m.chi < 0 ? null : { chi: m.chi, fino: Date.now() + m.ms }; return; }
     if (m.t === 'ripresa') { c.hud.toast('Di nuovo in linea', 1200); return; }
@@ -219,7 +241,7 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
       };
       s.rete = rete; s.run = m.run; s.idx = io;
       chiudiPannello();
-      gioca2(m.seed, eroi, io, rete, m.squadre ? { squadre: m.squadre, mappa: m.mappa ?? 'colosseo' } : undefined);
+      gioca2(m.seed, eroi, io, rete, { modo: m.m, per: m.f, mappa: m.mappa });
     }
   }
   function esci(): void {
@@ -230,21 +252,21 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
     disegnaGioca();
   }
 
-  /** Allenamento: tu (più i compagni) contro i gladiatori automatici; nel 1 contro 1 il gladiatore ha la tua stessa build. */
+  /** Allenamento: tu (più i compagni) contro i gladiatori automatici, ognuno con la sua build (a scelta, o a caso a ogni partita). */
   async function allena(): Promise<void> {
     if (sess || run) return;
     const why = await salva();
     if (why) { err.textContent = why; return; }
     const mio = buildArenaEroe(builds.build[builds.scelta]!), seed = (Date.now() >>> 0) % 1_000_000;
-    const f = formato, mappa = mappaScelta ? arenaMappa(mappaScelta) : mappaPer(f, seed), fo = formatoDi(f, mappa.id);
+    const fo = formatoDi(modo, per, seed, mappaScelta || undefined), n = eroiDi(arenaModo(fo.modo), fo.per);
     chiudiPannello();
-    // io primo della mia squadra; poi i compagni e gli avversari, a rotazione dai gladiatori, ognuno con la sua build (a scelta, o a caso)
-    const glad = (k: number): ArenaDuellante => ({ nome: nomeBot(k), look: ARENA.gladiatori[k % ARENA.gladiatori.length]!.look, eroe: f > 1 ? buildArenaEroe(bots[k] ?? botBuildCasuale(createRng(seed).fork('bot' + k))) : mio });
-    gioca2(seed, [{ nome: c.nome() || 'Tu', look: c.look(), eroe: mio }, ...Array.from({ length: 2 * f - 1 }, (_, k) => glad(k))], 0, null, fo);
+    // io primo della mia squadra; poi i compagni e gli avversari, a rotazione dai gladiatori
+    const glad = (k: number): ArenaDuellante => ({ nome: nomeBot(k), look: ARENA.gladiatori[k % ARENA.gladiatori.length]!.look, eroe: buildArenaEroe(bots[k] ?? botBuildCasuale(createRng(seed).fork('bot' + k), fo.per > 1)) });
+    gioca2(seed, [{ nome: c.nome() || 'Tu', look: c.look(), eroe: mio }, ...Array.from({ length: n - 1 }, (_, k) => glad(k))], 0, null, fo);
   }
 
-  function gioca2(seed: number, eroi: ArenaDuellante[], io: number, rete: ArenaRete | null, fo?: { squadre: number[]; mappa: string }): void {
-    run = startArenaRun(c, { seed, eroi, io, ...(fo ?? {}), ...(rete ? { rete } : {}) });
+  function gioca2(seed: number, eroi: ArenaDuellante[], io: number, rete: ArenaRete | null, fo: { modo: ArenaModo; per: number; mappa: string }): void {
+    run = startArenaRun(c, { seed, eroi, io, ...fo, ...(rete ? { rete } : {}) });
     const r = run;
     void r.done.then(async (fine) => {
       run = null;
@@ -268,9 +290,14 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
   chiudiBtn.addEventListener('click', () => { esci(); chiudiPannello(); });
   addEventListener('keydown', (e) => { if (aperto && e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); esci(); chiudiPannello(); } }, true);
 
-  registerStateProvider('colosseo', () => ({ aperto, attivo: !!run, formato, bot, bots, builds, build: corr(), salvato: JSON.parse(salvato) as unknown, coda: sess ? { modo: sess.modo, codice: sess.codice, duello: !!sess.rete, run: sess.run, io: sess.idx, turni: sess.rete?.ricevuti ?? 0, f: sess.f, dentro: sess.dentro, serve: sess.serve, host: sess.host } : null, ultimo, errore: err.textContent }));
+  registerStateProvider('colosseo', () => ({ aperto, attivo: !!run, modo, per, bot, bots, builds, build: corr(), salvato: JSON.parse(salvato) as unknown, coda: sess ? { modo: sess.modo, codice: sess.codice, partita: !!sess.rete, run: sess.run, io: sess.idx, turni: sess.rete?.ricevuti ?? 0, m: sess.m, f: sess.f, dentro: sess.dentro, serve: sess.serve, host: sess.host } : null, ultimo, errore: err.textContent }));
   registerTestHook('arenaSet', (b) => { const x = b as ArenaBuild; builds = { build: builds.build.map((y, n) => (n === builds.scelta ? x : y)), scelta: builds.scelta }; disegna(); return erroreBuild(x); });
-  registerTestHook('arenaGioca', (modo, codice, f) => { if (f === 1 || f === 2 || f === 3) formato = f; if (modo === 'allenamento') void allena(); else void entra(modo === 'sala' ? 'sala' : 'coda', typeof codice === 'string' ? codice : ''); return true; });
+  // test: gioca `come` (coda, sala, allenamento) la modalità m con f per squadra (senza: quelle di adesso)
+  registerTestHook('arenaGioca', (come, codice, m, f) => {
+    if (typeof m === 'string' && ARENA.modi.lista.some((x) => x.id === m)) { modo = m as ArenaModo; per = arenaModo(modo).per.includes(Number(f)) ? Number(f) : arenaModo(modo).per[0]!; }
+    if (come === 'allenamento') void allena(); else void entra(come === 'sala' ? 'sala' : 'coda', typeof codice === 'string' ? codice : '');
+    return true;
+  });
   registerTestHook('arenaBot', (k, b) => { const n = Number(k); bots[n] = (b as ArenaBuild | null) ?? null; disegna(); return true; });
   registerTestHook('arenaVia', () => { const s = sess; if (!s || s.rete || s.ws.readyState !== WebSocket.OPEN) return false; s.ws.send(JSON.stringify({ t: 'via' } satisfies ArClientMsg)); return true; });
   registerTestHook('arenaEsci', () => { esci(); chiudiPannello(); return true; });

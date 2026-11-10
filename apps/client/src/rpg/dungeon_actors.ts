@@ -34,6 +34,7 @@ import { formaNemico as formaMausoleo } from './mausoleo.ts';
 import { formaNemico as formaDiga } from './diga.ts';
 import { formaBaita } from './baita.ts';
 import { formaCeneri } from './ceneri.ts';
+import { formaArena } from './arena_kit.ts';
 import type { Arco } from './arco.ts';
 
 type NemV = DungeonView['nemici'][number] & { area?: number };
@@ -116,7 +117,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
         body.add(m); e.arco = { obj: m, a: armaArco(m, o.loader, true, 2.6) };
       });
     }
-    void object(o.loader, n.model, () => formaNemico(n.model) ?? formaArchivio(n.model) ?? formaFucina(n.model) ?? formaMausoleo(n.model) ?? formaDiga(n.model) ?? formaBaita(n.model) ?? formaCeneri(n.model) ?? boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
+    void object(o.loader, n.model, () => formaNemico(n.model) ?? formaArchivio(n.model) ?? formaFucina(n.model) ?? formaMausoleo(n.model) ?? formaDiga(n.model) ?? formaBaita(n.model) ?? formaCeneri(n.model) ?? formaArena(n.model) ?? boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
       body.add(m);
       if (n.model === 'nem_astrolabio') for (const g of giriAstrolabio()) { m.add(g); e.giri.push(g); } // anelli che girano (anche sul modello vero)
       e.mats = materialsOf(m);

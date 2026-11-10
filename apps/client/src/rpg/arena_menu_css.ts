@@ -49,4 +49,10 @@ export const CSS_COLOSSEO = `
 .mz-col .lista .uico { width: 26px; text-align: center; color: ${L.oroScuro}; font-size: 18px; }
 .mz-col .lista button small { max-width: 58%; text-align: right; }
 .mz-col .mappe { color: ${L.inchiostro2}; font-size: 11px; letter-spacing: .05em; margin: 6px 0 4px; }
+.mz-col .modi { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+.mz-col .modi button { min-height: 52px; padding: 4px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; background: ${L.cartaChiara}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; color: ${L.inchiostro}; font: 700 14px ${FONT_LIBRO}; cursor: pointer; line-height: 1.1; }
+.mz-col .modi button small { font-size: 10px; font-weight: normal; color: ${L.inchiostro2}; }
+.mz-col .modi button.sel { border-color: ${L.acqua}; background: ${L.carta}; color: ${L.acquaScura}; }
+.mz-col .descr { font-size: 12px; color: ${L.inchiostro2}; margin: 2px 0 6px; min-height: 30px; }
+.mz-col .formati.p { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
 `;

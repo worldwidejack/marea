@@ -24,8 +24,8 @@ export function eroiNemici(s: DungeonState): number[] {
 }
 /** Un'evocazione della squadra avversaria dell'eroe di turno (senza pvp mai). */
 export const evocazioneNemica = (s: DungeonState, e: Enemy): boolean => !!s.pvp && e.alleato && squadraDi(s, e.padrone ?? 0) !== squadraDi(s, s.cur);
-/** Un bersaglio per l'eroe di turno: i nemici del dungeon e, in Arena, le evocazioni avversarie. */
-export const ostile = (s: DungeonState, e: Enemy): boolean => e.st !== 'morto' && (!e.alleato || evocazioneNemica(s, e)) && !nascosto(s, e);
+/** Un bersaglio per l'eroe di turno: i nemici del dungeon e, in Arena, le evocazioni avversarie e le casse (non la cassaforte della sua squadra). */
+export const ostile = (s: DungeonState, e: Enemy): boolean => e.st !== 'morto' && (!e.alleato || evocazioneNemica(s, e)) && !nascosto(s, e) && s.pvp?.di?.[e.id] !== squadraDi(s, s.cur);
 /** Un alleato per l'eroe di turno: le evocazioni della sua squadra (senza pvp tutte). */
 export const amica = (s: DungeonState, e: Enemy): boolean => e.alleato && e.st !== 'morto' && !evocazioneNemica(s, e);
 /** L'eroe j è della squadra dell'eroe di turno (sé compreso). */
@@ -63,11 +63,12 @@ export function eroeToccato(s: DungeonState, x: number, z: number, margine: numb
   return out;
 }
 
-/** Colpo dell'eroe di turno (o della sua evocazione) sull'avversario j. Ritorna il danno. Le evocazioni hanno il danno dei dungeon: sugli
+/** Colpo dell'eroe di turno (o della sua evocazione) sull'avversario j (che si ricorda chi l'ha colpito per ultimo). Ritorna il danno. Le evocazioni hanno il danno dei dungeon: sugli
  *  eroi va scalato come le armi della fotografia arena (RPG.arena.dannoMolt). */
 export function colpisciEroe(s: DungeonState, j: number, src: HitSrc): number {
   const d = hitHeroPvp(s, j, src.daAlleato ? { ...src, danno: src.danno * RPG.arena.dannoMolt } : src);
   if (d > 0 && !src.daAlleato) s.danniFatti += d;
+  if (d > 0 && s.pvp) (s.pvp.ultimo ??= s.eroi.map(() => -1))[j] = s.cur;
   return d;
 }
 

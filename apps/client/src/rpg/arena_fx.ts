@@ -7,12 +7,12 @@
 // Si disegna solo chi si vede (`visibili`): gli avversari nascosti nell'erba o nel Velo non hanno né bagliore né effetti.
 import * as THREE from 'three';
 import { ARENA, arenaUlti } from '@marea/content/arena.ts';
-import type { DuelloView } from '@marea/sim/arena/duello.ts';
+import type { PartitaView } from '@marea/sim/arena/partita.ts';
 import { PAL } from '../ui/style.ts';
 
 export type ArenaFx = {
-  /** Ogni frame: dove sono gli eroi (null = non si vede o è a terra), la vista del duello, il tempo. */
-  update(t: number, pos: readonly (THREE.Vector3 | null)[], v: DuelloView): void;
+  /** Ogni frame: dove sono gli eroi (null = non si vede o è a terra), la vista della partita, il tempo. */
+  update(t: number, pos: readonly (THREE.Vector3 | null)[], v: PartitaView): void;
   dispose(): void;
 };
 

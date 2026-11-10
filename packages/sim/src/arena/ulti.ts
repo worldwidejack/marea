@@ -1,6 +1,6 @@
-// Ulti e Vigore dell'Arena (docs/ARENA.md §7): sopra la sim del round, senza toccare quella dei dungeon.
-// Ulti: ogni eroe ne ha una (ArenaEroe.ulti, numeri in arena.json → ulti). Si carica giocando (al secondo, col danno dato e preso), resta da un
-// round all'altro, si lancia piena con l'azione `ulti`. Furia e Scatto sono buff (furiaDanno, passo e corsaGratis); Aura cura chi le sta vicino;
+// Ulti e Vigore dell'Arena (docs/ARENA.md §7): sopra la sim della partita, senza toccare quella dei dungeon.
+// Ulti: ogni eroe ne ha una (ArenaEroe.ulti, numeri in arena.json → ulti). Si carica giocando (al secondo, col danno dato e preso), resta anche
+// quando si cade e si rinasce, si lancia piena con l'azione `ulti`. Furia e Scatto sono buff (furiaDanno, passo e corsaGratis); Aura cura chi le sta vicino;
 // Raggio della Marea: fermo, carica e poi un raggio dritto che si gira piano; Arpione: un gancio dritto, chi prende viene tirato fino a te e
 // resta stordito; Velo: per un po' gli avversari non ti vedono, come nell'erba alta (dungeon/erba.ts). Chi carica, spara, lancia o è tirato sta
 // fermo: il suo input non conta.
@@ -21,21 +21,21 @@ import type { ArenaEroe } from '../rpg/arena.ts';
 /** Ulti di un eroe: la carica (0..max) e, se è in corso, la fase e quanti tick restano. Arpione: dove sta il gancio, quanta strada ha fatto,
  *  chi ha preso (-1 nessuno). Raggio: quanto è lungo adesso (fino al primo muro). `stordito`: tick in cui l'eroe resta fermo (preso
  *  dall'arpione di un altro). Vigore: l'azione dell'eroe al tick prima. `fatti`/`presi`:
- *  il danno del round già contato per la carica. */
+ *  il danno già contato per la carica. */
 export type UltiRt = {
   id: string; carica: number;
   fase: 'no' | 'su' | 'carica' | 'fuoco' | 'volo' | 'tiro'; resto: number;
   x: number; z: number; fx: number; fz: number; strada: number; preso: number; lungo: number;
   stordito: number; act: string; fatti: number; presi: number;
 };
-/** Il pezzo di DuelloState che serve qui. */
+/** Il pezzo di PartitaState che serve qui. */
 type D = { s: DungeonState; eroi: readonly ArenaEroe[]; ul: UltiRt[]; fase: string; squadre: number[] };
 
 const C = ARENA.ulti.carica, OGNI = Math.round(secToTicks(1) / 6); // effetti a impulsi: 6 al secondo
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 export const nuovaUlti = (e: ArenaEroe): UltiRt => ({ id: arenaUlti(e.ulti).id, carica: 0, fase: 'no', resto: 0, x: 0, z: 0, fx: 0, fz: 1, strada: 0, preso: -1, lungo: 0, stordito: 0, act: 'idle', fatti: 0, presi: 0 });
-/** Round nuovo: niente ulti in corso, danno contato da zero; la carica resta. */
-export function roundUlti(d: D): void { for (const u of d.ul) { u.fase = 'no'; u.resto = 0; u.preso = -1; u.stordito = 0; u.act = 'idle'; u.fatti = 0; u.presi = 0; } }
+/** L'eroe rinasce: niente ulti in corso; la carica e il danno già contato restano. */
+export function rinasceUlti(u: UltiRt): void { u.fase = 'no'; u.resto = 0; u.preso = -1; u.stordito = 0; u.act = 'idle'; }
 /** Chi sta fermo per un'ulti: chi carica o spara il raggio, chi lancia l'arpione, chi ne è stato preso. */
 export const fermo = (d: D, i: number): boolean => {
   const u = d.ul[i]!;

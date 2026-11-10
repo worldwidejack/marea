@@ -1,177 +1,193 @@
 # MAREA — Isola dell'Arena (GDD e com'è ora)
 
-> Documento di riferimento della modalità PvP e dell'Isola dell'Arena. Le parti 1-4 sono il design di Riccardo; la parte 5 dice com'è fatto
-> il duello (17 ott 2026, #373), la parte 6 le squadre, l'erba alta e le mappe (23 ott 2026, #567), la parte 7 le build uguali per tutti e
-> le ulti (9 nov 2026, #697). Le voci **[proposta]** sono scelte di Claude dove il design non diceva niente: si cambiano nei JSON di
-> `packages/content/src/arena/arena.json` (col perché nella PR). Mappa del codice: `MAPPA.md`; messaggi: `packages/protocol/src/arena.ts`.
+> Documento di riferimento del PvP e dell'Isola dell'Arena. Le parti 1-4 e le regole delle modalità (parte 6) sono il design di Riccardo;
+> la parte 5 dice com'è fatta una partita, la 6 le quattro modalità e le loro mappe, la 7 le build uguali per tutti e le ulti. Le voci
+> **[proposta]** sono scelte di Claude dove il design non diceva niente: si cambiano nei JSON di `packages/content/src/arena/arena.json` (col
+> perché nella PR). Mappa del codice: `MAPPA.md`; messaggi: `packages/protocol/src/arena.ts`.
 
 ---
 
 ## 1. Visione del Gioco
-Una modalità PvP in stile *Brawl Stars* su un'isola nuova dell'arcipelago («Isola dell'Arena»), col combattimento dei dungeon ma **senza il
-personaggio**: abilità, perk, zaino e armature non c'entrano, si parte tutti uguali e conta la build scelta prima della partita (parte 7).
+Il PvP di MAREA in stile *Brawl Stars* su un'isola sua («Isola dell'Arena»), col combattimento dei dungeon ma **senza il personaggio**:
+abilità, perk, zaino e armature non c'entrano, si parte tutti uguali e conta la build scelta prima della partita (parte 7).
 
-### Modalità
-- **1v1 (Duello rapido)**: la prima versione, al meglio dei 3 round. **Fatta.**
-- **Showdown (Tutti contro tutti a 4)**: evoluzione futura, vince l'ultimo in piedi.
-- **A squadre (2v2 / 3v3)**: **fatta** (23 ott 2026, #567), con l'erba alta come in Brawl Stars e due mappe nuove: parte 6.
+### Modalità (parte 6)
+- **Sopravvivenza**: l'ultimo in piedi su un'isola che la nube tossica stringe; 10 tutti contro tutti o 5 coppie.
+- **Caccia alle stelle**: 3 contro 3 per 2 minuti, la taglia di stelle sopra la testa di ognuno.
+- **Controllo**: 3 contro 3, zone da conquistare fino al 100%.
+- **Rapinatori**: 2 contro 2 o 3 contro 3, rompere la cassaforte avversaria prima che rompano la tua.
+
+Ogni modalità si gioca con **qualsiasi mix di persone e gladiatori automatici**: da soli con tutti gladiatori, in cinque con un gladiatore, a
+partita piena di persone. Il duello a round (1v1, 2v2, 3v3) di prima non c'è più, e nemmeno le sue mappe (colosseo, giardino, rovine).
 
 ---
 
 ## 2. Regole di Gioco & Loadout
 
-### Build Pre-Partita (fatta, 9 nov 2026)
-All'ingresso del colosseo (**ENTRA NEL COLOSSEO**, o A vicino al portone) si apre il pannello con **LE TUE BUILD**: se ne salvano fino a 3
-(schede BUILD 1-3, + NUOVA), si gioca con quella scelta; si salvano col personaggio (`HeroState.arena`, `POST /api/rpg {t:'arena'}`). Ogni
-build è uguale per tutti e ha:
-- una **dote** al posto dell'armatura: +10% di **Vita**, o +100% di **Vigore** o +30% di **Magicka** (massimo e ricarica), con un leggero bagliore
-  attorno all'eroe, rosso, verde o blu (la Vita era +50%, ma vinceva tre partite su quattro; dal 10 nov 2026, coi colpi senza Vigore, +10%: parte 7);
+### Build Pre-Partita
+All'ingresso del colosseo (**ENTRA NEL COLOSSEO**, o A vicino al portone) si apre il pannello: in cima la **MODALITÀ** (le quattro, con la
+grandezza di squadra dove c'è da scegliere e la mappa), poi **LE TUE BUILD**: se ne salvano fino a 3 (schede BUILD 1-3, + NUOVA), si gioca con
+quella scelta; si salvano col personaggio (`HeroState.arena`, `POST /api/rpg {t:'arena'}`). Ogni build è uguale per tutti e ha:
+- una **dote** al posto dell'armatura: +10% di **Vita**, o +100% di **Vigore** o +30% di **Magicka** (massimo e ricarica), con un leggero
+  bagliore attorno all'eroe, rosso, verde o blu (parte 7);
 - **2 slot** tra le armi (una per tipo, tutte di ferro: nunchaku, katana, ascia, lancia, spadone, martello, arco) e le magie (fuoco ed
-  elettricità a proiettile, raggio e bomba; Cura e Furia **solo a squadre**: nel 1 contro 1 quello slot resta vuoto; niente evocazioni);
+  elettricità a proiettile, raggio e bomba; Cura e Furia **solo con dei compagni**: tutti contro tutti quello slot resta vuoto; niente evocazioni);
 - un'**ulti** a scelta tra sei (parte 7).
-Niente pozioni né anelli; l'arco ha 18 frecce a round. Senza niente negli slot si combatte coi pugni.
+Niente pozioni né anelli; l'arco ha 18 frecce (si riempiono quando si rinasce). Senza niente negli slot si combatte coi pugni.
 
-### Interfaccia Utente (fatta)
-- In alto il **tabellone**: la tua vita (con Magicka e Stamina sotto), il tempo del round e i round vinti a pallini, la vita dell'avversario.
-- In basso la **barra**: i 2 slot (tocco su telefono 390×844, tasti **1-2** su PC) e il bottone tondo dell'**ulti**, che si riempie dal basso
-  e si accende quando è piena (tocco, tasto **F**). La **schivata** come nei dungeon (bottone Schiva, tasto **V**): costa Vigore e mentre
-  rotoli i colpi non ti prendono. Sullo slot si vede quante frecce restano (arco) o quanta Magicka costa (magie).
+### Interfaccia Utente
+- In alto il **tabellone**: a sinistra la mia squadra (una barra di vita per eroe, io per primo, con Magicka e Stamina sotto); in mezzo il
+  tempo e i punti della modalità (stelle, % di conquista, % della cassaforte); a destra l'altra squadra, o nella Sopravvivenza quante squadre
+  sono **IN PIEDI**.
+- Sopra la testa di ognuno il suo numero quando serve: le **monete rosse** (Sopravvivenza) o le **stelle della taglia** (Caccia alle stelle).
+- Un cartello sotto il tabellone: NELL'ERBA / NEL VELO (non ti vedono), NELLA NUBE (torna dentro!), **RINASCI TRA N**, SEI FUORI (col posto).
+- In basso la **barra**: i 2 slot (tocco su telefono 390×844, tasti **1-2** su PC) e il bottone tondo dell'**ulti**, che si riempie dal basso e
+  si accende quando è piena (tocco, tasto **F**). La **schivata** come nei dungeon (bottone Schiva, tasto **V**): costa Vigore e mentre rotoli
+  i colpi non ti prendono. Sullo slot si vede quante frecce restano (arco) o quanta Magicka costa (magie).
 - Joystick di movimento, A e B come sempre (alzati sopra la barra); con l'arco o una magia in mano, al telefono il **joystick di mira** al
-  posto di A, al PC il clic sinistro tenuto e la mira verso il cursore, come nei dungeon. E: la Scarica dell'arco (perk).
+  posto di A, al PC il clic sinistro tenuto e la mira verso il cursore, come nei dungeon.
 - Menu (Esc o il bottone in alto a destra): RIPRENDI e **ARRENDITI** (con conferma).
-- La camera guarda un po' verso l'avversario, così si vedono tutti e due finché si è vicini.
+- La camera guarda un po' verso l'avversario più vicino che si vede; da a terra segue un compagno (o, da soli, chi ti ha buttato giù).
 
 ---
 
-## 3. Nuove Magie di Supporto (Step 1, 16 ott 2026)
+## 3. Magie di Supporto
 - **Cura a flusso**: raggio continuo concentrato su un singolo alleato o evocazione.
 - **Cura a bomba**: lancio ad area che cura alleati ed evocazioni nella zona d'impatto.
 - **Furia a flusso**: raggio continuo che aumenta velocità e danno di un singolo alleato o evocazione.
 - **Furia a bomba**: lancio ad area che potenzia per qualche secondo chi si trova nel raggio d'azione.
-- In Arena valgono **solo nelle partite a squadre** e **solo su di te e sui compagni**, mai sull'avversario; senza nessuno dei tuoi davanti
-  il flusso va su di te e la bomba ti cade ai piedi. I loro numeri in Arena sono fissi (`arena.json` → `build.magie`).
+- In Arena valgono **solo nelle modalità con dei compagni** e **solo su di te e sui compagni**, mai sugli avversari; senza nessuno dei tuoi
+  davanti il flusso va su di te e la bomba ti cade ai piedi. I loro numeri in Arena sono fissi (`arena.json` → `build.magie`).
 
 ---
 
 ## 4. Principi di Bilanciamento PvP
 - **Tutti uguali**: 100 di Vita, Magicka e Stamina (più la dote), niente armatura, niente perk né abilità; danni, velocità e costi di ogni arma
-  e magia sono fissi, scritti in `arena.json` → `build` (`buildArenaEroe` di `sim/rpg/arena.ts`).
+  e magia sono fissi, scritti in `arena.json` → `build` (`buildArenaEroe` di `sim/rpg/arena.ts`). Le monete rosse della Sopravvivenza sono
+  l'unica cosa che cresce durante una partita.
 - **Niente one-shot**: nessun colpo supera `arena.dannoMax` (92) di `balance.json`.
 - **Il peso conta**: col martello in mano si va un po' più piano (−11%), con nunchaku e arco un po' più svelti (+2%): `build.passo`.
-- **Il Vigore è per correre e schivare, non per colpire**: i colpi e le frecce non costano niente (10 nov 2026: a Vigore finito sul telefono sembrava che
-  le armi non funzionassero). La corsa consuma Vigore, la schivata costa `build.staminaSchivata` (34, più dei 24 dei dungeon: senza il costo dei colpi sarebbe
-  troppo a buon mercato); senza il Vigore che costa non si rotola.
+- **Il Vigore è per correre e schivare, non per colpire**: i colpi e le frecce non costano niente (a Vigore finito sul telefono sembrava che le
+  armi non funzionassero). La corsa consuma Vigore, la schivata costa `build.staminaSchivata` (34, più dei 24 dei dungeon); senza il Vigore che
+  costa non si rotola.
 - **Indipendenza**: il bilanciamento dell'Arena non tocca i dungeon (stessi hash, stessa fixture d'oro).
 
-## 5. Com'è fatta adesso (17 ott 2026, #373)
+---
+
+## 5. Com'è fatta una partita
 
 ### Isola dell'Arena
 - Isola `arena` 36×34 a sud-est del Porto (`[238, 256]`, tra i Templari e il Vulcano), **aperta a tutti** (sblocco `libera`) **[proposta]**:
-  molo a sud-ovest, viale lastricato con gli stendardi e due bracieri fino al **portone del colosseo**.
-- Il **colosseo**: anello di pietra chiara a due ordini di archi (venti campate), gradinate dentro, la sabbia dell'arena, due torri col tetto
-  rosso ai lati del portone, stendardi rossi e gialli in cima: alto ~10 m, si vede dal mare (`render/island_arena.ts`).
-- In bussola la meta **Colosseo** (sezione Isole).
+  molo a sud-ovest, viale lastricato con gli stendardi e due bracieri fino al **portone del colosseo** (`render/island_arena.ts`). In bussola
+  la meta **Colosseo** (sezione Isole). Il colosseo da fuori resta: le partite si giocano nelle mappe della parte 6.
 
-### La mappa del duello (il colosseo da dentro)
-Chiusa, **simmetrica** (ruotata di mezzo giro) **[proposta]**, 19×13 celle da 2 m: colonne (fermano passi e tiri), muretti bassi (fermano i
-passi, non i tiri), bracieri sui muri. Le due partenze ai lati opposti, una di fronte all'altra, con una colonna in mezzo a coprire la linea
-dritta. Tutto in vista: niente nebbia dei dungeon. Formato dei dungeon (`ARENA.mappa`, stile `colosseo`).
+### Trovare gli altri
+- **CODA VELOCE** (per modalità e grandezza di squadra): si parte a partita piena o, dopo **10 s** (`rete.attesaBotSecondi`), con chi c'è; le
+  persone si spargono tra le squadre (la prima nella 0, la seconda nella 1…).
+- **CREA SALA**: un codice di 4 lettere da dire agli amici, che lo scrivono e premono ENTRA. La squadra di chi l'ha aperta si riempie per
+  prima, poi le altre; chi l'ha aperta preme **PARTI ORA** (anche da solo), o si parte da soli a sala piena.
+- **ALLENAMENTO**: tu e i gladiatori su tutti gli altri posti, senza server né premio. Ogni gladiatore ha una **build casuale** tirata a ogni
+  partita (`sim/rpg/arena_bot.ts`); nel pannello, sezione **GLADIATORI DELL'ALLENAMENTO**, un tocco su uno (compagni prima, poi avversari)
+  apre lo stesso editor della tua build; **BUILD CASUALE** lo rimette al caso. ARRENDITI nell'allenamento chiude la partita.
+- Online i posti vuoti li prendono i **gladiatori automatici** (`sim/arena/bot.ts`, nomi e look in `arena.json` → `gladiatori`, ne servono 9):
+  copiano la build di una delle persone e i loro input li decide il server (stesso turno delle persone, stesso replay). Se non resta nessuna
+  persona, si arrendono. Il gladiatore fa la modalità: rompe casse, raccoglie monete e scappa dalla nube; va nelle zone; attacca o difende
+  la cassaforte (il terzo della squadra difende).
 
-### Il duello 1v1
-- **Trovare l'avversario**: **CODA VELOCE** (il primo che c'è) o **SFIDA UN AMICO** (CREA SALA dà un codice di 4 lettere da dire all'amico,
-  che lo scrive e preme ENTRA). **ALLENAMENTO**: contro l'avversario automatico, con la tua stessa build, senza server né premio.
-- **Round** **[proposta]**: 3 s di conto alla rovescia (fermi, si può già cambiare slot), 90 s di gioco, 3 s col risultato. Ogni round riparte
-  da capo: vita, posizioni, slot e frecce (la carica dell'ulti no: resta).
-- **Vince il round** chi resta in piedi; caduti insieme = pari. **A tempo scaduto** **[proposta]** vince chi ha più Vita; sotto 1 punto di
-  differenza è pari (non conta).
-- **Vince la partita** chi arriva a 2 round; **[proposta]** dopo 5 round si chiude comunque (più round vinti, se no pareggio).
-- **Resa**: dal menu (ARRENDITI) o uscendo; la partita finisce subito e vince l'altro.
-- **Linea persa** **[proposta]**: il duello si ferma e l'altro vede «ha perso la linea: lo aspetto ancora N s»; il gioco si ricollega da solo e
-  riprende coi turni persi. Dopo **20 s** senza tornare è dato per arreso (sconfitta).
-- **Il server decide**: il DO `Arena` fa girare il duello coi turni dei due e a fine partita lo **rigioca dal log** (`replayDuello`); l'esito del
-  replay vale per il premio. Se il server si riavvia a metà (un deploy) il duello si perde, senza premio.
+### La partita
+- **3 s** di conto alla rovescia (fermi, si può già cambiare slot), poi il gioco fino alla fine della modalità o del tempo. Una partita sola,
+  niente round.
+- **Rinascita** (Stelle, Controllo, Rapinatori) **[proposta]**: chi cade torna dopo **3 s** (`modi.rinascita`) alla partenza della sua squadra,
+  com'era all'inizio (primo slot, frecce piene; la carica dell'ulti resta), intoccabile per **1,5 s** (`modi.protetto`). Nella Sopravvivenza
+  non si rinasce: chi cade guarda gli altri finché la partita finisce, o esce.
+- A tempo scaduto, sotto `modi.pariSotto` (1) di differenza è **pari**.
+- **Resa**: dal menu (ARRENDITI) o uscendo; chi si arrende esce dalla partita e la sua squadra continua; se si arrende tutta una squadra vince
+  l'altra (nella Sopravvivenza chi si arrende è fuori, e basta).
+- **Linea persa** **[proposta]**: la partita si ferma e gli altri vedono «ha perso la linea: lo aspetto ancora N s»; il gioco si ricollega da
+  solo e riprende coi turni persi. Dopo **20 s** senza tornare è dato per arreso. Chi è già fuori per sempre (Sopravvivenza) e se ne va non
+  ferma nessuno.
+- **Il server decide**: il DO `Arena` fa girare la partita coi turni di tutti e alla fine la **rigioca dal log** (`replayPartita`); l'esito del
+  replay vale per il premio. Se il server si riavvia a metà (un deploy) la partita si perde, senza premio.
 
 ### Esito e premio
-- Scheda finale: VITTORIA / SCONFITTA / PAREGGIO, come (round vinti o resa) e il premio.
-- **Premio** **[proposta]**: monete del personaggio, **30** per una vittoria, **10** per una sconfitta a round, niente per pareggio e resa;
-  **tetto di 150 monete al giorno** (giorno UTC), come i Templari. Il lotto tiene vinte, perse e pari (`LotState.arena`).
+- Scheda finale: VITTORIA / SCONFITTA / PAREGGIO e il perché (ultimo in piedi o il posto, le stelle, la conquista, la cassaforte, la resa), e il premio.
+- **Premio** **[proposta]**: monete del personaggio, **30** per una vittoria, **10** per una sconfitta, niente per pareggio e resa; **tetto di
+  150 monete al giorno** (giorno UTC). Nella Sopravvivenza vince solo il primo posto. Il lotto tiene vinte, perse e pari (`LotState.arena`).
+- **[proposta]** Niente monete se tra gli **avversari non c'è nessuna persona** (solo gladiatori): si contano vinte e perse. Basta una persona
+  dall'altra parte (o, nella Sopravvivenza, in un'altra squadra) e il premio c'è.
 
 ### Prove
-- **Ombra di mira**: con una magia a bomba in mano, mentre si mira a terra c'è un disco scuro col
-  raggio dello scoppio e l'anello del colore della magia, dove la bomba atterrerebbe (stessa distanza della sim: nemico davanti, se no nel vuoto, un
-  muro la accorcia). La vede solo chi mira: ogni client la disegna nella sua scena.
-- **Stanza di prova senza server**: `?test=1&net=0&arena=banco` entra subito nell'allenamento contro l'avversario automatico (`sim/arena/bot.ts`).
-  `?arena=1`: il bottone ⚔ porta al colosseo.
-- Test: `packages/sim/test/arena_duello.test.ts` (build, fotografia, colpi tra eroi, Vigore, Cura e Furia solo a squadre, le sei ulti, round,
-  pareggio a tempo, resa, replay uguale tra client e server, premio), `packages/sim/test/arena_squadre.test.ts` (2v2 e 3v3, mappe, erba alta), `packages/sim/test/arena_bot.test.ts` (build casuali, distanza della bomba), `tests/e2e/m4_arena.mjs` e
-  `m4_arena_squadre.mjs` (telefono e PC), `tests/e2e/m4_arena_server.mjs` (client finti contro il server: coda, sala, linea persa e ripresa,
-  resa, premio, 2v2 coi gladiatori).
+- **Ombra di mira**: con una magia a bomba in mano, mentre si mira a terra c'è un disco scuro col raggio dello scoppio dove la bomba
+  atterrerebbe. La vede solo chi mira.
+- **Allenamento senza server**: `?test=1&net=0&arena=banco` entra subito nell'allenamento (Caccia alle stelle). `?arena=1`: il bottone ⚔ porta
+  al colosseo. Hook di prova: `arenaGioca`, `arenaPosa`, `arenaCarica`, `arenaTempo` (avanti di N s), `arenaAuto` (il pilota gioca per me).
+- Test: `packages/sim/test/arena_partita.test.ts` (build, colpi tra eroi, Vigore, Cura e Furia, le sei ulti, erba alta, resa, premio),
+  `arena_modi.test.ts` (le regole delle quattro modalità e partite intere di gladiatori in ognuna, col replay uguale), `arena_bot.test.ts`
+  (build casuali, distanza della bomba); `tests/e2e/m4_arena.mjs` (telefono e PC), `m4_arena_modi.mjs` (le quattro modalità al telefono),
+  `m4_arena_server.mjs` (client finti contro il server: sala, coda coi gladiatori, linea persa e ripresa, resa, premio, Sopravvivenza a 10).
 
 ### Da fare dopo
-- Showdown a 4 (tutti contro tutti: oggi le squadre sono sempre due, pari).
-- Modelli veri (Blender) per l'interno del colosseo e per le mappe nuove: oggi muri, colonne, muretti ed erba sono blocchi in codice (`rpg/arena_kit.ts`).
+- Modelli veri (Blender) per le mappe: oggi pavimenti, muri, colonne, muretti, casse e casseforti sono blocchi in codice (`rpg/arena_kit.ts`).
+- Altre mappe per modalità (il codice ne sceglie una a caso tra quelle della modalità).
 - Una classifica o un titolo per chi vince di più (il Diario del capitano).
-- L'isola nuova va confermata da Jack (`BACKLOG.md`, «Da confermare»).
+- L'isola va confermata da Jack (`BACKLOG.md`, «Da confermare»).
 
 ---
 
-## 6. Squadre, erba alta e mappe (23 ott 2026, #567)
+## 6. Le quattro modalità e le mappe
+Regole in `sim/arena/modi.ts`, numeri in `arena.json` → `modi`. Le mappe sono nel formato dei dungeon (2 m a cella), chiuse, con tutto il
+pavimento raggiungibile; quelle a due squadre sono **simmetriche** (ruotate di mezzo giro, casseforti e zone si scambiano). Segni nelle righe
+(pavimento): `K` cassa, `A` `B` le casseforti delle squadre 0 e 1, `1` `2` i centri delle zone; `E` erba alta, `C` colonna, `m` muretto basso
+(si tira sopra, non si passa). Una mappa nuova è una voce in `arena.json` → `mappe` con `modi` e `spawn` per squadra, più (per un aspetto
+suo) un kit in `rpg/arena_kit.ts` e una riga in `STYLE` di `rpg/dungeon_scene.ts`.
 
-### Formati e squadre
-- Tre formati, scelti nel pannello del colosseo: **1 contro 1**, **2 contro 2**, **3 contro 3**. Due squadre sempre pari (`DuelloState.squadre`:
-  0 o 1 per eroe; la sim è quella del duello, `s.pvp.squadre`). Cura e Furia valgono su tutta la propria squadra.
-- **Round**: finisce quando una squadra è tutta a terra (cadute insieme = pari). A tempo scaduto vince la squadra con più Vita in tutto (somma);
-  sotto 1 punto di differenza è pari. Al meglio di 3 round come il duello **[proposta]**.
-- **Chi cade** resta a terra fino al round dopo e guarda i compagni (la camera li segue, un cartello dice «SEI A TERRA»).
-- **Resa** (dal menu): chi si arrende da una squadra di più esce dai round che restano e la squadra continua; se si arrendono tutti vince l'altra.
-  Il 1v1 non cambia: la resa chiude subito. Chi perde la linea per più di 20 s è dato per arreso allo stesso modo.
-- Il tabellone ha una barra di vita per eroe (la mia squadra a sinistra, io per primo); i nomi sopra la testa sono verdi per i compagni e rossi
-  per gli avversari che si vedono.
+### Sopravvivenza — Isola del Naufragio (34×34)
+- **10 eroi**: da soli (10 squadre) o in coppia (5 squadre da 2). Una vita sola; vince l'ultima squadra in piedi, gli altri hanno il loro posto
+  (chi esce prima è più in fondo; caduti insieme = stesso posto). Dopo **200 s** **[proposta]** vince chi ha più Vita.
+- **Casse** (16 sparse, `cassa.vita` 40): si rompono e lasciano una **moneta rossa**. Chi ci passa sopra la prende: **+10% di Vita** (massimo e
+  subito) e **+8% ai danni** per tutta la partita **[proposta]**. Il numero sopra la testa (moneta rossa e numero); chi cade le lascia **tutte**
+  a terra, in un mucchio che chiunque può prendere.
+- **Nube tossica** verde: dai **20 s** si stringe dal bordo verso il centro, fino a un cerchio di **3 m** ai **150 s**; fuori fa **20 danni al
+  secondo** (a impulsi, 6 al secondo) **[proposta]**.
+- La mappa: un'isola di sabbia nel mare, col relitto al centro (le assi basse dello scafo, l'albero maestro con la vela), palme, scogli
+  muschiosi, giungla d'erba alta, fuochi dei naufraghi; le partenze in cinque coppie su un anello.
 
-### Trovare gli altri e i gladiatori
-- **Coda veloce a squadre**: si parte con 2×f persone, o dopo 10 s (`arena.json` → `rete.attesaBotSecondi`) con chi c'è **[proposta]**; le persone si
-  alternano tra le squadre (squadre pari). **Sala con codice**: la squadra di chi l'ha aperta si riempie per prima (l'amico che entra col codice
-  gioca con te), poi l'altra; chi l'ha aperta preme **PARTI ORA**, o si parte da soli a sala piena.
-- I posti vuoti li prendono i **gladiatori automatici** (`sim/arena/bot.ts`, nomi e look in `arena.json` → `gladiatori`): hanno una copia della build di
-  una delle persone, e i loro input li decide il server (stesso turno delle persone, stesso replay). Se non resta nessuna persona, si arrendono.
-- **[proposta]** Se tra gli **avversari** ci sono gladiatori niente monete (si contano vinte e perse): non si fa il pieno contro i bot. Con i
-  gladiatori solo nella tua squadra il premio c'è. L'ALLENAMENTO locale resta senza server né premio: tu (e i compagni) contro i gladiatori,
-  con la mappa a scelta o a caso.
-- **Gladiatori dell'allenamento a squadre (2v2 e 3v3)**: ognuno ha la sua build. Di default **build casuale**, tirata a ogni partita
-  (`sim/rpg/arena_bot.ts`): dote e ulti a caso, due slot diversi di cui almeno uno d'attacco. Nel pannello, sezione **GLADIATORI
-  DELL'ALLENAMENTO**: un tocco su un gladiatore (compagni prima, poi avversari) apre lo stesso editor della tua build; **BUILD CASUALE** lo
-  rimette al caso, **LA TUA BUILD** torna alla tua. Nel duello 1v1 il gladiatore ha la tua stessa build.
+### Caccia alle stelle — Osservatorio delle Stelle (27×19)
+- **3 contro 3, 2 minuti**. Ognuno ha una **taglia** di **2 stelle** sopra la testa. Chi butta giù un avversario prende le sue stelle per la
+  squadra e la sua taglia sale di una, fino a **7**; chi cade riparte da 2 **[proposta]**. A tempo scaduto vince chi ha più stelle (uguali = pari).
+- La mappa: terrazza di lastre blu con le stelline accese, muri viola con le borchie d'oro, la cupola dei telescopi in mezzo, siepi di cristallo,
+  prati d'erba ai quattro angoli; le squadre a sinistra e a destra.
+
+### Controllo — Forte del Faro (29×21)
+- **3 contro 3, 150 s**. Due **zone** (cerchi di **3,5 m**, in alto e in basso al centro), attive tutte e due. Una zona sale di **1,6 punti al
+  secondo** per la squadra che ci ha almeno un eroe in piedi dentro e **nessun avversario** (se ci sono tutte e due è **contesa**: non sale
+  niente) **[proposta]**; a **100** è conquistata e si chiude: si va sull'altra. I punti della squadra sono la media delle zone (una presa = 50%).
+- Vince chi le conquista tutte (barra al 100%), o a tempo scaduto chi ha la percentuale più alta.
+- Nella scena: un anello di lastre e un disco giallo (nessuno), blu (i miei), rosso (gli altri), arancio che lampeggia (contesa); l'asta con la
+  bandiera che sale; sopra, «ZONA 1 40% · 20%».
+- La mappa: il prato fra i bastioni merlati, il faro bianco e rosso sulla torre in mezzo, cannoni sugli affusti, palizzate, erba alta ai fianchi.
+
+### Rapinatori — Porto dei Contrabbandieri (23×31)
+- **2 contro 2 o 3 contro 3, 150 s**. Una **cassaforte** per base (vita **400** **[proposta]**, scelta con partite di gladiatori perché a volte
+  cada prima del tempo), che i suoi non possono colpire; vince chi rompe quella degli altri, o a tempo scaduto chi ha la sua più integra (in %).
+- La mappa: banchine di tavolato divise da un canale d'acqua (si tira sopra, non si passa) con tre ponti, magazzini dal tetto rosso, pile di
+  barili, erba alta sulle banchine; le basi in basso (squadra 0) e in alto (squadra 1), la cassaforte davanti alle partenze.
 
 ### Erba alta (come in Brawl Stars)
-- Le celle `E` (legenda `erba`): chi ci sta dentro **non lo vedono gli avversari**: non si disegna, niente nome, la mira assistita non lo punta.
-  I compagni lo vedono sempre. Colpi, frecce, scoppi e mischia lo prendono lo stesso.
-- Lo **scoprono** **[proposta]**: un avversario entro 3 m, e per 1,2 s chi attacca (qualsiasi azione tranne bere, o un raggio acceso) o prende un
-  colpo (`balance.json` → `arena.erba`: `raggio`, `rivela`; `sim/dungeon/erba.ts`).
-- A chi sta nell'erba un cartello dice «NELL'ERBA: NON TI VEDONO». Nella scena: una macchia scura e ciuffi alti fino a ~1 m; attorno a chi
-  cammina l'erba si abbassa (la finestra sull'eroe), così ci si vede sempre.
+- Le celle `E`: chi ci sta dentro **non lo vedono gli avversari** (non si disegna, niente nome, la mira assistita non lo punta); i compagni sì.
+  Colpi, frecce, scoppi e mischia lo prendono lo stesso.
+- Lo **scoprono** **[proposta]**: un avversario entro 3 m, e per 1,2 s chi attacca o prende un colpo (`balance.json` → `arena.erba`).
 - I gladiatori rispettano l'erba: non vedono chi è nascosto, lo cercano dove l'hanno visto l'ultima volta.
-- Il client riceve gli stessi turni di tutti e ha tutto lo stato (come in ogni partita a turni): l'erba nasconde sullo schermo e alla mira, non
-  protegge da chi modifica il client.
-
-### Mappe
-Tutte chiuse e simmetriche (ruotate di mezzo giro), 2 m a cella, con partenze a lati opposti; `validateArena` controlla chiusura, simmetria,
-partenze e che tutto il pavimento si raggiunga. La mappa di ogni partita la sceglie il server (dal seed) tra quelle del suo formato.
-- **Colosseo dell'Arena** (1v1 e 2v2, 21×15): com'era, più tre ciuffi d'erba, due partenze per squadra.
-- **Giardino dei Gladiatori** (2v2 e 3v3, 27×17): vialetti di ghiaia, siepi attorno, basamenti con cespuglio, staccionate e tre prati d'erba alta
-  (uno grande al centro con un basamento in mezzo). Stile `giardino`.
-- **Rovine del Tempio** (2v2 e 3v3, 23×21): le squadre partono in alto e in basso; colonne spezzate, muri a pezzi, prati d'erba sui fianchi e
-  quattro attorno al centro. Stile `rovine`.
-Una mappa nuova è una voce in `arena.json` → `mappe` (`rows` con `E` per l'erba, `legenda`, `formati`, `spawn` per squadra) e, se serve un aspetto
-suo, un kit in `rpg/arena_kit.ts` e una riga in `STYLE` di `rpg/dungeon_scene.ts`.
+- Il client riceve gli stessi turni di tutti e ha tutto lo stato: l'erba nasconde sullo schermo e alla mira, non protegge da chi modifica il client.
 
 ---
 
-## 7. Build, doti e ulti (9 nov 2026, #697)
+## 7. Build, doti e ulti
 
 ### Le ulti
 Una a scelta nella build. Si **carica giocando** (`arena.json` → `ulti.carica`): un po' al secondo, di più col danno dato e un po' col danno
-preso; piena a 100 (circa una volta a round), si lancia col bottone tondo o con **F**. Mentre è in corso non si carica. **[proposta]** La carica
-**resta da un round all'altro**: chi perde un round spesso ce l'ha pronta nel successivo. Codice in `sim/arena/ulti.ts`, sopra la sim del round.
+preso; piena a 100, si lancia col bottone tondo o con **F**. Mentre è in corso non si carica. **[proposta]** La carica **resta** anche
+quando si cade e si rinasce. Codice in `sim/arena/ulti.ts`, sopra la sim della partita.
 - **Furia**: danni ×2 per 5 s (armi e magie; il tetto contro i one-shot resta).
 - **Scatto**: passo ×2 per 10 s, la corsa non consuma Vigore.
 - **Aura di cura**: per 6 s cura te e i compagni entro 4 m.
@@ -189,10 +205,8 @@ preso; piena a 100 (circa una volta a round), si lancia col bottone tondo o con 
 ### Bilanciamento: come è stato fatto
 I numeri delle armi e delle magie (`build.armi`, `build.magie`) vengono da migliaia di partite simulate tra gladiatori automatici con build a
 caso (2 slot, dote e ulti a caso, ulti accese): il danno di ogni arma e magia è stato corretto a piccoli passi finché ognuna vince tra il 45% e
-il 55% delle partite in cui c'è. Il gladiatore tira con arco e magie mirando davvero (con un po' d'anticipo); non schiva e non scappa, quindi
-le ulti di movimento (Scatto, Velo) nelle simulazioni contano meno che tra persone: per quelle si è tenuto conto anche di questo. Il gladiatore
-schiva come una persona (non sempre in tempo) i caricati che stanno per partire e i proiettili in arrivo. Con +50% la Vita vinceva il 75% delle
-partite e il Vigore il 27%.
-**Rimisurato il 10 nov 2026** (#701, i colpi non costano più Vigore; 12.000 partite a build casuali, gladiatore contro gladiatore): danno di
-armi e magie corretto a piccoli passi finché ognuna vince 49-52%; dote Vita +10% (53%), Magicka +30% (53%), Vigore +100% (44%: il gladiatore
-schiva e corre poco, tra persone vale di più); ulti 39-57% (Scatto e Velo in basso, come prima, perché il gladiatore non le sa usare).
+il 55% delle partite in cui c'è. Il gladiatore tira con arco e magie mirando davvero (con un po' d'anticipo) e schiva come una persona (non
+sempre in tempo) i caricati che stanno per partire e i proiettili in arrivo; non scappa, quindi le ulti di movimento (Scatto, Velo) nelle
+simulazioni contano meno che tra persone. Coi colpi che non costano Vigore (12.000 partite a build casuali) ogni arma e magia vince il 49-52%;
+dote Vita +10% (53%), Magicka +30% (53%), Vigore +100% (44%: il gladiatore schiva e corre poco, tra persone vale di più). I numeri delle modalità (casse, monete rosse, nube, zone, cassaforte) vengono da partite di soli gladiatori in ogni modalità: la
+Sopravvivenza finisce tra 50 e 150 s, la cassaforte ogni tanto cade prima del tempo.

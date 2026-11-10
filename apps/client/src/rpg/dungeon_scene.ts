@@ -11,8 +11,8 @@
 // scende a gradini con la valvola, `setAcque`), Archivio (rpg/archivio.ts: scaffali al posto delle colonne, rastrelliere a grata sulle celle
 // `grata`), Fucina (rpg/fucina.ts: presse a vapore, la Colata Maestra è un bacino di lava), Mausoleo (rpg/mausoleo.ts: colonne di marmo con
 // l'ingranaggio, il cancello del Santuario è un bacino di sbarre), Diga (rpg/diga.ts: tavolato e fasciame della nave, cannoni sugli affusti al
-// posto delle colonne, mare scuro nei bacini), Arena (rpg/arena_kit.ts: l'erba alta delle celle `erba`, colonne e muretti del giardino e delle
-// rovine). Per un dungeon nuovo: una riga in STYLE e, se serve, un kit in codice.
+// posto delle colonne, mare scuro nei bacini), Arena (rpg/arena_kit.ts: l'erba alta delle celle `erba`, pavimento, muri, colonne e muretti di
+// ogni mappa). Per un dungeon nuovo: una riga in STYLE e, se serve, un kit in codice.
 import * as THREE from 'three';
 import { dungeonDef } from '@marea/content/rpg.ts';
 import type { DungeonDef } from '@marea/content/rpg.ts';
@@ -69,11 +69,12 @@ const STYLE: Record<string, Stile> = {
   diga: { floor: PAL.legno, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.acquaProfonda, PAL.ombraCalda, 1.25], coperchio: PAL.ombraCalda },
   baita: { floor: PAL.legno, wall: PAL.legno, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.sabbiaChiara, PAL.acquaProfonda, 1.35], coperchio: PAL.ombraCalda },
   ceneri: { floor: PAL.roccia, wall: PAL.neroCaldo, top: 0.05, lantern: PAL.arancio, hemi: [PAL.arancio, PAL.neroCaldo, 1.35], coperchio: PAL.neroCaldo },
-  // Arena (docs/ARENA.md): il colosseo, sabbia dell'arena e pietra chiara, tutto illuminato (niente nebbia), muretti bassi al posto delle grate
-  colosseo: { floor: PAL.sabbia, wall: PAL.pietraChiara, top: 0.05, lantern: PAL.sabbiaChiara, hemi: [PAL.sabbiaChiara, PAL.pietraScura, 2.1], coperchio: PAL.ombraCalda },
-  // le mappe nuove dell'Arena (rpg/arena_kit.ts): il giardino (vialetti di ghiaia, siepi alte attorno) e le rovine (lastre di pietra, muri scuri)
-  giardino: { floor: PAL.sabbiaChiara, wall: PAL.erbaScura, top: 0.05, lantern: PAL.sabbiaChiara, hemi: [PAL.sabbiaChiara, PAL.erbaScura, 2.1], coperchio: PAL.ombraCalda },
-  rovine: { floor: PAL.pietra, wall: PAL.pietraScura, top: 0.05, lantern: PAL.sabbiaChiara, hemi: [PAL.sabbiaChiara, PAL.pietraScura, 2.0], coperchio: PAL.ombraCalda },
+  // Arena (docs/ARENA.md, rpg/arena_kit.ts): tutto illuminato (niente nebbia), muretti bassi al posto delle grate. L'isola del naufragio (sabbia,
+  // scogli), l'osservatorio (pietra blu e viola, più freddo), il forte (prato e bastioni), il porto (tavolato e magazzini)
+  naufragio: { floor: PAL.sabbia, wall: PAL.roccia, top: 0.05, lantern: PAL.sabbiaChiara, hemi: [PAL.sabbiaChiara, PAL.acquaProfonda, 2.1], coperchio: PAL.ombraCalda },
+  stelle: { floor: PAL.pietraScura, wall: PAL.viola, top: 0.05, lantern: PAL.giallo, hemi: [PAL.pietraChiara, PAL.abisso, 1.9], coperchio: PAL.abisso },
+  forte: { floor: PAL.erba, wall: PAL.pietra, top: 0.05, lantern: PAL.sabbiaChiara, hemi: [PAL.sabbiaChiara, PAL.erbaScura, 2.1], coperchio: PAL.ombraCalda },
+  porto: { floor: PAL.legno, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.sabbiaChiara, hemi: [PAL.sabbiaChiara, PAL.acquaProfonda, 2.0], coperchio: PAL.ombraCalda },
 };
 /** Finestra sull'eroe: raggio (m) e quota sotto cui non si taglia (sopra il muretto basso da 0,6 m). */
 const FIN = { raggio: 1.7, altezza: 0.68 } as const;
@@ -176,9 +177,10 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
   // scala, altari e bracieri sono bassi: la finestra non li tocca
   const ACCESO: Ritocco = { taglia: true, griglia: true, minimo: 'acceso' }, SEMPRE: Ritocco = { griglia: true, minimo: 'sempre' }, BASSO: Ritocco = { griglia: true, minimo: 'acceso' };
   // segnaposto in codice finché non ci sono i modelli dng_drenaggio_* / dng_archivio_* / dng_fucina_* / dng_mausoleo_* / dng_diga_* / dng_baita_*
+  const ka = kitArena(k, T, st.top); // le mappe dell'Arena: tutto in codice
   const dk = k === 'drenaggio' ? kitDrenaggio(st.top) : k === 'archivio' ? kitArchivio(st.top) : k === 'fucina' ? kitFucina(st.top) : k === 'mausoleo' ? kitMausoleo(st.top) : k === 'diga' ? kitDiga(st.top) : k === 'baita' ? kitBaita(st.top) : k === 'ceneri' ? kitCeneri(st.top) : null, ak = k === 'archivio' ? kitArchivio(st.top) : null;
-  // la Diga, la Baita e le Ceneri: il pavimento corre tutto nello stesso verso (girato di mezzo giro sì, di un quarto no)
-  makeBatch(pFloor ?? dk?.pavimento ?? [boxPart(T, 0.3, T, -0.3 + st.top, st.floor)], floors, mats(floors, k === 'diga' || k === 'baita' || k === 'ceneri' ? (i) => rot(i) & 2 : rot), 'pavimento', TERRA);
+  // la Diga, la Baita, le Ceneri e il porto dell'Arena: il pavimento corre tutto nello stesso verso (girato di mezzo giro sì, di un quarto no)
+  makeBatch(pFloor ?? ka?.pavimento ?? dk?.pavimento ?? [boxPart(T, 0.3, T, -0.3 + st.top, st.floor)], floors, mats(floors, k === 'diga' || k === 'baita' || k === 'ceneri' || k === 'porto' ? (i) => rot(i) & 2 : rot), 'pavimento', TERRA);
   // prima persona: il soffitto è il pavimento del kit capovolto. Si disegna per primo e non scrive profondità: chi è più alto (boss, scala) non resta tagliato
   if (fp && st.soffitto !== false) {
     const sopra = new THREE.Matrix4().makeTranslation(0, SOFFITTO + st.top, 0).multiply(new THREE.Matrix4().makeRotationX(Math.PI));
@@ -186,11 +188,13 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
     const b = makeBatch(ps, floors, floors.map((i) => place(i % W, Math.floor(i / W), rot(i)).multiply(sopra)), 'soffitto', TERRA);
     for (const im of b.meshes) { im.renderOrder = -1; (im.material as THREE.Material).depthWrite = false; }
   }
-  makeBatch(pWall ?? dk?.muro ?? [boxPart(T, 2.4, T, 0, st.wall)], highWalls, mats(highWalls, rot), 'muro', PIENO);
-  makeBatch(pLow ?? dk?.muro_basso ?? [boxPart(T, 0.6, T, 0, st.wall)], lowWalls, mats(lowWalls, rot), 'muro_basso', PIENO);
+  makeBatch(pWall ?? ka?.muro ?? dk?.muro ?? [boxPart(T, 2.4, T, 0, st.wall)], highWalls, mats(highWalls, rot), 'muro', PIENO);
+  makeBatch(pLow ?? ka?.muroBasso ?? dk?.muro_basso ?? [boxPart(T, 0.6, T, 0, st.wall)], lowWalls, mats(lowWalls, rot), 'muro_basso', PIENO);
   // Fucina, Mausoleo, Diga, Baita e Ceneri cercano la loro colonna (dng_<stile>_colonna) prima del segnaposto; Drenaggio e Archivio le hanno solo in codice
-  const ka = kitArena(k, T); // giardino e rovine: colonne e muretti in codice
-  makeBatch(ka?.colonna ?? (k === 'fucina' || k === 'mausoleo' || k === 'diga' || k === 'baita' || k === 'ceneri' ? pCol ?? dk?.colonna : dk ? dk.colonna : pCol) ?? [boxPart(0.9, 2.4, 0.9, 0, st.wall)], cols, mats(cols, rot), 'colonna', PIENO);
+  // Arena: alcune lettere hanno una colonna loro (l'albero maestro del relitto)
+  const speciali = ka?.colonne ?? {}, solite = cols.filter((i) => !speciali[ch(i % W, Math.floor(i / W))]);
+  makeBatch(ka?.colonna ?? (k === 'fucina' || k === 'mausoleo' || k === 'diga' || k === 'baita' || k === 'ceneri' ? pCol ?? dk?.colonna : dk ? dk.colonna : pCol) ?? [boxPart(0.9, 2.4, 0.9, 0, st.wall)], solite, mats(solite, rot), 'colonna', PIENO);
+  for (const [lettera, ps] of Object.entries(speciali)) { const qui = cols.filter((i) => ch(i % W, Math.floor(i / W)) === lettera); makeBatch(ps, qui, mats(qui, () => 0), 'colonna_' + lettera, PIENO); }
   // acqua dei bacini: un batch per bacino, scala in altezza = livello a gradini (0 = asciutto, non si disegna)
   const acque = map.bacini.map((b) => {
     const base = b.celle.map((i) => place(i % W, Math.floor(i / W), rot(i)).multiply(new THREE.Matrix4().makeTranslation(0, st.top, 0)));
