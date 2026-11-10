@@ -20,7 +20,7 @@ export default async function (ctx) {
   const persist = path.join(ctx.OUT, `m3pesci-${process.pid}`);
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
   const wr = (...a) => execFileSync(process.execPath, [WRANGLER_BIN, ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
-  const { PESCI } = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/content/src/pesci.ts')).href);
+  const { PESCI, PESCI_CFG } = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/content/src/pesci.ts')).href);
 
   let dev = null, log = '';
   const pages = [];
@@ -103,9 +103,14 @@ export default async function (ctx) {
       }
       throw new Error('il bottone Pesca non compare davanti a nessuna ombra di riva: ' + (visti.join(' | ') || 'nessuna ombra'));
     };
+    /** Le ombre cambiano ogni turno (4 minuti, ora vera) e allo scadere quelle vecchie se ne vanno: i passi 3 e 4 (lanci da 12 s, fino a
+     *  quattro) non si cominciano a ridosso del cambio, si aspetta il turno dopo. */
+    const TURNO = PESCI_CFG.turno.minuti * 60_000, resto = () => TURNO - (Date.now() % TURNO);
+    const lontanoDalCambio = async (pg) => { if (resto() < 90_000) await pg.waitForTimeout(resto() + 2000); };
     let preso = null;
     await ctx.test('3. Da riva: PESCA, mira, lancio vicino all’ombra, finte, morso, tocchi ripetuti → nello zaino e «visto»', async () => {
       await hook('setZoom', 0.7);
+      await lontanoDalCambio(page);
       const om = await allaRiva(page, hook);
       assert(om.k.startsWith('r:'), 'nessuna ombra di riva: ' + JSON.stringify((await st()).pesca.ombre));
       await page.keyboard.press('KeyE');
@@ -135,6 +140,7 @@ export default async function (ctx) {
     });
 
     await ctx.test('4. Tirare durante le finte spaventa il pesce', async () => {
+      await lontanoDalCambio(page);
       const om = await allaRiva(page, hook);
       await page.keyboard.press('KeyE');
       await ctx.waitState(page, (s) => s.pesca.fase === 'mira', 3000);

@@ -220,8 +220,10 @@ export default async function (ctx) {
       assert(!(await get('/api/lot')).body.insetti.presi.includes(v.k), 'un colpo a vuoto non prende niente');
       // 3c. la rete atterra sull'insetto: preso (si riprova se nel frattempo si è spostato)
       let a = null;
-      for (let prova = 0; prova < 6 && !a; prova++) {
-        const lista = await inGiro(), t = lista[prova % Math.max(1, lista.length)];
+      // prima chi sta fermo o gira tranquillo: chi è scappato dal colpo a vuoto intanto corre, e durante il colpo esce dalla rete
+      for (let prova = 0; prova < 10 && !a; prova++) {
+        const tutti = await inGiro(), calmi = tutti.filter((x) => x.stato === 'giro' || x.stato === 'fermo'), lista = calmi.length ? calmi : tutti;
+        const t = lista[prova % Math.max(1, lista.length)];
         if (!t) { await page.waitForTimeout(1000); continue; }
         await hook('teleport', t.x - ox, t.z - oz);
         await hook('insettiRetino');
@@ -229,7 +231,7 @@ export default async function (ctx) {
         await page.waitForTimeout(500);
         if ((await st()).insetti.cartello) a = t; // «Hai preso…» resta 2,6 s: si guarda prima di chiamare il server (a volte lento)
       }
-      assert(a, 'nessuna cattura in 6 colpi con la rete sull’insetto');
+      assert(a, 'nessuna cattura in 10 colpi con la rete sull’insetto: ' + JSON.stringify((await inGiro()).map((x) => x.id + ':' + x.stato)));
       await ctx.waitState(page, (s, k) => !s.insetti.attori.some((x) => x.k === k), 5000, a.k);
       const l = (await get('/api/lot')).body;
       assert(l.insetti.presi.includes(a.k) && l.hero.inv[a.id] >= 1, 'preso dal server: ' + JSON.stringify(l.insetti));
