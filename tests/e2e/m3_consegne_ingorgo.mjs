@@ -183,10 +183,17 @@ export default async function (ctx) {
     const phook = (n, ...a) => ph.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
 
     await ctx.test('telefono: al Porto GIOCA · INGORGO apre la griglia 6×6, tutta nello schermo, celle ≥ 44 px', async () => {
-      await phook('goto', 'porto');
-      const spot = (await pst()).minigiochi.spots.find((x) => x.id === 'ingorgo:porto');
-      await phook('teleport', spot.x, spot.z);
-      await ctx.waitState(ph, (q) => q.minigiochi.near === 'ingorgo:porto', 5000);
+      // appena arrivato il lotto il gioco può ancora spostarti (dov'eri rimasto): se non sei accanto all'Ingorgo si rifà il teletrasporto
+      let spot = null, vicino = false, perche = '';
+      for (let i = 0; i < 3 && !vicino; i++) {
+        await phook('goto', 'porto');
+        spot = (await pst()).minigiochi.spots.find((x) => x.id === 'ingorgo:porto');
+        await phook('teleport', spot.x, spot.z);
+        try { await ctx.waitState(ph, (q) => q.minigiochi.near === 'ingorgo:porto', 5000); vicino = true; } catch {
+          perche = JSON.stringify(await ph.evaluate(() => { const s = window.__game.state(); return { mode: s.mode, av: s.avatar, near: s.minigiochi.near, busy: s.minigiochi.busy, open: s.minigiochi.open, place: s.arch?.place }; }));
+        }
+      }
+      assert(vicino, `mai accanto all’Ingorgo (${spot.x}, ${spot.z}): ${perche}`);
       await ph.waitForTimeout(400);
       await ctx.shot(ph, 'tel_1_molo');
       await ph.tap('#mzPlay');

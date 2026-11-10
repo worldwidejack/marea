@@ -7,7 +7,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-export const timeout = 420000;
+export const timeout = 660000; // più l'attesa di un turno nuovo degli insetti (al massimo 4 minuti)
 
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -19,7 +19,7 @@ export default async function (ctx) {
   const persist = path.join(ctx.OUT, `m3insetti-${process.pid}`);
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
   const wr = (...a) => execFileSync(process.execPath, [WRANGLER_BIN, ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
-  const { INSETTI } = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/content/src/insetti.ts')).href);
+  const { INSETTI, INSETTI_CFG: CI } = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/content/src/insetti.ts')).href);
 
   let dev = null, log = '';
   const pages = [];
@@ -159,13 +159,30 @@ export default async function (ctx) {
       const ELUSIVI = new Set(['quota', 'planata', 'librata', 'squittio', 'orchidea', 'schiva', 'cicindela', 'lascia', 'stella', 'furca']);
       const tranquillo = (id) => !ELUSIVI.has(INSETTI.find((i) => i.id === id)?.comportamento);
       const inGiro = async () => (await st()).insetti.attori.filter((x) => x.k.startsWith('p:') && x.prendibile && tranquillo(x.id)).map((x) => ({ ...x, riva: riva(x.x, x.z) })).sort((p, q) => q.riva - p.riva);
+      // chi è in giro cambia ogni turno (4 minuti, ora vera, uguale per client e server) e allo scadere se ne vanno tutti insieme; quelli
+      // nati sulla riva possono essere già finiti in acqua. Se il turno sta per finire, o non c'è nessuno da prendere, si aspetta il turno dopo
+      const TURNO = CI.liberi.minuti * 60_000, resto = () => TURNO - (Date.now() % TURNO);
+      const turnoNuovo = async () => {
+        await page.waitForTimeout(resto() + 2000);
+        await page.waitForFunction(() => window.__game.state().insetti.attori.some((x) => x.k.startsWith('p:') && x.prendibile), null, { timeout: 20000 });
+      };
+      if (resto() < 100_000 || (await inGiro()).length < 2) await turnoNuovo();
+      if ((await inGiro()).length < 2) await turnoNuovo(); // anche quello nuovo solo con chi schiva la rete o sulla riva
       assert((await inGiro()).length, 'nessun insetto in giro: ' + JSON.stringify((await st()).insetti.attori));
       // 3a. A tenuto: il retino si carica, si cammina al passo ridotto; al rilascio il personaggio sta fermo fino alla risalita
-      // a 2 m da un insetto lontano dalla barca (col retino in mano è lui a prendere A, non un albero vicino né l'imbarco)
-      const s00 = await st(), t0 = (await inGiro()).find((x) => Math.hypot(x.x - s00.barche.mia.x, x.z - s00.barche.mia.z) > 8);
-      assert(t0, 'nessun insetto lontano dalla barca');
-      await hook('teleport', t0.x, t0.z + 2);
-      await ctx.waitState(page, (s) => s.insetti.ctx === 'retino', 3000);
+      // a 2 m da un insetto lontano dalla barca (col retino in mano è lui a prendere A, non un albero vicino né l'imbarco). Nel Borgo la gente
+      // passeggia: se accanto c'è qualcuno (o un altro bottone acceso) A parlerebbe con lui, allora si va dall'insetto dopo
+      const altri = () => page.evaluate(() => [...document.querySelectorAll('.mz-play.on, #mzPortoBtn.on, #mzAmiciBtn.on, #mzLibroBtn.on, #mzBottegaBtn.on, #mzPortaBtn.on')].map((e) => e.id + ' «' + e.textContent.trim() + '»'));
+      const s00 = await st(), visti = [];
+      let t0 = null;
+      for (const x of (await inGiro()).filter((y) => Math.hypot(y.x - s00.barche.mia.x, y.z - s00.barche.mia.z) > 8)) {
+        await hook('teleport', x.x, x.z + 2);
+        try { await ctx.waitState(page, (s) => s.insetti.ctx === 'retino' && !s.porto?.near, 3000); } catch { visti.push(x.id + ': parla con ' + (await st()).porto?.near); continue; }
+        const a = await altri();
+        if (a.length) { visti.push(x.id + ': ' + a.join(', ')); continue; }
+        t0 = x; break;
+      }
+      assert(t0, 'nessun insetto lontano dalla barca e da chi passeggia: ' + JSON.stringify(visti));
       await page.keyboard.down('KeyE');
       await ctx.waitState(page, (s) => s.insetti.rete.fase === 'carica' && s.insetti.rete.carica >= 1 && s.insetti.bottone && /rilascia/i.test(s.insetti.bottone), 8000);
       let freccia = null; // una direzione libera (un muro o un solido vicino ferma il passo)

@@ -83,12 +83,31 @@ export default async function (ctx) {
       await page.waitForFunction(() => !window.__game.state().velo.attivo, null, { timeout: 5000 });
     });
 
+    /** Perché il bottone Pesca non c'è: gli altri bottoni accesi (nel Borgo la Pesca cede il posto a chi parla, GIOCA, TUFFATI…) e chi c'è vicino. */
+    const perche = (pg) => pg.evaluate(() => {
+      const s = window.__game.state(), a = s.avatar;
+      const altri = [...document.querySelectorAll('.mz-play.on:not(#mzPescaBtn), #mzPortoBtn.on, #mzAmiciBtn.on, #mzLibroBtn.on, #mzBottegaBtn.on, #mzPortaBtn.on')].map((e) => e.id + ' «' + e.textContent.trim() + '»');
+      const vicini = (s.porto?.gente ?? []).filter((g) => Math.hypot(g.x - a.x, g.z - a.z) < 6).map((g) => g.id);
+      return JSON.stringify({ parla: s.porto?.near ?? null, puoi: s.pesca.puoi, fase: s.pesca.fase, bottone: s.pesca.bottone, altri, vicini, mode: s.mode, attrezzo: s.insetti?.attrezzo, av: [Math.round(a.x * 10) / 10, Math.round(a.z * 10) / 10] });
+    }).catch((e) => String(e));
+    /** Davanti a un'ombra di riva col bottone PESCA acceso. I paesani passeggiano secondo l'ora vera: a certe ore uno sta accanto alla prima
+     *  ombra, il suo bottone prende il posto di PESCA e il test cadeva. Allora si prova l'ombra dopo. */
+    const allaRiva = async (pg, h) => {
+      const pronto = (s) => s.pesca.puoi === 'riva' && s.pesca.fase === 'spento' && /pesca/i.test(s.pesca.bottone ?? '');
+      const prima = await h('pescaVai'), visti = [];
+      const ombre = await pg.evaluate(() => window.__game.state().pesca.ombre.filter((o) => o.k.startsWith('r:') && o.stato === 'nuota').map((o) => o.k));
+      for (const k of [prima?.k, ...ombre.filter((x) => x !== prima?.k)].filter(Boolean).slice(0, 8)) {
+        const om = k === prima?.k ? prima : await h('pescaVai', k);
+        if (!om) continue;
+        try { await ctx.waitState(pg, pronto, 5000); return om; } catch { visti.push(k + ' ' + (await perche(pg))); }
+      }
+      throw new Error('il bottone Pesca non compare davanti a nessuna ombra di riva: ' + (visti.join(' | ') || 'nessuna ombra'));
+    };
     let preso = null;
     await ctx.test('3. Da riva: PESCA, mira, lancio vicino all’ombra, finte, morso, tocchi ripetuti → nello zaino e «visto»', async () => {
-      const om = await hook('pescaVai');
-      assert(om && om.k.startsWith('r:'), 'nessuna ombra di riva: ' + JSON.stringify((await st()).pesca.ombre));
       await hook('setZoom', 0.7);
-      await ctx.waitState(page, (s) => s.pesca.puoi === 'riva' && /pesca/i.test(s.pesca.bottone ?? ''), 5000);
+      const om = await allaRiva(page, hook);
+      assert(om.k.startsWith('r:'), 'nessuna ombra di riva: ' + JSON.stringify((await st()).pesca.ombre));
       await page.keyboard.press('KeyE');
       await ctx.waitState(page, (s) => s.pesca.fase === 'mira' && s.pesca.pannello, 3000);
       await ctx.shot(page, 'pc_pesca_mira');
@@ -116,8 +135,7 @@ export default async function (ctx) {
     });
 
     await ctx.test('4. Tirare durante le finte spaventa il pesce', async () => {
-      const om = await hook('pescaVai');
-      assert(om, 'un’altra ombra di riva');
+      const om = await allaRiva(page, hook);
       await page.keyboard.press('KeyE');
       await ctx.waitState(page, (s) => s.pesca.fase === 'mira', 3000);
       let finte = false;
@@ -195,8 +213,8 @@ export default async function (ctx) {
       const th = (n, ...a) => tp.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
       await th('insettiAttrezzo', 'canna');
       assert(await th('pescaVai'), 'ombra di riva');
-      await ctx.waitState(tp, (s) => s.pesca.puoi === 'riva', 5000);
       await sleep(7500); // il saluto della guida
+      await allaRiva(tp, th);
       await tp.locator('#mzPescaBtn').tap();
       await ctx.waitState(tp, (s) => s.pesca.fase === 'mira' && s.pesca.stick, 3000);
       assert(await tp.locator('#mzPescaMira').isVisible(), 'joystick di mira visibile');

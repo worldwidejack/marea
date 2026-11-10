@@ -98,24 +98,27 @@ export default async function (ctx) {
         await pg.evaluate(() => window.__sparo.set({ modo: 'poligono' }));
         await pg.evaluate(() => window.__sparo.set({ pausa: false, cam: 'prima', assistita: false, automatico: false, x: 21, z: 20.5, yaw: 0, pitch: 0 }));
         await pg.evaluate(() => { window.__sparo.partita().g.arma = 2; });
+        // 30 colpi a ~12 al secondo: col Chrome lento dei test le prime prove possono vuotare il caricatore, e la ricarica (1,9 s) dura più
+        // dei tick che aspetta la prova dopo. Si parte ogni volta col caricatore pieno
+        const pieno = () => pg.evaluate(() => { const g = window.__sparo.partita().g; g.armi[g.arma - 1].colpi = 30; g.ricarica = 0; });
         await tick(10);
         // un pollice solo sullo SPARA destro: spara, mette in mira (mitra) e trascinando gira
-        let a = await st();
+        await pieno(); let a = await st();
         const dx = await bot('SPARA', 0);
         await giu(1, dx); await tick(6); await muovi(1, -80, 0); await tick(6);
         let b = await st(); await su(1); await tick(4);
         assert(b.sparati - a.sparati >= 2 && b.mira && b.yaw > a.yaw + 0.15, `SPARA destro trascinato: ${b.sparati - a.sparati} colpi, mira ${b.mira}, yaw ${a.yaw} → ${b.yaw}`);
         assert(!(await st()).mira, 'lasciato SPARA si esce dalla mira');
         // SPARA sinistro + pollice destro che trascina sulla zona di mira, insieme
-        a = await st();
+        await pieno(); a = await st();
         await giu(2, await bot('SPARA', 1)); await giu(3, [560, 120]); await tick(4); await muovi(3, 80, 0); await tick(6);
         b = await st(); await su(3); await su(2); await tick(4);
         assert(b.sparati - a.sparati >= 2 && b.yaw < a.yaw - 0.15, `SPARA sinistro + mira a destra: ${b.sparati - a.sparati} colpi, yaw ${a.yaw} → ${b.yaw}`);
         // joystick avanti mentre si spara col destro: ci si muove
-        a = await st();
+        await pieno(); a = await st();
         await giu(4, [110, 290]); await muovi(4, 0, -40, 4); await giu(5, dx); await tick(20);
         b = await st(); await su(5); await su(4); await tick(4);
-        assert(Math.hypot(b.x - a.x, b.z - a.z) > 0.5 && b.sparati > a.sparati, `joystick + SPARA: spostato ${Math.hypot(b.x - a.x, b.z - a.z)}, colpi ${b.sparati - a.sparati}`);
+        assert(Math.hypot(b.x - a.x, b.z - a.z) > 0.5 && b.sparati > a.sparati, `joystick + SPARA: spostato ${Math.hypot(b.x - a.x, b.z - a.z)}, colpi ${b.sparati - a.sparati} (nel caricatore ${a.colpi} → ${b.colpi})`);
         // MIRA a tocco: resta accesa, al secondo tocco si spegne
         const m = await bot('MIRA');
         await giu(6, m); await tick(2); await su(6); await tick(4); const m1 = (await st()).mira;
