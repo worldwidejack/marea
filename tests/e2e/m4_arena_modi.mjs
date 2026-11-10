@@ -95,7 +95,7 @@ export default async function (ctx) {
     await allena(page, 'stelle');
     const s0 = ar(await ctx.getState(page));
     assert(s0.squadre.join() === '0,0,0,1,1,1' && s0.mappa === 'osservatorio' && s0.segno === 2, 'stato: ' + JSON.stringify(s0));
-    assert((await page.locator('#mzArenaTop .mz-ar-lato.io .eroe').count()) === 3 && (await page.locator('#mzArenaTop .mz-ar-lato.lui .eroe').count()) === 3, 'tre eroi per lato');
+    assert((await page.locator('#mzArenaTop .mz-ar-lato.io .eroe').count()) === 1 && (await page.locator('#mzArenaTop .mz-ar-lato.lui').count()) === 0, 'solo la mia vita nel tabellone');
     // nel conto alla rovescia nessuno si muove: si posano gli eroi e si legge la vista (il prato in alto a sinistra è erba alta)
     const r = await page.evaluate(async () => {
       const T = window.__game.test, S = () => window.__game.state().arenaPartita, frame = () => new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
