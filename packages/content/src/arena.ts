@@ -34,8 +34,9 @@ export type ArenaDote = { id: string; nome: string; descr: string; colore: strin
 /** Numeri dell'Arena di un'arma (danno a colpo, colpi al secondo, secondi di carica, moltiplicatore del caricato, portata in m) o dell'arco
  *  (danno della freccia a piena tensione, secondi per tenderlo). */
 export type ArenaArma = { danno: number; colpi?: number; carica?: number; caricaMolt?: number; portata?: number; tensione?: number };
-/** Numeri dell'Arena di una magia (gli altri restano quelli del libro): danno (al secondo per i raggi), cura, costo, ricarica. */
-export type ArenaMagia = { danno?: number; cura?: number; costo?: number; ricarica?: number };
+/** Numeri dell'Arena di una magia (gli altri restano quelli del libro): danno (al secondo per i raggi), cura, costo, ricarica; raggio (del
+ *  proiettile o dello scoppio), gittata e larghezza (dei raggi); `senzaRallenta`: in Arena la magia non rallenta nessuno. */
+export type ArenaMagia = { danno?: number; cura?: number; costo?: number; ricarica?: number; raggio?: number; gittata?: number; larghezza?: number; senzaRallenta?: boolean };
 /** Un'ulti: id, nome, descrizione e i suoi numeri (secondi, danno, raggio…: li legge sim/arena/ulti.ts). */
 export type ArenaUlti = { id: string; nome: string; descr: string; secondi?: number; danno?: number; passo?: number; cura?: number; raggio?: number;
   carica?: number; gittata?: number; larghezza?: number; giro?: number; velocita?: number; tiro?: number; stordito?: number };

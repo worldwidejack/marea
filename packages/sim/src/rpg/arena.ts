@@ -84,8 +84,8 @@ function variante(dote: string, s: ArenaSlot | null): RunHero {
     arma = { ...arma, danno: n.danno, tempo, carica: n.carica ?? arma.carica, caricaMolt: n.caricaMolt ?? arma.caricaMolt, portata: n.portata ?? arma.portata };
   }
   const magie = rh.magie.map((sp) => {
-    const m = B.magie[sp.id] ?? {};
-    return { ...sp, ...(m.danno !== undefined ? { danno: m.danno } : {}), ...(m.cura !== undefined && sp.cura !== undefined ? { cura: m.cura } : {}), ...(m.costo !== undefined ? { costo: m.costo } : {}), ...(m.ricarica !== undefined ? { ricarica: m.ricarica } : {}) };
+    const m = B.magie[sp.id] ?? {}, { rallenta: _rallenta, ...senza } = sp;
+    return { ...(m.senzaRallenta ? senza : sp), ...(m.raggio !== undefined ? { raggio: m.raggio } : {}), ...(m.gittata !== undefined ? { gittata: m.gittata } : {}), ...(m.larghezza !== undefined ? { larghezza: m.larghezza } : {}), ...(m.danno !== undefined ? { danno: m.danno } : {}), ...(m.cura !== undefined && sp.cura !== undefined ? { cura: m.cura } : {}), ...(m.costo !== undefined ? { costo: m.costo } : {}), ...(m.ricarica !== undefined ? { ricarica: m.ricarica } : {}) };
   });
   const { perk: _perk, ...resto } = rh;
   return { ...resto, arena: true, max, regen, camminata: r2(rh.camminata * passo), corsa: r2(rh.corsa * passo), arma, frecce, magie, pozioni: [], pozione: null, pesi: {}, carico: 0 };

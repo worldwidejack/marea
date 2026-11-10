@@ -34,6 +34,8 @@ quella scelta; si salvano col personaggio (`HeroState.arena`, `POST /api/rpg {t:
   elettricità a proiettile, raggio e bomba; Cura e Furia **solo con dei compagni**: tutti contro tutti quello slot resta vuoto; niente evocazioni);
 - un'**ulti** a scelta tra sei (parte 7).
 Niente pozioni né anelli; l'arco ha 18 frecce (si riempiono quando si rinasce). Senza niente negli slot si combatte coi pugni.
+In Arena le magie **elettriche non rallentano** (nei dungeon sì): fanno un po' meno danno di quelle di fuoco, costano meno e sono più facili da prendere
+(proiettile più largo, raggio più lungo e largo, scoppio più grande; `build.magie` → `raggio`, `gittata`, `larghezza`, `senzaRallenta`).
 
 ### Interfaccia Utente
 - In alto il **tabellone**: a sinistra la mia squadra (una barra di vita per eroe, io per primo, con Magicka e Stamina sotto); in mezzo il
@@ -195,7 +197,7 @@ quando si cade e si rinasce. Codice in `sim/arena/ulti.ts`, sopra la sim della p
 - **Scatto**: passo ×2 per 10 s, la corsa non consuma Vigore.
 - **Aura di cura**: per 6 s cura te e i compagni entro 4 m.
 - **Raggio della Marea** (la kamehameha): fermo, carichi 0,7 s una sfera d'acqua, poi un raggio dritto fino al primo muro per 1,5 s che
-  colpisce tutti gli avversari sulla linea; col joystick lo giri, piano. Chi carica e spara non si muove: si può schivare girandogli attorno.
+  colpisce tutti gli avversari sulla linea; lo giri con la mira (stick destro al telefono, mouse al PC) o, in mancanza, col joystick. Chi carica e spara non si muove: si può schivare girandogli attorno.
 - **Arpione**: un gancio dritto davanti (11 m); chi prende viene tirato fino a te, preso un po' di danno, e resta fermo un attimo.
 - **Velo di nebbia**: per 8 s gli avversari non ti vedono, come nell'erba alta (anche fuori dall'erba); attaccando ti scopri.
 
