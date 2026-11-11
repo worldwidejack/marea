@@ -196,7 +196,7 @@ async function boot(): Promise<void> {
   void import('./game/animali.ts').then((m) => { animali = m.createAnimali({ world, camera: renderer.camera, canvas, root, hud, buio: () => vis.get()?.buio ?? 0, avvista: (id) => diario.avvista(id) }); }).catch(() => { /* senza animali si gioca lo stesso */ });
   // ——— il registro: chi è aperto, chi ferma il mondo, chi si chiude (avvio/registro.ts) ———
   collegaProfilo(() => {
-    if (ingressi.active) return (FLAGS.primaPersona ?? impostazioni.value.primaPersona) ? 'dungeonFp' : 'dungeon';
+    if (ingressi.active) return 'dungeon';
     if (ar?.active) return 'arena';
     if (tpl.active) return 'templari';
     if (adr.active) return 'snowboard';

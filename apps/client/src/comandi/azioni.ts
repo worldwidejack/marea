@@ -19,11 +19,6 @@ const preferiti: Def[] = [
   ['pref2', 'Preferito 2', ['Digit2', 'Numpad2'], 5],
   ['pref3', 'Preferito 3', ['Digit3', 'Numpad3'], 6],
 ];
-const dungeon: Def[] = [
-  ...movimento, ['azione', 'Interagisci con scale, valvole e timoni', ['Space'], 0], schiva, attacca, pausa, eroe,
-  ['pozione', 'Bevi una pozione', ['KeyR'], 3], ['scarica', 'Scarica di frecce', ['KeyE'], 2],
-  ['leggi', 'Leggi', ['KeyL'], 11], ...preferiti,
-];
 const navigazione: Def[] = [
   ['mappa', 'Mappa', ['KeyM'], 4], ['zoomin', 'Ingrandisci minimappa', ['NumpadAdd', 'Equal'], null],
   ['zoomout', 'Riduci minimappa', ['NumpadSubtract', 'Minus'], null],
@@ -63,9 +58,10 @@ export const PROFILI = {
     ['trickSx', 'Trick a sinistra', ['ArrowLeft'], 4], ['trickDx', 'Trick a destra', ['ArrowRight'], 5],
     tastoUnico('Carica il salto / Afferra la tavola'), ['inverti', 'Inverti sterzata e trick', ['KeyP'], null], esci,
   ] },
-  dungeon: { nome: 'Dungeon', azioni: [...dungeon, ['salva', 'Salva alla lanterna', ['KeyF'], null], ['esciLanterna', 'Esci dalla lanterna', ['KeyX'], null], hud] },
-  dungeonFp: { nome: 'Dungeon in prima persona', azioni: [
-    ...dungeon.filter(([id]) => id !== 'scarica' && id !== 'leggi'), ['leggi', 'Leggi', ['KeyL'], 11], ['scarica', 'Scarica di frecce', ['KeyH'], null], ['fruga', 'Fruga nel bottino', ['KeyE'], 2],
+  dungeon: { nome: 'Dungeon', azioni: [
+    ...movimento, ['azione', 'Interagisci con scale, valvole e timoni', ['Space'], 0], schiva, attacca, pausa, eroe,
+    ['pozione', 'Bevi una pozione', ['KeyR'], 3], ['fruga', 'Fruga o usa la scarica di frecce', ['KeyE'], 2],
+    ['scarica', 'Scarica di frecce', ['KeyH'], null], ['leggi', 'Leggi', ['KeyL'], 11], ...preferiti,
     ['salva', 'Salva alla lanterna', ['KeyF'], null], ['esciLanterna', 'Esci dalla lanterna', ['KeyX'], null], hud,
   ] },
   templari: { nome: 'Templari', azioni: [
@@ -111,7 +107,7 @@ export const PROFILI = {
 export type Profilo = keyof typeof PROFILI;
 export const CON_STICK = new Set<Profilo>([
   'borgo', 'barca', 'pesca', 'arreda', 'regata', 'consegne', 'corse', 'snowboard',
-  'dungeon', 'dungeonFp', 'templari', 'arena', 'menu', 'scacchi',
+  'dungeon', 'templari', 'arena', 'menu', 'scacchi',
 ]);
 export type Azione = { id: string; nome: string; tasti: Def[2]; pad: number | null };
 const catalogo = new Map((Object.keys(PROFILI) as Profilo[]).map((p) => [
