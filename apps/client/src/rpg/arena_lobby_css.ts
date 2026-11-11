@@ -20,7 +20,7 @@ export const CSS_SALA = `
 .mz-ar-lobby .arena-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; background: ${P.neroCaldo}; }
 .mz-ar-lobby .arena-nav .arena-btn { background: ${P.abisso}; color: ${P.sabbiaChiara}; border: 0; box-shadow: none; }
 .mz-ar-lobby .arena-nav .arena-btn[aria-pressed=true] { background: ${P.sabbiaChiara}; color: ${P.neroCaldo}; }
-.mz-ar-lobby .corpo { padding: 10px 12px 12px; overscroll-behavior: contain; }
+.mz-ar-lobby .corpo { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px 12px; touch-action: pan-y; overscroll-behavior: contain; }
 .mz-ar-lobby h3 { margin: 0 0 7px; font-size: clamp(20px, 3vw, 26px); line-height: 1; }
 .mz-ar-lobby p { font-size: 14px; line-height: 1.2; margin: 6px 0; }
 .mz-ar-lobby .arena-roster { margin: 4px 0 10px; padding: 0; list-style: none; }

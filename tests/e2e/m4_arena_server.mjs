@@ -256,7 +256,9 @@ export default async function (ctx) {
           { viewport: { ...ctx.B.IPHONE, width: 844, height: 390 } });
         try {
           await ctx.waitReady(p.page, 25000);
-          await p.page.evaluate(() => window.__game.test.arenaEntra());
+          await ctx.waitState(p.page, (st) => !!st.arena?.spot, 30000);
+          await p.page.evaluate(() => window.__game.test.arenaVai());
+          await p.page.locator('#mzArenaEntra.on').click();
           await p.page.waitForSelector('#mzColosseo.on');
           return p;
         } catch (e) { await p.close(); throw e; }
