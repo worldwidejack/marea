@@ -289,7 +289,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
         if (n.esposto) { glowC = ORO; glow = Math.floor(t * 8) % 2 ? 0.55 : 0.3; } // Korok: il nucleo scoperto brilla
         if (n.attacco === 'cambio') { glowC = WHITE; glow = Math.floor(t * 10) % 2 ? 0.8 : 0.2; }
         // Diga: il Fuciliere mira in ginocchio, fermo (niente inclinazione all'indietro); la Guardia della Paratia senza il portello
-        if (n.attacco === 'fucile') { b.rotation.x = 0; b.position.z = 0; b.position.y -= 0.3; }
+        if (n.attacco === 'fucile' && !e.rig) { b.rotation.x = 0; b.position.z = 0; b.position.y -= 0.3; }
         if (n.model === 'nem_guardiano') { const p = b.getObjectByName('portello'); if (p) p.visible = !n.senza; }
         if (e.arco) {
           const yaw = b.rotation.y, a = e.arco.obj;

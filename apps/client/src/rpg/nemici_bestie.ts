@@ -3,12 +3,19 @@
 // braccia che caricano la magia). Assi del modello come nemici_pose.ts: +X su un arto che pende = in avanti.
 import type { Colpo, Famiglia, Posa } from './nemici_pose.ts';
 import { campana, clamp01, colpo, esce, lerp, tonfo } from './nemici_rig.ts';
+import { macchina, serpe } from './nemici_macchine.ts';
+import { CARICA, chiave, chiavi, GUARDIA, SCATTO } from './nemici_pose.ts';
 
 export function posaBestia(p: Posa, f: Famiglia, c: Colpo): boolean {
   switch (f) {
     case 'quadrupede': return quadrupede(p);
     case 'ragno': return ragno(p);
     case 'spettro': return spettro(p, c);
+    case 'serpe': return serpe(p);
+    case 'macchina': return macchina(p);
+    case 'fiamma': return fiamma(p);
+    case 'uccello': return uccello(p);
+    case 'centauro': return centauro(p, c);
     default: return false;
   }
 }
@@ -111,6 +118,10 @@ function ragno(p: Posa): boolean {
     }
     case 'prepara': { // si impenna: le due zampe davanti alzate che ondeggiano, le zanne aperte
       const k = esce(n.t);
+      if (n.tiro) { // il drone: si pianta sulle zampe e ritira l'arpione nel lanciatore
+        passo(0.1, 0.1); b.position.y = -0.06 * H * k; r.ruota('corpo', 0.12 * k); r.sposta('cannone', 0, 0, 0.15 * H * k); r.ruota('cannone', 0.2 * k);
+        return true;
+      }
       passo(0.25 * cammina, 0.4 * cammina);
       r.ruota('corpo', 0.35 * k); b.position.y = 0.05 * H * k;
       zampa(1, -0.3 * k, 1.2 * k + 0.12 * Math.sin(t * 14), -0.6 * k); zampa(5, 0.3 * k, 1.2 * k + 0.12 * Math.sin(t * 14 + 1), -0.6 * k);
@@ -119,6 +130,7 @@ function ragno(p: Posa): boolean {
     }
     case 'colpisce': case 'recupera': { // le zampe davanti sbattono giù, il corpo scatta avanti
       const su = n.anim === 'colpisce' ? colpo(n.t) : 1, giu = n.anim === 'recupera' ? esce(n.t) : 0, k = su * (1 - giu);
+      if (n.tiro) { r.sposta('cannone', 0, 0, 0.15 * H * (1 - su) + 0.05 * H * k); r.ruota('corpo', -0.1 * k); b.position.z = 0.05 * H * k; return true; }
       r.ruota('corpo', lerp(0.35, -0.2, su) * (1 - giu)); b.position.z = -0.35 * H * k;
       zampa(1, -0.4 * k, lerp(1.2, -0.2, su) * (1 - giu), 0); zampa(5, 0.4 * k, lerp(1.2, -0.2, su) * (1 - giu), 0);
       r.ruota('addome', 0.15 * k);
@@ -139,7 +151,6 @@ function ragno(p: Posa): boolean {
 function spettro(p: Posa, c: Colpo): boolean {
   const { rig: r, n, t, b } = p, H = r.h, s = p.seme;
   const ondeggia = Math.sin(t * 1.7 + s), va = clamp01(p.vel / 1.5);
-  r.ruota('aureola', 0, 0, t * 0.9); r.ruota('schegge', 0, t * 1.4, 0); // il Custode: l'aureola e le schegge girano sempre
   b.position.y = 0.12 * H + 0.05 * H * ondeggia;
   r.ruota('corpo', -0.25 * va + 0.04 * ondeggia, 0, 0.05 * Math.sin(t * 1.1 + s));
   r.ruota('coda', 0.3 * va + 0.15 * Math.sin(t * 2.3 + s), 0.25 * Math.sin(t * 1.9 + s)); r.ruota('coda2', 0.2 * va + 0.2 * Math.sin(t * 2.3 + s - 1), 0.3 * Math.sin(t * 1.9 + s - 1));
@@ -166,5 +177,94 @@ function spettro(p: Posa, c: Colpo): boolean {
     }
     case 'colpito': { const k = campana(n.t || 0.5); b.position.z = 0.15 * H * k; r.ruota('corpo', 0.4 * k); braccia(0.3, 1.0 * k, 0); return true; }
     default: braccia(0.6 + 0.15 * Math.sin(t * 2 + s), 0.4 + 0.1 * Math.sin(t * 1.3 + s), 0.4 + 0.2 * Math.sin(t * 2.5 + s)); r.ruota('testa', 0, 0.3 * Math.sin(t * 0.5 + s)); return true;
+  }
+}
+
+// ------------------------------------------------------------------ fiammelle: fluttuano, si gonfiano caricando, guizzano avanti
+function fiamma(p: Posa): boolean {
+  const { rig: r, n, t, b } = p, H = r.h, s = p.seme;
+  b.position.y = 0.05 * H * Math.sin(t * 3.1 + s);
+  const braccia = (x: number, z: number) => { r.ruota('braccio_sx', x, 0, -z); r.ruota('braccio_dx', x, 0, z); };
+  if (n.anim === 'morto') { const k = esce(p.morto / 0.5); b.scale.multiplyScalar(Math.max(0.01, 1 - k)); b.position.y -= 0.3 * H * k; return true; }
+  switch (n.anim) {
+    case 'dorme': b.scale.multiplyScalar(0.8 + 0.04 * Math.sin(t * 1.5 + s)); b.position.y = -0.1 * H; braccia(0, -0.3); return true;
+    case 'prepara': { const k = esce(n.t); b.scale.multiplyScalar(1 + 0.3 * k + 0.05 * Math.sin(t * 40) * k); braccia(-0.6 * k, 0.9 * k); r.ruota('corpo', 0.3 * k); return true; }
+    case 'colpisce': case 'recupera': {
+      const su = n.anim === 'colpisce' ? colpo(n.t) : 1, giu = n.anim === 'recupera' ? esce(n.t) : 0, k = su * (1 - giu);
+      b.position.z = -0.6 * H * k; b.scale.z *= 1 + 0.5 * k; braccia(1.4 * k, 0.2); r.ruota('corpo', -0.4 * k);
+      return true;
+    }
+    case 'colpito': { const k = campana(n.t || 0.5); b.scale.y *= 1 - 0.3 * k; b.scale.x *= 1 + 0.2 * k; return true; }
+    default: braccia(0.3 * Math.sin(t * 4 + s), 0.3 + 0.2 * Math.sin(t * 3 + s)); r.ruota('corpo', -0.2 * clamp01(p.vel / 1.5), 0, 0.1 * Math.sin(t * 2 + s)); return true;
+  }
+}
+
+// ------------------------------------------------------------------ centauri: zampe da quadrupede, busto e braccia da bipede
+function centauro(p: Posa, c: Colpo): boolean {
+  const { rig: r, n, t, b } = p, H = r.h, s = p.seme;
+  const cammina = clamp01(p.vel / 1.2), fase = (p.passo / (0.9 * H)) * Math.PI * 2;
+  const zampe = (A: number, B: number) => {
+    const g = (nome: string, ph: number) => { r.ruota('zampa_' + nome, A * Math.sin(fase + ph)); r.ruota('piede_' + nome, (nome[0] === 'a' ? 1 : -1) * B * Math.max(0, Math.cos(fase + ph))); };
+    g('as', 0); g('pd', 0); g('ad', Math.PI); g('ps', Math.PI);
+  };
+  r.ruota('coda', 0.2, 0.3 * Math.sin(t * 2 + s));
+  if (n.anim === 'morto') { // le zampe davanti cedono, crolla in avanti e di lato
+    const k = tonfo(p.morto / 0.6);
+    r.ruota('zampa_as', -0.9 * k); r.ruota('zampa_ad', -0.9 * k); r.ruota('piede_as', 1.6 * k); r.ruota('piede_ad', 1.6 * k);
+    r.ruota('zampa_ps', 0.5 * k); r.ruota('zampa_pd', 0.5 * k); r.ruota('piede_ps', -1.2 * k); r.ruota('piede_pd', -1.2 * k);
+    b.position.y = -0.3 * H * k; b.rotation.z = 0.25 * k; r.ruota('busto', -0.5 * k); r.ruota('testa', -0.5 * k);
+    r.ruota('braccio_sx', 0.3 * k, 0, -0.6 * k); r.ruota('braccio_dx', 0.3 * k, 0, 0.6 * k);
+    return true;
+  }
+  zampe(0.4 * cammina, 0.7 * cammina);
+  b.position.y = 0.025 * H * Math.abs(Math.cos(fase)) * cammina;
+  switch (n.anim) {
+    case 'dorme': r.ruota('busto', -0.3); r.ruota('testa', -0.4); r.ruota('braccio_sx', 0.3); r.ruota('braccio_dx', 0.3); return true;
+    case 'prepara': { // si impenna sulle zampe dietro mentre alza il martello
+      const k = esce(n.t);
+      r.ruota('corpo', 0.18 * k); r.ruota('zampa_as', 0.7 * k); r.ruota('zampa_ad', 0.5 * k); r.ruota('piede_as', 0.9 * k); r.ruota('piede_ad', 1.1 * k);
+      chiavi(r, chiave(GUARDIA, c), chiave(CARICA, c), k);
+      return true;
+    }
+    case 'colpisce': case 'recupera': {
+      const su = n.anim === 'colpisce' ? colpo(n.t) : 1, giu = n.anim === 'recupera' ? esce(n.t) : 0, k = su * (1 - giu);
+      r.ruota('corpo', lerp(0.18, -0.12, su) * (1 - giu)); b.position.z = -0.12 * H * k;
+      if (giu > 0) chiavi(r, chiave(SCATTO, c), chiave(GUARDIA, c), giu); else chiavi(r, chiave(CARICA, c), chiave(SCATTO, c), su);
+      return true;
+    }
+    case 'colpito': { const k = campana(n.t || 0.5); r.ruota('busto', 0.3 * k, 0.2 * k); r.ruota('testa', 0.4 * k); return true; }
+    default:
+      r.ruota('busto', 0.02 * Math.sin(t * 2 + s), 0.1 * Math.sin(fase) * cammina); r.ruota('testa', 0, 0.3 * Math.sin(t * 0.5 + s) * (1 - cammina));
+      chiavi(r, {}, chiave(GUARDIA, c), 1, 0.7);
+      return true;
+  }
+}
+
+// ------------------------------------------------------------------ uccelli: le ali sbattono (la punta in ritardo), picchiata col becco
+function uccello(p: Posa): boolean {
+  const { rig: r, n, t, b } = p, H = r.h, s = p.seme;
+  const ali = (A: number, hz: number, alza = 0) => {
+    const f = Math.sin(t * hz + s), g = Math.sin(t * hz + s - 0.9);
+    r.ruota('ala_sx', 0, 0, -(A * f + alza)); r.ruota('ala_dx', 0, 0, A * f + alza);
+    r.ruota('ala2_sx', 0, 0, -0.7 * A * g); r.ruota('ala2_dx', 0, 0, 0.7 * A * g);
+    b.position.y = -0.05 * H * f;
+  };
+  r.ruota('coda', 0.1 * Math.sin(t * 2 + s));
+  if (n.anim === 'morto') { // ali afflosciate, cade su un fianco
+    const k = tonfo(p.morto / 0.5);
+    r.ruota('ala_sx', 0, 0, 0.6 * k); r.ruota('ala_dx', 0, 0, -0.2 * k); r.ruota('ala2_sx', 0, 0, 0.5 * k); r.ruota('testa', -0.5 * k);
+    b.rotation.z = 1.2 * k; b.position.y = -0.2 * H * k;
+    return true;
+  }
+  switch (n.anim) {
+    case 'dorme': r.ruota('ala_sx', 0, 0, 0.5); r.ruota('ala_dx', 0, 0, -0.5); r.ruota('ala2_sx', 0, 0, 1.2); r.ruota('ala2_dx', 0, 0, -1.2); r.ruota('testa', -0.4); return true;
+    case 'prepara': { const k = esce(n.t); ali(0.5 * (1 - k) + 0.2, 14, 0.9 * k); r.ruota('corpo', 0.35 * k); r.ruota('testa', 0.3 * k); return true; }
+    case 'colpisce': case 'recupera': { // picchiata: ali indietro, becco avanti
+      const su = n.anim === 'colpisce' ? colpo(n.t) : 1, giu = n.anim === 'recupera' ? esce(n.t) : 0, k = su * (1 - giu);
+      ali(0.15, 10, -0.4 * k); r.ruota('corpo', -0.5 * k); r.ruota('testa', -0.2 * k); b.position.z = -0.4 * H * k;
+      return true;
+    }
+    case 'colpito': { const k = campana(n.t || 0.5); ali(0.3, 20, 0.5 * k); r.ruota('corpo', 0.3 * k, 0.3 * k); return true; }
+    default: ali(0.55, 6 + 3 * clamp01(p.vel / 2)); r.ruota('corpo', -0.1 * clamp01(p.vel / 2)); r.ruota('testa', 0, 0.3 * Math.sin(t * 0.8 + s)); return true;
   }
 }

@@ -45,7 +45,6 @@ export async function rigNemico(loader: Loader, name: string): Promise<Rig | nul
     const m = n as THREE.SkinnedMesh; if (!m.isMesh) return;
     const mats = (Array.isArray(m.material) ? m.material : [m.material]).map((x) => { const l = toLambert(x).clone(); return l; });
     m.material = Array.isArray(m.material) ? mats : mats[0]!;
-    m.name = mats[0]!.name;
     m.frustumCulled = false; // le ossa spostano i vertici fuori dalla scatola calcolata a riposo
   });
   obj.updateMatrixWorld(true);
