@@ -13,6 +13,23 @@ export default async function (ctx) {
     await ctx.waitState(page, (st, a) => st.meteo === a[0] && Math.abs(st.aspetto.meteoK - a[1]) < 1e-6, 60000, [stato, k]);
     await page.waitForTimeout(500); // un paio di frame col tempo nuovo (lo stato si aggiorna prima del disegno)
   };
+  /** Aspetta `n` fotogrammi disegnati: perf() dà i numeri dell'ultimo, e su GitHub (2-4 fps) 500 ms possono non bastare per uno nuovo. */
+  const fotogrammi = (page, n = 3) => page.evaluate((k) => new Promise((r) => { let i = 0; const f = () => (++i > k ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
+  /** Quante draw call costano le nuvole messe da `metti` rispetto al sereno, nello stesso punto. Paesani e barche intanto si muovono e
+   *  possono entrare o uscire dalla vista tra le due misure: si ripete la coppia fino a tre volte e conta la differenza più piccola
+   *  (quello che costano davvero le nuvole c'è in tutte). Alla fine restano le nuvole di `metti`. */
+  const costo = async (page, metti) => {
+    let con = null, senza = null;
+    for (let i = 0; i < 3; i++) {
+      await forza(page, 'sereno', 0); await fotogrammi(page);
+      const s = await ctx.getPerf(page);
+      await metti(); await fotogrammi(page);
+      const c = await ctx.getPerf(page);
+      if (!con || c.drawCalls - s.drawCalls < con.drawCalls - senza.drawCalls) { con = c; senza = s; }
+      if (con.drawCalls - senza.drawCalls <= 3) break;
+    }
+    return { con, senza };
+  };
   await ctx.test('coi test parte spento', async () => {
     const st = await ctx.getState(p.page);
     ctx.assert(st.meteo === 'spento' && st.impostazioni.meteo === false, `meteo ${JSON.stringify(st.meteo)} impostazioni ${JSON.stringify(st.impostazioni)}`);
@@ -29,34 +46,33 @@ export default async function (ctx) {
     ctx.log('nuvole dall’orologio', JSON.stringify(st.nuvole));
     ctx.assert(st.nuvole.vicine <= 24, `nuvole ${JSON.stringify(st.nuvole)}`);
   });
-  let base = null;
   await ctx.test('pioggia sopra di te: gocce, più scuro, budget ok', async () => {
     await p.page.evaluate(async () => { window.__game.test.impostazioni({ cam: 3, ciclo: true, contorni: true }); await window.__game.test.aspettoPronto(); window.__game.test.ciclo(0.2); window.__game.test.goto('porto'); }); // all'aperto: lotto:N arriva nella stanza della casa (#240), al buio
     await forza(p.page, 'sereno', 0);
     await p.page.waitForTimeout(500);
     const sereno = await ctx.screenStats(p.page);
     await ctx.shot(p.page, 'iphone_sereno');
-    base = await ctx.getPerf(p.page); ctx.log('perf sereno (nessuna nuvola)', JSON.stringify(base));
-    await forza(p.page, 'pioggia');
+    const { con: perf, senza } = await costo(p.page, () => forza(p.page, 'pioggia'));
     const st = await ctx.getState(p.page);
     ctx.assert(st.aspetto.gocce > 500 && st.nuvole.pioggia === 1, `gocce ${st.aspetto.gocce} nuvole ${JSON.stringify(st.nuvole)}`);
     const pioggia = await ctx.screenStats(p.page);
     await ctx.shot(p.page, 'iphone_pioggia');
     ctx.log('luminosità sereno', sereno.mean.toFixed(1), 'pioggia', pioggia.mean.toFixed(1));
     ctx.assert(pioggia.mean < sereno.mean - 8, `pioggia non più scura: ${sereno.mean.toFixed(1)} → ${pioggia.mean.toFixed(1)}`);
-    const perf = await ctx.getPerf(p.page); ctx.log('perf pioggia', JSON.stringify(perf));
-    ctx.assert(perf.drawCalls > 0 && perf.drawCalls <= 100 && perf.drawCalls <= base.drawCalls + 3, `draw call ${perf.drawCalls} (sereno ${base.drawCalls})`);
+    ctx.log('perf pioggia', JSON.stringify(perf), 'sereno', JSON.stringify(senza));
+    ctx.assert(perf.drawCalls > 0 && perf.drawCalls <= 100 && perf.drawCalls <= senza.drawCalls + 3, `draw call ${perf.drawCalls} (sereno ${senza.drawCalls})`);
     ctx.noErrors(p, 'pioggia');
   });
   await ctx.test('nuvola di pioggia vicina: piove là e non qui', async () => {
-    await p.page.evaluate((v) => { window.__game.test.meteo(null); window.__game.test.nuvole(v); }, VICINA);
-    await ctx.waitState(p.page, (st) => st.meteo === 'sereno' && st.nuvole.vive === 2 && st.nuvole.tende === 1 && st.nuvole.batuffoli > 0, 20000);
-    await p.page.waitForTimeout(500);
+    const { con: perf, senza } = await costo(p.page, async () => {
+      await p.page.evaluate((v) => { window.__game.test.meteo(null); window.__game.test.nuvole(v); }, VICINA);
+      await ctx.waitState(p.page, (st) => st.meteo === 'sereno' && st.nuvole.vive === 2 && st.nuvole.tende === 1 && st.nuvole.batuffoli > 0, 20000);
+    });
     const st = await ctx.getState(p.page);
     ctx.assert(st.aspetto.gocce === 0 && st.nuvole.pioggia === 0, `qui piove: ${JSON.stringify(st.nuvole)} gocce ${st.aspetto.gocce}`);
     await ctx.shot(p.page, 'iphone_vicina');
-    const perf = await ctx.getPerf(p.page); ctx.log('perf nuvole vicine', JSON.stringify(perf), JSON.stringify(st.nuvole));
-    ctx.assert(perf.drawCalls <= 100 && perf.drawCalls <= base.drawCalls + 3, `draw call ${perf.drawCalls} (sereno ${base.drawCalls})`);
+    ctx.log('perf nuvole vicine', JSON.stringify(perf), 'sereno', JSON.stringify(senza), JSON.stringify(st.nuvole));
+    ctx.assert(perf.drawCalls <= 100 && perf.drawCalls <= senza.drawCalls + 3, `draw call ${perf.drawCalls} (sereno ${senza.drawCalls})`);
     // dentro la stessa nuvola: ora piove anche qui
     await p.page.evaluate(() => window.__game.test.nuvole([{ tipo: 'pioggia', dx: 0, dz: 0, r: 40 }]));
     await ctx.waitState(p.page, (st) => st.meteo === 'pioggia' && st.nuvole.pioggia === 1 && st.aspetto.gocce > 500, 20000);
