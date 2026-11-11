@@ -19,10 +19,12 @@ import { createMiraStick } from './mira_stick.ts';
 import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type ArenaControlli = {
-  /** Un campione per tick: A in più (clic, joystick di mira), mira, tocco veloce, Scarica (E), slot scelto adesso (null = no), ulti premuta. */
-  sample(): { a: boolean; m: number; tap: boolean; e: boolean; slot: number | null; ulti: boolean };
+  /** Un campione per tick: A in più (clic, joystick di mira), mira, quanto è spinto il joystick di mira (`f`, 0..1; 0 = nessun dito o stick),
+   *  tocco veloce, Scarica (E), slot scelto adesso (null = no), ulti premuta. */
+  sample(): { a: boolean; m: number; f: number; tap: boolean; e: boolean; slot: number | null; ulti: boolean };
   miraDir(): { x: number; z: number } | null;
-  setMira(on: boolean): void;
+  /** `grande`: con una bomba in mano il joystick di mira ha l'anello più grande (meno sensibile). */
+  setMira(on: boolean, grande?: boolean): void;
   readonly paused: boolean;
   /** Tabellone, barre, slot e ulti dalla vista della partita. `slot` = le RunHero dei miei slot (icone), `ulti` = l'id della mia. */
   set(v: PartitaView, nomi: readonly string[]): void;
@@ -49,6 +51,8 @@ body.mz-arena.mz-dng-aimon #btnSchiva { right: calc(max(16px, env(safe-area-inse
 body.mz-arena .mz-mira { bottom: calc(${SAFE} + 88px) !important; }
 body.mz-arena.mz-dng-aimon #btnA { display: none !important; }
 body.mz-arena.mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-right, 0px)) + 116px) !important; }
+body.mz-arena.mz-ar-grande #btnB { right: calc(max(16px, env(safe-area-inset-right, 0px)) + 164px) !important; }
+body.mz-arena.mz-ar-grande #btnSchiva { bottom: calc(${SAFE} + 284px) !important; }
 .mz-ar-top { position: absolute; left: 50%; top: ${TOP}; transform: translateX(-50%); width: max-content; max-width: calc(100% - 16px); display: flex; align-items: flex-start; gap: 6px; z-index: 13; pointer-events: none !important; font-size: 12px; }
 .mz-ar-lato { flex: 1; min-width: 0; padding: 4px 6px 5px; background: ${L.carta}; border: 2px solid ${L.oro}; box-shadow: 0 3px 0 ${L.inchiostro}; }
 .mz-ar-lato.io { flex: none; width: 170px; }
@@ -207,12 +211,12 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
     get paused() { return pausa || chiedi; },
     sample() {
       const st = stick.sample();
-      const out = { a: aLatch || mouseA || st.held, m: st.m, tap: st.tap, e: eLatch || keys.has('KeyE'), slot: slotL, ulti: ultiL };
+      const out = { a: aLatch || mouseA || st.held, m: st.m, f: st.m ? stick.forza() : 0, tap: st.tap, e: eLatch || keys.has('KeyE'), slot: slotL, ulti: ultiL };
       aLatch = eLatch = ultiL = false; slotL = null;
       return out;
     },
     miraDir: () => stick.dir(),
-    setMira(on) { document.body.classList.toggle('mz-dng-aimon', stick.setOn(on)); },
+    setMira(on, grande = false) { document.body.classList.toggle('mz-dng-aimon', stick.setOn(on)); stick.grande(grande); document.body.classList.toggle('mz-ar-grande', grande); },
     set(v, nomi) {
       const h = v.dungeon.hero, sec = v.secondi, giu = h.vita <= 0;
       const vita = (j: number) => (j === o.io ? { vita: h.vita, max: h.max.vita, giu } : v.altri.find((a) => a.i === j) ?? { vita: 0, max: 1, giu: true });
@@ -277,12 +281,12 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
     },
     premio(p) { if (premioEl) premioEl.textContent = testoPremio(p); },
     attesa(text) { att.textContent = text ?? ''; att.classList.toggle('on', !!text); },
-    hide() { setPausa(false); setChiedi(false); stick.setOn(false); document.body.classList.remove('mz-dng-aimon'); for (const e of [barra, menuBtn, att, badge]) e.style.display = 'none'; },
+    hide() { setPausa(false); setChiedi(false); stick.setOn(false); document.body.classList.remove('mz-dng-aimon', 'mz-ar-grande'); for (const e of [barra, menuBtn, att, badge]) e.style.display = 'none'; },
     dispose() {
       clearTimeout(bigT);
       removeEventListener('keydown', kd, true); removeEventListener('keyup', ku, true);
       o.canvas.removeEventListener('pointerdown', md); removeEventListener('pointerup', mu); removeEventListener('blur', blur);
-      stick.dispose(); document.body.classList.remove('mz-arena', 'mz-dng-aimon');
+      stick.dispose(); document.body.classList.remove('mz-arena', 'mz-dng-aimon', 'mz-ar-grande');
       for (const e of [top, badge, barra, menuBtn, menu, ask, big, att, fine]) e.remove();
     },
   };

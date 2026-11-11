@@ -11,7 +11,7 @@ import { lineOfSight, moveCircle } from './map.ts';
 import { SPAZIO_FP, BEVE_TICKS, COLPI, COS_BOMBA, COS_CONO_ARCO, COS_RAGGIO, COS_SEMICERCHIO, FRECCIA_Y, GIRO_TEMPO, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y, HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS } from './tuning.ts';
 import { stepSchivata, velocitaSchivata } from './schivata.ts';
 import { faseSwing, sweepTo, swept, swingStyle } from './swing.ts';
-import { aimDir } from './mira.ts'; import { alza, alzoDir } from './alzo.ts'; import { consuma, rebuild } from './zaino.ts';
+import { aimDir } from './mira.ts'; import { alza } from './alzo.ts'; import { leggiP } from './portata.ts'; import { consuma, rebuild } from './zaino.ts';
 import { apriValvola, valvolaVicina } from './acque.ts'; import { giraTimone, timoneVicino } from './vento.ts';
 import { alto } from './muove.ts'; import { accendi, braciereVicino } from './braci.ts'; import { aimAlleato, canale, fermaCanale, isSupporto, lanciaBomba } from './magie.ts';
 import { caricaBarriera, caricaBrezza, caricaVampa, consumaVampa, eco, fineColpo, inizioColpo, inizioPoppa, molla, moltCaricaPoppa, moltRitmo, spintaPoppa, stepUnici, stordisci } from './unici.ts';
@@ -209,8 +209,8 @@ function cast(s: DungeonState, dir: Mira): void {
     add(s.xp, 'evocazione', sp.costo * RPG.xp.evocazioneLancio);
     return;
   }
-  if (sp.forma === 'bomba') { // lenta, in alto: atterra sul nemico (o alleato, se di supporto) che hai davanti e scoppia (magie.ts)
-    if (!dir) faceTo(s, aimBomba(s, sp));
+  if (sp.forma === 'bomba') { // lenta, in alto: scoppia dove atterra (magie.ts): dove hai scelto in Arena, se no sul nemico (o alleato, se di supporto) davanti
+    if (!dir && !h.portata) faceTo(s, aimBomba(s, sp));
     lanciaBomba(s, sp);
     return;
   }
@@ -282,7 +282,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   h.prevA = inp.a; h.prevC = inp.c; h.prevD = inp.d; h.prevE = !!inp.e;
   stepSchivata(h, inp);
   if (h.act === 'schiva') aDown = false;
-  const dir = aimDir(inp.m); h.alzo = alzoDir(inp.p) ?? undefined; // l'alzo vale solo col mirino (dir)
+  const dir = aimDir(inp.m); leggiP(s, dir, inp.p); // l'alzo (prima persona) o la portata della bomba (Arena) valgono solo col mirino (dir)
   // uscita: A sulla scala vince su tutto
   if (aDown && vicinoUscita(s)) { s.done = true; s.outcome = 'uscito'; ev(s, { t: 'uscita' }); return; }
   // Drenaggio: A accanto a una valvola chiusa la gira (e non attacca)

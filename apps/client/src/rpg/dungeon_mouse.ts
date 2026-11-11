@@ -8,8 +8,8 @@ import { MAGIA_Y } from '@marea/sim/dungeon/tuning.ts';
 export type Mouse = {
   /** C'è un mouse che ha mosso il cursore e nessun tocco dopo. */
   readonly attivo: boolean;
-  /** Da (x, z) verso il cursore: versore e indice di mira della sim. null se il cursore non si conosce o sta quasi sull'eroe. */
-  verso(x: number, z: number): { x: number; z: number; m: number } | null;
+  /** Da (x, z) verso il cursore: versore, indice di mira della sim e distanza (m) del cursore. null se il cursore non si conosce o sta quasi sull'eroe. */
+  verso(x: number, z: number): { x: number; z: number; m: number; d: number } | null;
   dispose(): void;
 };
 
@@ -31,7 +31,7 @@ export function createMouse(o: { canvas: HTMLCanvasElement; camera: THREE.Camera
       ray.setFromCamera(ndc, o.camera);
       if (!ray.ray.intersectPlane(piano, hit)) return null;
       const dx = hit.x - x, dz = hit.z - z, d = Math.sqrt(dx * dx + dz * dz);
-      return d < 0.25 ? null : { x: dx / d, z: dz / d, m: aimIndex(dx, dz) };
+      return d < 0.25 ? null : { x: dx / d, z: dz / d, m: aimIndex(dx, dz), d };
     },
     dispose() { removeEventListener('pointermove', mv); removeEventListener('pointerdown', mv); },
   };

@@ -60,8 +60,8 @@ export type HeroRt = {
    *  Tempio della «Doppia Nera»: tick rimasti «In Fresca», metri corsi verso la carica e se il colpo in corso solleva l'onda di neve.
    *  Santuario del Capo Ardente: cariche di Vampa (Manto del Primo Lucignolo) e se il raggio di fuoco in corso è sovralimentato. */
   rottT: number; brezza: number; brezzaM: number; poppa: boolean; fresca: number; frescaM: number; ondaNeve: boolean; vampa: number; sovralimentata: boolean;
-  /** Baita: scivolamento sul Ghiaccio Vivo [dx, dz] o null, fine dell'assideramento. Prima persona: alzo della mira ([cos, sen], alzo.ts), bottino a mano (fruga.ts). */
-  slideDir?: [number, number] | null; slideP?: [number, number] | null; assiderato?: number; alzo?: readonly [number, number]; fruga?: true;
+  /** Baita: scivolamento sul Ghiaccio Vivo [dx, dz] o null, fine dell'assideramento. Prima persona: alzo della mira ([cos, sen], alzo.ts), bottino a mano (fruga.ts). Arena: portata scelta per la bomba (portata.ts). */
+  slideDir?: [number, number] | null; slideP?: [number, number] | null; assiderato?: number; alzo?: readonly [number, number]; fruga?: true; portata?: number;
 };
 export type EnemyState = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'morto';
 export type Enemy = {

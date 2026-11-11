@@ -34,12 +34,9 @@ import { createDungeonHud } from './dungeon_hud.ts';
 import type { DungeonHud } from './dungeon_hud.ts';
 import { createMagieFx } from './magie_fx.ts';
 import type { MagieFx } from './magie_fx.ts';
-import { createMouse } from './dungeon_mouse.ts';
-import type { Mouse } from './dungeon_mouse.ts';
-import { createArenaHud } from './arena_hud.ts';
-import { createArenaFx } from './arena_fx.ts';
-import type { ArenaFx } from './arena_fx.ts';
-import type { ArenaControlli } from './arena_hud.ts';
+import { createMouse } from './dungeon_mouse.ts'; import type { Mouse } from './dungeon_mouse.ts';
+import { createArenaHud } from './arena_hud.ts'; import type { ArenaControlli } from './arena_hud.ts';
+import { createArenaFx } from './arena_fx.ts'; import type { ArenaFx } from './arena_fx.ts';
 import { creaMiraBomba } from './arena_mira.ts';
 import { creaVisibilitaArena } from './arena_visibilita.ts';
 import { createArenaSegni } from './arena_segni.ts';
@@ -73,7 +70,7 @@ const CUSCINETTO = 2 * SQ_TICKS, SVELTO = 4 * SQ_TICKS, RECUPERO = 30 * SQ_TICKS
 const END_WAIT = 90; // tick di scritta finale prima della scheda
 const CAM_VERSO = 5;
 const bitsOf = (f: DungeonInput) => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0) | (f.e ? 16 : 0) | (f.roll ? 32 : 0);
-const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...((x[2] & 32) !== 0 ? { roll: true } : {}), ...(x[3] ? { m: x[3] } : {}) });
+const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...((x[2] & 32) !== 0 ? { roll: true } : {}), ...(x[3] ? { m: x[3] } : {}), ...(x[3] && x[4] ? { p: x[4] } : {}) });
 
 export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
   const rete = o.rete ?? null, io = o.io;
@@ -87,7 +84,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
   const visibilita = o.eroi.map(creaVisibilitaArena), miraBomba = creaMiraBomba();
   let resolve!: (v: { esito: PartitaEsito | null; rivincita: boolean }) => void;
   const done = new Promise<{ esito: PartitaEsito | null; rivincita: boolean }>((r) => (resolve = r));
-  const win = { mx: 0, my: 0, bits: 0, m: 0, n: 0 };
+  const win = { mx: 0, my: 0, bits: 0, m: 0, p: 0, n: 0 };
   let ombra: ReturnType<typeof ombraDi> = null; // l'ombra di mira di adesso (anche per i test)
   let contaVista = -1, mandato = '0,0,0', inTurno = 0, attesa = true, tapT = 0, finaleAperto = false, premioVisto = false;
   const firme: Record<number, number> = {};
@@ -219,8 +216,8 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
   const mira = () => { const h = d.s.eroi[io]!.hero; return h.incanta || h.arma.kind === 'arco'; };
   /** Il Raggio della Marea sta caricando o sparando: si gira con la mira (stick destro, mouse), senza tenere A. */
   const miraUlti = () => { const u = d.ul[io]; return !!u && u.id === 'marea' && (u.fase === 'carica' || u.fase === 'fuoco'); };
-  const bombaInMano = () => { const { hero, runHero: rh } = d.s.eroi[io]!; return hero.incanta && rh.magia !== null && rh.magie[rh.magia]?.forma === 'bomba'; };
-  const miraManuale = () => { const h = d.s.eroi[io]!.hero; return bombaInMano() && h.act === 'punta' ? miraBomba.dir() : ahud?.miraDir() ?? ((mira() || miraUlti()) && !ahud?.paused ? mouse?.verso(h.x, h.z) ?? null : null); };
+  const bombaDi = () => { const { hero, runHero: rh } = d.s.eroi[io]!, sp = rh.magia !== null ? rh.magie[rh.magia] : undefined; return hero.incanta && sp?.forma === 'bomba' ? sp : null; }; // la bomba che ho in mano, se no null
+  const miraManuale = () => { const h = d.s.eroi[io]!.hero; return bombaDi() && h.act === 'punta' ? miraBomba.dir() : ahud?.miraDir() ?? ((mira() || miraUlti()) && !ahud?.paused ? mouse?.verso(h.x, h.z) ?? null : null); };
   const miraOra = (): void => {
     const v = miraManuale();
     if (!v) { eroi[io]!.mira(miraArco()); return; }
@@ -239,7 +236,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
       const dx = e ? e.x - h.x : 0, dz = e ? e.z - h.z : 0, l = Math.sqrt(dx * dx + dz * dz);
       if (l > 1e-6) { fx = dx / l; fz = dz / l; }
     }
-    const dist = distanzaBomba(d.s, sp, fx, fz);
+    const dist = distanzaBomba(d.s, sp, fx, fz, manuale ? miraBomba.portata() : 0);
     d.s.cur = prima;
     return { x: h.x + fx * dist, z: h.z + fz * dist, r: sp.raggio, ...(sp.elemento ? { el: sp.elemento as 'fuoco' | 'elettricita' | 'cura' | 'furia' } : {}) };
   };
@@ -259,10 +256,11 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
       if (h.act === 'tende') aTap = h.carica < 1; else if (h.act === 'punta') aTap = false; else aTap = h.act === 'idle' && tapT >= 118;
       if (h.act === 'tira' || h.act === 'lancia') tapT = 0;
     }
-    const um = miraUlti(), a = f.a || c.a || aTap, punta = mouse && (mira() || um) ? mouse.verso(h.x, h.z)?.m ?? 0 : 0;
+    const um = miraUlti(), a = f.a || c.a || aTap, cur = mouse && (mira() || um) ? mouse.verso(h.x, h.z) : null, punta = cur?.m ?? 0;
     const m = aTap ? 0 : c.m || (a || um || h.act === 'tende' || h.act === 'punta' ? punta : 0);
-    const stabile = miraBomba.campiona(m, a, !aTap && bombaInMano() && (a || h.act === 'punta'));
-    return { mx: f.mx, my: f.my, a, b: f.b, c: false, d: false, ...(c.e ? { e: true } : {}), ...(f.roll ? { roll: true } : {}), ...(stabile ? { m: stabile } : {}) };
+    const bomba = aTap ? null : bombaDi(), gittata = bomba?.gittata ?? 9; // la portata voluta: quanto spingi lo stick sulla gittata, o dove sta il cursore
+    const st = miraBomba.campiona(m, a, !!bomba && (a || h.act === 'punta'), c.m ? gittata * c.f : cur?.d ?? 0, gittata);
+    return { mx: f.mx, my: f.my, a, b: f.b, c: false, d: false, ...(c.e ? { e: true } : {}), ...(f.roll ? { roll: true } : {}), ...(st.m ? { m: st.m } : {}), ...(st.m && st.p ? { p: st.p } : {}) };
   }
 
   // ---- da solo (allenamento): un tick per frame, i gladiatori fanno gli altri ----
@@ -284,11 +282,11 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     const r = rete!;
     if (phase === 'play' && d.fase !== 'finita') {
       const q = quantizeDungeon(ahud!.paused && !auto ? { ...NO_DUNGEON_INPUT } : inputOra(f));
-      win.mx = q.mx; win.my = q.my; win.bits |= bitsOf(q); if (q.m) win.m = q.m;
+      win.mx = q.mx; win.my = q.my; win.bits |= bitsOf(q); if (q.m) { win.m = q.m; win.p = q.p ?? 0; }
       if (++win.n >= SQ_TICKS) {
-        const x: SqInput = win.m ? [Math.round(win.mx * 8) || 0, Math.round(win.my * 8) || 0, win.bits, win.m] : [Math.round(win.mx * 8) || 0, Math.round(win.my * 8) || 0, win.bits], k = x.join(',');
+        const x: SqInput = win.m ? (win.p ? [Math.round(win.mx * 8) || 0, Math.round(win.my * 8) || 0, win.bits, win.m, win.p] : [Math.round(win.mx * 8) || 0, Math.round(win.my * 8) || 0, win.bits, win.m]) : [Math.round(win.mx * 8) || 0, Math.round(win.my * 8) || 0, win.bits], k = x.join(',');
         if (k !== mandato) { mandato = k; r.manda({ t: 'in', f: x }); }
-        win.bits = 0; win.m = 0; win.n = 0;
+        win.bits = 0; win.m = 0; win.p = 0; win.n = 0;
       }
     }
     ahud?.attesa(r.attesa ? `${nomi[r.attesa.chi] ?? 'Un giocatore'} ha perso la linea: lo aspetto ancora ${Math.max(0, Math.ceil((r.attesa.fino - Date.now()) / 1000))} s` : null);
@@ -339,7 +337,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
       // conto alla rovescia: il numero grande (cambia una volta al secondo)
       const conta = d.fase === 'conta' ? view.secondi : -1;
       if (conta !== contaVista) { contaVista = conta; if (conta > 0) ahud.grande(String(conta), PAL.giallo, `${modo.nome} · ${mappa.nome}`, 0); }
-      ahud.setMira(phase === 'play' && (mira() || miraUlti()) && d.fase === 'gioca' && !d.s.eroi[io]!.done);
+      ahud.setMira(phase === 'play' && (mira() || miraUlti()) && d.fase === 'gioca' && !d.s.eroi[io]!.done, !!bombaDi());
       // la rete chiusa a partita finita: la scheda arriva lo stesso
       if (rete?.fine && d.fase !== 'finita' && rete.turni.length === 0) { ctx.hud.toast('Il server ha chiuso la partita', 2500); phase = 'play'; toEnd(); }
     },

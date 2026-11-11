@@ -41,7 +41,7 @@ type Membro = { m: ArEroe; conn: Conn | null; bot: Rng | null; last: SqInput; co
 type Run = { id: string; seed: number; formato: PartitaFormato; squadre: number[]; membri: Membro[]; turni: ArTurno[]; d: PartitaState; azioni: ArenaAzioni; creato: number; t0: number; fine: number; pausa: number };
 
 const intDa = (v: string | null): number | null => (v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null);
-const frameOf = (x: SqInput) => frameOfRiga([SQ_TICKS, x[0], x[1], x[2], x[3]]);
+const frameOf = (x: SqInput) => frameOfRiga([SQ_TICKS, x[0], x[1], x[2], x[3], x[4]]);
 /** La coda di un formato (modalità ed eroi per squadra) e quanti posti ha una sua partita. */
 const chiave = (m: ArenaModo, f: number): string => `${m}:${f}`;
 const posti = (m: ArenaModo, f: number): number => eroiPer({ modo: m, per: f });
@@ -298,10 +298,10 @@ export class Arena extends DurableObject<Env> {
     });
     const f = r.membri.map((m) => (m.arreso || (!m.conn && !m.bot) ? FERMO : m.bot ? m.last : m.coda.shift() ?? m.last));
     r.membri.forEach((m, i) => {
-      const x = f[i]!, mira = x[3] ?? 0, ult = m.log[m.log.length - 1];
+      const x = f[i]!, mira = x[3] ?? 0, portata = mira ? x[4] ?? 0 : 0, ult = m.log[m.log.length - 1];
       if (m.conn) m.last = x;
-      if (ult && ult[1] === x[0] && ult[2] === x[1] && ult[3] === x[2] && (ult[4] ?? 0) === mira) ult[0] += SQ_TICKS;
-      else m.log.push(mira ? [SQ_TICKS, x[0], x[1], x[2], mira] : [SQ_TICKS, x[0], x[1], x[2]]);
+      if (ult && ult[1] === x[0] && ult[2] === x[1] && ult[3] === x[2] && (ult[4] ?? 0) === mira && (ult[5] ?? 0) === portata) ult[0] += SQ_TICKS;
+      else m.log.push(portata ? [SQ_TICKS, x[0], x[1], x[2], mira, portata] : mira ? [SQ_TICKS, x[0], x[1], x[2], mira] : [SQ_TICKS, x[0], x[1], x[2]]);
     });
     const frames = f.map(frameOf);
     for (let k = 0; k < SQ_TICKS; k++) stepPartita(r.d, frames);
