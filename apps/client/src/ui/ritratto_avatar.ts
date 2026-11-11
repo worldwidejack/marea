@@ -10,14 +10,14 @@ const LATO = 128;
 const fatti = new Map<string, Promise<string>>();
 
 /** Data URL PNG della testa ('' se qualcosa va storto). Uno per look. */
-export function ritrattoAvatar(look: Look, loader: Loader, gl: THREE.WebGLRenderer): Promise<string> {
-  const k = JSON.stringify(look);
+export function ritrattoAvatar(look: Look, loader: Loader, gl: THREE.WebGLRenderer, figuraIntera = false): Promise<string> {
+  const k = JSON.stringify([look, figuraIntera]);
   let f = fatti.get(k);
-  if (!f) { f = scatta(look, loader, gl).catch((e: unknown) => { console.warn('[marea] ritratto non fatto', e); return ''; }); fatti.set(k, f); }
+  if (!f) { f = scatta(look, loader, gl, figuraIntera).catch((e: unknown) => { console.warn('[marea] ritratto non fatto', e); return ''; }); fatti.set(k, f); }
   return f;
 }
 
-async function scatta(look: Look, loader: Loader, gl: THREE.WebGLRenderer): Promise<string> {
+async function scatta(look: Look, loader: Loader, gl: THREE.WebGLRenderer, figuraIntera: boolean): Promise<string> {
   const avatar = await createAvatar({ loader, look, x: 0, z: 0 });
   avatar.teleport(0, 0, 0); avatar.update(1, 0);
   const scena = new THREE.Scene();
@@ -33,6 +33,11 @@ async function scatta(look: Look, loader: Loader, gl: THREE.WebGLRenderer): Prom
   const h = alto - box.min.y, testa = collo === undefined ? alto - h * 0.1 : collo + (alto - collo) * 0.48, d = collo === undefined ? h * 0.62 : (alto - collo) * 2.4;
   const cam = new THREE.PerspectiveCamera(24, 1, 0.05, 50);
   cam.position.set(d * 0.18, testa + d * 0.05, -d); cam.lookAt(0, collo === undefined ? testa - h * 0.035 : testa, 0);
+  if (figuraIntera) {
+    const centro = box.getCenter(new THREE.Vector3());
+    cam.position.copy(centro).add(new THREE.Vector3(h * 0.64, h * 0.27, -h * 2.65));
+    cam.lookAt(centro);
+  }
   const rt = new THREE.WebGLRenderTarget(LATO, LATO, { depthBuffer: true });
   rt.texture.colorSpace = THREE.SRGBColorSpace;
   const prima = gl.getRenderTarget(), colore = gl.getClearColor(new THREE.Color()), alfa = gl.getClearAlpha();

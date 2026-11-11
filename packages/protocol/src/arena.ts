@@ -1,15 +1,4 @@
-// Arena (PROTOCOL.md §10, docs/ARENA.md): messaggi del WebSocket `/ws/arena` verso il DO Arena. Quattro modalità (`m`: sopravvivenza,
-// stelle, controllo, rapina), ognuna con le sue grandezze di squadra (`f` = eroi per squadra: la Sopravvivenza 1 o 2 su 10 eroi, Stelle e
-// Controllo 3, Rapinatori 2 o 3) e due modi di trovare gli altri: la CODA VELOCE (`?modo=coda&m=stelle&f=3`: si parte a partita piena o, dopo
-// ARENA.rete.attesaBotSecondi, con chi c'è e i gladiatori automatici sui posti vuoti) e la SALA con codice (`?modo=sala&m=stelle&f=3`: chi la
-// apre riceve un codice di ARENA.rete.codice lettere da dire agli amici, che entrano con `?modo=sala&codice=XXXX`; la squadra di chi l'ha
-// aperta si riempie per prima e chi l'ha aperta preme `via` quando basta: i posti vuoti sono dei gladiatori). Poi come i dungeon insieme
-// (squadra.ts): il server raccoglie gli input di tutti e ogni SQ_TURNO_MS manda a tutti un turno (un input per eroe che vale SQ_TICKS tick, più
-// le azioni della barra: slot, ulti, resa); ogni client fa girare la stessa partita con gli stessi turni. Gli input dei gladiatori li decide il
-// server e li mette nel turno come quelli di una persona. Il server fa girare anche lui la partita, alla fine la rigioca dal log
-// (replayPartita) e decide l'esito: premio nel lotto di ciascuno (niente se tra gli avversari non c'è nessuna persona) e `fine` a tutti.
-// Linea persa: la partita si ferma (`attesa`) e chi è caduto ha ARENA.rete.staccatoSecondi per ricollegarsi (`?run=&idx=&n=`, n = il prossimo
-// turno che aspetta: il server gli rimanda quelli persi); poi è dato per arreso. Della sim solo `import type` (bundle iniziale).
+// WebSocket dell’Arena: lobby e turni di partita (docs/PROTOCOL.md §10).
 import type { ArenaAzione, PartitaEsito } from '@marea/sim/arena/partita.ts';
 import type { ArenaModo } from '@marea/content/arena.ts';
 import type { ArenaEroe } from '@marea/sim/rpg/arena.ts';
@@ -20,6 +9,7 @@ import type { SqInput } from './squadra.ts';
 export { SQ_TICKS, SQ_TURNO_MS } from './squadra.ts';
 export type { SqInput } from './squadra.ts';
 export type ArMembro = { id: string; nome: string };
+export type ArMembroSala = ArMembro & { q: number };
 /** Un giocatore: chi è, come si veste, e la fotografia della sua build (le RunHero degli slot, la dote e l'ulti). `bot`: gladiatore automatico. */
 export type ArEroe = ArMembro & { look: Look; eroe: ArenaEroe; bot?: true };
 /** Un turno: un input per eroe (in ordine), azioni [eroe, azione] da fare prima del primo tick del turno. */
@@ -38,16 +28,19 @@ export type ArClientMsg =
   /** Azione della barra (slot, ulti, resa): va nel prossimo turno. */
   | { t: 'az'; a: ArenaAzione }
   /** Chi ha aperto la sala: si parte adesso, i posti vuoti li prendono i gladiatori. */
-  | { t: 'via' }
+  | { t: 'via'; riempi?: 'bot' | 'players' }
+  | { t: 'formato'; m: ArenaModo; f: number; mappa: string }
+  | { t: 'squadra'; id: string; q: number }
+  | { t: 'solo'; q: number; on: boolean }
   /** Esco dalla coda o dalla sala; in partita vale come resa. */
   | { t: 'esco' };
 
 export type ArServerMsg =
   /** In attesa degli altri: in coda (codice vuoto) o nella sala col suo codice; modalità e eroi per squadra, quanti ci sono già (`dentro`) e
    *  quanti ne servono per riempire tutto (`serve`); `host`: sei tu che hai aperto la sala (puoi premere `via`). */
-  | { t: 'attendi'; modo: 'coda' | 'sala'; codice: string; m: ArenaModo; f: number; dentro: number; serve: number; host?: boolean }
+  | { t: 'attendi'; modo: 'coda' | 'sala'; codice: string; m: ArenaModo; f: number; dentro: number; serve: number; host?: boolean; membri?: ArMembroSala[]; soli?: number[]; mappa?: string }
   /** Si parte: seed, tutti i giocatori in ordine di squadra (io = il mio indice), modalità, eroi per squadra e mappa (id di ARENA.mappe). */
-  | { t: 'parte'; run: string; seed: number; io: number; eroi: ArEroe[]; m: ArenaModo; f: number; mappa: string }
+  | { t: 'parte'; run: string; seed: number; io: number; eroi: ArEroe[]; m: ArenaModo; f: number; mappa: string; soli?: number[] }
   | ArTurno
   /** Un giocatore ha perso la linea: la partita è ferma e lo aspetta ancora `ms` (chi = suo indice); chi -1 = è tornato, si riparte. */
   | { t: 'attesa'; chi: number; ms: number }
@@ -68,7 +61,12 @@ export function parseArClient(text: string): ArClientMsg | null {
   switch (m['t']) {
     case 'carico': return { t: 'carico' };
     case 'esco': return { t: 'esco' };
-    case 'via': return { t: 'via' };
+    case 'via':
+      if (m['riempi'] === undefined) return { t: 'via' };
+      return m['riempi'] === 'bot' || m['riempi'] === 'players' ? { t: 'via', riempi: m['riempi'] } : null;
+    case 'formato': return isModo(m['m']) && isInt(m['f'], 1, 3) && typeof m['mappa'] === 'string' ? { t: 'formato', m: m['m'], f: m['f'], mappa: m['mappa'] } : null;
+    case 'squadra': return typeof m['id'] === 'string' && isInt(m['q'], 0, AR_EROI_MAX - 1) ? { t: 'squadra', id: m['id'], q: m['q'] } : null;
+    case 'solo': return isInt(m['q'], 0, AR_EROI_MAX - 1) && typeof m['on'] === 'boolean' ? { t: 'solo', q: m['q'], on: m['on'] } : null;
     case 'in': return isSqInput(m['f']) ? { t: 'in', f: m['f'] } : null;
     case 'az': return m['a'] && typeof m['a'] === 'object' && !Array.isArray(m['a']) ? { t: 'az', a: m['a'] as ArenaAzione } : null;
     default: return null;
@@ -83,7 +81,7 @@ export function parseArServer(text: string): ArServerMsg | null {
     case 'T': return isInt(m['n'], 0, 1e7) && nEroi(m['f']) && m['f'].every(isSqInput) && (m['az'] === undefined || Array.isArray(m['az'])) ? (m as ArServerMsg) : null;
     case 'attendi': return (m['modo'] === 'coda' || m['modo'] === 'sala') && typeof m['codice'] === 'string' && isModo(m['m']) ? (m as ArServerMsg) : null;
     case 'parte': return typeof m['run'] === 'string' && isInt(m['seed'], 0, 2 ** 32) && isInt(m['io'], 0, AR_EROI_MAX - 1) && nEroi(m['eroi']) && m['io'] < m['eroi'].length
-      && isModo(m['m']) && isInt(m['f'], 1, 3) && typeof m['mappa'] === 'string' ? (m as ArServerMsg) : null;
+      && isModo(m['m']) && isInt(m['f'], 1, 3) && typeof m['mappa'] === 'string' && (m['soli'] === undefined || (Array.isArray(m['soli']) && m['soli'].every((q) => isInt(q, 0, AR_EROI_MAX - 1)))) ? (m as ArServerMsg) : null;
     case 'attesa': return isInt(m['chi'], -1, AR_EROI_MAX - 1) && typeof m['ms'] === 'number' ? (m as ArServerMsg) : null;
     case 'ripresa': return isInt(m['n'], 0, 1e7) ? { t: 'ripresa', n: m['n'] } : null;
     case 'fine': return typeof m['premio'] === 'number' ? (m as ArServerMsg) : null;

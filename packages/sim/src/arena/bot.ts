@@ -87,7 +87,7 @@ function bersaglio(d: PartitaState, i: number, max: number): number | null {
 /** Cosa fare senza un avversario vicino: dove andare, la cosa da colpire lì (una cassa, la cassaforte avversaria) e quanto stargli attorno. */
 type Meta = { p: Punto; colpo: Punto | null; resta: number };
 function meta(d: PartitaState, i: number, m: Mem, h: Punto): Meta {
-  const s = d.s, q = d.squadre[i]!, k = i - q * d.per, tile = s.map.tile, viva = (id: number) => s.enemies.find((e) => e.id === id && e.st !== 'morto');
+  const s = d.s, q = d.squadre[i]!, k = i - d.squadre.indexOf(q), tile = s.map.tile, viva = (id: number) => s.enemies.find((e) => e.id === id && e.st !== 'morto');
   const c = { x: (s.map.w * tile) / 2, z: (s.map.h * tile) / 2 };
   if (d.modo === 'sopravvivenza') {
     const dentro = (p: Punto) => dist2(p, c) < (d.nube - 2.5) * (d.nube - 2.5);

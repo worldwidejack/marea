@@ -1,16 +1,4 @@
-// Partite dell'Arena (PROTOCOL.md §10, docs/ARENA.md): coda veloce, sale con codice e partite delle quattro modalità in tempo reale. Un'istanza
-// sola (idFromName('arena')), socket normali come Spedizioni e TemplariInsieme (finché c'è qualcuno in coda o in partita il DO resta sveglio).
-// Formato: `m` = modalità, `f` = eroi per squadra. Coda: `?modo=coda&m=stelle&f=3`; si parte a partita piena o, passato
-// ARENA.rete.attesaBotSecondi, con chi c'è (gli altri posti sono dei gladiatori automatici: arena_squadre.ts). Sala: `?modo=sala&m=stelle&f=3`
-// apre una sala con un codice da dire agli amici, che entrano con `?modo=sala&codice=XXXX`; si parte quando è piena o quando chi l'ha aperta
-// manda `via` (anche da solo). Trovati i partecipanti, il DO del lotto di ciascuno apre la partita (`arena_start`: la fotografia della build)
-// → `parte` a tutti; quando hanno caricato (o dopo ARENA.rete.caricoSecondi) parte l'orologio: ogni SQ_TURNO_MS un turno con l'ultimo input di
-// ciascuno (quello dei gladiatori lo decide il server, sim/arena/bot.ts) e le azioni della barra (slot, ulti, resa), mandato a tutti. Il DO
-// fa girare la stessa partita (sim/arena/partita.ts): così sa quando finisce; allora la rigioca dal log (replayPartita), e l'esito del replay
-// decide: `arena_fine` nel lotto di ciascuno (premio col tetto del giorno, niente se tra gli avversari non c'era nessuna persona) e `fine` a tutti.
-// Linea persa (socket caduta senza `esco`): la partita si ferma e aspetta ARENA.rete.staccatoSecondi; chi torna (`?run=&idx=&n=`) riceve i
-// turni persi e si riparte, se no è dato per arreso (una `resa` nel turno dopo). `esco` in partita = resa. Se il DO si riavvia (un deploy)
-// le partite in corso si perdono: nessun premio, si rientra dal colosseo.
+// DO delle lobby, code e partite dell’Arena (docs/PROTOCOL.md §10).
 import { DurableObject } from 'cloudflare:workers';
 import { ARENA, arenaModo } from '@marea/content/arena.ts';
 import type { ArenaModo } from '@marea/content/arena.ts';
@@ -29,7 +17,9 @@ import type { ArEroe, ArServerMsg, ArTurno, SqInput } from '@marea/protocol/aren
 import type { Env } from '../env.ts';
 import { json } from '../http.ts';
 import { accoda, apriSocket, chiudi, ospite, passa } from './sala.ts';
-import { gladiatore, inputGladiatore, piazza, squadreCoda, squadreSala } from './arena_squadre.ts';
+import { gladiatore, inputGladiatore, piazza, squadreCoda } from './arena_squadre.ts';
+import { configuraSala, inSquadra, mappaSala } from './arena_lobby.ts';
+import type { Sala } from './arena_lobby.ts';
 
 const CARICO_MAX_MS = ARENA.rete.caricoSecondi * 1000;
 const STACCATO_MAX_MS = ARENA.rete.staccatoSecondi * 1000;
@@ -43,8 +33,6 @@ const FERMO: SqInput = [0, 0, 0];
 
 /** `dove`: in coda, in una sala (col suo codice), in partita. `m`, `f`: modalità ed eroi per squadra scelti. `esce`: ha detto `esco` (niente attesa per ricollegarsi). */
 type Conn = { ws: WebSocket; id: string; nome: string; look: Look; dove: 'coda' | 'sala' | 'partita' | 'fuori'; codice: string; m: ArenaModo; f: number; run: Run | null; s: number; n: number; esce: boolean };
-/** Una sala: il formato e chi c'è, in ordine di arrivo (il primo l'ha aperta). */
-type Sala = { m: ArenaModo; f: number; membri: Conn[] };
 /** `staccato`: da quando la sua socket è caduta senza `esco` (0 = collegato); `arreso`: è uscito o è stato dato per arreso (`eliminato`: quando
  *  era già fuori per sempre, nella Sopravvivenza: allora conta come persa, non come resa); `bot`: gladiatore automatico (senza socket), col suo
  *  generatore di numeri. */
@@ -62,7 +50,7 @@ const fuoriPerSempre = (r: Run, i: number): boolean => i >= 0 && r.d.fase === 'g
 
 export class Arena extends DurableObject<Env> {
   private coda: Conn[] = [];
-  private sale = new Map<string, Sala>();
+  private sale = new Map<string, Sala<Conn>>();
   private runs = new Map<string, Run>();
   /** Per formato: il timer che, passata l'attesa, fa partire la coda con i gladiatori. */
   private attese = new Map<string, ReturnType<typeof setTimeout>>();
@@ -90,7 +78,8 @@ export class Arena extends DurableObject<Env> {
     if (modo === 'sala') {
       let k = '';
       for (let tent = 0; tent < 20 && (!k || this.sale.has(k)); tent++) k = Array.from(crypto.getRandomValues(new Uint8Array(ARENA.rete.codice)), (b) => AR_LETTERE[b % AR_LETTERE.length]).join('');
-      c.dove = 'sala'; c.codice = k; this.sale.set(k, { m, f, membri: [c] });
+      if (this.sale.has(k)) { chiudi(c.ws, 1013, 'riprova'); return fatto; }
+      c.dove = 'sala'; c.codice = k; this.sale.set(k, { m, f, mappa: mappaSala(m, url.searchParams.get('mappa') ?? ''), membri: [c], squadre: new Map([[c, 0]]), soli: [] });
       this.annuncia(this.sale.get(k)!);
       return fatto;
     }
@@ -121,21 +110,23 @@ export class Arena extends DurableObject<Env> {
     if (this.coda.some((o) => o.m === m && o.f === f)) this.aggiornaCoda(m, f);
   }
 
-  /** Entra nella sala col codice: si parte quando la sala è piena. */
+  /** La lobby ha la capienza del formato più grande. Solo l’host avvia la partita. */
   private entraInSala(c: Conn, codice: string): void {
     const sala = isCodiceSala(codice, ARENA.rete.codice) ? this.sale.get(codice) : undefined;
     if (!sala) { this.send(c.ws, { t: 'errore', msg: 'Sala non trovata: controlla il codice' }); chiudi(c.ws, 1000, 'sala'); return; }
-    const serve = posti(sala.m, sala.f);
-    if (sala.membri.length >= serve) { this.send(c.ws, { t: 'errore', msg: 'La sala è piena' }); chiudi(c.ws, 1000, 'sala'); return; }
-    c.m = sala.m; c.f = sala.f; c.codice = codice; sala.membri.push(c);
-    if (sala.membri.length < serve) { c.dove = 'sala'; this.annuncia(sala); return; }
-    this.sale.delete(codice);
-    void this.parti(sala.membri, sala.m, sala.f, squadreSala(sala.membri.length, sala.f));
+    const capienza = Math.max(...ARENA.modi.lista.flatMap((m) => m.per.map((f) => posti(m.id, f))));
+    if (sala.membri.length >= capienza) { this.send(c.ws, { t: 'errore', msg: 'La lobby è piena' }); chiudi(c.ws, 1000, 'sala'); return; }
+    c.codice = codice; c.dove = 'sala'; sala.membri.push(c);
+    const q = Array.from({ length: posti(sala.m, sala.f) / sala.f }, (_, i) => i)
+      .find((i) => inSquadra(sala, i).length < (sala.soli.includes(i) ? 1 : sala.f));
+    sala.squadre.set(c, q ?? -1);
+    this.annuncia(sala);
   }
   /** Dice a tutti nella sala chi c'è già; solo chi l'ha aperta può mandare `via`. */
-  private annuncia(sala: Sala): void {
-    const codice = sala.membri[0]!.codice, serve = posti(sala.m, sala.f);
-    sala.membri.forEach((o, i) => this.send(o.ws, { t: 'attendi', modo: 'sala', codice, m: sala.m, f: sala.f, dentro: sala.membri.length, serve, host: i === 0 }));
+  private annuncia(sala: Sala<Conn>): void {
+    const codice = sala.membri[0]!.codice, serve = posti(sala.m, sala.f) - sala.soli.length;
+    const membri = sala.membri.map((o) => ({ id: o.id, nome: o.nome, q: sala.squadre.get(o) ?? -1 }));
+    sala.membri.forEach((o, i) => this.send(o.ws, { t: 'attendi', modo: 'sala', codice, m: sala.m, f: sala.f, dentro: membri.length, serve, host: i === 0, membri, soli: sala.soli, mappa: sala.mappa }));
   }
 
   private onMessage(c: Conn, data: unknown): void {
@@ -144,9 +135,15 @@ export class Arena extends DurableObject<Env> {
     const m = parseArClient(data);
     if (!m) return;
     if (m.t === 'esco') { c.esce = true; this.via(c); chiudi(c.ws, 1000, 'ciao'); return; }
-    if (m.t === 'via') {
+    if (m.t === 'via' || m.t === 'formato' || m.t === 'squadra' || m.t === 'solo') {
       const sala = c.dove === 'sala' ? this.sale.get(c.codice) : undefined;
-      if (sala && sala.membri[0] === c) { this.sale.delete(c.codice); void this.parti(sala.membri, sala.m, sala.f, squadreSala(sala.membri.length, sala.f)); }
+      if (!sala || sala.membri[0] !== c) return;
+      if (m.t !== 'via') { configuraSala(sala, m); this.annuncia(sala); return; }
+      if (m.riempi === 'players') { this.send(c.ws, { t: 'errore', msg: 'Il riempimento con giocatori è in arrivo' }); return; }
+      const q = sala.membri.map((o) => sala.squadre.get(o) ?? -1);
+      if (q.some((i) => i < 0)) { this.send(c.ws, { t: 'errore', msg: 'Scegli un formato con un posto per ogni giocatore' }); return; }
+      this.sale.delete(c.codice);
+      void this.parti(sala.membri, sala.m, sala.f, q, sala.mappa, sala.soli);
       return;
     }
     const r = c.run, me = r?.membri.find((x) => x.conn === c);
@@ -172,11 +169,20 @@ export class Arena extends DurableObject<Env> {
     me.staccato = Date.now(); me.coda = [];
   }
   /** Chi ha aperto la sala se ne va: la sala si chiude per tutti; un altro: gli altri vedono chi resta. */
-  private lasciaSala(c: Conn, sala: Sala): void {
+  private lasciaSala(c: Conn, sala: Sala<Conn>): void {
     if (sala.membri[0] === c) {
       this.sale.delete(c.codice);
       for (const o of sala.membri) if (o !== c) { o.dove = 'fuori'; this.send(o.ws, { t: 'errore', msg: 'Chi aveva aperto la sala se n’è andato' }); chiudi(o.ws, 1000, 'sala chiusa'); }
-    } else { sala.membri = sala.membri.filter((o) => o !== c); this.annuncia(sala); }
+    } else {
+      const q = sala.squadre.get(c) ?? -1;
+      sala.membri = sala.membri.filter((o) => o !== c); sala.squadre.delete(c);
+      if (q >= 0) {
+        const fuori = inSquadra(sala, -1)[0];
+        if (fuori) sala.squadre.set(fuori, q);
+        else if (!inSquadra(sala, q).length) sala.soli = sala.soli.filter((i) => i !== q);
+      }
+      this.annuncia(sala);
+    }
   }
   private arrenditi(me: Membro, r: Run): void {
     if (me.arreso) return;
@@ -185,9 +191,9 @@ export class Arena extends DurableObject<Env> {
 
   /** Trovati i partecipanti (persone, in ordine di arrivo, con la squadra di ciascuna): ogni lotto apre la partita e fa la fotografia della
    *  build; i posti vuoti sono dei gladiatori col set di una delle persone; poi `parte` a tutti. */
-  private async parti(umani: Conn[], m: ArenaModo, f: number, squadre: number[]): Promise<void> {
+  private async parti(umani: Conn[], m: ArenaModo, f: number, squadre: number[], mappa?: string, soli: number[] = []): Promise<void> {
     const runId = crypto.randomUUID(), seed = crypto.getRandomValues(new Uint32Array(1))[0]! >>> 1, now = Date.now();
-    const formato = formatoDi(m, f, seed), n = eroiPer(formato), posti = piazza(squadre, n / formato.per, formato.per);
+    const formato = { ...formatoDi(m, f, seed, mappa), soli }, n = eroiPer(formato), posti = piazza(squadre, n / formato.per, formato.per, soli);
     for (const x of umani) { x.dove = 'partita'; x.codice = ''; }
     const foto: ArenaEroe[] = [];
     try {
@@ -220,7 +226,7 @@ export class Arena extends DurableObject<Env> {
       if (!x) return;
       if (x.ws.readyState !== 1) { m.conn = null; m.staccato = now; return; } // chiuso mentre si apriva: come una linea persa
       x.run = r;
-      this.send(x.ws, { t: 'parte', run: runId, seed, io: i, eroi, m: formato.modo, f: formato.per, mappa: formato.mappa });
+      this.send(x.ws, { t: 'parte', run: runId, seed, io: i, eroi, m: formato.modo, f: formato.per, mappa: formato.mappa, soli });
     });
     console.log(`[marea] arena: partita ${runId} ${formato.modo} da ${formato.per} su ${formato.mappa} (${eroi.map((e) => e.nome).join(', ')})`);
     void this.sveglia(Date.now() + CARICO_MAX_MS);

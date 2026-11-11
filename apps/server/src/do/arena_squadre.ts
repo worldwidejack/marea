@@ -18,11 +18,11 @@ export const squadreCoda = (n: number, nSquadre: number): number[] => Array.from
 export const squadreSala = (n: number, per: number): number[] => Array.from({ length: n }, (_, i) => Math.floor(i / per));
 
 /** I posti della partita in ordine di eroe (squadra per squadra): le persone di ogni squadra in ordine di arrivo, poi i gladiatori. */
-export function piazza(squadre: readonly number[], nSquadre: number, per: number): Posto[] {
+export function piazza(squadre: readonly number[], nSquadre: number, per: number, soli: readonly number[] = []): Posto[] {
   const out: Posto[] = [];
   for (let q = 0; q < nSquadre; q++) {
     const mie = squadre.flatMap((s, p) => (s === q ? [p] : []));
-    for (let k = 0; k < per; k++) out.push({ squadra: q, persona: mie[k] ?? null });
+    for (let k = 0; k < (soli.includes(q) ? 1 : per); k++) out.push({ squadra: q, persona: mie[k] ?? null });
   }
   return out;
 }
