@@ -64,7 +64,7 @@ export type ArenaRun = {
   readonly done: Promise<{ esito: PartitaEsito | null; rivincita: boolean }>;
 };
 /** Chi gioca (`eroi` in ordine di squadra, `io` = il mio indice), la modalità, gli eroi per squadra, la mappa, la rete (senza: allenamento). */
-export type ArenaOpz = { seed: number; eroi: ArenaDuellante[]; io: number; modo: ArenaModo; per: number; mappa: string; rete?: ArenaRete };
+export type ArenaOpz = { seed: number; eroi: ArenaDuellante[]; io: number; modo: ArenaModo; per: number; mappa: string; soli?: readonly number[]; rete?: ArenaRete };
 
 type Phase = 'loading' | 'play' | 'end' | 'over';
 /** Test (hook arenaAuto): il mio eroe lo guida il gladiatore automatico, input e azioni registrati come quelli di un giocatore. */
@@ -77,7 +77,7 @@ const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: 
 
 export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
   const rete = o.rete ?? null, io = o.io;
-  const d: PartitaState = createPartita({ seed: o.seed, eroi: o.eroi.map((e) => e.eroe), modo: o.modo, per: o.per, mappa: o.mappa });
+  const d: PartitaState = createPartita({ seed: o.seed, eroi: o.eroi.map((e) => e.eroe), modo: o.modo, per: o.per, mappa: o.mappa, ...(o.soli ? { soli: o.soli } : {}) });
   const mia = d.squadre[io]!, nomi = o.eroi.map((e) => e.nome), mappa = arenaMappa(d.mappa), modo = arenaModo(d.modo);
   let phase: Phase = 'loading', wait = 0, view: PartitaView = viewPartita(d, io), auto: Rng | null = null, chiMiHa = -1;
   const botRng: Rng[] = o.eroi.map((_, j) => createRng(o.seed).fork('bot' + j));

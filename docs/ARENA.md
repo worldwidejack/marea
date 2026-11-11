@@ -12,7 +12,7 @@ Il PvP di MAREA in stile *Brawl Stars* su un'isola sua («Isola dell'Arena»), c
 abilità, perk, zaino e armature non c'entrano, si parte tutti uguali e conta la build scelta prima della partita (parte 7).
 
 ### Modalità (parte 6)
-- **Sopravvivenza**: l'ultimo in piedi su un'isola che la nube tossica stringe; 10 tutti contro tutti o 5 coppie.
+- **Sopravvivenza**: l'ultimo in piedi su un'isola che la nube tossica stringe; 10 tutti contro tutti oppure 5 squadre con uno o due eroi.
 - **Caccia alle stelle**: 3 contro 3 per 2 minuti, la taglia di stelle sopra la testa di ognuno.
 - **Controllo**: 3 contro 3, zone da conquistare fino al 100%.
 - **Rapinatori**: 2 contro 2 o 3 contro 3, rompere la cassaforte avversaria prima che rompano la tua.
@@ -25,9 +25,8 @@ partita piena di persone. Il duello a round (1v1, 2v2, 3v3) di prima non c'è pi
 ## 2. Regole di Gioco & Loadout
 
 ### Build Pre-Partita
-All'ingresso del colosseo (**ENTRA NEL COLOSSEO**, o A vicino al portone) si apre il pannello: in cima la **MODALITÀ** (le quattro, con la
-grandezza di squadra dove c'è da scegliere e la mappa), poi **LE TUE BUILD**: se ne salvano fino a 3 (schede BUILD 1-3, + NUOVA), si gioca con
-quella scelta; si salvano col personaggio (`HeroState.arena`, `POST /api/rpg {t:'arena'}`). Ogni build è uguale per tutti e ha:
+All’ingresso del colosseo (**ENTRA NEL COLOSSEO**, o A vicino al portone) si apre la sala con il proprio personaggio a figura intera.
+Sul telefono compare l’invito a ruotare lo schermo. Nella scheda **Build** se ne salvano fino a 3 e si gioca con quella scelta; si salvano col personaggio (`HeroState.arena`, `POST /api/rpg {t:'arena'}`). Ogni build è uguale per tutti e ha:
 - una **dote** al posto dell'armatura: +10% di **Vita**, o +100% di **Vigore** o +30% di **Magicka** (massimo e ricarica), con un leggero
   bagliore attorno all'eroe, rosso, verde o blu (parte 7);
 - **2 slot** tra le armi (una per tipo, tutte di ferro: nunchaku, katana, ascia, lancia, spadone, martello, arco) e le magie (fuoco ed
@@ -85,13 +84,11 @@ In Arena le magie **elettriche non rallentano** (nei dungeon sì): fanno un po' 
   la meta **Colosseo** (sezione Isole). Il colosseo da fuori resta: le partite si giocano nelle mappe della parte 6.
 
 ### Trovare gli altri
-- **CODA VELOCE** (per modalità e grandezza di squadra): si parte a partita piena o, dopo **10 s** (`rete.attesaBotSecondi`), con chi c'è; le
-  persone si spargono tra le squadre (la prima nella 0, la seconda nella 1…).
-- **CREA SALA**: un codice di 4 lettere da dire agli amici, che lo scrivono e premono ENTRA. La squadra di chi l'ha aperta si riempie per
-  prima, poi le altre; chi l'ha aperta preme **PARTI ORA** (anche da solo), o si parte da soli a sala piena.
-- **ALLENAMENTO**: tu e i gladiatori su tutti gli altri posti, senza server né premio. Ogni gladiatore ha una **build casuale** tirata a ogni
-  partita (`sim/rpg/arena_bot.ts`); nel pannello, sezione **GLADIATORI DELL'ALLENAMENTO**, un tocco su uno (compagni prima, poi avversari)
-  apre lo stesso editor della tua build; **BUILD CASUALE** lo rimette al caso. ARRENDITI nell'allenamento chiude la partita.
+- **Crea lobby** genera un codice di quattro lettere, **Entra con codice** apre la lobby di un amico. La scheda Lobby mostra i partecipanti.
+- Nella scheda **Partita** l’host sceglie modalità, formato, mappa e squadra di ciascuno. I formati indicano la capienza. In Sopravvivenza
+  a coppie, l’host può lasciare un eroe da solo. La lobby può accogliere persone fino al formato più grande.
+- **Avvia** chiede come riempire i posti vuoti. **Riempi con i bot** è disponibile. **Riempi con players** è in attesa del matchmaking.
+  Anche a lobby piena l’avvio spetta all’host. In solitaria si gioca senza server né premio, con build casuali per i gladiatori o scelte nella scheda **Build**.
 - Online i posti vuoti li prendono i **gladiatori automatici** (`sim/arena/bot.ts`, nomi e look in `arena.json` → `gladiatori`, ne servono 9):
   copiano la build di una delle persone e i loro input li decide il server (stesso turno delle persone, stesso replay). Se non resta nessuna
   persona, si arrendono. Il gladiatore fa la modalità: rompe casse, raccoglie monete e scappa dalla nube; va nelle zone; attacca o difende
@@ -146,7 +143,7 @@ pavimento raggiungibile; quelle a due squadre sono **simmetriche** (ruotate di m
 suo) un kit in `rpg/arena_kit.ts` e una riga in `STYLE` di `rpg/dungeon_scene.ts`.
 
 ### Sopravvivenza — Isola del Naufragio (34×34)
-- **10 eroi**: da soli (10 squadre) o in coppia (5 squadre da 2). Una vita sola; vince l'ultima squadra in piedi, gli altri hanno il loro posto
+- **10 eroi** tutti contro tutti oppure **5 squadre** da uno o due eroi. Una vita sola; vince l'ultima squadra in piedi, gli altri hanno il loro posto
   (chi esce prima è più in fondo; caduti insieme = stesso posto). Dopo **200 s** **[proposta]** vince chi ha più Vita.
 - **Casse** (16 sparse, `cassa.vita` 40): si rompono e lasciano una **moneta rossa**. Chi ci passa sopra la prende: **+10% di Vita** (massimo e
   subito) e **+8% ai danni** per tutta la partita **[proposta]**. Il numero sopra la testa (moneta rossa e numero); chi cade le lascia **tutte**

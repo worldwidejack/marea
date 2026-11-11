@@ -1,7 +1,4 @@
-// Isola dell'Arena nel mondo (docs/ARENA.md §5): il portone del colosseo con il cartello che si vede da lontano e ENTRA (A vicino, ≤ 4 m)
-// che apre il pannello del colosseo (set del duello, coda veloce, sala con codice, allenamento): rpg/arena_menu.ts, nel chunk GDR scaricato
-// alla prima entrata. Il duello prende il ciclo come un dungeon (step e update al posto del mondo); finito, si torna davanti al portone e
-// il pannello si riapre. Bundle iniziale: piccolo, niente import statici della sim (solo `import type`).
+// Il portone apre la sala a schermo intero (rpg/arena_menu.ts, nel chunk GDR). Dopo la partita si torna qui.
 // Prove: ?arena=1 mette il bottone ⚔ (vai al colosseo), ?arena=banco entra subito nell'allenamento contro l'avversario automatico, senza
 // server (con ?net=0).
 import * as THREE from 'three';

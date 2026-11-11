@@ -27,7 +27,7 @@
     { "isola": "corse", "gioco": { "tipo": "minigioco", "id": "corse" }, "premio": 60, "cosa": "il Gran Premio" },
     { "isola": "templari", "gioco": { "tipo": "templari" }, "premio": 70, "cosa": "le ondate dei Templari" },
     { "isola": "difesa", "gioco": { "tipo": "difesa" }, "premio": 70, "cosa": "la difesa dell'orto" },
-    { "isola": "arena", "gioco": { "tipo": "arena" }, "premio": 80, "cosa": "un duello nell'Arena" },
+    { "isola": "arena", "gioco": { "tipo": "arena" }, "premio": 80, "cosa": "una partita nell'Arena" },
     { "isola": "adrenalina", "gioco": { "tipo": "minigioco", "id": "snowboard" }, "premio": 90, "cosa": "una discesa in snowboard" },
     { "isola": "vulcano", "gioco": { "tipo": "minigioco", "id": "lava" }, "premio": 100, "cosa": "la Fuga dalla lava" },
     { "isola": "giardino", "gioco": { "tipo": "minigioco", "id": "koi" }, "premio": 110, "cosa": "le Carpe koi" },

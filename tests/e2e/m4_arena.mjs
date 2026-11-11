@@ -11,7 +11,7 @@ export default async function (ctx) {
   const ar = (st) => st.arenaPartita ?? null;
 
   // ---------------- telefono: isola e pannello ----------------
-  const p = await ctx.open('?test=1&net=0');
+  const p = await ctx.open('?test=1&net=0&ruota=1');
   await ctx.waitReady(p.page, 20000);
   const page = p.page;
   await ctx.test('telefono: l’Isola dell’Arena col portone del colosseo; ENTRA apre il pannello delle build', async () => {
@@ -25,8 +25,17 @@ export default async function (ctx) {
     await page.waitForSelector('#mzColosseo.on', { timeout: 40000 });
     const st = await ctx.getState(page);
     assert(st.colosseo.aperto && st.colosseo.build.slot.length === 2 && st.colosseo.builds.build.length === 1, 'pannello: ' + JSON.stringify(st.colosseo));
-    assert(await page.isDisabled('#mzColosseo [data-act=coda]'), 'senza link la coda veloce non dev’essere attiva');
-    assert(!(await page.isDisabled('#mzColosseo [data-act=allenamento]')), 'ALLENAMENTO spento');
+    await page.waitForSelector('.pp-ruota.on');
+    await ctx.shot(page, 'rotazione');
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.waitForSelector('.pp-ruota.on', { state: 'hidden' });
+    await page.waitForSelector('#mzColosseo .arena-figura[src]');
+    await ctx.shot(page, 'lobby_orizzontale');
+    assert(await page.isDisabled('#mzColosseo [data-act=sala]'), 'senza link la lobby non dev’essere attiva');
+    await page.tap('#mzColosseo [data-act=avvia]');
+    assert(await page.isEnabled('#mzColosseo [data-act=allenamento]'), 'riempimento con bot spento');
+    assert(await page.isDisabled('#mzColosseo [data-act=players]'), 'riempimento con giocatori ancora spento');
+    await page.tap('#mzColosseo [data-act=build]');
     // lo slot 2: la lista di armi e magie, si sceglie il fulmine
     await page.tap('#mzColosseo .cella[data-slot="1"]');
     await page.waitForSelector('#mzColosseo .lista.on', { timeout: 5000 });

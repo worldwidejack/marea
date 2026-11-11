@@ -24,9 +24,11 @@ export default async function (ctx) {
   };
   /** Sceglie modalità e grandezza e parte con ALLENAMENTO; aspetta il conto alla rovescia. */
   const allena = async (page, modo, f) => {
+    if (!(await page.locator('#mzColosseo .modi').isVisible())) await page.tap('#mzColosseo [data-act=partita]');
     await page.tap(`#mzColosseo .modi button[data-modo="${modo}"]`);
     if (f) await page.tap(`#mzColosseo .formati button[data-f="${f}"]`);
     await ctx.shot(page, `pannello_${modo}`);
+    await page.tap('#mzColosseo [data-act=avvia]');
     await page.tap('#mzColosseo [data-act=allenamento]');
     await ctx.waitState(page, (st) => st.arenaPartita?.phase === 'play' && st.arenaPartita.fase === 'conta', 60000);
   };
@@ -57,10 +59,11 @@ export default async function (ctx) {
     assert(!mat.alphaHash && mat.opacity === 1);
   });
 
-  const p = await ctx.open('?test=1&net=0');
+  const p = await ctx.open('?test=1&net=0&ruota=0');
   const page = p.page;
   await ctx.test('telefono: il pannello ha le quattro modalità, le grandezze di squadra e la mappa di ciascuna', async () => {
     await pannello(page);
+    await page.tap('#mzColosseo [data-act=partita]');
     const modi = await page.locator('#mzColosseo .modi button[data-modo]').evaluateAll((bs) => bs.map((b) => b.dataset.modo));
     assert(modi.join() === 'sopravvivenza,stelle,controllo,rapina', 'modalità: ' + modi);
     const per = () => page.locator('#mzColosseo .formati button[data-f]').evaluateAll((bs) => bs.map((b) => b.dataset.f).join());
@@ -71,7 +74,7 @@ export default async function (ctx) {
     assert((await per()) === '2,3', 'Rapinatori 2 o 3 contro 3: ' + (await per()));
     await page.tap('#mzColosseo .modi button[data-modo=controllo]');
     assert((await per()) === '', 'il Controllo è solo 3 contro 3');
-    assert(await page.isDisabled('#mzColosseo [data-act=coda]'), 'senza link la coda veloce non dev’essere attiva');
+    assert(await page.isEnabled('#mzColosseo [data-act=avvia]'), 'si può avviare da soli');
     await ctx.shot(page, 'pannello');
   });
 
@@ -130,12 +133,14 @@ export default async function (ctx) {
     await esci(page);
   });
 
-  const w = await ctx.open('?test=1&net=0');
+  const w = await ctx.open('?test=1&net=0&ruota=0');
   const pw = w.page;
   await ctx.test('telefono: gladiatori dell’allenamento casuali di default, a mano gli si sceglie la build; bomba in mano: ombra di mira', async () => {
     await pannello(pw);
+    await pw.tap('#mzColosseo [data-act=partita]');
     await pw.tap('#mzColosseo .modi button[data-modo=rapina]');
     await pw.tap('#mzColosseo .formati button[data-f="2"]');
+    await pw.tap('#mzColosseo [data-act=build]');
     const nomi = () => pw.locator('#mzColosseo [data-bot]').evaluateAll((bs) => bs.map((b) => b.textContent));
     const n0 = await nomi();
     assert(n0.length === 3 && n0.every((x) => x.includes('casuale')), 'tre gladiatori, tutti casuali: ' + n0);
@@ -153,6 +158,7 @@ export default async function (ctx) {
     assert((await colo()).bot === null && (await colo()).bots[2] === null, 'BUILD CASUALE rimette il caso');
     // la mia bomba in mano
     await pw.evaluate(() => window.__game.test.arenaSet({ dote: 'magia', slot: [{ magia: 'bomba_fuoco' }, null], ulti: 'furia' }));
+    await pw.tap('#mzColosseo [data-act=avvia]');
     await pw.tap('#mzColosseo [data-act=allenamento]');
     await ctx.waitState(pw, (st) => st.arenaPartita?.fase === 'gioca', 60000);
     assert((await ctx.getState(pw)).arenaPartita.ombra === null, 'senza mirare niente ombra');

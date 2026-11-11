@@ -1,6 +1,6 @@
 // Partita dell'Arena (docs/ARENA.md): una delle quattro modalità (Sopravvivenza, Caccia alle stelle, Controllo, Rapinatori) su una mappa
 // dell'Arena (ARENA.mappe), giocata con la sim del dungeon e gli eroi in squadre (s.pvp). Gli eroi sono in fila per squadra: l'eroe i sta
-// nella squadra ⌊i / per⌋; la Sopravvivenza ha 10 eroi (10 squadre da 1 o 5 da 2), le altre due squadre da `per`. Fasi: `conta` secondi
+// nella squadra indicata da squadre[i]; in Sopravvivenza a coppie alcuni gruppi possono avere un solo eroe. Fasi: `conta` secondi
 // di conto alla rovescia (fermi), poi il gioco fino alla fine della modalità o del tempo. Chi cade, nelle modalità che lo prevedono,
 // rinasce dopo `rinascita` s alla partenza della sua squadra, con la build com'era all'inizio (la carica dell'ulti resta) e per un attimo
 // intoccabile. Le regole di ogni modalità (punti, nube, casse e monete rosse, stelle, zone, casseforti, chi vince): modi.ts. Ulti e Vigore
@@ -44,12 +44,12 @@ export type PartitaEvento = { t: 'via' } | { t: 'fine'; esito: PartitaEsito } | 
 /** Per eroe: slot in mano, frecce per slot e ultimo tick passato ad attaccare. */
 export type PartitaEroeRt = { slot: number; frecce: number[]; ultimoAttacco: number };
 /** Chi gioca e dove: modalità, eroi per squadra, mappa (id di ARENA.mappe). */
-export type PartitaFormato = { modo: ArenaModo; per: number; mappa: string };
+export type PartitaFormato = { modo: ArenaModo; per: number; mappa: string; soli?: readonly number[] };
 
 export type PartitaState = {
   v: 2; seed: number; eroi: readonly ArenaEroe[];
   modo: ArenaModo; per: number; mappa: string;
-  /** La squadra di ogni eroe (⌊i / per⌋) e quante sono. */
+  /** La squadra di ogni eroe e quante sono. */
   squadre: number[]; nSquadre: number;
   tick: number; fase: PartitaFase; faseT: number;
   /** La sim (dungeon con s.pvp), lo stato degli slot di ogni eroe; `fuori[i]`: l'eroe i si è arreso, non gioca più. */
@@ -101,18 +101,20 @@ export function partenza(mp: ArenaMappa, n: number, per: number, q: number, k: n
 
 /** Partita nuova: gli eroi (fotografie di buildArenaEroe, tanti quanti ne chiede il formato) alle partenze, al conto alla rovescia. */
 export function createPartita(o: { seed: number; eroi: readonly ArenaEroe[] } & PartitaFormato): PartitaState {
-  const f = formatoDi(o.modo, o.per, o.seed, o.mappa), n = eroiPer(f);
+  const f = formatoDi(o.modo, o.per, o.seed, o.mappa), n = eroiPer(f), nSquadre = n / f.per;
+  const soli = new Set(o.soli);
+  if (soli.size && (f.modo !== 'sopravvivenza' || f.per !== 2 || [...soli].some((q) => !Number.isInteger(q) || q < 0 || q >= nSquadre))) throw new Error('Arena: squadre in solitaria non valide');
   if (f.mappa !== o.mappa || f.per !== o.per) throw new Error(`Arena: la mappa ${o.mappa} o le squadre da ${o.per} non vanno per ${o.modo}`);
-  if (o.eroi.length !== n) throw new Error(`Arena: ${o.modo} da ${o.per} vuole ${n} eroi`);
+  if (o.eroi.length !== n - soli.size) throw new Error(`Arena: ${o.modo} da ${o.per} vuole ${n - soli.size} eroi`);
   if (o.eroi.some((e) => !e.varianti.some((v) => v))) throw new Error('Arena: eroe senza armi né pugni');
-  const eroi = o.per === 1 ? o.eroi.map(senzaSupporto) : o.eroi, mp = arenaMappa(f.mappa);
-  const squadre = eroi.map((_, i) => Math.floor(i / o.per)), nSquadre = n / o.per;
+  const squadre = Array.from({ length: nSquadre }, (_, q) => Array<number>(soli.has(q) ? 1 : f.per).fill(q)).flat();
+  const eroi = o.eroi.map((e, i) => f.per === 1 || soli.has(squadre[i]!) ? senzaSupporto(e) : e), mp = arenaMappa(f.mappa);
   const v = eroi.map((e) => e.varianti.map((x) => (x ? { ...x, max: { ...x.max } } : null)));
   const s = createParty(mp, o.seed >>> 0, eroi.map((e, i) => ({ hero: v[i]![primoSlot(e)]! })), null);
   s.pvp = { squadre: [...squadre], rivela: eroi.map(() => 0), ultimo: eroi.map(() => -1), di: {} };
   s.loot = [];
   eroi.forEach((_, i) => {
-    const q = squadre[i]!, [cx, cz, fx, fz] = partenza(mp, nSquadre, o.per, q, i - q * o.per), h = s.eroi[i]!.hero;
+    const q = squadre[i]!, [cx, cz, fx, fz] = partenza(mp, nSquadre, o.per, q, i - squadre.indexOf(q)), h = s.eroi[i]!.hero;
     h.x = (cx + 0.5) * s.map.tile; h.z = (cz + 0.5) * s.map.tile; h.fx = fx; h.fz = fz;
   });
   const d: PartitaState = {
@@ -129,7 +131,7 @@ export function createPartita(o: { seed: number; eroi: readonly ArenaEroe[] } & 
 
 /** L'eroe i rinasce alla partenza della sua squadra: com'era all'inizio (primo slot, frecce piene), intoccabile per `protetto` s. */
 function rinasci(d: PartitaState, i: number): void {
-  const s = d.s, r = s.eroi[i]!, q = d.squadre[i]!, mp = arenaMappa(d.mappa), [cx, cz, fx, fz] = partenza(mp, d.nSquadre, d.per, q, i - q * d.per);
+  const s = d.s, r = s.eroi[i]!, q = d.squadre[i]!, mp = arenaMappa(d.mappa), [cx, cz, fx, fz] = partenza(mp, d.nSquadre, d.per, q, i - d.squadre.indexOf(q));
   const e = d.eroi[i]!, slot = primoSlot(e);
   r.hero = copia(d.base[i]!);
   r.hero.x = (cx + 0.5) * s.map.tile; r.hero.z = (cz + 0.5) * s.map.tile; r.hero.fx = fx; r.hero.fz = fz;

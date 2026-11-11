@@ -101,7 +101,12 @@ export default async function (ctx) {
       await cid.aspetta((m) => m.t === 'attendi' && m.dentro === 2, 8000, 'sala con due');
       const ada = await entra('ada', `modo=sala&codice=${at.codice}`);
       await cid.aspetta((m) => m.t === 'attendi' && m.dentro === 3, 8000, 'sala con tre');
-      const bea = await entra('bea', `modo=sala&codice=${at.codice}`); // la quarta riempie la sala: si parte da soli
+      const bea = await entra('bea', `modo=sala&codice=${at.codice}`);
+      await cid.aspetta((m) => m.t === 'attendi' && m.dentro === 4, 8000, 'sala piena');
+      bea.manda({ t: 'via' });
+      await sleep(250);
+      assert(!cid.msgs.some((m) => m.t === 'parte'), 'sala piena partita senza l’host');
+      cid.manda({ t: 'via' });
       const ps = await Promise.all([cid, dan, ada, bea].map((c, k) => c.aspetta((m) => m.t === 'parte', 15000, 'parte ' + k)));
       assert(ps.every((p) => p.run === ps[0].run && p.seed === ps[0].seed && p.m === 'rapina' && p.f === 2 && p.mappa === 'porto'), 'parte: ' + JSON.stringify(ps.map((p) => [p.run, p.m, p.f, p.mappa])));
       assert(ps.map((p) => p.io).join() === '0,1,2,3' && ps[0].eroi.map((e) => e.id).join() === 'cid,dan,ada,bea' && ps[0].eroi.every((e) => !e.bot), 'posti: ' + JSON.stringify(ps.map((p) => p.io)));
@@ -219,6 +224,75 @@ export default async function (ctx) {
       const [pa, pb] = await Promise.all([a, b].map((c) => c.aspetta((m) => m.t === 'parte', (ARENA.rete.attesaBotSecondi + 15) * 1000, 'parte')));
       assert(pa.m === 'sopravvivenza' && pa.mappa === 'naufragio' && pa.eroi.length === 10 && pa.io === 0 && pb.io === 1 && pa.eroi.filter((e) => e.bot).length === 8, 'eroi: ' + JSON.stringify([pa.io, pb.io, pa.eroi.map((e) => e.id)]));
       a.manda({ t: 'esco' }); b.manda({ t: 'esco' });
+    });
+
+    await ctx.test('l’host cambia modalità e squadre, lascia un amico da solo e avvia con i bot', async () => {
+      const a = await entra('cid', 'modo=sala&m=stelle&f=3');
+      const aperta = await a.aspetta((m) => m.t === 'attendi', 8000, 'apertura');
+      const b = await entra('dan', `modo=sala&codice=${aperta.codice}`);
+      await b.aspetta((m) => m.t === 'attendi' && m.dentro === 2, 8000, 'due persone');
+      b.manda({ t: 'formato', m: 'rapina', f: 2, mappa: 'porto' });
+      b.manda({ t: 'via' });
+      await sleep(250);
+      assert(!a.msgs.some((m) => m.t === 'parte' || m.m === 'rapina'), 'un ospite ha cambiato le regole');
+      a.manda({ t: 'formato', m: 'sopravvivenza', f: 2, mappa: 'naufragio' });
+      await b.aspetta((m) => m.t === 'attendi' && m.m === 'sopravvivenza', 8000, 'modalità aggiornata');
+      a.manda({ t: 'squadra', id: 'dan', q: 1 });
+      await b.aspetta((m) => m.t === 'attendi' && m.membri?.[1]?.q === 1, 8000, 'squadra aggiornata');
+      a.manda({ t: 'solo', q: 0, on: true });
+      await b.aspetta((m) => m.t === 'attendi' && m.serve === 9, 8000, 'posto da solo');
+      a.manda({ t: 'via' });
+      const p = await b.aspetta((m) => m.t === 'parte', 15000, 'partita mista');
+      assert(p.io === 1 && p.eroi.length === 9 && p.eroi[2].bot && p.soli.join() === '0', 'squadre nella partita mista');
+      const formato = { modo: p.m, per: p.f, mappa: p.mappa, soli: p.soli };
+      const d = createPartita({ seed: p.seed, eroi: p.eroi.map((e) => e.eroe), ...formato });
+      assert(d.squadre.join() === '0,1,1,2,2,3,3,4,4', 'formato riprodotto dalla sim');
+      a.manda({ t: 'esco' }); b.manda({ t: 'esco' });
+    });
+
+    await ctx.test('interfaccia: crea lobby, entra con codice, sincronizza le squadre e avvia come host', async () => {
+      const apriLobby = async (nome) => {
+        const p = await ctx.B.openPage(ctx.browser, base + '/?test=1&ruota=0&t=tok_' + nome,
+          { viewport: { ...ctx.B.IPHONE, width: 844, height: 390 } });
+        try {
+          await ctx.waitReady(p.page, 25000);
+          await ctx.waitState(p.page, (st) => !!st.arena?.spot, 30000);
+          await p.page.evaluate(() => window.__game.test.arenaVai());
+          await p.page.locator('#mzArenaEntra.on').click();
+          await p.page.waitForSelector('#mzColosseo.on');
+          return p;
+        } catch (e) { await p.close(); throw e; }
+      };
+      const host = await apriLobby('ada');
+      let amico;
+      try {
+        const a = host.page;
+        await a.getByRole('button', { name: 'Crea lobby' }).click();
+        const codice = a.locator('.arena-codice');
+        await codice.waitFor();
+        amico = await apriLobby('bea');
+        const b = amico.page;
+        await b.getByRole('button', { name: 'Entra con codice' }).click();
+        await b.getByRole('textbox', { name: 'Codice lobby' }).fill(await codice.textContent());
+        await b.getByRole('button', { name: 'Entra', exact: true }).click();
+        await a.locator('.arena-roster').getByText('Bea', { exact: true }).waitFor();
+        assert(await b.getByText('L’host avvia la partita').isVisible(), 'l’ospite deve aspettare');
+        await a.getByRole('button', { name: 'Partita', exact: true }).click();
+        await a.locator('[data-modo=sopravvivenza]').click();
+        await a.locator('[data-f="2"]').click();
+        await a.getByLabel('Squadra di Bea').selectOption('1');
+        await a.getByRole('button', { name: 'Lascia da solo' }).first().click();
+        await b.getByRole('button', { name: 'Partita', exact: true }).click();
+        await b.waitForFunction(() => document.querySelector('[aria-label="Squadra di Bea"]')?.value === '1');
+        assert(await b.getByLabel('Squadra di Bea').isDisabled(), 'l’ospite non modifica le squadre');
+        await a.getByRole('button', { name: 'Avvia', exact: true }).click();
+        await ctx.shot(a, 'lobby_squadre');
+        await a.getByRole('button', { name: 'Riempi con i bot' }).click();
+        await Promise.all([a,b].map((p) => ctx.waitState(p, (st) => st.arenaPartita?.modo === 'sopravvivenza', 25000)));
+      } finally {
+        await amico?.close();
+        await host.close();
+      }
     });
 
     await ctx.test('nessun errore interno nel log di wrangler', async () => {
