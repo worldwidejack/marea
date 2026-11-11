@@ -77,11 +77,10 @@ export async function rigNemico(loader: Loader, name: string): Promise<Rig | nul
 // ------------------------------------------------------------------ aiuti per le pose
 export const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 export const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
-/** Uscita morbida (parte svelta, arriva piano) e il contrario; `colpo` è uno scatto: quasi tutto nel primo terzo. */
+/** Uscita morbida (parte svelta, arriva piano); `colpo` è uno scatto: quasi tutto nel primo terzo. */
 export const esce = (k: number) => 1 - (1 - clamp01(k)) ** 3;
-export const entra = (k: number) => clamp01(k) ** 3;
 export const colpo = (k: number) => 1 - (1 - clamp01(k * 2.2)) ** 4;
 /** Va e torna (0 → 1 → 0) a campana. */
 export const campana = (k: number) => Math.sin(Math.PI * clamp01(k));
 /** Rimbalzo d'arrivo (caduta): sale a 1 con un piccolo rimbalzo. */
-export const tonfo = (k: number) => { const x = clamp01(k); return x < 0.7 ? entra(x / 0.7) : 1 - 0.12 * Math.sin(Math.PI * (x - 0.7) / 0.3); };
+export const tonfo = (k: number) => { const x = clamp01(k); return x < 0.7 ? (x / 0.7) ** 3 : 1 - 0.12 * Math.sin(Math.PI * (x - 0.7) / 0.3); };

@@ -1,4 +1,5 @@
-// Nemici, proiettili, bottino e ombre nel dungeon (R-scena). Modelli `nem_*` statici animati a mano: bob quando camminano, inclinazione
+// Nemici, proiettili, bottino e ombre nel dungeon (R-scena). I `nem_*` col nuovo scheletro (issue 723) li mette in posa nemici_pose.ts
+// (ossa per ossa, dallo stato della sim); qui sotto restano tinte, lampeggi, quote e i segnaposto in codice senza ossa, animati a mano: bob quando camminano, inclinazione
 // indietro telegrafata durante `prepara` (con lampeggio rosso che accelera), affondo nel colpo, flash bianco quando colpiti, caduta e
 // dissolvenza a scatti alla morte; alleati evocati tinti viola neon; boss più grandi; cerchio rosso a terra per il colpo ad area.
 // Proiettili orientati con la velocità; sacchi sui cadaveri, forzieri che si aprono, libri; ombre a disco in un'unica InstancedMesh.

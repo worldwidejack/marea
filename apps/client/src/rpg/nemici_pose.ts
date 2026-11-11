@@ -67,7 +67,7 @@ const CHI: Record<string, Chi> = {
   nem_mite: { f: 'bipede', mischia: 'pugni' },
   nem_korok: { f: 'bipede', mischia: 'mazzata', tiro: 'magia' },
 };
-export const chiE = (model: string): Chi => CHI[model] ?? { f: 'bipede', mischia: 'fendente', tiro: 'magia' };
+const chiE = (model: string): Chi => CHI[model] ?? { f: 'bipede', mischia: 'fendente', tiro: 'magia' };
 
 /** Mette in posa il nemico. Ritorna false se il modello non ha le ossa che servono (allora anima dungeon_actors a corpo intero). */
 export function posaNemico(p: Posa): boolean {
@@ -203,7 +203,7 @@ function bipede(p: Posa, chi: Chi): boolean {
     }
     case 'colpisce': case 'recupera': {
       const su = n.anim === 'colpisce' ? colpo(n.t) : 1, giu = n.anim === 'recupera' ? esce(n.t) : 0;
-      const affondo = 0.22 * H * su * (1 - giu);
+      const affondo = Math.min(0.45, 0.22 * H) * su * (1 - giu); // non oltre mezzo metro: in prima persona entrerebbe negli occhi
       r.ruota('coscia_sx', lerp(0.55, 0.1, giu)); r.ruota('coscia_dx', lerp(-0.45, -0.05, giu)); r.ruota('stinco_dx', lerp(-0.5, 0, giu)); r.ruota('stinco_sx', lerp(-0.25, 0, giu));
       b.position.z = -affondo; b.position.y = -0.05 * H * (1 - giu);
       if (giu > 0) chiavi(r, chiave(SCATTO, stile, mc), chiave(GUARDIA, stile, mc), giu);

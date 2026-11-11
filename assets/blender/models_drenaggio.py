@@ -1,7 +1,7 @@
 # Impianto di Drenaggio (Epopea della Regata, dungeon 1 — Riccardo, 8 ott 2026): ingresso sull'anello della Laguna, kit del dungeon e i
 # 4 nemici del Collettivo Rottamautomi. SCRITTO SUL PC DI RICCARDO SENZA BLENDER: non è mai stato eseguito. Lo lancia il Claude di Jack
-# (`npm run assets prop_ingresso_drenaggio dng_drenaggio_pavimento dng_drenaggio_muro dng_drenaggio_muro_basso nem_tubo nem_operaio
-# nem_valvola nem_capoturno`), lo sistema se qualcosa non torna e guarda il foglio dei contatti (tests/out/rpg_contact.png).
+# (`npm run assets prop_ingresso_drenaggio dng_drenaggio_pavimento dng_drenaggio_muro dng_drenaggio_muro_basso
+#`), lo sistema se qualcosa non torna e guarda il foglio dei contatti (tests/out/rpg_contact.png).
 # Finché i modelli mancano dal manifest il gioco usa i segnaposto in codice di apps/client/src/rpg/drenaggio.ts (nemici e kit) e
 # apps/client/src/game/ingressi_forme.ts (ingresso): le forme qui sotto li ricalcano, così l'aspetto non cambia di colpo.
 # Convenzioni come models_rpg.py: x destra, y su, davanti −Z, 1 unità = 1 m, pivot a terra al centro; dng_* moduli ≤ 60 triangoli
@@ -80,73 +80,6 @@ def dng_drenaggio_muro_basso():
 
 
 # ------------------------------------------------------------------ nemici (statici, il client li anima)
-def nem_tubo():
-    """Tubo-strisciante: fanghiglia di ruggine e olio motore che si trascina, un pezzo di tubo piantato dentro, due occhi gialli."""
-    m = Mesh('nem_tubo')
-    m.prism(8, 0.7, 0.62, 0, 0.12, 'p_nero_caldo', top='p_nero_caldo')
-    m.prism(8, 0.6, 0.45, 0.1, 0.4, 'p_legno_scuro', top='p_legno_scuro', cz=0.05)
-    m.prism(7, 0.45, 0.28, 0.38, 0.66, 'p_legno', top='p_legno', cz=0.08)
-    m.prism(6, 0.26, 0.12, 0.64, 0.84, 'p_ombra_calda', top='p_ombra_calda', cx=0.05, cz=0.1)
-    m.prism(6, 0.11, 0.11, 0.55, 1.05, 'p_pietra_scura', top='p_arancio', cx=-0.18, cz=0.42)
-    for sx in (-1, 1):
-        m.cbox(sx * 0.13, -0.42, 0.1, 0.06, 0.46, 0.54, 'p_giallo', mat='mat_emissivo')
-    return _obj(m)
-
-
-def nem_operaio():
-    """Operaio Arrugginito: automa operaio col barile per torso, fasce d'ottone, visiera gialla, comignolo, chiave inglese nella destra."""
-    m = Mesh('nem_operaio')
-    for sx in (-1, 1):
-        m.cbox(sx * 0.15, 0, 0.18, 0.22, 0, 0.75, 'p_roccia')
-        m.cbox(sx * 0.15, -0.04, 0.24, 0.32, 0, 0.1, 'p_nero_caldo')
-    m.prism(7, 0.28, 0.32, 0.75, 1.45, MURO, top='p_legno', bottom='p_legno')
-    for y in (0.81, 1.31):
-        m.prism(7, 0.335, 0.335, y, y + 0.08, 'p_arancio')
-    m.cbox(0, 0, 0.36, 0.32, 1.46, 1.74, 'p_pietra_scura')
-    m.cbox(0, -0.17, 0.26, 0.04, 1.59, 1.65, 'p_giallo', mat='mat_emissivo')
-    m.prism(6, 0.08, 0.06, 1.35, 1.75, 'p_nero_caldo', cx=0.12, cz=0.28)
-    m.cbox(-0.42, 0, 0.14, 0.14, 0.78, 1.38, 'p_legno_scuro')
-    m.cbox(0.42, -0.2, 0.14, 0.14, 0.78, 1.38, 'p_legno_scuro')
-    m.cbox(0.42, -0.55, 0.08, 0.5, 0.9, 0.98, 'p_pietra')  # chiave inglese tesa in avanti
-    m.cbox(0.42, -0.82, 0.24, 0.12, 0.84, 1.04, 'p_pietra')
-    return _obj(m)
-
-
-def nem_valvola():
-    """Valvola-SparaVapore: torretta fissa sul tubo, volantino rosso, ugello d'ottone verso −Z, manometro."""
-    m = Mesh('nem_valvola')
-    m.prism(8, 0.5, 0.45, 0, 0.18, 'p_pietra_scura', top='p_pietra_scura')
-    m.prism(8, 0.2, 0.2, 0.18, 1.25, MURO, top='p_legno')
-    m.prism(8, 0.27, 0.27, 1.0, 1.1, 'p_arancio', top='p_arancio', bottom='p_arancio')
-    m.cbox(0, -0.36, 0.22, 0.5, 0.94, 1.16, 'p_arancio')  # ugello
-    m.cbox(0, -0.62, 0.1, 0.04, 1.0, 1.1, 'p_nero_caldo')
-    m.prism(8, 0.3, 0.3, 1.35, 1.4, 'p_rosso', top='p_rosso', bottom='p_rosso')
-    m.cbox(0.23, -0.05, 0.05, 0.26, 0.67, 0.93, 'p_sabbia_chiara')
-    return _obj(m)
-
-
-def nem_capoturno():
-    """Il Capoturno: grosso automa logoro, caschetto giallo, fornace nel petto, martello pneumatico gigante nella destra (boss)."""
-    m = Mesh('nem_capoturno')
-    for sx in (-1, 1):
-        m.cbox(sx * 0.3, 0, 0.34, 0.34, 0, 0.95, 'p_roccia')
-        m.prism(6, 0.11, 0.09, 1.75, 2.25, 'p_nero_caldo', cx=sx * 0.32, cz=0.32)
-    m.cbox(0, 0, 1.1, 0.75, 0.93, 1.88, MURO, top='p_legno')
-    for y in (0.94, 1.74):
-        m.cbox(0, 0, 1.16, 0.8, y, y + 0.12, 'p_arancio')
-    m.cbox(0, -0.39, 0.5, 0.06, 1.2, 1.56, 'p_nero_caldo')
-    m.cbox(0, -0.41, 0.42, 0.04, 1.27, 1.45, 'p_arancio', mat='mat_emissivo')  # fornace accesa
-    m.cbox(0, -0.05, 0.46, 0.42, 1.88, 2.24, 'p_pietra_scura')
-    m.cbox(0, -0.28, 0.34, 0.05, 2.05, 2.11, 'p_rosso', mat='mat_emissivo')
-    m.prism(8, 0.36, 0.32, 2.24, 2.4, 'p_giallo', top='p_giallo', cz=-0.05)
-    m.cbox(-0.72, 0, 0.3, 0.3, 0.92, 1.78, 'p_legno_scuro')
-    m.cbox(0.72, -0.3, 0.3, 0.3, 1.05, 1.85, 'p_legno_scuro')
-    m.cbox(0.72, -0.85, 0.16, 1.2, 1.1, 1.26, 'p_pietra_scura')  # asta del martello in avanti
-    m.cbox(0.72, -1.5, 0.62, 0.5, 0.6, 1.1, 'p_roccia')         # testa
-    m.cbox(0.72, -1.1, 0.26, 0.26, 1.06, 1.32, 'p_arancio')      # pistone
-    return _obj(m)
-
-
 MODELS_MAIN = [prop_ingresso_drenaggio]
-MODELS_RPG = [dng_drenaggio_pavimento, dng_drenaggio_muro, dng_drenaggio_muro_basso, nem_tubo, nem_operaio, nem_valvola, nem_capoturno]
+MODELS_RPG = [dng_drenaggio_pavimento, dng_drenaggio_muro, dng_drenaggio_muro_basso]
 MODELS = {f.__name__: f for f in MODELS_MAIN + MODELS_RPG}

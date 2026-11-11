@@ -3,7 +3,6 @@
 // colpisce, recupera in giro), colpito, dorme, muore. Si trascina per girare la camera, la rotella per avvicinarsi.
 // Per i test e le foto: window.__nemici = { pronto, dungeon(nome), stato(s), solo(id | null), camera(yaw, pitch, dist) }.
 import * as THREE from 'three';
-import { ENEMIES } from '@marea/content/rpg.ts';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
 import { createLoader } from '../render/loader.ts';
 import { createActors } from '../rpg/dungeon_actors.ts';
@@ -40,6 +39,7 @@ const stato = { pronto: false, dungeon: 'Grotta', s: 'fermo' as Stato, solo: nul
 const finta = { scene, floorY: 0, light: () => 1 } as unknown as DungeonScene;
 
 async function main(): Promise<void> {
+  const { ENEMIES } = await import('@marea/content/rpg.ts'); // il GDR resta fuori dal pacchetto iniziale
   const loader = await createLoader({ base: '/assets/' });
   await loader.extend('manifest_rpg.json');
   let attori = createActors({ loader, scene: finta, fp: true });
