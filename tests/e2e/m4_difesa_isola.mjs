@@ -2,6 +2,8 @@
 // cancello dell'orto compare DIFENDI L'ORTO; il tocco apre il gioco sopra il mondo (riquadro con difesa.html che arriva al menù o, coi
 // test, alla partita), il mondo sta fermo; ✕ ISOLA richiude e si è di nuovo davanti al cancello. PC 1280×720: A apre, Esc richiude.
 // Screenshot in tests/out/shots/m4_difesa_isola_*.png.
+import { collegaController } from '../lib/controller.mjs';
+
 export const timeout = 240000;
 
 export default async function (ctx) {
@@ -55,4 +57,26 @@ export default async function (ctx) {
     await pc.keyboard.press('Escape');
     await pc.waitForSelector('#mzDifesa', { state: 'detached', timeout: 5000 });
   });
+
+  await ctx.test('PC: col controller si scelgono i livelli aperti, si mette in pausa e si torna all’isola', async () => {
+    // L'iframe parte normalmente dal menu dei livelli. Prova=1 lo salta.
+    await pc.route('**/difesa.html?mondo=1&prova=1', (r) => r.fulfill({ status: 302, headers: { location: '/difesa.html?mondo=1' } }));
+    const pad = await collegaController(pc);
+    await pc.evaluate(() => window.__game.test.difesaApri());
+    const frame = pc.frameLocator('#mzDifesa iframe'), menu = frame.locator('.df-velo.su');
+    await menu.waitFor({ timeout: 30000 });
+    await pad.premi(15);
+    await pad.premi(15);
+    assert(await menu.locator('button[data-pad-focus]:not(.chiuso)').count() === 1, 'focus su un livello chiuso');
+    await pad.premi(0);
+    await menu.waitFor({ state: 'hidden', timeout: 8000 });
+    await pad.premi(9);
+    await menu.getByRole('heading', { name: 'PAUSA' }).waitFor({ timeout: 8000 });
+    await pad.premi(1);
+    await menu.waitFor({ state: 'hidden', timeout: 8000 });
+    await pad.premi(8);
+    await pc.waitForSelector('#mzDifesa', { state: 'detached', timeout: 8000 });
+    await pad.scollega();
+  });
+
 }
