@@ -4,13 +4,15 @@
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
 import { COLPI } from '@marea/sim/dungeon/tuning.ts';
 import { bladeAngle, swept } from '@marea/sim/dungeon/swing.ts';
-import { sopraPresa, sottoPresa } from './fp_mani.ts';
+import { destraPresa, sopraPresa, sottoPresa } from './fp_mani.ts';
 import type { Colore, Pezzo } from './fp_mani.ts';
 
 export type Arnese = 'pugni' | 'katana' | 'ascia' | 'nunchaku' | 'lancia' | 'spadone' | 'martello' | 'arco' | 'bacchetta';
 export type Contesto = {
   h: DungeonView['hero'];
   arnese: Arnese;
+  /** Il disegno dell'arma o dell'arco se non è quello del tipo (le uniche: `u_<id>`, coi loro colori e senza lama da tingere); '' = quello del tipo. */
+  sprite: string;
   /** Colore della lama (materiale o unico), della magia in mano, e id della magia (la sua bacchetta). */
   lama: Colore; magia: Colore; magiaId: string;
   /** Forma della magia in mano: 'raggio', 'bomba' o niente. */
@@ -27,17 +29,19 @@ export type Contesto = {
 };
 
 const PESANTI = new Set<Arnese>(['lancia', 'spadone', 'martello']);
+/** Archi unici che hanno la corda nel disegno (la molla dell'Arco Carillon, che non si tende): il gioco non ne disegna un'altra a riposo. */
+const CORDA_PROPRIA = new Set(['u_unico_arco_carillon']);
 const QUASI: Colore = [1, 0.92, 0.55], FILO: Colore = [0.9, 0.82, 0.62];
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const liscio = (t: number) => { const u = Math.max(0, Math.min(1, t)); return u * u * (3 - 2 * u); };
 const RAGGIO = { x: 0.35, y: 0.06, rot: -0.62 }, REST = { x: 0.3, y: 0.26 }, TORCIA = { x: -0.36, y: 0.2 }, PESO = { x: 0.2, y: 0.2, rot: 0.32 };
 
 function arma(c: Contesto, x: number, y: number, rot: number, out: Pezzo[], scie: readonly (readonly [number, number])[] = []): void {
-  const id = c.arnese;
+  const id = c.sprite || c.arnese;
   for (const [r, a] of scie) out.push({ id: `${id}_lama`, x, y, rot: r, c: c.lama, a, luce: true }, { id, x, y, rot: r, a });
-  if (id === 'nunchaku') {
+  if (c.arnese === 'nunchaku') {
     const dond = Math.sin(c.clock * 7) * 0.25 + rot * 0.6;
-    out.push({ id: 'nunchaku2', x, y, rot: rot + dond });
+    out.push({ id: `${id}2`, x, y, rot: rot + dond });
   }
   out.push({ id, x, y, rot }, { id: `${id}_lama`, x, y, rot, c: c.lama });
 }
@@ -116,15 +120,16 @@ function corda(c: Contesto, x0: number, y0: number, x1: number, y1: number, out:
 /** L'arco nella sinistra, la freccia nella destra: la corda la tira la mano, con la tensione della sim. */
 function arco(c: Contesto, out: Pezzo[]): void {
   const h = c.h, bx = -0.14 + c.bobX + c.swayX, by = 0.36 + c.bobY + c.swayY, tesa = h.anim === 'tende' ? liscio(h.carica) : 0, scatto = h.anim === 'tira' ? 1 - h.t : 0;
-  const su = by + sopraPresa('arco') * c.u + scatto * 0.015, giu = by - sottoPresa('arco') * c.u + scatto * 0.015, piega = 22 * c.u; // le punte dell'arco stanno a destra del ventre
-  out.push({ id: 'arco', x: bx, y: by + scatto * 0.015 });
+  const ar = c.sprite || 'arco', su = by + sopraPresa(ar) * c.u + scatto * 0.015, giu = by - sottoPresa(ar) * c.u + scatto * 0.015, piega = 22 * c.u; // le punte dell'arco stanno a destra del ventre
+  const cx = bx + (c.sprite ? (destraPresa(ar) - 2) * c.u : piega * 0.45); // dove sta la corda (negli unici: al bordo destro del disegno)
+  out.push({ id: ar, x: bx, y: by + scatto * 0.015 });
   if (h.anim === 'tende') {
     const rx = lerp(0.04, 0.26, tesa) + c.bobX, ry = lerp(0.36, 0.26, tesa) + c.bobY;
-    corda(c, bx + piega * 0.45, su, rx, ry, out); corda(c, bx + piega * 0.45, giu, rx, ry, out);
+    corda(c, cx, su, rx, ry, out); corda(c, cx, giu, rx, ry, out);
     out.push({ id: 'freccia', x: rx, y: ry, rot: Math.atan2(bx - rx, by - ry) }, { id: 'regge', x: bx, y: by, flip: true }, { id: 'tira', x: rx, y: ry });
     return;
   }
-  corda(c, bx + piega * 0.45, su, bx + piega * 0.45, giu, out);
+  if (!CORDA_PROPRIA.has(ar)) corda(c, cx, su, cx, giu, out);
   out.push({ id: 'regge', x: bx, y: by, flip: true });
   const rx = REST.x + c.bobX * 1.2 + c.swayX, ry = REST.y - 0.04 - scatto * 0.1 + c.bobY;
   out.push({ id: 'freccia', x: rx, y: ry, rot: 0.12 }, { id: 'pugno', x: rx, y: ry });

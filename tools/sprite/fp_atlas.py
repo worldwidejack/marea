@@ -4,7 +4,8 @@
 Riduce ogni foglio sulla sua griglia (fp_griglia.py), stacca le figure da sinistra a destra, allunga gli avambracci oltre il bordo (così non si
 vede mai dove finiscono), separa le lame grigie (il gioco le tinge col materiale) e disegna da codice le fiamme e i bagliori. Impacchetta tutto in
 un PNG e scrive il JSON coi riquadri e i punti di presa. Per controllare: scrive anche un foglio ingrandito con i punti di presa segnati.
-Uso: fp_atlas.py <cartella coi fogli> <png di uscita> <json di uscita>
+Le armi uniche (fogli `u*`, in un'altra cartella con --unici) hanno i loro colori: tutta la palette, niente lama da tingere, passo trovato da solo.
+Uso: fp_atlas.py <cartella coi fogli> <png di uscita> <json di uscita> [--unici <cartella coi fogli u*>]
 """
 import json
 import math
@@ -39,6 +40,20 @@ OGGETTI = {
     'b2': [('b_bomba_elettrica', 0.14), ('b_lupo_spettrale', 0.14), ('b_scheletro_evocato', 0.14), ('b_golem_evocato', 0.14)],
     'b3': [('b_cura_flusso', 0.14), ('b_cura_bomba', 0.14), ('b_furia_flusso', 0.14), ('b_furia_bomba', 0.14)],
 }
+# Ritocchi di colore dopo la lettura: la pietra scura del Vuoto Codex la fa quasi nera e diventerebbe tutta contorno (dentro: '#2E1E14' non sul bordo)
+VUOTO = {'dentro': '#163F73', '#4A4340': '#8A5CFF', '#7F7568': '#A64DFF'}
+# Le armi uniche: foglio -> [(nome, presa come frazione dell'altezza dal basso, come si stacca, altezza in pixel dello sprite)]; l'altezza è quella
+# dell'arma del suo tipo (un po' di più se arriva più lontano): ogni figura si legge col passo che la porta lì. «nunchaku» = due pezzi come il nunchaku,
+# «arco» = senza la corda (la tira il gioco), «molla» = arco che tiene la sua corda (la molla dell'Arco Carillon)
+UNICI = {
+    'u1': [('u_unico_albero_stella', 0.3, '', 78), ('u_unico_tavola_valanga', 0.12, '', 70), ('u_unico_martello_re', 0.2, '', 60)],
+    'u2': [('u_unico_katana_spettro', 0.1, '', 62), ('u_unico_nunchaku_bandito', 0.3, 'nunchaku', 52), ('u_unico_fendiflutti', 0.1, '', 62)],
+    'u3': [('u_unico_grande_lancetta', 0.08, '', 70), ('u_unico_arco_custode', 0.5, 'arco', 64, VUOTO), ('u_unico_arco_carillon', 0.5, 'molla', 64)],
+}
+# la palette intera (docs/ART_BIBLE.md §2): gli unici sono colorati; il primo è il contorno (fp_griglia lo riconosce per primo)
+TUTTI = ['#2E1E14', '#F4E3C1', '#E2B97F', '#C98A4B', '#8E5A2B', '#5A3A1E', '#D9E872', '#8FC35B', '#4E9A46', '#2C6B3F', '#1E4A3A', '#E8E1D6', '#B9AFA3', '#7F7568',
+         '#4A4340', '#23201F', '#E8433F', '#F2A33A', '#F5D547', '#FF3DA6', '#3DF5FF', '#FFB03D', '#8A5CFF', '#7FE3E0', '#3FB9C9', '#2478A8', '#163F73', '#A64DFF',
+         '#B6FF3D', '#FF5C3D']
 LAMA = {'katana', 'ascia', 'lancia', 'spadone', 'martello'}
 ALLUNGA = 44
 
@@ -136,6 +151,61 @@ def impacchetta(pezzi, W=1024):
     return tela, meta
 
 
+def ritocca(t, mappa):
+    """Cambia i colori di `mappa` (hex -> hex); 'dentro' = il colore del contorno quando non tocca il vuoto."""
+    pieno = t[..., 3] > 0
+    bordo = np.zeros_like(pieno)
+    bordo[1:] |= ~pieno[:-1]; bordo[:-1] |= ~pieno[1:]; bordo[:, 1:] |= ~pieno[:, :-1]; bordo[:, :-1] |= ~pieno[:, 1:]
+    bordo[0] = bordo[-1] = True; bordo[:, 0] = bordo[:, -1] = True
+    orig = t.copy()
+    for da, a in mappa.items():
+        if da == 'dentro':
+            m = pieno & ~bordo & np.all(orig[..., :3] == G.hex_rgb(TUTTI[0]), axis=-1)
+        else:
+            m = pieno & np.all(orig[..., :3] == G.hex_rgb(da), axis=-1)
+        t[m, :3] = G.hex_rgb(a)
+
+
+def unici(dove):
+    """I pezzi delle armi uniche: si trova il passo del foglio, poi ogni figura si rilegge col passo che le dà l'altezza voluta."""
+    out = {}
+    for foglio, voci in UNICI.items():
+        G.TAVOLOZZA[:] = TUTTI
+        path = os.path.join(dove, foglio + '.png')
+        a, p0, _, _ = G.riduci_griglia(path)
+        alte = [f[3] - f[1] for f in G.figure(a, 25)]
+        if len(alte) != len(voci):
+            print(f'!! {foglio}: {len(alte)} figure invece di {len(voci)}')
+            continue
+        for i, (nome, frac, come, alto, *ritocchi) in enumerate(voci):
+            p = p0 * alte[i] / alto
+            a, p, _, _ = G.riduci_griglia(path, p)
+            fig = G.figure(a, 25)
+            if len(fig) != len(voci):
+                print(f'!! {foglio} a passo {p:.1f}: {len(fig)} figure')
+                continue
+            x0, y0, x1, y1, celle = fig[i]
+            t = np.zeros((y1 - y0, x1 - x0, 4), dtype=np.uint8)
+            for y, x in celle:
+                t[y - y0, x - x0] = a[y, x]
+            if ritocchi:
+                ritocca(t, ritocchi[0])
+            h, w = t.shape[:2]
+            ay, ax = int(h * (1 - frac)), mediana_x(t, 0.12)
+            if come == 'nunchaku':
+                m = h // 2
+                out[nome] = (t[m:].copy(), ax, (h - m) // 2)
+                out[nome + '2'] = (t[:m].copy(), ax, m + (h - m) // 2)
+            else:
+                if come == 'arco':
+                    t[:, w - 3:] = 0
+                if come in ('arco', 'molla'):
+                    ax = int(np.where(t[ay, :, 3] > 0)[0].min()) + 2
+                out[nome] = (t, ax, ay)
+            print(f'{nome}: passo {p:.1f}, {w}×{h}, presa {ax},{ay}')
+    return out
+
+
 def main():
     if len(sys.argv) < 4:
         sys.exit(__doc__)
@@ -187,6 +257,8 @@ def main():
             else:
                 pezzi[nome] = (t, ax, ay)
             print(f'{nome}: passo {p:.1f}, {w}×{h}, presa {ax},{ay}')
+    if '--unici' in sys.argv:
+        pezzi.update(unici(sys.argv[sys.argv.index('--unici') + 1]))
     pezzi['nunchaku_lama'] = (np.zeros((1, 1, 4), dtype=np.uint8), 0, 0)
     f = pezzi.get('fiaccola')
     if f:
