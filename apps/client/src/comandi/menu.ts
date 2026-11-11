@@ -116,7 +116,10 @@ export function comandoMenu(menu: HTMLElement, id: string): void {
     const d = id as Direzione;
     if (fuoco && (d === 'sinistra' || d === 'destra') && cambiaValore(corrente, d === 'sinistra' ? -1 : 1)) return;
     prossimo = fuoco ? vicino(d, corrente, voci) ?? corrente : corrente;
-  } else return;
+  } else {
+    voci.find((e) => e.dataset['padAction'] === id)?.click();
+    return;
+  }
   indice = voci.indexOf(prossimo);
   if (id !== 'conferma') seleziona(prossimo);
 }

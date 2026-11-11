@@ -94,6 +94,7 @@ function leggi(ora: number): void {
       else if (m === 'scacchi' && id && ['annulla', 'riavvia', 'prossimo'].includes(id)) {
         const code = azioneDi(m, id)?.tasti[0]; if (code) premi(b, code, doc);
       }
+      else if (menu.matches('.mz-fp-fruga') && (!id || id === 'rimuovi') && padDi(p, 'fruga') === b) comandoMenu(menu, 'indietro');
       else if (id && !DIREZIONI.some((x) => x === id)) comandoMenu(menu, id);
       else if (menu.id === 'mzEroe' && padDi(p, 'eroe') === b) comandoMenu(menu, 'indietro');
       else if (iframe && padDi(p, 'esci') === b) document.getElementById('mzDifesaEsci')?.click();

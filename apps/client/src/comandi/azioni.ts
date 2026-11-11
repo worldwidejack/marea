@@ -103,6 +103,7 @@ export const PROFILI = {
     ['chiudi', 'Chiudi il pannello', ['Escape'], 9], ['puntatore', 'Clic del puntatore', ['Space'], 7],
     ['avanti', 'Controllo successivo', ['Tab'], 5], ['precedente', 'Controllo precedente', ['Tab'], 4],
     ['rimuovi', 'Svuota il binding selezionato', ['Delete'], 2],
+    ['prendiTutto', 'Prendi tutto dal bottino', [], 3],
     ['zoomIn', 'Avvicina o scorri su col puntatore', ['PageUp'], 10], ['zoomOut', 'Allontana o scorri giù col puntatore', ['PageDown'], 11],
   ] },
 } satisfies Record<string, { nome: string; azioni: readonly Def[] }>;
