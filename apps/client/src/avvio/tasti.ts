@@ -20,7 +20,7 @@ export function collegaTasti(o: {
   const scrive = (e: KeyboardEvent) => e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
   addEventListener('keydown', (e) => {
     if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
-    if (e.code === 'Escape' && !scrive(e) && !reg.coperto()) { o.impostazioni.open(); return; }
+    if (e.code === 'Escape' && !e.defaultPrevented && !scrive(e) && !reg.aperto(['pannello', 'personale', 'gioco', 'ferma'])) { o.impostazioni.open(); return; }
     if (e.code === 'KeyU' && !scrive(e) && !reg.coperto()) { o.viaggio(); return; }
     if (e.code === 'KeyO' && !scrive(e) && !reg.occupato()) { o.foto.open(); return; } // modalità foto: dentro, O ed Esc escono (ui/foto_ui.ts)
     if (e.code === 'KeyC') { if (editor?.isOpen()) editor.close(); else o.apriEditor(); return; }

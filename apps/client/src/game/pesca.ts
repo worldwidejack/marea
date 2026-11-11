@@ -254,7 +254,7 @@ export function createPescaBorgo(o: {
     if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
     const t = e.target as HTMLElement | null;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
-    if (e.code === 'Escape' && fase !== 'spento') { e.stopPropagation(); esci(); return; }
+    if (e.code === 'Escape' && fase !== 'spento') { e.preventDefault(); e.stopImmediatePropagation(); esci(); return; }
     if (e.code === 'KeyP' && fase === 'spento' && !w.frozen && ['borgo', 'barca'].includes(profiloAttivo())) entra();
   });
   btn.addEventListener('click', () => { if (fase === 'spento') entra(); });

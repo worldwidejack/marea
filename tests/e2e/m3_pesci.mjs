@@ -113,6 +113,7 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.pesca.fase === 'mira', 4000);
       await page.keyboard.press('Escape');
       await ctx.waitState(page, (s) => s.pesca.fase === 'spento', 3000);
+      assert(!(await st()).impostazioni.open, 'uscire dalla pesca ha aperto le impostazioni');
     });
 
     await ctx.test('4. Tirare durante le finte spaventa il pesce', async () => {
