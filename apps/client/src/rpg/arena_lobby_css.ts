@@ -9,7 +9,7 @@ export const CSS_SALA = `
 .mz-ar-lobby::before, .mz-ar-lobby::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
 .mz-ar-lobby::before { background: ${P.acquaProfonda}; clip-path: polygon(27% 0, 68% 0, 43% 100%, 0 100%); }
 .mz-ar-lobby::after { background: ${P.acqua}; opacity: .45; clip-path: polygon(19% 0, 30% 0, 10% 100%, 0 100%, 0 79%); }
-.mz-ar-lobby .testa { grid-column: 1 / -1; justify-content: space-between; padding: 0; }
+.mz-ar-lobby .testa { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0; }
 .mz-ar-lobby .arena-identita { display: flex; gap: 10px; align-items: center; }
 .mz-ar-lobby h2 { margin: 0; font: italic 900 clamp(36px, 6vw, 76px)/.88 ${FONT_LIBRO}; text-transform: uppercase; letter-spacing: -.035em; text-shadow: 3px 4px ${P.neroCaldo}; }
 .mz-ar-lobby .arena-palco { display: grid; position: relative; isolation: isolate; grid-template: minmax(0, 1fr) auto / 100%; min-height: 0; justify-items: center; align-items: end; padding: 0 0 clamp(8px, 3vh, 32px); }
