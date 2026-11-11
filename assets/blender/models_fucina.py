@@ -1,6 +1,6 @@
 # Fucina a Pressione (Epopea della Regata, dungeon 3 — Riccardo, 9 ott 2026): ingresso sull'arco nord dell'anello della Laguna, kit del
 # dungeon e i nemici del Collettivo Rottamautomi. Scritto sul PC di Riccardo senza Blender, poi eseguito e rifinito l'11 ott 2026 sul fisso. Si lancia con:
-#   npm run assets prop_ingresso_fucina dng_fucina_pavimento dng_fucina_muro dng_fucina_muro_basso dng_fucina_colonna dng_fucina_leva nem_scintilla nem_fornace nem_palombaro nem_forgiatore
+#   npm run assets prop_ingresso_fucina dng_fucina_pavimento dng_fucina_muro dng_fucina_muro_basso dng_fucina_colonna dng_fucina_leva
 # poi lo sistema se qualcosa non torna e guarda il foglio dei contatti (tests/out/rpg_contact.png).
 # I nomi sono quelli che cerca il codice: prop_ingresso_<stile> (game/ingressi.ts), dng_fucina_pavimento/muro/muro_basso e
 # dng_fucina_colonna (la pressa a vapore al posto delle colonne, rpg/dungeon_scene.ts), dng_fucina_leva (la cassa della chiusa,
@@ -124,114 +124,6 @@ def dng_fucina_leva():
 
 
 # ------------------------------------------------------------------ nemici (statici, il client li anima)
-def nem_scintilla():
-    """Scintilla-Vapore: palla di fuoco a mezz'aria (accesa), cuore giallo, cinque schegge rosse attorno, sbuffi di vapore in cima, occhi."""
-    m = Mesh('nem_scintilla')
-    _sfera(m, (0, 0.9, 0), 0.34, 'p_arancio', mat=EM)
-    _sfera(m, (0, 0.92, -0.08), 0.22, 'p_giallo', mat=EM)
-    for k in range(5):
-        a = k * 1.257
-        m.push(Xf(t=(math.cos(a) * 0.42, 0.75 + (k % 2) * 0.3, math.sin(a) * 0.42), r=(k * 57, k * 40, 0)))
-        m.cone(3, 0.1, -0.08, 0.12, 'p_rosso', bottom='p_rosso', mat=EM)
-        m.pop()
-    _sfera(m, (0.12, 1.32, 0.05), 0.16, 'p_pietra_chiara', n=5)                                    # vapore
-    _sfera(m, (-0.1, 1.4, -0.02), 0.12, 'p_sabbia_chiara', n=5)
-    for sx in (-1, 1):
-        m.cbox(sx * 0.09, -0.33, 0.08, 0.04, 0.92, 0.98, 'p_nero_caldo')                          # occhi
-    return _obj(m)
-
-
-def nem_fornace():
-    """Fornace Semovente: forno di ghisa sui cingoli, bocca col fuoco davanti (accesa), fasce d'ottone, comignolo con la brace, pala."""
-    m = Mesh('nem_fornace')
-    for sx in (-1, 1):
-        m.cbox(sx * 0.48, 0, 0.32, 1.5, 0, 0.4, 'p_nero_caldo')                                   # cingoli
-        for z in (-0.5, 0, 0.5):
-            m.push(Xf(t=(sx * 0.48, 0.2, z), r=(0, 0, 90)))
-            m.prism(6, 0.15, 0.15, -0.17, 0.17, 'p_pietra_scura', top='p_pietra_scura', bottom='p_pietra_scura')
-            m.pop()
-    m.cbox(0, 0.05, 1.05, 1.2, 0.375, 1.325, 'p_legno_scuro')                                      # il forno
-    for y in (0.5, 1.15):
-        m.cbox(0, 0.05, 1.1, 1.25, y, y + 0.1, 'p_arancio', skip=('top', 'bottom'))
-    m.box(-0.3, 0.625, -0.59, 0.3, 1.075, -0.53, 'p_nero_caldo', skip=('back',))                   # sportello
-    m.box(-0.23, 0.7, -0.625, 0.23, 1.0, -0.575, 'p_arancio', skip=('back',), mat=EM)              # bocca col fuoco
-    m.box(-0.15, 0.73, -0.64, 0.15, 0.87, -0.58, 'p_giallo', skip=('back',), mat=EM)
-    m.prism(6, 0.16, 0.13, 1.25, 2.05, 'p_nero_caldo', cx=0.2, cz=0.35)                            # comignolo
-    m.prism(6, 0.1, 0.1, 2.03, 2.11, 'p_rosso', top='p_rosso', cx=0.2, cz=0.35, mat=EM)
-    m.push(Xf(t=(0, 0.25, -0.9), r=(-17, 0, 0)))                                                   # pala
-    m.box(-0.45, -0.04, -0.175, 0.45, 0.04, 0.175, 'p_pietra')
-    m.pop()
-    return _obj(m)
-
-
-def nem_palombaro():
-    """Golem-Palombaro: scafandro di tela e ottone, scarponi di piombo, corazza davanti, elmo tondo con tre oblò, pugni di ferro, bombola e
-    tubo dell'aria; sulla schiena le due valvole rosse (il punto debole: da lì il colpo entra)."""
-    m = Mesh('nem_palombaro')
-    for sx in (-1, 1):
-        m.cbox(sx * 0.2, 0, 0.28, 0.3, 0.045, 0.795, 'p_sabbia')                                  # gambe
-        m.cbox(sx * 0.2, -0.05, 0.36, 0.46, 0, 0.2, 'p_nero_caldo', skip=('bottom',))              # scarponi
-        m.cbox(sx * 0.62, 0, 0.3, 0.3, 0.775, 1.525, 'p_sabbia')                                  # braccia
-        m.cbox(sx * 0.62, -0.02, 0.36, 0.36, 0.53, 0.83, 'p_pietra_scura')                        # pugni
-    m.cbox(0, 0, 0.95, 0.6, 0.775, 1.625, 'p_sabbia')                                              # busto
-    m.box(-0.5, 0.82, -0.39, 0.5, 1.62, -0.27, 'p_pietra_scura')                                   # corazza (lo scafandro)
-    for y in (0.91, 1.46):
-        m.box(-0.35, y, -0.465, 0.35, y + 0.08, -0.335, 'p_arancio')
-    _sfera(m, (0, 1.9, -0.02), 0.38, 'p_arancio', n=8)                                             # elmo
-    _disco(m, (0, 1.92, -0.36), 0.15, 0.08, 'p_acqua_bassa', n=8)                                  # oblò davanti
-    for sx in (-1, 1):
-        m.push(Xf(t=(sx * 0.33, 1.92, -0.05), r=(0, 90, 0)))
-        _disco(m, (0, 0, 0), 0.09, 0.07, 'p_acqua_bassa', n=8)
-        m.pop()
-    m.prism(8, 0.16, 0.16, 0.95, 1.55, 'p_pietra', top='p_pietra', bottom='p_pietra', cz=0.42)      # bombola
-    m.push(Xf(t=(0, 1.75, 0.3), r=(52, 0, 0)))                                                     # tubo dell'aria
-    m.box(-0.025, -0.25, -0.025, 0.025, 0.25, 0.025, 'p_nero_caldo')
-    m.pop()
-    for sx in (-1, 1):                                                                             # le valvole sulla schiena
-        _disco(m, (sx * 0.28, 1.35, 0.34), 0.17, 0.05, 'p_rosso', n=8)
-        m.cbox(sx * 0.28, 0.37, 0.3, 0.06, 1.33, 1.37, 'p_giallo')
-    return _obj(m)
-
-
-def nem_forgiatore():
-    """Il Mastro Forgiatore (boss): centauro di ferro e ottone. Corpo di cavallo su quattro zampe con gli zoccoli, due comignoli sulla groppa,
-    busto con la fornace accesa al posto della pancia, testa a maschera con la fronte d'ottone e gli occhi a fessura, martello da forgia
-    nella destra e tenaglie col pezzo rovente nella sinistra."""
-    m = Mesh('nem_forgiatore')
-    for x, z in ((-0.38, -0.55), (0.38, -0.55), (-0.38, 0.65), (0.38, 0.65)):
-        m.cbox(x, z, 0.24, 0.26, 0.125, 0.975, 'p_pietra_scura')                                  # zampe
-        m.cbox(x, z - 0.02, 0.32, 0.34, 0, 0.18, 'p_nero_caldo', skip=('bottom',))                # zoccoli
-    m.cbox(0, 0.05, 1.0, 1.75, 0.9, 1.6, 'p_roccia')                                               # corpo di cavallo
-    for y in (0.95, 1.47):
-        m.cbox(0, 0.05, 1.05, 1.8, y, y + 0.1, 'p_arancio', skip=('top', 'bottom'))
-    m.prism(6, 0.15, 0.12, 1.55, 2.45, 'p_nero_caldo', cx=-0.25, cz=0.6)                           # comignoli
-    m.prism(6, 0.15, 0.12, 1.55, 2.25, 'p_nero_caldo', cx=0.25, cz=0.75)
-    m.cbox(0, -0.55, 0.9, 0.7, 1.525, 2.475, 'p_legno_scuro')                                      # busto
-    m.cbox(0, -0.55, 0.96, 0.76, 2.4, 2.5, 'p_arancio')
-    m.box(-0.28, 1.69, -0.94, 0.28, 2.11, -0.88, 'p_nero_caldo', skip=('back',))                   # grata della fornace
-    m.box(-0.23, 1.74, -0.975, 0.23, 2.06, -0.925, 'p_arancio', skip=('back',), mat=EM)            # il fuoco nella pancia
-    m.box(-0.15, 1.76, -0.99, 0.15, 1.92, -0.93, 'p_giallo', skip=('back',), mat=EM)
-    m.cbox(0, -0.6, 0.44, 0.4, 2.53, 2.91, 'p_pietra_scura')                                       # testa a maschera
-    m.cbox(0, -0.6, 0.5, 0.46, 2.91, 2.99, 'p_giallo')                                             # fronte d'ottone
-    m.box(-0.15, 2.73, -0.83, 0.15, 2.79, -0.79, 'p_giallo', skip=('back',), mat=EM)               # occhi a fessura
-    m.cbox(-0.62, -0.55, 0.32, 0.32, 1.9, 2.5, 'p_legno_scuro')                                    # braccio sinistro
-    m.push(Xf(t=(0.62, 2.1, -0.75), r=(-34, 0, 0)))                                                # braccio destro, alzato
-    m.box(-0.16, -0.3, -0.16, 0.16, 0.3, 0.16, 'p_legno_scuro')
-    m.pop()
-    m.push(Xf(t=(0.62, 2.1, -1.25), r=(-63, 0, 0)))                                                # manico del martello
-    m.prism(6, 0.07, 0.07, -0.65, 0.65, 'p_legno', top='p_legno', bottom='p_legno')
-    m.pop()
-    m.push(Xf(t=(0.62, 2.5, -1.75), r=(-63, 0, 0)))                                                # testa del martello
-    m.box(-0.25, -0.21, -0.21, 0.25, 0.21, 0.21, 'p_nero_caldo')
-    m.pop()
-    for x, rz in ((-0.7, 6), (-0.56, -6)):                                                         # tenaglie
-        m.push(Xf(t=(x, 1.8, -0.7), r=(-23, 0, rz)))
-        m.box(-0.03, -0.45, -0.03, 0.03, 0.45, 0.03, 'p_pietra')
-        m.pop()
-    m.cbox(-0.63, -0.7, 0.2, 0.08, 1.34, 1.42, 'p_rosso', mat=EM)                                  # il pezzo rovente
-    return _obj(m)
-
-
 MODELS_MAIN = [prop_ingresso_fucina]
-MODELS_RPG = [dng_fucina_pavimento, dng_fucina_muro, dng_fucina_muro_basso, dng_fucina_colonna, dng_fucina_leva, nem_scintilla, nem_fornace, nem_palombaro, nem_forgiatore]
+MODELS_RPG = [dng_fucina_pavimento, dng_fucina_muro, dng_fucina_muro_basso, dng_fucina_colonna, dng_fucina_leva]
 MODELS = {f.__name__: f for f in MODELS_MAIN + MODELS_RPG}

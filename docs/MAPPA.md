@@ -23,7 +23,7 @@
 | `difesa/` | Difesa alla Plants vs Zombies: `difesa.html`, che si apre anche dal cancello dell'isola | J |
 | `sparo/` | banco dello sparatutto a missioni (`provasparo.html`) | J |
 | `prova3d/`, `provapixel/` | banchi delle prove di stile | J |
-| `provafiniture/` | banco di pavimenti e carte da parati disegnati interi (`game/finiture_*.ts`): la stanza vera a ogni livello, o tutte in un foglio | R |
+| `provafiniture/`, `provanemici/` | banchi: pavimenti e carte da parati di casa (`game/finiture_*.ts`); nemici dei dungeon snodati | R |
 | `test/` | `window.__game` per i test (hook solo con `?test=1`) | tutti |
 
 ## packages/sim/src · la simulazione pura (gira nel browser e sul server, che rigioca le partite)

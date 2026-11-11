@@ -1,7 +1,7 @@
 # La Diga dei Disertori (Riccardo, 15 ott 2026, #354): l'ingresso nella Gola del Dente sull'Isola della Tempesta, il kit del relitto della
 # «Stella del Mattino», la Ruota di Sentina, il pilone dell'arena, il ponte mobile e i nemici (la Guardia della Paratia, il Fuciliere
 # d'Acquafonda, l'Albatros di Pece, il Capitano Vaelen). Scritto sul PC di Riccardo senza Blender: MAI ESEGUITO. Il Claude di Jack lo lancia con:
-#   npm run assets prop_ingresso_diga dng_diga_pavimento dng_diga_muro dng_diga_muro_basso dng_diga_colonna dng_diga_ruota dng_diga_pilone dng_diga_ponte nem_guardiano nem_fuciliere nem_albatros nem_vaelen
+#   npm run assets prop_ingresso_diga dng_diga_pavimento dng_diga_muro dng_diga_muro_basso dng_diga_colonna dng_diga_ruota dng_diga_pilone dng_diga_ponte
 # poi lo sistema se qualcosa non torna, conta i triangoli e guarda il foglio dei contatti (tests/out/rpg_contact.png).
 # I nomi sono quelli che cerca il codice: prop_ingresso_<stile> (game/ingressi.ts), dng_diga_pavimento/muro/muro_basso e dng_diga_colonna
 # (il cannone sull'affusto: rpg/dungeon_scene.ts), dng_diga_ruota (solo il piedistallo: la ruota d'ottone che gira la mette il client),
@@ -153,104 +153,6 @@ def dng_diga_ponte():
 
 
 # ------------------------------------------------------------------ nemici (statici, il client li anima)
-def nem_guardiano():
-    """La Guardia della Paratia: colosso a torso nudo coi tatuaggi, lo scafandro di rame come elmo (oblò che brilla), l'ancora spezzata
-    nella destra. Il portello di quercia ferrata (con l'icona gialla dello scudo incrinato) è un oggetto a parte, `portello`."""
-    m = Mesh('nem_guardiano')
-    for sx in (-1, 1):
-        m.cbox(sx * 0.3, 0.05, 0.42, 0.42, 0, 0.9, 'p_legno_scuro')                                    # calzoni
-        m.cbox(sx * 0.3, -0.02, 0.5, 0.6, 0, 0.16, 'p_nero_caldo', skip=('bottom',))                  # stivali
-    m.cbox(0, 0.05, 0.95, 0.62, 0.88, 1.02, 'p_ombra_calda')                                           # cintura
-    m.cbox(0, 0.05, 1.15, 0.7, 1.02, 1.87, 'p_legno_chiaro')                                           # il torace
-    _quad(m, [(-0.4, 1.45, -0.31), (-0.05, 1.62, -0.31), (-0.05, 1.67, -0.31), (-0.4, 1.5, -0.31)], 'p_acqua_profonda')  # tatuaggi
-    m.cbox(0.78, 0, 0.36, 0.36, 0.9, 1.8, 'p_legno_chiaro'); m.cbox(0.78, 0, 0.38, 0.38, 1.39, 1.51, 'p_acqua_profonda')  # braccio destro
-    m.push(Xf(t=(-0.72, 1.45, -0.25), r=(40, 0, 0))); m.cbox(0, 0, 0.36, 0.36, -0.35, 0.35, 'p_legno_chiaro'); m.pop()
-    m.prism(8, 0.4, 0.38, 1.84, 2.46, 'p_arancio', top='p_arancio', cz=0.05)                           # lo scafandro di rame
-    m.prism(8, 0.42, 0.42, 1.81, 1.91, 'p_legno', cz=0.05)
-    m.push(Xf(t=(0, 2.17, -0.36), r=(90, 0, 0))); m.prism(8, 0.13, 0.13, -0.02, 0.02, 'p_acqua_bassa', top='p_acqua_bassa', mat=EM); m.pop()  # l'oblò
-    m.push(Xf(t=(0.85, 0.95, -0.25), r=(14, 0, 0))); m.prism(5, 0.06, 0.06, -0.85, 0.85, 'p_roccia'); m.pop()  # l'ancora: il fuso
-    m.cbox(0.85, -0.45, 0.85, 0.12, 0.19, 0.31, 'p_roccia')                                            # la marra (una sola punta)
-    m.cone(4, 0.12, 0.2, 0.45, 'p_pietra_scura', cx=1.28, cz=-0.45)
-    p = Mesh('portello')
-    p.box(-0.925, 0.1, -0.78, 0.425, 2.0, -0.62, 'p_legno_scuro')                                      # il portello di quercia
-    for y in (0.65, 1.45):
-        p.box(-0.95, y, -0.82, 0.45, y + 0.12, -0.6, 'p_roccia', skip=('bottom', 'top'))               # le bande di ferro
-    p.box(-0.4, 2.0, -0.75, -0.1, 2.38, -0.69, 'p_giallo')                                             # l'icona dello scudo incrinato
-    _quad(p, [(-0.24, 2.05, -0.76), (-0.2, 2.05, -0.76), (-0.18, 2.33, -0.76), (-0.22, 2.33, -0.76)], 'p_nero_caldo')
-    return _obj(m, p)
-
-
-def nem_fuciliere():
-    """Il Fuciliere d'Acquafonda: smilzo, cerata gialla con le macchie di catrame, bandana rossa, tricorno di cuoio sugli occhi (la faccia
-    in ombra, niente volto), il moschetto lungo imbracciato con la baionetta arrugginita."""
-    m = Mesh('nem_fuciliere')
-    for sx in (-1, 1):
-        m.cbox(sx * 0.13, 0, 0.18, 0.2, 0, 0.8, 'p_ombra_calda')
-        m.cbox(sx * 0.13, -0.05, 0.2, 0.3, 0, 0.12, 'p_nero_caldo', skip=('bottom',))
-    m.prism(6, 0.3, 0.2, 0.6, 1.5, 'p_giallo')                                                         # la cerata
-    m.cbox(0, 0, 0.44, 0.34, 0.87, 0.93, 'p_nero_caldo', skip=('bottom', 'top'))                       # il catrame
-    m.cbox(0, 0, 0.26, 0.26, 1.52, 1.78, 'p_nero_caldo')                                               # la faccia in ombra
-    m.cbox(0, 0.02, 0.3, 0.3, 1.71, 1.81, 'p_rosso')                                                   # la bandana
-    m.prism(3, 0.32, 0.32, 1.79, 1.87, 'p_legno_scuro', top='p_legno_scuro'); m.prism(6, 0.2, 0.16, 1.85, 1.99, 'p_legno_scuro', top='p_legno_scuro')  # tricorno
-    for sx, rx in ((-1, 52), (1, 46)):
-        m.push(Xf(t=(sx * 0.3, 1.22, -0.18), r=(rx, 0, -sx * 11))); m.cbox(0, 0, 0.14, 0.14, -0.3, 0.3, 'p_giallo'); m.pop()
-    m.cbox(0.05, -0.1, 0.08, 0.7, 1.24, 1.36, 'p_legno_scuro')                                         # il calcio
-    m.push(Xf(t=(0.05, 1.35, -1.05), r=(90, 0, 0))); m.prism(5, 0.035, 0.035, -0.7, 0.7, 'p_roccia'); m.pop()  # la canna
-    m.cbox(0.05, -1.9, 0.03, 0.4, 1.295, 1.325, 'p_legno')                                             # la baionetta arrugginita
-    return _obj(m)
-
-
-def nem_albatros():
-    """L'Albatros di Pece: grosso uccello marino scheletrico impeciato (il client lo fa volare), le ali larghe con le ossa bianche, il becco
-    d'osso, gli occhi arancio che brillano e il barilotto rosso di polvere da sparo tra gli artigli."""
-    m = Mesh('nem_albatros')
-    m.cbox(0, 0, 0.45, 1.0, 0.35, 0.75, 'p_roccia', top='p_nero_caldo')                                # il corpo, la pece sulla schiena
-    m.cbox(0, -0.6, 0.3, 0.32, 0.55, 0.85, 'p_roccia'); m.cbox(0, -0.98, 0.1, 0.5, 0.61, 0.71, 'p_pietra_chiara')  # testa e becco d'osso
-    for sx in (-1, 1):
-        m.push(Xf(t=(sx * 0.95, 0.66, 0), r=(0, 0, -sx * 10))); m.cbox(0, 0, 1.6, 0.45, -0.03, 0.03, 'p_roccia', top='p_nero_caldo')
-        for x in (-0.35, 0.15, 0.6):
-            m.cbox(x * sx, 0.08, 0.06, 0.5, 0.03, 0.07, 'p_pietra_chiara')                              # le ossa delle ali
-        m.pop()
-        _quad(m, [(sx * 0.07, 0.73, -0.79), (sx * 0.13, 0.73, -0.79), (sx * 0.13, 0.79, -0.79), (sx * 0.07, 0.79, -0.79)], 'p_arancio', EM)  # occhi
-    m.push(Xf(t=(0, 0.2, 0.05), r=(0, 0, 90))); m.prism(8, 0.2, 0.2, -0.18, 0.18, 'p_rosso', top='p_legno_scuro', bottom='p_legno_scuro'); m.pop()  # il barilotto
-    for sx in (-1, 1):
-        m.cbox(sx * 0.1, 0.05, 0.04, 0.04, 0.26, 0.5, 'p_pietra_chiara')                               # gli artigli
-    return _obj(m)
-
-
-def nem_vaelen():
-    """Il Capitano Vaelen, l'Ancora dei Giusti (boss, ≈ 3 m): cappotto da ammiraglio blu scuro lacero, incrostato di sale e cirripedi, le
-    spalline d'oro, il tricorno spezzato, gli occhi azzurri da spettro; il braccio sinistro avvolto nelle catene dell'ancora (una pende),
-    nella destra il tronco spezzato dell'albero maestro come lancia (≈ 4,6 m) con la ghiera, la punta d'acciaio e il brandello di vela
-    bianca sotto la punta (`mat_emissivo`: nell'Ultima Marea il client lo accende d'azzurro). La corona gialla la mette il client."""
-    m = Mesh('nem_vaelen')
-    for sx in (-1, 1):
-        m.cbox(sx * 0.32, 0, 0.45, 0.5, 0, 1.08, 'p_ombra_calda')
-        m.cbox(sx * 0.32, -0.05, 0.5, 0.66, 0, 0.18, 'p_nero_caldo', skip=('bottom',))
-    m.prism(6, 0.85, 0.62, 0.6, 2.1, 'p_abisso', cz=0.05)                                              # il cappotto lungo
-    m.cbox(0, 0.05, 1.4, 0.85, 1.68, 2.62, 'p_abisso')                                                  # il busto
-    m.cbox(0, -0.4, 0.5, 0.06, 1.62, 2.58, 'p_acqua_profonda')                                          # il bavero
-    for x in (-0.45, 0.45):
-        m.cbox(x, 0.05, 0.45, 0.5, 2.38, 2.52, 'p_giallo')                                              # le spalline
-    for x, y, z in ((-0.3, 1.2, -0.62), (0.35, 0.9, -0.66), (0.15, 2.0, -0.44), (-0.55, 1.7, -0.55), (0.5, 1.5, -0.6)):
-        m.cbox(x, z, 0.12, 0.08, y - 0.06, y + 0.06, 'p_pietra_chiara')                                 # sale e cirripedi
-    m.cbox(0, 0.05, 0.45, 0.45, 2.61, 3.09, 'p_pietra')                                                 # la testa grigia
-    _quad(m, [(-0.16, 2.88, -0.18), (0.16, 2.88, -0.18), (0.16, 2.93, -0.18), (-0.16, 2.93, -0.18)], 'p_acqua_bassa', EM)  # gli occhi
-    m.prism(3, 0.55, 0.55, 3.09, 3.21, 'p_nero_caldo', top='p_nero_caldo', cz=0.05)                     # il tricorno
-    m.push(Xf(t=(0.06, 3.28, 0.05), r=(0, 0, 20))); m.prism(6, 0.3, 0.24, -0.1, 0.1, 'p_nero_caldo', top='p_nero_caldo'); m.pop()  # spezzato
-    m.cbox(-0.85, 0.05, 0.4, 0.4, 1.48, 2.52, 'p_abisso')                                               # il braccio sinistro
-    for k, y in enumerate((1.65, 1.85, 2.05, 2.25)):
-        _anello(m, (-0.85, y, 0.05), 0.26, 0.05, 'p_roccia', n=8)                                        # le catene dell'ancora
-    m.push(Xf(t=(-0.85, 1.45, 0.4), r=(34, 0, 0))); m.cbox(0, 0, 0.06, 0.9, -0.03, 0.03, 'p_roccia'); m.pop()  # la catena che pende
-    m.push(Xf(t=(0.85, 2.1, -0.2), r=(29, 0, 0))); m.cbox(0, 0, 0.4, 0.4, -0.45, 0.45, 'p_abisso'); m.pop()  # il braccio destro
-    m.push(Xf(t=(0.9, 1.75, -1.2), r=(83, 0, 0))); m.prism(6, 0.17, 0.13, -2.3, 2.3, 'p_legno', top='p_legno_chiaro', bottom='p_legno_chiaro'); m.pop()  # l'albero maestro
-    m.push(Xf(t=(0.9, 1.53, -3.3), r=(83, 0, 0))); m.prism(6, 0.2, 0.2, -0.06, 0.06, 'p_roccia'); m.pop()   # la ghiera
-    m.push(Xf(t=(0.9, 1.47, -3.75), r=(-97, 0, 0))); m.cone(4, 0.16, -0.3, 0.3, 'p_pietra'); m.pop()        # la punta d'acciaio
-    m.push(Xf(t=(0.9, 1.25, -3.05), r=(7, 0, 0))); m.cbox(0, 0, 0.06, 0.62, -0.27, 0.27, 'p_sabbia_chiara', mat=EM); m.pop()  # la vela
-    return _obj(m)
-
-
 MODELS_MAIN = [prop_ingresso_diga]
-MODELS_RPG = [dng_diga_pavimento, dng_diga_muro, dng_diga_muro_basso, dng_diga_colonna, dng_diga_ruota, dng_diga_pilone, dng_diga_ponte,
-              nem_guardiano, nem_fuciliere, nem_albatros, nem_vaelen]
+MODELS_RPG = [dng_diga_pavimento, dng_diga_muro, dng_diga_muro_basso, dng_diga_colonna, dng_diga_ruota, dng_diga_pilone, dng_diga_ponte]
 MODELS = {f.__name__: f for f in MODELS_MAIN + MODELS_RPG}

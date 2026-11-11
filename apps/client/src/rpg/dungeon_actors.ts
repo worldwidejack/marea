@@ -1,4 +1,5 @@
-// Nemici, proiettili, bottino e ombre nel dungeon (R-scena). Modelli `nem_*` statici animati a mano: bob quando camminano, inclinazione
+// Nemici, proiettili, bottino e ombre nel dungeon (R-scena). I `nem_*` col nuovo scheletro (issue 723) li mette in posa nemici_pose.ts
+// (ossa per ossa, dallo stato della sim); qui sotto restano tinte, lampeggi, quote e i segnaposto in codice senza ossa, animati a mano: bob quando camminano, inclinazione
 // indietro telegrafata durante `prepara` (con lampeggio rosso che accelera), affondo nel colpo, flash bianco quando colpiti, caduta e
 // dissolvenza a scatti alla morte; alleati evocati tinti viola neon; boss più grandi; cerchio rosso a terra per il colpo ad area.
 // Proiettili orientati con la velocità; sacchi sui cadaveri, forzieri che si aprono, libri; ombre a disco in un'unica InstancedMesh.
@@ -36,6 +37,9 @@ import { formaBaita } from './baita.ts';
 import { formaCeneri } from './ceneri.ts';
 import { formaArena } from './arena_kit.ts';
 import type { Arco } from './arco.ts';
+import { rigNemico } from './nemici_rig.ts';
+import type { Rig } from './nemici_rig.ts';
+import { posaNemico } from './nemici_pose.ts';
 
 type NemV = DungeonView['nemici'][number] & { area?: number };
 type Enemy = {
@@ -47,6 +51,8 @@ type Enemy = {
   spento: boolean; sveglio: number;
   /** Solo arcieri: l'arco nella sinistra e se l'ultimo attacco preparato era un tiro (vale anche per colpisce e recupera). */
   arco: { obj: THREE.Object3D; a: Arco } | null; tiro: boolean;
+  /** Snodato (nemici_rig.ts): le ossa, i metri fatti (fase del passo), la velocità e dov'era il fotogramma prima. */
+  rig: Rig | null; passo: number; vel: number; lx: number; lz: number;
 };
 /** `capo`: corona sopra la barra, che si vede anche a vita piena (il nemico da battere per completare il dungeon). */
 export type Bar = { id: number; pos: THREE.Vector3; frac: number; ally: boolean; boss: boolean; capo: boolean };
@@ -110,14 +116,14 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
   function addEnemy(n: NemV): Enemy {
     const r = new THREE.Group(); r.name = 'nemico_' + n.id; root.add(r);
     const body = new THREE.Group(); r.add(body);
-    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false, alt: 0, giri: [], spento: false, sveglio: -9 };
+    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false, alt: 0, giri: [], spento: false, sveglio: -9, rig: null, passo: 0, vel: 0, lx: n.x, lz: n.z };
     if (ARCIERI.has(n.tipo) && !n.alleato) {
       void object(o.loader, 'arm_arco', () => boxes([[0.05, 1.3, 0.05, 0, 0, 0, PAL.legno]])).then((m) => {
         tintBlade(m, PAL.legnoChiaro); // chiaro: sul pavimento scuro della grotta si legge
         body.add(m); e.arco = { obj: m, a: armaArco(m, o.loader, true, 2.6) };
       });
     }
-    void object(o.loader, n.model, () => formaNemico(n.model) ?? formaArchivio(n.model) ?? formaFucina(n.model) ?? formaMausoleo(n.model) ?? formaDiga(n.model) ?? formaBaita(n.model) ?? formaCeneri(n.model) ?? formaArena(n.model) ?? boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
+    void rigNemico(o.loader, n.model).then((rig) => { e.rig = rig; return rig ? rig.obj : object(o.loader, n.model, () => formaNemico(n.model) ?? formaArchivio(n.model) ?? formaFucina(n.model) ?? formaMausoleo(n.model) ?? formaDiga(n.model) ?? formaBaita(n.model) ?? formaCeneri(n.model) ?? formaArena(n.model) ?? boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)); }).then((m) => {
       body.add(m);
       if (n.model === 'nem_astrolabio') for (const g of giriAstrolabio()) { m.add(g); e.giri.push(g); } // anelli che girano (anche sul modello vero)
       e.mats = materialsOf(m);
@@ -249,8 +255,14 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
           case 'morto': { const k = steps(since / 0.3, 3); b.rotation.z = (o.fp ? 1.52 : 1.4) * k; b.position.y = (o.fp ? 0.05 : -0.1) * k; break; }
           default: b.position.y = 0.02 * Math.sin(t * 2 + e.id);
         }
+        if (e.rig) { // snodato: la posa la fa nemici_pose.ts (passo legato ai metri fatti), le tinte restano qui sotto
+          const d = Math.hypot(x - e.lx, z - e.lz); e.lx = x; e.lz = z;
+          e.passo += d; e.vel += (Math.min(8, d / Math.max(dt, 1e-3)) - e.vel) * Math.min(1, dt * 10);
+          const alzata = o.fp && DISTESI.has(n.tipo) ? (n.anim === 'dorme' ? 0 : now - e.sveglio) : -1;
+          posaNemico({ rig: e.rig, n, b, t, morto: since, passo: e.passo, vel: e.vel, seme: e.id * 1.37, su, tesa, tiro, alzata });
+        }
         if (n.alleato) b.position.y += 0.15 + 0.05 * Math.sin(t * 3 + e.id);
-        if (o.fp && DISTESI.has(n.tipo) && !dead && (n.anim === 'dorme' || now - e.sveglio < ALZATA)) { // disteso a dormire, poi si tira su a scatti
+        if (!e.rig && o.fp && DISTESI.has(n.tipo) && !dead && (n.anim === 'dorme' || now - e.sveglio < ALZATA)) { // disteso a dormire, poi si tira su a scatti
           const k = n.anim === 'dorme' ? 0 : steps((now - e.sveglio) / ALZATA, 5);
           b.rotation.set(1.5 * (1 - k), 0, 0); b.position.set(0, 0.12 * (1 - k), 0.5 * (1 - k));
         }
@@ -278,7 +290,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
         if (n.esposto) { glowC = ORO; glow = Math.floor(t * 8) % 2 ? 0.55 : 0.3; } // Korok: il nucleo scoperto brilla
         if (n.attacco === 'cambio') { glowC = WHITE; glow = Math.floor(t * 10) % 2 ? 0.8 : 0.2; }
         // Diga: il Fuciliere mira in ginocchio, fermo (niente inclinazione all'indietro); la Guardia della Paratia senza il portello
-        if (n.attacco === 'fucile') { b.rotation.x = 0; b.position.z = 0; b.position.y -= 0.3; }
+        if (n.attacco === 'fucile' && !e.rig) { b.rotation.x = 0; b.position.z = 0; b.position.y -= 0.3; }
         if (n.model === 'nem_guardiano') { const p = b.getObjectByName('portello'); if (p) p.visible = !n.senza; }
         if (e.arco) {
           const yaw = b.rotation.y, a = e.arco.obj;

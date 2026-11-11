@@ -1,5 +1,5 @@
 {
- "version": "2026-10-11-63",
+ "version": "2026-11-11-81",
  "atlas": "atlas.png",
  "texelsPerMeter": 16,
  "models": {
@@ -747,120 +747,205 @@
     ]
    }
   },
-  "nem_aerostato": {
-   "file": "nem_aerostato.glb",
-   "tris": 250,
-   "kb": 10.4,
+  "nem_acrobata": {
+   "file": "nem_acrobata.glb",
+   "tris": 454,
+   "kb": 27.8,
    "bounds": {
     "min": [
-     -0.62,
-     -0.07,
+     -1.04,
+     -0.01,
+     -0.27
+    ],
+    "max": [
+     1.04,
+     2.07,
+     0.24
+    ]
+   }
+  },
+  "nem_aerostato": {
+   "file": "nem_aerostato.glb",
+   "tris": 304,
+   "kb": 18.6,
+   "bounds": {
+    "min": [
+     -0.64,
+     -0.08,
      -0.64
     ],
     "max": [
-     0.62,
-     2.35,
-     0.62
+     0.64,
+     2.33,
+     0.85
+    ]
+   }
+  },
+  "nem_albatros": {
+   "file": "nem_albatros.glb",
+   "tris": 293,
+   "kb": 20.1,
+   "bounds": {
+    "min": [
+     -1.75,
+     0.04,
+     -1.1
+    ],
+    "max": [
+     1.75,
+     0.83,
+     0.8
+    ]
+   }
+  },
+  "nem_alchimista": {
+   "file": "nem_alchimista.glb",
+   "tris": 594,
+   "kb": 35.5,
+   "bounds": {
+    "min": [
+     -0.39,
+     0,
+     -0.28
+    ],
+    "max": [
+     0.44,
+     1.91,
+     0.64
     ]
    }
   },
   "nem_anello": {
    "file": "nem_anello.glb",
-   "tris": 136,
-   "kb": 6.4,
+   "tris": 196,
+   "kb": 12.2,
    "bounds": {
     "min": [
      -0.48,
-     0,
+     -0.01,
      -0.06
     ],
     "max": [
      0.48,
-     1,
+     1.01,
      0.06
     ]
    }
   },
   "nem_archivista": {
    "file": "nem_archivista.glb",
-   "tris": 216,
-   "kb": 9.2,
+   "tris": 638,
+   "kb": 36.9,
    "bounds": {
     "min": [
-     -0.32,
+     -0.28,
      0,
-     -0.72
+     -0.66
     ],
     "max": [
-     0.32,
-     1.85,
-     0.42
+     0.28,
+     1.9,
+     0.43
     ]
    }
   },
   "nem_astrolabio": {
    "file": "nem_astrolabio.glb",
-   "tris": 170,
-   "kb": 7.6,
+   "tris": 206,
+   "kb": 14,
    "bounds": {
     "min": [
-     -0.55,
-     0.46,
+     -0.56,
+     0.12,
      -0.63
     ],
     "max": [
-     0.55,
+     0.56,
      2.05,
-     0.55
+     0.56
     ]
    }
   },
   "nem_bandito": {
    "file": "nem_bandito.glb",
-   "tris": 426,
-   "kb": 17.4,
+   "tris": 679,
+   "kb": 38.5,
    "bounds": {
     "min": [
-     -0.42,
+     -0.35,
      0,
-     -0.93
+     -0.69
     ],
     "max": [
-     0.32,
-     1.71,
-     0.22
+     0.35,
+     1.81,
+     0.31
+    ]
+   }
+  },
+  "nem_capoturno": {
+   "file": "nem_capoturno.glb",
+   "tris": 708,
+   "kb": 40.4,
+   "bounds": {
+    "min": [
+     -0.9,
+     0,
+     -1.51
+    ],
+    "max": [
+     1.15,
+     2.66,
+     0.5
     ]
    }
   },
   "nem_chierico": {
    "file": "nem_chierico.glb",
-   "tris": 314,
-   "kb": 13.3,
+   "tris": 664,
+   "kb": 37.7,
    "bounds": {
     "min": [
-     -0.55,
+     -0.56,
      0,
-     -0.46
+     -0.41
     ],
     "max": [
-     0.55,
-     2.17,
-     0.46
+     0.56,
+     2.28,
+     0.41
+    ]
+   }
+  },
+  "nem_colosso": {
+   "file": "nem_colosso.glb",
+   "tris": 473,
+   "kb": 29.9,
+   "bounds": {
+    "min": [
+     -0.9,
+     -0.64,
+     -0.55
+    ],
+    "max": [
+     1.09,
+     2.98,
+     0.42
     ]
    }
   },
   "nem_custode": {
    "file": "nem_custode.glb",
-   "tris": 488,
-   "kb": 21.8,
+   "tris": 494,
+   "kb": 32.2,
    "bounds": {
     "min": [
-     -1.1,
+     -0.89,
      0.45,
-     -1.33
+     -1.03
     ],
     "max": [
-     1.12,
+     0.91,
      3.65,
      0.57
     ]
@@ -868,67 +953,101 @@
   },
   "nem_custode_egida": {
    "file": "nem_custode_egida.glb",
-   "tris": 438,
-   "kb": 17.6,
+   "tris": 632,
+   "kb": 35.8,
    "bounds": {
     "min": [
-     -2.2,
+     -1.64,
      0,
-     -0.75
+     -2.97
     ],
     "max": [
-     1.51,
-     3.78,
-     0.73
+     0.99,
+     3.8,
+     1.13
+    ]
+   }
+  },
+  "nem_fatuo": {
+   "file": "nem_fatuo.glb",
+   "tris": 72,
+   "kb": 8.1,
+   "bounds": {
+    "min": [
+     -0.32,
+     0.4,
+     -0.2
+    ],
+    "max": [
+     0.32,
+     1.12,
+     0.15
     ]
    }
   },
   "nem_forgiatore": {
    "file": "nem_forgiatore.glb",
-   "tris": 282,
-   "kb": 12.7,
+   "tris": 622,
+   "kb": 38.1,
    "bounds": {
     "min": [
-     -0.78,
+     -0.77,
      0,
-     -2.03
+     -2.05
     ],
     "max": [
-     0.87,
+     0.89,
      2.99,
-     0.95
+     1.32
     ]
    }
   },
   "nem_fornace": {
    "file": "nem_fornace.glb",
-   "tris": 228,
-   "kb": 10.3,
+   "tris": 482,
+   "kb": 28.7,
    "bounds": {
     "min": [
      -0.65,
      0,
-     -1.08
+     -1.13
     ],
     "max": [
      0.65,
      2.11,
-     0.75
+     0.93
+    ]
+   }
+  },
+  "nem_fuciliere": {
+   "file": "nem_fuciliere.glb",
+   "tris": 418,
+   "kb": 25.5,
+   "bounds": {
+    "min": [
+     -0.31,
+     -0.81,
+     -0.3
+    ],
+    "max": [
+     0.31,
+     1.92,
+     0.2
     ]
    }
   },
   "nem_golem": {
    "file": "nem_golem.glb",
-   "tris": 342,
-   "kb": 16.5,
+   "tris": 428,
+   "kb": 28.9,
    "bounds": {
     "min": [
-     -1.05,
+     -0.95,
      0,
-     -0.59
+     -0.54
     ],
     "max": [
-     1.05,
+     0.95,
      2.39,
      0.51
     ]
@@ -936,93 +1055,195 @@
   },
   "nem_guardia": {
    "file": "nem_guardia.glb",
-   "tris": 170,
-   "kb": 8.4,
+   "tris": 506,
+   "kb": 30,
    "bounds": {
     "min": [
-     -0.51,
-     0.03,
-     -1.67
+     -0.41,
+     0,
+     -1.42
     ],
     "max": [
-     0.64,
-     2.32,
-     0.29
+     0.49,
+     2.44,
+     0.46
+    ]
+   }
+  },
+  "nem_guardiano": {
+   "file": "nem_guardiano.glb",
+   "tris": 680,
+   "kb": 40.4,
+   "bounds": {
+    "min": [
+     -0.91,
+     0,
+     -1.3
+    ],
+    "max": [
+     1,
+     2.6,
+     0.96
     ]
    }
   },
   "nem_idroragno": {
    "file": "nem_idroragno.glb",
-   "tris": 264,
-   "kb": 12,
+   "tris": 319,
+   "kb": 24.2,
    "bounds": {
     "min": [
-     -0.78,
-     0.05,
+     -0.79,
+     0,
      -0.68
     ],
     "max": [
-     0.78,
-     0.85,
+     0.79,
+     0.92,
      0.38
+    ]
+   }
+  },
+  "nem_jean_claude": {
+   "file": "nem_jean_claude.glb",
+   "tris": 514,
+   "kb": 31.3,
+   "bounds": {
+    "min": [
+     -0.84,
+     -1.01,
+     -0.48
+    ],
+    "max": [
+     0.84,
+     3.8,
+     0.39
+    ]
+   }
+  },
+  "nem_korok": {
+   "file": "nem_korok.glb",
+   "tris": 464,
+   "kb": 29.9,
+   "bounds": {
+    "min": [
+     -1.4,
+     0,
+     -0.81
+    ],
+    "max": [
+     1.41,
+     5.25,
+     0.75
+    ]
+   }
+  },
+  "nem_lanciatore_lava": {
+   "file": "nem_lanciatore_lava.glb",
+   "tris": 438,
+   "kb": 27.1,
+   "bounds": {
+    "min": [
+     -0.35,
+     0,
+     -0.24
+    ],
+    "max": [
+     0.42,
+     2.38,
+     0.19
     ]
    }
   },
   "nem_lupo": {
    "file": "nem_lupo.glb",
-   "tris": 209,
-   "kb": 10.2,
+   "tris": 270,
+   "kb": 19.8,
    "bounds": {
     "min": [
      -0.2,
-     0.02,
+     0,
      -0.89
     ],
     "max": [
      0.18,
-     1.02,
+     1.04,
      0.98
+    ]
+   }
+  },
+  "nem_mite": {
+   "file": "nem_mite.glb",
+   "tris": 252,
+   "kb": 18.3,
+   "bounds": {
+    "min": [
+     -0.42,
+     0,
+     -0.33
+    ],
+    "max": [
+     0.42,
+     0.95,
+     0.3
     ]
    }
   },
   "nem_nonmorto": {
    "file": "nem_nonmorto.glb",
-   "tris": 550,
-   "kb": 22.6,
+   "tris": 632,
+   "kb": 36.9,
    "bounds": {
     "min": [
-     -0.39,
+     -0.34,
      0,
-     -0.86
+     -0.57
     ],
     "max": [
-     0.32,
-     1.92,
-     0.17
+     0.34,
+     1.96,
+     0.14
+    ]
+   }
+  },
+  "nem_operaio": {
+   "file": "nem_operaio.glb",
+   "tris": 758,
+   "kb": 46.4,
+   "bounds": {
+    "min": [
+     -0.46,
+     0,
+     -0.9
+    ],
+    "max": [
+     0.51,
+     2.01,
+     0.35
     ]
    }
   },
   "nem_palombaro": {
    "file": "nem_palombaro.glb",
-   "tris": 382,
-   "kb": 14.9,
+   "tris": 716,
+   "kb": 41.4,
    "bounds": {
     "min": [
-     -0.8,
+     -0.83,
      0,
-     -0.47
+     -0.41
     ],
     "max": [
-     0.8,
-     2.28,
-     0.57
+     0.83,
+     2.26,
+     0.59
     ]
    }
   },
   "nem_ragno": {
    "file": "nem_ragno.glb",
    "tris": 298,
-   "kb": 14.1,
+   "kb": 22.9,
    "bounds": {
     "min": [
      -1.3,
@@ -1038,86 +1259,171 @@
   },
   "nem_re_ossa": {
    "file": "nem_re_ossa.glb",
-   "tris": 773,
-   "kb": 32.5,
+   "tris": 741,
+   "kb": 46.2,
    "bounds": {
     "min": [
      -0.71,
      0,
-     -1.92
+     -1.8
     ],
     "max": [
-     0.91,
-     3.26,
+     0.72,
+     3.29,
      0.5
     ]
    }
   },
   "nem_scheletro": {
    "file": "nem_scheletro.glb",
-   "tris": 553,
-   "kb": 23,
+   "tris": 453,
+   "kb": 28.9,
    "bounds": {
     "min": [
-     -0.34,
+     -0.26,
      0,
-     -1.03
+     -0.83
     ],
     "max": [
-     0.39,
-     1.7,
-     0.16
+     0.33,
+     1.71,
+     0.15
+    ]
+   }
+  },
+  "nem_sciamano": {
+   "file": "nem_sciamano.glb",
+   "tris": 254,
+   "kb": 19,
+   "bounds": {
+    "min": [
+     -0.52,
+     0.05,
+     -0.3
+    ],
+    "max": [
+     0.52,
+     2.32,
+     0.46
     ]
    }
   },
   "nem_scintilla": {
    "file": "nem_scintilla.glb",
-   "tris": 216,
-   "kb": 10.6,
+   "tris": 286,
+   "kb": 19.6,
    "bounds": {
     "min": [
-     -0.45,
+     -0.52,
      0.56,
-     -0.53
+     -0.6
     ],
     "max": [
-     0.47,
-     1.52,
-     0.48
+     0.55,
+     1.7,
+     0.55
     ]
    }
   },
   "nem_sentinella": {
    "file": "nem_sentinella.glb",
-   "tris": 176,
-   "kb": 8.8,
+   "tris": 408,
+   "kb": 24.9,
    "bounds": {
     "min": [
-     -0.8,
+     -0.86,
      0,
-     -0.71
+     -0.94
     ],
     "max": [
-     0.83,
-     2.34,
-     0.43
+     0.64,
+     2.5,
+     1.05
+    ]
+   }
+  },
+  "nem_sparaneve": {
+   "file": "nem_sparaneve.glb",
+   "tris": 252,
+   "kb": 16.1,
+   "bounds": {
+    "min": [
+     -0.57,
+     -0.03,
+     -1.04
+    ],
+    "max": [
+     0.57,
+     1.8,
+     0.92
     ]
    }
   },
   "nem_spettro": {
    "file": "nem_spettro.glb",
-   "tris": 221,
-   "kb": 11,
+   "tris": 237,
+   "kb": 17.3,
    "bounds": {
     "min": [
-     -0.39,
-     0.21,
-     -0.62
+     -0.41,
+     0.11,
+     -0.28
     ],
     "max": [
-     0.39,
+     0.41,
      2,
      0.7
+    ]
+   }
+  },
+  "nem_tubo": {
+   "file": "nem_tubo.glb",
+   "tris": 347,
+   "kb": 24,
+   "bounds": {
+    "min": [
+     -0.57,
+     0,
+     -0.74
+    ],
+    "max": [
+     0.57,
+     1,
+     1.3
+    ]
+   }
+  },
+  "nem_vaelen": {
+   "file": "nem_vaelen.glb",
+   "tris": 626,
+   "kb": 37.5,
+   "bounds": {
+    "min": [
+     -0.73,
+     0,
+     -3.31
+    ],
+    "max": [
+     1.09,
+     3.36,
+     1.54
+    ]
+   }
+  },
+  "nem_valvola": {
+   "file": "nem_valvola.glb",
+   "tris": 384,
+   "kb": 23,
+   "bounds": {
+    "min": [
+     -0.48,
+     -0.05,
+     -0.77
+    ],
+    "max": [
+     0.48,
+     1.42,
+     0.95
     ]
    }
   },
