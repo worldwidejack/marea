@@ -16,6 +16,7 @@ import type { RunHero } from '../rpg/types.ts';
 import { visibileDa } from '../dungeon/erba.ts';
 import { bfs, cellCenter, cellOf, clearPath, lineOfSight, stepDown } from '../dungeon/map.ts';
 import { aimIndex } from '../dungeon/mira.ts';
+import { portataIndex } from '../dungeon/portata.ts';
 import type { ArenaAzione, PartitaState } from './partita.ts';
 import { partenza } from './partita.ts';
 import { lungoRaggio } from './ulti.ts';
@@ -184,13 +185,14 @@ export function botArena(d: PartitaState, i: number, rng: Rng): { input: Dungeon
   if (m.tieni > 0) { m.tieni--; a = true; }
   m.prevA = a;
   // con l'arco o una magia la mira va su di lui, a metà dell'anticipo giusto (un umano medio)
-  let mira = 0;
+  let mira = 0, portata = 0;
   if (o && puoTirare && (tipo === 'arco' || tipo === 'magia') && (a || h.act === 'tende' || h.act === 'punta')) {
     const v = tipo === 'arco' ? Math.max(8, rh.arma.gittata + (rh.frecce?.gittata ?? 0)) : sp?.forma === 'bomba' ? dist / Math.max(0.2, sp.volo ?? 1) : sp?.forma === 'raggio' ? 1e9 : Math.max(6, sp?.velocita ?? 12);
-    const t = (dist / v) * 0.5;
-    mira = aimIndex(o.x + vx * t - h.x, o.z + vz * t - h.z);
+    const t = (dist / v) * 0.5, tx = o.x + vx * t - h.x, tz = o.z + vz * t - h.z;
+    mira = aimIndex(tx, tz);
+    if (sp?.forma === 'bomba') portata = portataIndex(Math.sqrt(tx * tx + tz * tz), sp.gittata ?? 9); // la bomba la tira dove prevede che sarà, come una persona
   }
-  return { input: { mx: mv.x, my: mv.z, a, b: lui !== null && dist > 8 && tipo === 'mischia' && h.stamina > 30, c: false, d: false, ...(mira ? { m: mira } : {}) }, azione: null };
+  return { input: { mx: mv.x, my: mv.z, a, b: lui !== null && dist > 8 && tipo === 'mischia' && h.stamina > 30, c: false, d: false, ...(mira ? { m: mira } : {}), ...(mira && portata ? { p: portata } : {}) }, azione: null };
 }
 
 /** Direzione verso (gx, gz): dritto se il corridoio è libero, se no lungo il campo BFS dalla meta (rifatto ogni mezzo secondo). */

@@ -12,7 +12,8 @@ import type { SwingStyle } from './swing.ts';
  * b = corri, c = alterna arma e magia in mano (v6; fino al v5 lanciava la magia preparata), d = pozione. m = mira col mouse (mira.ts, v6):
  * indice d'angolo 1..AIM_N della direzione in cui tirare l'arco o lanciare la magia; assente = mira assistita. Il client registra un frame
  * per tick e lo quantizza con quantizeDungeon (mx, my a 1/8). A sulla scala d'uscita = esci. e = la Scarica dell'arco (perk Scarica, v9), assente = no.
- * p = alzo della mira (prima persona, alzo.ts): indice 1..ALZO_N della pendenza dello sguardo, insieme a `m`; assente = mira piatta. */
+ * p = alzo della mira (prima persona, alzo.ts): indice 1..ALZO_N della pendenza dello sguardo, insieme a `m`; assente = mira piatta.
+ * In Arena (terza persona) `p` è invece la portata della bomba (portata.ts): dove atterra, da PORTATA_MIN m alla gittata; assente = mira assistita. */
 export type DungeonInput = { mx: number; my: number; a: boolean; b: boolean; c: boolean; d: boolean; m?: number; e?: boolean; roll?: boolean; p?: number };
 export const NO_DUNGEON_INPUT: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
 /** RLE: [[ticks, mx×8, my×8, bit a|b<<1|c<<2|d<<3|e<<4|roll<<5, mira?, alzo?], ...]; la mira (1..AIM_N) e l'alzo (1..ALZO_N) solo nelle righe che ce

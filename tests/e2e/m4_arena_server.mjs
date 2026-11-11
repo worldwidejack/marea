@@ -153,7 +153,7 @@ export default async function (ctx) {
           if ((resa && i < 2) || (i === 1 && staccata && !ripresa)) continue;
           const b = botArena(d, i, rng[i]);
           if (b.azione) conn[i].manda({ t: 'az', a: b.azione });
-          const q = quantizeDungeon(b.input), x = [Math.round(q.mx * 8) || 0, Math.round(q.my * 8) || 0, (q.a ? 1 : 0) | (q.b ? 2 : 0)], k = x.join();
+          const q = quantizeDungeon(b.input), x = [Math.round(q.mx * 8) || 0, Math.round(q.my * 8) || 0, (q.a ? 1 : 0) | (q.b ? 2 : 0), ...(q.m ? [q.m, ...(q.p ? [q.p] : [])] : [])], k = x.join();
           if (k !== mandato[i]) { mandato[i] = k; conn[i].manda({ t: 'in', f: x }); }
         }
       }

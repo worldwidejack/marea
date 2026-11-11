@@ -33,8 +33,8 @@ export function gladiatore(k: number, eroe: ArenaEroe): ArEroe {
   return { id: `gladiatore${k}`, nome: g.nome, look: { ...g.look }, eroe, bot: true };
 }
 
-/** L'input di un gladiatore come lo manderebbe una persona: [mx×8, my×8, bit, mira?] (vale SQ_TICKS tick). */
+/** L'input di un gladiatore come lo manderebbe una persona: [mx×8, my×8, bit, mira?, portata?] (vale SQ_TICKS tick). */
 export function inputGladiatore(f: DungeonInput): SqInput {
   const r = packDungeon([f])[0]!;
-  return r[4] ? [r[1]!, r[2]!, r[3]!, r[4]] : [r[1]!, r[2]!, r[3]!];
+  return r[5] ? [r[1]!, r[2]!, r[3]!, r[4]!, r[5]] : r[4] ? [r[1]!, r[2]!, r[3]!, r[4]] : [r[1]!, r[2]!, r[3]!];
 }

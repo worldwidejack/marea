@@ -15,6 +15,7 @@ import { isOpaque, lineOfSight } from './map.ts';
 import { effettiMagia } from './perk.ts';
 import { caricaVampa, chiazzaVampa, consumaVampa } from './unici.ts';
 import { amica, colpisciEroe, compagno, eroiNelCerchio, eroiNemici, ostile, squadraDi } from './pvp.ts';
+import { portataDist } from './portata.ts';
 import { BOMBA_G, BOMBA_LATO, BOMBA_VUOTO, CANALE_EFFETTI, CANALE_OGNI, HZ, MAGIA_Y } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -205,10 +206,19 @@ export function fermaCanale(s: DungeonState, sp?: RunSpell): void {
 
 // ---------- bomba ----------
 
-/** A che distanza dall'eroe di turno atterra una bomba lanciata verso (fx, fz): sul nemico (o alleato, se di supporto) davanti, se no nel vuoto,
- *  oltre i muri in Arena. Lo usano lanciaBomba e il client per l'ombra di mira. */
-export function distanzaBomba(s: DungeonState, sp: RunSpell, fx: number, fz: number): number {
+/** Arena: la traiettoria passa sopra gli ostacoli. Se il punto di caduta (a `d` m verso (fx, fz)) è su un muro, arretra fino a terra libera. */
+function sulTerreno(s: DungeonState, fx: number, fz: number, d: number): number {
+  const h = s.hero, t = s.map.tile;
+  while (d > 0.4 && isOpaque(s.map, Math.floor((h.x + fx * d) / t), Math.floor((h.z + fz * d) / t))) d -= t / 8;
+  return Math.max(0.4, d);
+}
+
+/** A che distanza dall'eroe di turno atterra una bomba lanciata verso (fx, fz): in Arena, se chi lancia ha scelto la `portata` (portata.ts), lì
+ *  (senza agganciarsi a nessuno); se no sul nemico (o alleato, se di supporto) davanti, se no nel vuoto, oltre i muri in Arena. Lo usano
+ *  lanciaBomba e il client per l'ombra di mira. */
+export function distanzaBomba(s: DungeonState, sp: RunSpell, fx: number, fz: number, portata = 0): number {
   const h = s.hero, max = sp.gittata ?? 9, supp = isSupporto(sp), A = h.alzo;
+  if (s.pvp && portata) return sulTerreno(s, fx, fz, portataDist(portata, max));
   // prima persona: atterra dove lo sguardo tocca terra (guardando in su, in fondo alla gittata), o su chi sta davanti prima di lì
   const fin = A ? (A[1] < -1e-3 ? Math.min(max, (OCCHI_Y * A[0]) / -A[1]) : max) : max;
   let d = A ? fin : max * BOMBA_VUOTO, vicino = Infinity;
@@ -237,11 +247,7 @@ export function distanzaBomba(s: DungeonState, sp: RunSpell, fx: number, fz: num
     }
     if (s.pvp && vicino === Infinity) d = 0.4; // Arena: senza compagni davanti la Cura e la Furia a bomba cadono ai tuoi piedi
   }
-  if (!s.pvp) return Math.min(d, libera(s, fx, fz, max));
-  // La traiettoria passa sopra gli ostacoli. Se il punto di caduta è su un muro, arretra fino a terra libera.
-  const t = s.map.tile;
-  while (d > 0.4 && isOpaque(s.map, Math.floor((h.x + fx * d) / t), Math.floor((h.z + fz * d) / t))) d -= t / 8;
-  return Math.max(0.4, d);
+  return s.pvp ? sulTerreno(s, fx, fz, d) : Math.min(d, libera(s, fx, fz, max));
 }
 
 /** Lancia la bomba in alto nella direzione dell'eroe: atterra sul primo nemico (o alleato, se di supporto) lungo la mira, se no a 3/4
@@ -249,7 +255,7 @@ export function distanzaBomba(s: DungeonState, sp: RunSpell, fx: number, fz: num
 export function lanciaBomba(s: DungeonState, sp: RunSpell): void {
   const h = s.hero, supp = isSupporto(sp), vampa = !supp && sp.elemento === 'fuoco' ? consumaVampa(s) : null;
   if (supp) add(s.xp, 'supporto', sp.costo * RPG.xp.supportoLancio);
-  const d = distanzaBomba(s, sp, h.fx, h.fz);
+  const d = distanzaBomba(s, sp, h.fx, h.fz, h.portata);
   const N = Math.max(8, Math.round((sp.volo ?? 1.1) * HZ)), T = N * DT, y0 = MAGIA_Y;
   const orizz = Math.max(0, d - 0.4) / T; // parte 0,4 m davanti all'eroe
   const vy0 = (BOMBA_G * DT * DT * ((N * (N + 1)) / 2) - y0) / T; // somma dei passi (Eulero semi-implicito, come projectiles.ts) = −y0 al tick N

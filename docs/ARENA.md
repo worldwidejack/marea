@@ -117,9 +117,15 @@ In Arena le magie **elettriche non rallentano** (nei dungeon sì): fanno un po' 
   dall'altra parte (o, nella Sopravvivenza, in un'altra squadra) e il premio c'è.
 
 ### Prove
-- **Bombe**: passano sopra muri e ostacoli e scoppiano dove atterrano.
+- **Bombe**: passano sopra muri e ostacoli e scoppiano dove atterrano. **Atterrano dove le mandi tu**, senza agganciarsi a nessuno: col
+  joystick di mira la direzione è dove spingi e la distanza è quanto lo spingi (al bordo = gittata piena, a metà = metà); col mouse
+  atterrano sul cursore; col pad come col joystick. Se il punto è su un muro, la bomba arretra fino a terra libera. Con una bomba in mano
+  l'anello del joystick di mira è più grande (156 px invece di 108): a parità di distanza il dito si muove di più, quindi si sceglie il punto
+  con più precisione. Il **tocco veloce** (senza trascinare) resta il tiro assistito: bersaglio più vicino in un cono, o tre quarti della gittata.
+  La scelta viaggia come `p` insieme a `m` (`sim/dungeon/portata.ts`: 81 passi da 0,4 m alla gittata, ~11 cm l'uno); i gladiatori la mandano
+  verso dove prevedono che sarà l'avversario.
 - **Ombra di mira**: con una magia a bomba in mano, mentre si mira a terra c'è un disco scuro col raggio dello scoppio dove la bomba
-  atterrerebbe. La vede solo chi mira. La direzione delle bombe è smorzata per limitare gli scarti con joystick e mouse.
+  atterrerebbe. La vede solo chi mira. Direzione e distanza sono smorzate (`build.sensibilitaBomba`) per limitare gli scarti con joystick e mouse.
 - **Allenamento senza server**: `?test=1&net=0&arena=banco` entra subito nell'allenamento (Caccia alle stelle). `?arena=1`: il bottone ⚔ porta
   al colosseo. Hook di prova: `arenaGioca`, `arenaPosa`, `arenaCarica`, `arenaTempo` (avanti di N s), `arenaAuto` (il pilota gioca per me).
 - Test: `packages/sim/test/arena_partita.test.ts` (build, colpi tra eroi, Vigore, Cura e Furia, le sei ulti, erba alta, resa, premio),

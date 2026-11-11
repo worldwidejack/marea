@@ -10,6 +10,7 @@ import { pomello } from '../ui/comandi_touch.ts';
 import { padMira } from '../comandi/pad.ts';
 
 const MIRA = 108, KNOB = 44, MIRA_R = 36, MIRA_DEAD = 0.3, TAP_MS = 350; // px: anello, pomello, corsa del pomello; zona morta (frazione della corsa); durata massima di un tap
+const GRANDE = 156, GRANDE_KNOB = 52, GRANDE_R = 56; // anello grande (bombe dell'Arena): la stessa distanza costa più corsa del dito, quindi meno sensibile
 const RIGHT = 'max(16px, env(safe-area-inset-right, 0px))', SAFE = 'env(safe-area-inset-bottom, 0px)';
 const CSS = `
 .mz-mira { position: absolute; right: ${RIGHT}; bottom: calc(${SAFE} + 28px); width: ${MIRA}px; height: ${MIRA}px; box-sizing: border-box; border-radius: 50%; display: none; background: rgba(232,67,63,.22); border: 3px solid rgba(244,227,193,.7); z-index: 13; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
@@ -19,6 +20,8 @@ const CSS = `
 .mz-mira::after { top: 50%; left: 14px; right: 14px; height: 2px; margin-top: -1px; }
 .mz-mira i { position: absolute; left: ${(MIRA - 6 - KNOB) / 2}px; top: ${(MIRA - 6 - KNOB) / 2}px; width: ${KNOB}px; height: ${KNOB}px; box-sizing: border-box; border-radius: 50%; background: rgba(232,67,63,.9); border: 3px solid ${PAL.sabbiaChiara}; pointer-events: none; will-change: transform; z-index: 1; }
 .mz-mira.tieni i { background: ${PAL.rosso}; }
+.mz-mira.grande { width: ${GRANDE}px; height: ${GRANDE}px; }
+.mz-mira.grande i { left: ${(GRANDE - 6 - GRANDE_KNOB) / 2}px; top: ${(GRANDE - 6 - GRANDE_KNOB) / 2}px; width: ${GRANDE_KNOB}px; height: ${GRANDE_KNOB}px; }
 `;
 
 export type MiraCampione = {
@@ -40,8 +43,10 @@ export type MiraStick = {
   readonly on: boolean;
   /** Direzione del dito mentre mira (versore in assi mondo, la stessa che la sim userà), null se non mira. */
   dir(): { x: number; z: number } | null;
-  /** Quanto è spinto il pomello (0 al centro … 1 al bordo), anche nel tick del rilascio: la pesca (#457) ci decide quanto lontano lanciare. */
+  /** Quanto è spinto il pomello (0 al centro … 1 al bordo), anche nel tick del rilascio: la pesca e le bombe dell'Arena ci decidono quanto lontano lanciare. */
   forza(): number;
+  /** Anello più grande (e corsa del pomello più lunga) per mirare con più precisione: si applica appena nessun dito è giù. */
+  grande(on: boolean): void;
   /** Pausa, domanda, blur: il dito non conta più. */
   cancel(): void;
   dispose(): void;
@@ -52,11 +57,12 @@ export function createMiraStick(o: { id: string; yaw(): number; blocked(): boole
   const aim = el('div', 'mz mz-mira'); aim.id = o.id;
   const knob = el('i'); aim.append(knob);
   let padTieni = false, padRel = false, padM = 0, padForza = 0; // lo stick destro del controller
-  let id: number | null = null, on = false, held = false, rel = false, tap = false, m = 0, t0 = 0, touchSeen = false, forza = 0;
-  const paint = (x: number, y: number) => { knob.style.transform = `translate(${x * MIRA_R}px, ${y * MIRA_R}px)`; aim.classList.toggle('tieni', held); };
+  let id: number | null = null, on = false, held = false, rel = false, tap = false, m = 0, t0 = 0, touchSeen = false, forza = 0, vuoleGrande = false, corsa = MIRA_R;
+  const paint = (x: number, y: number) => { knob.style.transform = `translate(${x * corsa}px, ${y * corsa}px)`; aim.classList.toggle('tieni', held); };
+  const applicaGrande = () => { if (id !== null || aim.classList.contains('grande') === vuoleGrande) return; aim.classList.toggle('grande', vuoleGrande); corsa = vuoleGrande ? GRANDE_R : MIRA_R; paint(0, 0); };
   const move = (e: PointerEvent) => {
     const r = aim.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-    const { x: jx, y: jy, len } = pomello(dx, dy, MIRA_R);
+    const { x: jx, y: jy, len } = pomello(dx, dy, corsa);
     if (len > MIRA_DEAD) held = true;
     if (held && len > 0.12) { const w = screenToWorld(jx, jy, o.yaw()); m = aimIndex(w.mx, w.my) || m; forza = len; }
     paint(jx, jy);
@@ -65,7 +71,7 @@ export function createMiraStick(o: { id: string; yaw(): number; blocked(): boole
     if (id === null) return;
     id = null;
     if (held) rel = true; else if (performance.now() - t0 <= TAP_MS) tap = true;
-    held = false; paint(0, 0);
+    held = false; applicaGrande(); paint(0, 0);
   };
   const cancel = () => { end(); rel = false; tap = false; };
   aim.addEventListener('pointerdown', (e) => {
@@ -107,6 +113,7 @@ export function createMiraStick(o: { id: string; yaw(): number; blocked(): boole
     get on() { return on; },
     dir() { const d = padTieni ? aimDir(padM) : held ? aimDir(m) : null; return d ? { x: d[0], z: d[1] } : null; },
     forza: () => (padTieni || padRel ? padForza : forza),
+    grande(want) { vuoleGrande = want; applicaGrande(); },
     cancel,
     dispose() {
       removeEventListener('pointerup', up as EventListener); removeEventListener('pointercancel', up as EventListener); removeEventListener('pointerdown', seen, true);

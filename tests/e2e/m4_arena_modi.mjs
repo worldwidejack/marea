@@ -169,6 +169,35 @@ export default async function (ctx) {
     await ctx.shot(pw, 'ombra_bomba');
     await pw.keyboard.up('Space');
     await ctx.waitState(pw, (st) => st.arenaPartita?.ombra === null, 10000);
+    // il joystick di mira: l'anello è grande e la distanza dell'ombra è quanto spingi, senza agganciarsi a nessuno (in qualche direzione c'è un muro: se ne prova più d'una)
+    const anello = await pw.evaluate(() => { const e = document.querySelector('#mzArenaMira'), r = e.getBoundingClientRect(); return { cx: r.x + r.width / 2, cy: r.y + r.height / 2, w: r.width, grande: e.classList.contains('grande') }; });
+    assert(anello.grande && anello.w > 140, 'con la bomba in mano l’anello di mira è grande: ' + JSON.stringify(anello));
+    // il dito scende, spinge `f` della corsa verso `ang` (gradi sullo schermo) e aspetta che l'ombra si fermi; poi lascia (la bomba parte). Una A premuta
+    // mentre l'eroe sta ancora lanciando non conta: si riprova dopo la pausa.
+    const metri = async (ang, f) => {
+      const rad = (ang * Math.PI) / 180, R = 56;
+      for (let prova = 0; prova < 3; prova++) {
+        await pw.mouse.move(anello.cx, anello.cy); await pw.mouse.down();
+        for (const s of [0.5, 1]) await pw.mouse.move(anello.cx + Math.cos(rad) * R * f * s, anello.cy + Math.sin(rad) * R * f * s);
+        let prima = -2, d = -2;
+        for (let i = 0; i < 24 && (d < 0 || Math.abs(d - prima) > 0.01); i++) {
+          await pw.waitForTimeout(250); prima = d;
+          const a = (await ctx.getState(pw)).arenaPartita;
+          d = a.ombra ? Math.hypot(a.ombra.x - a.pos[0][0], a.ombra.z - a.pos[0][1]) : -1;
+        }
+        await pw.mouse.up();
+        await pw.waitForTimeout(2000);
+        if (d >= 0) return d;
+      }
+      return -1;
+    };
+    const prove = [];
+    for (const ang of [90, 270, 0, 180]) {
+      const poca = await metri(ang, 0.45), tanta = await metri(ang, 0.95);
+      prove.push({ ang, poca: Math.round(poca * 10) / 10, tanta: Math.round(tanta * 10) / 10 });
+      if (poca > 2.5 && poca < 5.5 && tanta > poca + 3) break;
+    }
+    assert(prove.some((x) => x.poca > 2.5 && x.poca < 5.5 && x.tanta > x.poca + 3), 'l’ombra segue quanto spingi il joystick di mira: ' + JSON.stringify(prove));
   });
 
   await ctx.test('nessun errore in pagina', async () => {
