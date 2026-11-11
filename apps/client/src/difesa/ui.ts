@@ -120,6 +120,7 @@ export function creaUi(root: HTMLElement) {
   panP.append(el('h1', '', 'PAUSA'));
   const filaP = el('div'), bCont = el('button', 'df-grosso', 'CONTINUA'), bRif = el('button', 'df-grosso b2', 'RICOMINCIA'), bLiv = el('button', 'df-grosso b2', 'LIVELLI');
   filaP.append(bCont, bRif, bLiv); panP.append(filaP);
+  bCont.dataset['padBack'] = '';
   const gira = el('div', 'df-gira', '<i>📱</i><div>GIRA IL TELEFONO</div><div style="font-size:16px;opacity:.8">la Difesa si gioca in orizzontale</div>');
   const carica = el('div', 'df-carica'), caricaTesto = el('div', '', 'Carico…'), caricaPista = el('div', 'df-pista'), caricaPiena = el('div', 'df-piena');
   caricaPista.append(caricaPiena); carica.append(caricaTesto, caricaPista);

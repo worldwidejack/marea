@@ -2,6 +2,7 @@
 // mano si colpiscono i sassi, a mani nude o col retino si scuotono gli alberi (una volta al giorno a testa); un insetto preso col retino
 // va nello zaino a peso 0 e diventa «visto» nella pagina Insetti del Diario; consegnato al mobiliere sparisce e diventa «posseduto»;
 // venduto al Contrabbandiere dà il suo prezzo ma non conta come posseduto.
+import { collegaController } from '../lib/controller.mjs';
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -107,7 +108,13 @@ export default async function (ctx) {
       // vicino al sasso: col retino in mano niente bottone per il sasso, con la pala sì
       const sa = s0.insetti.sassi[0];
       await hook('teleport', sa.x + 1.2, sa.z + 0.5);
-      await hook('insettiAttrezzo', 'pala');
+      await ctx.waitState(page, (s) => s.insetti.inBorgo && s.insetti.attrezzo === 'retino', 5000);
+      const pad = await collegaController(page);
+      await pad.premi(3);
+      await ctx.waitState(page, (s) => s.insetti.attrezzo === 'nulla', 5000);
+      await pad.premi(3);
+      await ctx.waitState(page, (s) => s.insetti.attrezzo === 'pala', 5000);
+      await pad.scollega();
       await ctx.waitState(page, (s) => s.insetti.ctx === 'sasso' && /colpisci/i.test(s.insetti.bottone ?? ''), 3000);
       let uscito = null;
       for (let i = 0; i < s0.insetti.sassi.length && !uscito; i++) {

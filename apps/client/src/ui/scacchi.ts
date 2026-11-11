@@ -162,6 +162,7 @@ export function createScacchi(o: { root: HTMLElement; onClose?: () => void }): S
     if (e.code === 'Escape') { e.preventDefault(); close(); }
     else if (e.code === 'Backspace' || e.code === 'KeyZ') { e.preventDefault(); undo(); }
     else if (e.code === 'KeyR') { e.preventDefault(); reset(); }
+    else if (e.code === 'Space' && document.activeElement instanceof HTMLButtonElement && wrap.contains(document.activeElement)) { e.preventDefault(); document.activeElement.click(); }
     else if (e.code === 'Enter' && won() && idx < PROBS.length - 1) { e.preventDefault(); reset(idx + 1); }
   };
   function close(): void {

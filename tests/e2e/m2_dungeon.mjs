@@ -2,6 +2,7 @@
 // valvole disegnate, l'autopilota gira una valvola e l'acqua scende; lore (RPG.md §2c): scritta col nome, voci dell'altoparlante (una
 // volta sola), LEGGI accanto al registro che un tocco al volo non apre e L tenuto sì (dungeon fermo), Esc chiude senza Pausa.
 // Screenshot a 1280×720 e 390×844 in tests/out/shots/m2_dungeon_*.png. Persone vere su wrangler dev locale (come m1_solo).
+import { collegaController } from '../lib/controller.mjs';
 import fs from 'node:fs';
 import { provaSchivata } from '../lib/schivata.mjs';
 import net from 'node:net';
@@ -113,7 +114,7 @@ export default async function (ctx) {
       assert(!rv.ok && /cancello|sbarrato|Anello/i.test((await rv.json()).error ?? ''), 'il Portale del Vuoto si apre senza l’Anello dell’Onda');
     });
 
-    await ctx.test('Cripta: si entra, scena e HUD, il tasto 2 prende la magia in mano e la A la lancia; Esc → Pausa (ferma) → Esci → «Uscire?» → ESCI: finish NON parte, la spedizione resta aperta', async () => {
+    await ctx.test('Cripta: si entra, scena e HUD, il tasto 2 prende la magia in mano e la A la lancia; Select apre lo Zaino, Start apre Pausa (ferma) → Esci → «Uscire?» → ESCI: finish NON parte, la spedizione resta aperta', async () => {
       // i bottoni degli attrezzi del Borgo (retino, pala, canna) accesi all'ingresso: sotto il loro update() non gira più, li nasconde il CSS
       await page.waitForSelector('#mzAttrezzoBtn', { state: 'attached', timeout: 15000 });
       const accesi = await page.evaluate(() => ['mzInsettiBtn', 'mzAttrezzoBtn', 'mzScavaBtn', 'mzPescaBtn'].filter((id) => { const e = document.getElementById(id); if (e) e.classList.add('on'); return !!e; }));
@@ -133,8 +134,14 @@ export default async function (ctx) {
       await ctx.waitState(page, (s, m) => s.dungeon.hero.magicka < m, 3000, m0);
       await sleep(150);
       await ctx.shot(page, '3_cripta_1280');
-      await page.keyboard.press('Escape');
-      await page.waitForSelector('#mzDngPausa.on', { timeout: 3000 });
+      const pad = await collegaController(page);
+      await pad.premi(8);
+      await page.waitForSelector('#mzEroe.on.sotto', { timeout: 5000 });
+      await pad.premi(1);
+      await page.waitForSelector('#mzEroe.on', { state: 'hidden' });
+      await pad.premi(9);
+      await page.waitForSelector('#mzDngPausa.on', { timeout: 5000 });
+      await pad.scollega();
       const t0 = (await st()).dungeon.tick; await sleep(400);
       assert((await st()).dungeon.tick === t0 && (await st()).dungeon.paused, 'in pausa la partita deve stare ferma');
       await ctx.shot(page, '3b_pausa_1280');

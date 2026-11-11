@@ -118,6 +118,11 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   });
   const keys = new Set<string>();
   const kd = (e: KeyboardEvent) => {
+    if (e.code === 'KeyZ') {
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (!e.repeat && !pausa) { keys.add(e.code); mouseLatch = true; }
+      return;
+    }
     if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) setPausa(!pausa); return; }
     if (e.code === 'KeyF' || e.code === 'KeyQ' || e.code === 'KeyR') {
       e.preventDefault(); e.stopImmediatePropagation(); // F, Q e R sono del gioco (fuori aprono il feed e niente)
@@ -134,7 +139,7 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   let promptKey = '';
   return {
     sample() {
-      const out = { a: mouseA || mouseLatch, c: cLatch, d: dLatch || azDito.giu || keys.has('KeyF'), e: eLatch, mira: stick.sample() };
+      const out = { a: mouseA || mouseLatch || keys.has('KeyZ'), c: cLatch, d: dLatch || azDito.giu || keys.has('KeyF'), e: eLatch, mira: stick.sample() };
       cLatch = false; dLatch = false; eLatch = false; mouseLatch = false;
       return out;
     },

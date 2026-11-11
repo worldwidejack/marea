@@ -7,6 +7,7 @@
 // della barca escono attorno a chi si ferma al largo. Il pesce lo tiene il server (rpg/pesci.ts). Esc o SMETTI per smettere.
 // Sta nel chunk del negozio dei mobili (game/negozio.ts) con gli insetti: il JS iniziale non cambia. Due mesh rifatte a ogni frame
 // (render/pennello.ts: canna, galleggiante, anelli, mirino; e le ombre trasparenti) più la lenza: 3 draw call.
+import { profiloAttivo } from '../comandi/mappa.ts';
 import * as THREE from 'three';
 import { PESCI_CFG, tagliaDi } from '@marea/content/pesci.ts';
 import type { PesceDef } from '@marea/content/pesci.ts';
@@ -39,7 +40,6 @@ export type PescaBorgo = {
   /** La scritta sotto A mentre si pesca o davanti all'acqua con la canna in mano (null = niente). */
   azione(): string | null;
 };
-
 const MAX_V = 20000, MAX_V_OMBRE = 6000;
 /** Le ombre si vedono entro VISTA m; quelle della barca si rifanno se la barca si è spostata di più di SPOSTA m. */
 const VISTA = 48, SPOSTA = 14;
@@ -255,7 +255,7 @@ export function createPescaBorgo(o: {
     const t = e.target as HTMLElement | null;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
     if (e.code === 'Escape' && fase !== 'spento') { e.stopPropagation(); esci(); return; }
-    if (e.code === 'KeyP' && fase === 'spento' && inBarca()) entra();
+    if (e.code === 'KeyP' && fase === 'spento' && !w.frozen && ['borgo', 'barca'].includes(profiloAttivo())) entra();
   });
   btn.addEventListener('click', () => { if (fase === 'spento') entra(); });
   smetti.addEventListener('click', () => esci());

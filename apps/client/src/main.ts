@@ -64,6 +64,7 @@ import { creaRegistro } from './avvio/registro.ts';
 import { azioneA } from './avvio/azione_a.ts';
 import { apriHome } from './avvio/home.ts';
 import { avviaComandi } from './avvio/comandi.ts';
+import { collegaProfilo } from './comandi/mappa.ts';
 
 async function boot(): Promise<void> {
   avviaComandi(); // prima di tutto: la rimappa dei tasti dev'essere il primo ascoltatore della finestra
@@ -194,7 +195,17 @@ async function boot(): Promise<void> {
   let animali: Animali | null = null, evocato: Evocato | null = null, evocatoCarico = false;
   void import('./game/animali.ts').then((m) => { animali = m.createAnimali({ world, camera: renderer.camera, canvas, root, hud, buio: () => vis.get()?.buio ?? 0, avvista: (id) => diario.avvista(id) }); }).catch(() => { /* senza animali si gioca lo stesso */ });
   // ——— il registro: chi è aperto, chi ferma il mondo, chi si chiude (avvio/registro.ts) ———
+  collegaProfilo(() => {
+    if (ingressi.active) return (FLAGS.primaPersona ?? impostazioni.value.primaPersona) ? 'dungeonFp' : 'dungeon';
+    if (ar?.active) return 'arena';
+    if (tpl.active) return 'templari';
+    if (adr.active) return 'snowboard';
+    if (dif?.aperta) return 'difesa';
+    if (regata.active) return 'regata';
+    return giochi.profilo() ?? (negozio?.pescando() ? 'pesca' : arreda?.attivo() ? 'arreda' : world.mode === 'boat' ? 'barca' : 'borgo');
+  });
   const reg = creaRegistro([
+    { id: 'impostazioni', gruppo: 'personale', aperto: impostazioni.isOpen, chiudi: impostazioni.close },
     { id: 'diario', gruppo: 'pannello', aperto: () => diario.isOpen(), chiudi: () => diario.close() },
     { id: 'porto', gruppo: 'pannello', aperto: () => porto.isBusy(), chiudi: () => porto.close() },
     { id: 'botteghe', gruppo: 'pannello', aperto: () => !!botteghe?.isBusy(), chiudi: () => botteghe?.close() },
@@ -221,7 +232,7 @@ async function boot(): Promise<void> {
 
   const apriEditor = () => { if (!editor || reg.occupato()) return false; feed?.close(); editor.open(); return true; };
   const apriFeed = () => { if (!feed || reg.occupato()) return false; editor?.close(); feed.open(); return true; };
-  collegaTasti({ reg, foto: { open: () => foto.open() }, editor, feed, eroe, diario, mappa: () => mappa, emotes, apriEditor, apriFeed });
+  collegaTasti({ reg, foto: { open: () => foto.open() }, editor, feed, eroe, diario, mappa: () => mappa, emotes, apriEditor, apriFeed, impostazioni, viaggio: () => teleBtn.el.click() });
   registerTestHook('openEditor', () => apriEditor());
   registerTestHook('openFeed', () => apriFeed());
   registerTestHook('openHero', () => { if (!eroe || reg.occupato()) return false; eroe.open(); return true; });

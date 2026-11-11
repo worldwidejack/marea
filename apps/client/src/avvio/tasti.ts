@@ -13,13 +13,16 @@ export function collegaTasti(o: {
   mappa: () => { toggle(): void; zoom(d: number): void } | null;
   emotes: { wheelOpen: boolean; closeWheel(): void; toggleWheel(): void; play(id: EmoteId): void };
   apriEditor(): boolean; apriFeed(): boolean;
+  impostazioni: Pannello; viaggio(): void;
 }): void {
   const { reg, editor, feed, eroe, diario, emotes } = o;
   const EMOTES = AVATAR.emote as EmoteId[];
   const scrive = (e: KeyboardEvent) => e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
   addEventListener('keydown', (e) => {
     if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
-    if (e.code === 'KeyO' && !scrive(e)) { o.foto.open(); return; } // modalità foto: dentro, O ed Esc escono (ui/foto_ui.ts)
+    if (e.code === 'Escape' && !scrive(e) && !reg.coperto()) { o.impostazioni.open(); return; }
+    if (e.code === 'KeyU' && !scrive(e) && !reg.coperto()) { o.viaggio(); return; }
+    if (e.code === 'KeyO' && !scrive(e) && !reg.occupato()) { o.foto.open(); return; } // modalità foto: dentro, O ed Esc escono (ui/foto_ui.ts)
     if (e.code === 'KeyC') { if (editor?.isOpen()) editor.close(); else o.apriEditor(); return; }
     if (e.code === 'KeyF') { if (feed?.isOpen()) feed.close(); else o.apriFeed(); return; }
     if (e.code === 'KeyM') { if (!reg.occupato()) o.mappa()?.toggle(); return; }

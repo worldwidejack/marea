@@ -43,7 +43,7 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
   const keys = new Set<string>();
   let aLatch = false, bLatch = false;
   const CTRL_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
-  const DIREZIONI = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', ...CTRL_KEYS]);
+  const DIREZIONI = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
   const kd = (e: KeyboardEvent) => {
     if (DIREZIONI.has(e.code) && eDelPad(e)) return; // le direzioni del controller le leggo in analogico (padMovimento)
     if (CTRL_KEYS.has(e.code) && !e.metaKey && !e.ctrlKey) e.preventDefault();
@@ -52,7 +52,7 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
     if (e.code === 'Space' || e.code === 'KeyE') aLatch = true;
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') bLatch = true;
   };
-  const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
+  const ku = (e: KeyboardEvent) => { if (!DIREZIONI.has(e.code) || !eDelPad(e)) keys.delete(e.code); };
   const releaseAll = () => { roll.clear(); keys.clear(); tA.lascia(); tB.lascia(); aLatch = bLatch = false; endStick(); }; // blur / scheda nascosta: niente tasti incollati (anche in gara)
   addEventListener('keydown', kd); addEventListener('keyup', ku); addEventListener('blur', releaseAll);
   const onVis = () => { if (document.hidden) releaseAll(); };

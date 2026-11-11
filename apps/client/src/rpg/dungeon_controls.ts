@@ -159,10 +159,15 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
     if (asking && (e.code === 'Enter' || e.code === 'KeyY')) { e.preventDefault(); e.stopImmediatePropagation(); setAsk(false); o.onAbort(); return; }
     if (e.code === 'KeyI') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) openZaino(); return; }
     if (!pausa && !asking && !pref.aperto && o.fp.tasto(e)) { e.preventDefault(); e.stopImmediatePropagation(); return; } // E sul bottino: fruga
-    if (e.code === 'KeyR' || e.code === 'KeyE') {
+    if (e.code === 'KeyZ') {
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (!e.repeat && !pausa && !asking && !pref.aperto) { keys.add(e.code); aLatch = true; }
+      return;
+    }
+    if (e.code === 'KeyR' || e.code === 'KeyE' || e.code === 'KeyH') {
       e.preventDefault(); e.stopImmediatePropagation();
       if (e.repeat || pausa || asking || pref.aperto) return;
-      keys.add(e.code); if (e.code === 'KeyE') eLatch = true; else dLatch = true;
+      keys.add(e.code); if (e.code === 'KeyR') dLatch = true; else eLatch = true;
       return;
     }
     // prima persona: col mouse catturato i bottoni della lanterna non si raggiungono
@@ -182,7 +187,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
     apriPausa() { persoT = performance.now(); if (!asking && !pref.aperto) setPausa(true); },
     sample() {
       const st = stick.sample();
-      const out = { a: aLatch || mouseA || st.held, d: dLatch || tD.giu || keys.has('KeyR'), e: eLatch || tE.giu || keys.has('KeyE'), tap: st.tap };
+      const out = { a: aLatch || mouseA || keys.has('KeyZ') || st.held, d: dLatch || tD.giu || keys.has('KeyR'), e: eLatch || tE.giu || keys.has('KeyE') || keys.has('KeyH'), tap: st.tap };
       aLatch = dLatch = eLatch = false;
       return out;
     },
