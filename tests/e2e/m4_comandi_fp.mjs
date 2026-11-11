@@ -34,7 +34,7 @@ export default async function (ctx) {
     if (!up) throw new Error('wrangler dev non risponde:\n' + log.split('\n').slice(-20).join('\n'));
     const getLot = async (t) => (await (await fetch(base + '/api/lot', { headers: { 'x-token': t } })).json());
 
-    const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1&fp=1`, { viewport: ctx.B.DESKTOP }); ctx._pages.push(P);
+    const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1`, { viewport: ctx.B.DESKTOP }); ctx._pages.push(P);
     const page = P.page;
     if (WIN) await page.route(/\/(api|chunk|assets)/, (r) => r.continue({ headers: { ...r.request().headers(), connection: 'close' } }));
     await ctx.waitReady(page, 30000);

@@ -14,13 +14,8 @@ import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 export type LanternaUi = { salvatoQui: boolean; oggetti: number; monete: number };
 export type Controls = {
-  /** Un campione per tick: d e la A in più (clic tenuto, bottone d'uscita, joystick di mira). `tap` = tocco veloce sul joystick di mira senza trascinare (vale un tick): colpo assistito. `m` = indice di mira del joystick di mira
-   *  (mentre è tenuto e nel tick del rilascio, così l'arco parte dove puntavi); 0 = niente mira dal dito. */
-  sample(): { a: boolean; d: boolean; e: boolean; m: number; tap: boolean };
-  /** Telefono, arco o magia in mano: al posto del bottone A compare il joystick di mira (trascini = punti e tiri, lasci = l'arco parte). */
-  setMira(on: boolean): void;
-  /** Direzione del joystick di mira mentre lo tieni (versore in assi mondo, la stessa che la sim userà), null se non lo tieni. */
-  miraDir(): { x: number; z: number } | null;
+  /** Un campione per tick: d e la A in più (clic tenuto, bottone d'uscita, stick destro del controller). `tap` = tocco veloce sullo stick di mira senza trascinare (vale un tick): colpo assistito. */
+  sample(): { a: boolean; d: boolean; e: boolean; tap: boolean };
   /** Pausa, domanda «Uscire?» o scelta di un preferito aperta: niente tick. */
   readonly paused: boolean;
   /** Prima persona: il mouse è scappato (Esc), si apre la pausa. */
@@ -47,7 +42,6 @@ export type Controls = {
   dispose(): void;
 };
 
-const MIRA = 108; // px: anello del joystick di mira (mira_stick.ts), per lasciargli il posto
 const SAFE = 'env(safe-area-inset-bottom, 0px)', RIGHT = 'max(16px, env(safe-area-inset-right, 0px))', TOP = 'max(8px, env(safe-area-inset-top))';
 const CSS = `
 .mz-dng-btn { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: 3px solid rgba(244,227,193,.7); color: ${L.inchiostro}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font: 700 13px ${FONT_LIBRO}; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; z-index: 13; overflow: hidden; }
@@ -55,10 +49,6 @@ const CSS = `
 .mz-dng #btnSchiva { right: calc(${RIGHT} + 4px) !important; bottom: calc(${SAFE} + 132px) !important; }
 .mz-dng-btn.e { right: calc(${RIGHT} + 78px); bottom: calc(${SAFE} + 206px); background: rgba(120,70,22,.84); display: none; }
 .mz-dng-btn.e.on-vis { display: flex; }
-.mz-dng-aimon #btnA { display: none !important; }
-.mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-right, 0px)) + ${MIRA + 8}px) !important; }
-.mz-dng-aimon .mz-dng-btn.d { bottom: calc(${SAFE} + 232px); }
-.mz-dng-aimon #btnSchiva { bottom: calc(${SAFE} + 160px) !important; }
 .mz-dng-btn.on { transform: scale(.92); filter: brightness(1.3); }
 .mz-dng-btn.off { opacity: .45; }
 .mz-dng-btn.mano { border-color: ${L.acquaScura}; box-shadow: 0 0 0 2px ${L.inchiostro}; }
@@ -92,7 +82,7 @@ const CSS = `
 
 export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; hero(): HeroState | null; onPreferito(p: Preferito): void; blocked(): boolean; yaw(): number; insieme?: boolean; valvola?: string; timone?: string;
   /** Prima persona: `clic` false = quel clic serviva solo a riprendere il mouse, non attacca; `riprendi` = la pausa si chiude col bottone. */
-  fp?: { clic(): boolean; riprendi(): void; /** Un tasto per la prima persona (E sul bottino sotto il mirino): true = preso lì. */ tasto(e: KeyboardEvent): boolean } }): Controls {
+  fp: { clic(): boolean; riprendi(): void; /** Un tasto per la prima persona (E sul bottino sotto il mirino): true = preso lì. */ tasto(e: KeyboardEvent): boolean } }): Controls {
   if (!document.getElementById('mz-dng-ctrl-style')) { const st = document.createElement('style'); st.id = 'mz-dng-ctrl-style'; st.textContent = CSS; document.head.appendChild(st); }
   o.root.classList.add('mz-dng'); // la schivata (#btnSchiva) prende il posto di D
   let dLatch = false, eLatch = false, aLatch = false, mouseA = false, asking = false, pausa = false;
@@ -111,7 +101,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const tE = tieniPremuto(E.b, { premi: () => (eLatch = true), classe: 'on', ferma: true });
 
   // ---- joystick di mira (telefono, arco o magia in mano): trascini = punti e tiri, lasci = l'arco parte dove puntavi (mira_stick.ts) ----
-  const stick = createMiraStick({ id: 'mzDngMira', yaw: o.yaw, blocked: () => pausa || asking || o.blocked(), senzaPad: !!o.fp });
+  const stick = createMiraStick({ id: 'mzDngMira', yaw: o.yaw, blocked: () => pausa || asking || o.blocked(), senzaPad: true });
   const btn = (cls: string, act: string, ...kids: (Node | string)[]) => { const b = el('button', cls); b.type = 'button'; b.dataset['act'] = act; b.append(...kids); return b; };
 
   // ---- in alto a destra: Zaino e Pausa ----
@@ -128,7 +118,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const lanBox = el('div', 'mz mz-dng-lan'); lanBox.id = 'mzDngLanterna';
   const lanTitle = el('b'); lanTitle.append(el('i'), 'LANTERNA');
   const lanSub = el('div', 'sub');
-  const salva = btn('mz-btn salva', 'salva', 'SALVA'), esciL = btn('mz-btn ghost', 'esci-lanterna', o.fp ? 'ESCI · X' : 'ESCI');
+  const salva = btn('mz-btn salva', 'salva', 'SALVA'), esciL = btn('mz-btn ghost', 'esci-lanterna', 'ESCI · X');
   const lanRow = el('div', 'mz-row'); lanRow.append(salva, esciL);
   lanBox.append(lanTitle, lanSub, lanRow);
 
@@ -152,7 +142,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const openZaino = () => { setPausa(false); setAsk(false); o.onZaino(); };
   pauseBtn.addEventListener('click', () => { if (!asking) setPausa(!pausa); });
   zaino.addEventListener('click', openZaino);
-  resume.addEventListener('click', () => { setPausa(false); o.fp?.riprendi(); });
+  resume.addEventListener('click', () => { setPausa(false); o.fp.riprendi(); });
   mZaino.addEventListener('click', openZaino);
   mEsci.addEventListener('click', () => setAsk(true));
   no.addEventListener('click', () => setAsk(false));
@@ -168,7 +158,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
     if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat && performance.now() - persoT > 300) { if (pref.aperto) pref.chiudi(); else if (asking) setAsk(false); else setPausa(!pausa); } return; }
     if (asking && (e.code === 'Enter' || e.code === 'KeyY')) { e.preventDefault(); e.stopImmediatePropagation(); setAsk(false); o.onAbort(); return; }
     if (e.code === 'KeyI') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) openZaino(); return; }
-    if (o.fp && !pausa && !asking && !pref.aperto && o.fp.tasto(e)) { e.preventDefault(); e.stopImmediatePropagation(); return; } // E sul bottino: fruga
+    if (!pausa && !asking && !pref.aperto && o.fp.tasto(e)) { e.preventDefault(); e.stopImmediatePropagation(); return; } // E sul bottino: fruga
     if (e.code === 'KeyR' || e.code === 'KeyE') {
       e.preventDefault(); e.stopImmediatePropagation();
       if (e.repeat || pausa || asking || pref.aperto) return;
@@ -176,11 +166,11 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
       return;
     }
     // prima persona: col mouse catturato i bottoni della lanterna non si raggiungono
-    if (o.fp && lanBox.classList.contains('on') && (e.code === 'KeyF' || e.code === 'KeyX')) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat && !pausa && !asking) { if (e.code === 'KeyF') o.onSalva(); else o.onEsciLanterna(); } return; }
+    if (lanBox.classList.contains('on') && (e.code === 'KeyF' || e.code === 'KeyX')) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat && !pausa && !asking) { if (e.code === 'KeyF') o.onSalva(); else o.onEsciLanterna(); } return; }
     pref.tasto(e); // 1-2-3: i preferiti
   };
   const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
-  const md = (e: PointerEvent) => { if (e.pointerType === 'mouse' && e.button === 0 && !pausa && !asking && !o.blocked() && (!o.fp || o.fp.clic())) { mouseA = true; aLatch = true; } };
+  const md = (e: PointerEvent) => { if (e.pointerType === 'mouse' && e.button === 0 && !pausa && !asking && !o.blocked() && o.fp.clic()) { mouseA = true; aLatch = true; } };
   const mu = (e: PointerEvent) => { if (e.pointerType === 'mouse' && e.button === 0) mouseA = false; };
   const blur = () => { keys.clear(); tD.lascia(); tE.lascia(); mouseA = false; stick.cancel(); };
   addEventListener('keydown', kd, true); addEventListener('keyup', ku, true);
@@ -192,12 +182,10 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
     apriPausa() { persoT = performance.now(); if (!asking && !pref.aperto) setPausa(true); },
     sample() {
       const st = stick.sample();
-      const out = { a: aLatch || mouseA || st.held, d: dLatch || tD.giu || keys.has('KeyR'), e: eLatch || tE.giu || keys.has('KeyE'), m: st.m, tap: st.tap };
+      const out = { a: aLatch || mouseA || st.held, d: dLatch || tD.giu || keys.has('KeyR'), e: eLatch || tE.giu || keys.has('KeyE'), tap: st.tap };
       aLatch = dLatch = eLatch = false;
       return out;
     },
-    setMira(on) { o.root.classList.toggle('mz-dng-aimon', stick.setOn(on)); },
-    miraDir() { return stick.dir(); },
     setExit(on) { exit.classList.toggle('on', on); },
     setValvola(on) { valv.classList.toggle('on', on); },
     setTimone(on) { tim.classList.toggle('on', on); },
@@ -210,7 +198,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
       if (!l) return;
       const cosa = [l.oggetti ? `${l.oggetti} ${l.oggetti === 1 ? 'oggetto' : 'oggetti'}` : '', l.monete ? `${l.monete} monete` : ''].filter(Boolean).join(' e ');
       lanSub.textContent = l.salvatoQui ? 'Bottino al sicuro. Se cadi, ti risvegli qui' : cosa ? `Metti al sicuro ${cosa}` : 'Salva: se cadi, ti risvegli qui';
-      salva.textContent = (l.salvatoQui ? 'SALVATO ✓' : 'SALVA') + (o.fp ? ' · F' : '');
+      salva.textContent = (l.salvatoQui ? 'SALVATO ✓' : 'SALVA') + ' · F';
       salva.classList.toggle('fatto', l.salvatoQui);
       esciL.title = 'Esci col bottino: la prossima volta puoi ripartire da qui';
     },
@@ -225,11 +213,11 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
     },
     setState(pozioni) { D.b.classList.toggle('off', pozioni <= 0); },
     setPreferiti(s) { pref.aggiorna(s); },
-    hide() { setAsk(false); setPausa(false); pref.chiudi(); exit.classList.remove('on'); lanBox.classList.remove('on'); stick.setOn(false); E.b.classList.remove('on-vis'); o.root.classList.remove('mz-dng-aimon'); top.style.display = 'none'; lanSig = ''; },
+    hide() { setAsk(false); setPausa(false); pref.chiudi(); exit.classList.remove('on'); lanBox.classList.remove('on'); stick.setOn(false); E.b.classList.remove('on-vis'); top.style.display = 'none'; lanSig = ''; },
     dispose() {
       removeEventListener('keydown', kd, true); removeEventListener('keyup', ku, true);
       o.canvas.removeEventListener('pointerdown', md); removeEventListener('pointerup', mu); removeEventListener('blur', blur);
-      stick.dispose(); pref.dispose(); o.root.classList.remove('mz-dng-aimon', 'mz-dng');
+      stick.dispose(); pref.dispose(); o.root.classList.remove('mz-dng');
       for (const e of all) e.remove();
     },
   };

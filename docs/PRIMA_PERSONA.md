@@ -1,6 +1,6 @@
 # MAREA — Dungeon in prima persona
 
-> Come si gioca un dungeon dagli occhi dell'eroe, alla Skyrim. Si sceglie nelle Impostazioni («Dungeon in prima persona»; `?fp=1` / `?fp=0` la forzano). Le regole del combattimento, dei perk e dei dungeon stanno in `RPG.md`: qui solo quello che la prima persona cambia. In terza persona (e nell'Arena) non cambia niente: i suoi log si rigiocano uguali.
+> Come si gioca un dungeon: **solo dagli occhi dell'eroe**, alla Skyrim (la vista dall'alto non c'è più, 11 nov 2026). Le regole del combattimento, dei perk e dei dungeon stanno in `RPG.md`: qui solo quello che la prima persona aggiunge. La sim non distingue: nell'Arena (vista dall'alto) non cambia niente e i log vecchi si rigiocano uguali.
 > Numeri in `packages/content/src/rpg/*.json` (`balance.json` → `dungeon.furtivo`, `perk.occhio`, `perk.manoFerma`; `enemies.json` → `altezza`, `quota`).
 
 ## 1. Comandi

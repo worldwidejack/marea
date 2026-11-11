@@ -1,4 +1,4 @@
-// Dungeon in prima persona alla Skyrim (docs/PRIMA_PERSONA.md), su wrangler dev locale come m2_dungeon: si entra nella Grotta con ?fp=1 e il
+// Dungeon in prima persona alla Skyrim (docs/PRIMA_PERSONA.md), su wrangler dev locale come m2_dungeon: si entra nella Grotta e il
 // client manda da solo l'azione `fruga`; bussola in alto, barre in basso, mirino; l'autopilota combatte finché un cadavere non sta a portata
 // (il bottino non si raccoglie più passandoci sopra); lo si guarda, E apre la finestra (la partita si ferma), R prende tutto; un colpo con
 // lo sguardo in basso manda anche l'alzo (log formato 5); poi l'autopilota fino alla scala: il server rigioca input e azioni e l'hash coincide,
@@ -37,7 +37,7 @@ export default async function (ctx) {
     if (!up) throw new Error('wrangler dev non risponde:\n' + log.split('\n').slice(-20).join('\n'));
     const getLot = async (t) => (await (await fetch(base + '/api/lot', { headers: { 'x-token': t } })).json());
 
-    const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1&fp=1`, { viewport: ctx.B.DESKTOP }); ctx._pages.push(P);
+    const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1`, { viewport: ctx.B.DESKTOP }); ctx._pages.push(P);
     const page = P.page;
     if (WIN) await page.route(/\/(api|chunk|assets)/, (r) => r.continue({ headers: { ...r.request().headers(), connection: 'close' } }));
     await ctx.waitReady(page, 30000);

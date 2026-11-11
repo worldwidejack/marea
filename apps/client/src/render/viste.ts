@@ -6,11 +6,11 @@ import type { View } from './scene.ts';
  *  unaMano (#143, solo telefono): il joystick nasce dove tocchi lo schermo e dopo il rilascio resta lì padSec secondi (game/input.ts).
  *  graficaAlta: spenta = grafica low end per i dispositivi meno prestanti (risoluzione, ombre, luci di notte, mare semplice; meteo, contorni
  *  e stampa forzati spenti da `leggera`). Le altre scelte restano salvate come sono e tornano riaccendendola. */
-export type Impostazioni = { /** Dungeon in prima persona invece che dall'alto: vale dalla prossima discesa. */ primaPersona: boolean; cam: number; ciclo: boolean; stampa: boolean; contorni: boolean; musica: number; effetti: number; /** #361: nuvole che passano (sim/meteo.ts, dall'orologio), pioggia e temporali sotto di loro */ meteo: boolean; unaMano: boolean; padSec: number; graficaAlta: boolean };
+export type Impostazioni = { cam: number; ciclo: boolean; stampa: boolean; contorni: boolean; musica: number; effetti: number; /** #361: nuvole che passano (sim/meteo.ts, dall'orologio), pioggia e temporali sotto di loro */ meteo: boolean; unaMano: boolean; padSec: number; graficaAlta: boolean };
 /** Di serie (#59, Jack 7 ott): ciclo giorno/notte, camera 22°, contorni, meteo (#361). La stampa giapponese resta da accendere. Musica media, effetti alti. Grafica superiore accesa. */
-export const DI_SERIE: Impostazioni = { primaPersona: false, cam: 3, ciclo: true, stampa: false, contorni: true, musica: 2, effetti: 3, meteo: true, unaMano: false, padSec: 2, graficaAlta: true };
+export const DI_SERIE: Impostazioni = { cam: 3, ciclo: true, stampa: false, contorni: true, musica: 2, effetti: 3, meteo: true, unaMano: false, padSec: 2, graficaAlta: true };
 /** Tutto spento: la resa di sempre (45°, luce fissa, niente passata finale), muto. È la partenza dei test automatici. */
-export const SPENTO: Impostazioni = { primaPersona: false, cam: 0, ciclo: false, stampa: false, contorni: false, musica: 0, effetti: 0, meteo: false, unaMano: false, padSec: 2, graficaAlta: true };
+export const SPENTO: Impostazioni = { cam: 0, ciclo: false, stampa: false, contorni: false, musica: 0, effetti: 0, meteo: false, unaMano: false, padSec: 2, graficaAlta: true };
 /** Le impostazioni che la resa applica davvero: in grafica bassa meteo, contorni e stampa sono spenti (costano passata finale, nuvole e pioggia). */
 export const leggera = (s: Impostazioni): Impostazioni => (s.graficaAlta ? s : { ...s, stampa: false, contorni: false, meteo: false });
 /** Livelli dell'audio nel pannello (0 … 3). */
