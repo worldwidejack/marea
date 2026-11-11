@@ -20,6 +20,20 @@ export default async function (ctx) {
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
   const wr = (...a) => execFileSync(process.execPath, [WRANGLER_BIN, ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
   const { INSETTI } = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/content/src/insetti.ts')).href);
+  const { liberiDelTurno, turnoAt, turnoMs } = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src/economy/insetti.ts')).href);
+
+  // Chi gira cambia ogni 4 minuti, uguale per tutti, e dipende dall'ora vera: in certi turni escono solo insetti che schivano il retino (mosche,
+  // libellule, sirfidi) e il test non ha su chi provare la rete; in CI cadeva a seconda dell'ora. Si sposta l'orologio (X-Test-Now-Offset, su
+  // ogni richiesta del test e della pagina) all'inizio di un turno con almeno 3 insetti «tranquilli»: dura 4 minuti e il test ne usa ~1.
+  // INSETTI_SALTA=n prende il turno buono n-esimo invece del primo (per provarlo su turni diversi).
+  const ELUSIVI = new Set(['quota', 'planata', 'librata', 'squittio', 'orchidea', 'schiva', 'cicindela', 'lascia', 'stella', 'furca']);
+  const tranquillo = (id) => !ELUSIVI.has(INSETTI.find((i) => i.id === id)?.comportamento);
+  let salta = Number(process.env.INSETTI_SALTA) || 0, turnoBuono = turnoAt(Date.now());
+  for (let t = turnoBuono + 1; t < turnoBuono + 400; t++) {
+    if (liberiDelTurno(t).filter((l) => tranquillo(l.id)).length >= 3 && salta-- <= 0) { turnoBuono = t; break; }
+  }
+  const OFFSET = turnoMs(turnoBuono)[0] - Date.now();
+  assert(turnoBuono > turnoAt(Date.now()), 'nessun turno con insetti tranquilli nelle prossime 26 ore');
 
   let dev = null, log = '';
   const pages = [];
@@ -36,7 +50,7 @@ export default async function (ctx) {
     for (let i = 0; i < 120 && !up; i++) { try { up = (await fetch(BASE + '/api/ping')).ok; } catch { /* non ancora */ } if (!up) await sleep(500); }
     if (!up) throw new Error('wrangler dev non risponde:\n' + log.split('\n').slice(-20).join('\n'));
 
-    const hdr = { 'x-token': 'tokL', 'content-type': 'application/json' };
+    const hdr = { 'x-token': 'tokL', 'content-type': 'application/json', 'x-test-now-offset': String(OFFSET) };
     const get = async (p) => { const r = await fetch(BASE + p, { headers: hdr }); return { status: r.status, body: await r.json() }; };
     const post = async (p, b) => { const r = await fetch(BASE + p, { method: 'POST', headers: hdr, body: JSON.stringify(b ?? {}) }); return { status: r.status, body: await r.json() }; };
     await get('/api/lot');
@@ -46,6 +60,7 @@ export default async function (ctx) {
     const pg = await ctx.B.openPage(ctx.browser, `${BASE}/?t=tokL&test=1`, { viewport: ctx.B.DESKTOP });
     pages.push(pg); ctx._pages.push(pg);
     const page = pg.page;
+    await page.setExtraHTTPHeaders({ 'x-test-now-offset': String(OFFSET) }); await page.reload(); // la pagina vive nello stesso turno del server
     if (process.platform === 'win32') await page.route((u) => /^\/(api|chunk|assets)/.test(u.pathname), (r) => r.continue({ headers: { ...r.request().headers(), connection: 'close' } }));
     await ctx.waitReady(page, 30000);
     await ctx.waitState(page, (s) => s.lot && s.lot.ready && s.negozio && s.insetti, 30000);
@@ -155,9 +170,7 @@ export default async function (ctx) {
         }
         return meglio;
       };
-      // chi per natura schiva il retino (si alza fuori portata, scarta, sparisce, salta via) non serve a provare la rete
-      const ELUSIVI = new Set(['quota', 'planata', 'librata', 'squittio', 'orchidea', 'schiva', 'cicindela', 'lascia', 'stella', 'furca']);
-      const tranquillo = (id) => !ELUSIVI.has(INSETTI.find((i) => i.id === id)?.comportamento);
+      // chi per natura schiva il retino (si alza fuori portata, scarta, sparisce, salta via: ELUSIVI) non serve a provare la rete
       const inGiro = async () => (await st()).insetti.attori.filter((x) => x.k.startsWith('p:') && x.prendibile && tranquillo(x.id)).map((x) => ({ ...x, riva: riva(x.x, x.z) })).sort((p, q) => q.riva - p.riva);
       assert((await inGiro()).length, 'nessun insetto in giro: ' + JSON.stringify((await st()).insetti.attori));
       // 3a. A tenuto: il retino si carica, si cammina al passo ridotto; al rilascio il personaggio sta fermo fino alla risalita
