@@ -82,7 +82,9 @@
 <script>
 (function () {
   var home = document.getElementById('mzHome'), video = home && home.querySelector('.video');
-  if (!video || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  // niente controllo su prefers-reduced-motion: su molti PC Windows è acceso (animazioni di sistema spente) e la home restava ferma;
+  // il video è muto, lento e senza lampi
+  if (!video) return;
   var verticale = matchMedia('(orientation: portrait) and (pointer: coarse)');
   function scegli() {
     if (!home.isConnected) return;
