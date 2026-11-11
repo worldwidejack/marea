@@ -36,7 +36,7 @@ export default async function (ctx) {
 
     // due pagine che disegnano insieme col renderer software: qualità bassa e telefono a densità 1, se no la CPU non basta anche al server
     const PA = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1&quality=low`, { viewport: ctx.B.DESKTOP }); ctx._pages.push(PA);
-    const PB = await ctx.B.openPage(ctx.browser, `${base}/?t=tokB&test=1&quality=low`, { viewport: { ...ctx.B.IPHONE, deviceScaleFactor: 1 } }); ctx._pages.push(PB);
+    const PB = await ctx.B.openPage(ctx.browser, `${base}/?t=tokB&test=1&quality=low`, { viewport: { ...ctx.B.IPHONE, width: 844, height: 390, deviceScaleFactor: 1 } }); ctx._pages.push(PB); // telefono in orizzontale: il dungeon è solo in prima persona e in verticale aspetta che lo giri
     const A = PA.page, B = PB.page;
     // Windows: wrangler dev locale risponde in ~3,5 s alle richieste su una connessione riusata (keep-alive), in 20 ms su una nuova
     if (process.platform === 'win32') for (const p of [A, B]) await p.route(/\/(api|chunk|assets)/, (r) => r.continue({ headers: { ...r.request().headers(), connection: 'close' } }));

@@ -9,7 +9,7 @@ export async function provaSchivata(ctx, page, dungeon) {
       const r = document.getElementById(id)?.getBoundingClientRect();
       return { id, x: r?.x ?? 0, y: r?.y ?? 0, w: r?.width ?? 0, h: r?.height ?? 0 };
     }));
-    const b = rects[0]; ctx.assert(b.w >= 56 && b.h >= 56 && b.x >= 0 && b.x + b.w <= 390 && b.y + b.h <= 844, JSON.stringify(rects));
+    const vp = page.viewportSize(), b = rects[0]; ctx.assert(b.w >= 56 && b.h >= 56 && b.x >= 0 && b.x + b.w <= vp.width && b.y + b.h <= vp.height, JSON.stringify(rects));
     for (const r of rects.slice(1).filter(r => r.w > 0)) ctx.assert(!(b.x < r.x + r.w && b.x + b.w > r.x && b.y < r.y + r.h && b.y + b.h > r.y), `Schiva copre ${r.id}`);
     const cdp = await page.context().newCDPSession(page);
     await page.evaluate(() => document.getElementById('btnSchiva').addEventListener('pointerdown', () => {

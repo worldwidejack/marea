@@ -7,8 +7,8 @@
 // (niente finish), o gli input fin lì se hai salvato a una lanterna (il server chiude la spedizione tenendo quel bottino). SALVA: o.onAltare
 // con input e azioni fin lì, così il server tiene il salvataggio anche se la scheda si chiude (POST /api/dungeon/save).
 // Autopilot (?autopilot=1 o hook dungeonAutopilot): gli input li dà dungeon.autopilot con un rng fisso e si registrano uguali.
-// Mira col mouse (v6, dungeon_mouse.ts): con l'arco o una magia in mano e un mouse vero, mentre la A è giù (o l'arco è teso) l'input porta anche
-// l'indice d'angolo del cursore (DungeonInput.m); senza mouse, o con la mischia, la sim usa la mira assistita. Arma e magia in mano si cambiano con i preferiti 1-2-3 (dungeon_preferiti.ts).
+// Il dungeon si gioca solo in prima persona (prima_persona.ts, docs/PRIMA_PERSONA.md): la mira (indice d'angolo `m` e alzo `p`) viene dallo sguardo.
+// Arma e magia in mano si cambiano con i preferiti 1-2-3 (dungeon_preferiti.ts).
 // Insieme (#118, `o.rete`): la sim ha un eroe per membro della squadra (createPartyRun, s.cur = il mio). Il mio input va al server una volta
 // per turno (SQ_TICKS tick: joystick dell'ultimo tick, bottoni premuti in qualunque tick del turno), solo se cambia; la sim avanza SOLO coi
 // turni del server (stessi input e azioni per tutti = stessa partita), con un piccolo cuscinetto contro i ritardi della rete e una corsa per
@@ -23,8 +23,6 @@ import type { DungeonState } from '@marea/sim/dungeon/dungeon.ts';
 import { packDungeon, quantizeDungeon } from '@marea/sim/dungeon/replay.ts';
 import { bfs, cellCenter, cellOf, stepDown } from '@marea/sim/dungeon/map.ts';
 import { heroNow } from '@marea/sim/dungeon/zaino.ts';
-import { aim } from '@marea/sim/dungeon/hero.ts';
-import { COS_CONO_ARCO, MAGIA_GITTATA } from '@marea/sim/dungeon/tuning.ts';
 import type { CompagnoView, DungeonAzione, DungeonAzioni, DungeonEvent, DungeonInput, DungeonView } from '@marea/sim/dungeon/types.ts';
 import { NO_DUNGEON_INPUT } from '@marea/sim/dungeon/types.ts';
 import { SQ_TICKS } from '@marea/protocol/squadra.ts';
@@ -40,8 +38,7 @@ import type { HeroActor } from './dungeon_hero.ts';
 import { createActors } from './dungeon_actors.ts';
 import type { Actors } from './dungeon_actors.ts';
 import { createDungeonHud } from './dungeon_hud.ts';
-import { createMouse } from './dungeon_mouse.ts'; import type { Mouse } from './dungeon_mouse.ts';
-import { createPrimaPersona } from './prima_persona.ts'; import type { PrimaPersona } from './prima_persona.ts'; import { FLAGS } from '../flags.ts'; import { loadImpostazioni } from '../ui/impostazioni.ts';
+import { createPrimaPersona } from './prima_persona.ts'; import type { PrimaPersona } from './prima_persona.ts';
 import { createDrenaggioFx } from './drenaggio.ts';
 import type { DrenaggioFx } from './drenaggio.ts';
 import { createFucinaFx } from './fucina.ts';
@@ -92,7 +89,7 @@ export function startRun(ctx: RunCtx, o: {
   /** Dungeon insieme (#118): la squadra (WebSocket del DO Spedizioni). */
   rete?: SquadraRete;
 }): DungeonRun {
-  const rete = o.rete ?? null, io = rete?.io ?? 0, primaP = FLAGS.primaPersona ?? loadImpostazioni().primaPersona;
+  const rete = o.rete ?? null, io = rete?.io ?? 0;
   const s: DungeonState = rete
     ? createPartyRun({ seed: o.seed, dungeon: o.dungeon, eroi: rete.eroi.map((e) => ({ hero: e.hero, stato: e.stato })) })
     : dungeon.create({ seed: o.seed, dungeon: o.dungeon, hero: o.hero, stato: o.stato ?? null, partenza: o.partenza ?? null });
@@ -100,7 +97,7 @@ export function startRun(ctx: RunCtx, o: {
   const frames: DungeonInput[] = [], azioni: DungeonAzioni = [];
   let phase: Phase = 'loading', wait = 0, view: DungeonView = dungeon.view(s), auto: Rng | null = null, arma = view.hero.arma;
   let sc: DungeonScene | null = null, hero: HeroActor | null = null, actors: Actors | null = null, hud: DungeonHud | null = null, controls: Controls | null = null, fx: DrenaggioFx | null = null, afx: ArchivioFx | null = null, ffx: FucinaFx | null = null, mfx: MausoleoFx | null = null, dfx: DigaFx | null = null, ufx: UniciFx | null = null, gfx: MagieFx | null = null;
-  let testi: DungeonTestiUi | null = null, mouse: Mouse | null = null, cursore = '', fp: PrimaPersona | null = null;
+  let testi: DungeonTestiUi | null = null, fp: PrimaPersona | null = null;
   let resolve!: (v: Out | { insieme: true } | null) => void;
   const done = new Promise<Out | { insieme: true } | null>((r) => (resolve = r));
   const out = (): Out => ({ inputs: packDungeon(frames), hash: dungeon.result(s).hash, azioni: azioni.map(([t, a]) => [t, a]) });
@@ -113,7 +110,7 @@ export function startRun(ctx: RunCtx, o: {
   const cleanup = () => {
     phase = 'over'; dungeonLink.state = null; dungeonLink.act = null;
     closePanels();
-    fp?.dispose(); mouse?.dispose(); ctx.canvas.style.cursor = ''; controls?.dispose(); testi?.dispose(); hud?.dispose(); actors?.dispose(); fx?.dispose(); afx?.dispose(); ffx?.dispose(); mfx?.dispose(); dfx?.dispose(); ufx?.dispose(); gfx?.dispose(); hero?.dispose(); sc?.dispose();
+    fp?.dispose(); ctx.canvas.style.cursor = ''; controls?.dispose(); testi?.dispose(); hud?.dispose(); actors?.dispose(); fx?.dispose(); afx?.dispose(); ffx?.dispose(); mfx?.dispose(); dfx?.dispose(); ufx?.dispose(); gfx?.dispose(); hero?.dispose(); sc?.dispose();
     for (const a of amici) a.actor?.dispose();
     ctx.renderer.setScene(null);
   };
@@ -177,13 +174,13 @@ export function startRun(ctx: RunCtx, o: {
   void (async () => {
     try {
       await ctx.loader.extend('manifest_rpg.json');
-      sc = await createDungeonScene(ctx.loader, o.dungeon, ctx.renderer.camera, { primaPersona: primaP });
-      hero = await createHeroActor({ loader: ctx.loader, look: ctx.world.look, hero: s.runHero, scene: sc.scene, floorY: sc.floorY, x: view.hero.x, z: view.hero.z, ...(primaP ? { soloBusto: true, soloCorpo: true } : { mirino: true }) });
+      sc = await createDungeonScene(ctx.loader, o.dungeon, ctx.renderer.camera, { primaPersona: true });
+      hero = await createHeroActor({ loader: ctx.loader, look: ctx.world.look, hero: s.runHero, scene: sc.scene, floorY: sc.floorY, x: view.hero.x, z: view.hero.z, soloBusto: true, soloCorpo: true });
       for (const a of amici) {
         const r = s.eroi[a.i]!;
         a.actor = await createHeroActor({ loader: ctx.loader, look: rete!.eroi[a.i]!.look, hero: r.runHero, scene: sc.scene, floorY: sc.floorY, x: r.hero.x, z: r.hero.z });
       }
-      actors = createActors({ loader: ctx.loader, scene: sc, ...(primaP ? { lampo: 0.25, fp: true } : {}) });
+      actors = createActors({ loader: ctx.loader, scene: sc, lampo: 0.25, fp: true });
       // Fucina prima: anche lei ha una valvola (la chiusa) e un bacino (la Colata Maestra), ma i suoi effetti sono lava, cascate e fuoco
       if (sc.def.stile === 'fucina') ffx = createFucinaFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       // Mausoleo prima del Drenaggio: anche lui ha una valvola (la chiave di carica) e un bacino (il cancello)
@@ -192,11 +189,11 @@ export function startRun(ctx: RunCtx, o: {
       else if (sc.def.stile === 'diga' || sc.def.stile === 'baita' || sc.def.stile === 'ceneri') dfx = createDigaFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       else if (sc.map.valvole.length || sc.map.bacini.length || o.dungeon === 'drenaggio') fx = createDrenaggioFx({ sc }); else if (sc.map.venti.length || o.dungeon === 'archivio') afx = createArchivioFx({ sc, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       ufx = createUniciFx(sc.scene, sc.floorY); // gli unici della Regina si portano in ogni dungeon
-      gfx = createMagieFx(sc.scene, sc.floorY, primaP ? { origine: () => fp!.punta(), sguardo: () => fp!.sguardo() } : {}); // raggi, bombe e scoppi delle magie di fuoco ed elettricità
+      gfx = createMagieFx(sc.scene, sc.floorY, { origine: () => fp!.punta(), sguardo: () => fp!.sguardo() }); // raggi, bombe e scoppi delle magie di fuoco ed elettricità
       if ((phase as Phase) === 'over') { cleanup(); return; }
       hud = createDungeonHud({ root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera, hero: s.runHero, stile: sc.def.stile });
       controls = createControls({
-        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, yaw: () => ctx.renderer.diorama.yaw, insieme: !!rete, ...(primaP ? { fp: { clic: () => fp?.clic() ?? true, riprendi: () => fp?.riprendi(), tasto: (e: KeyboardEvent) => fp?.tasto(e) ?? false } } : {}), ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : sc.def.stile === 'diga' ? { valvola: 'A · Gira la ruota', timone: 'A · Gira la ruota' } : sc.def.stile === 'baita' ? { valvola: 'A · Gira la colonnina' } : sc.def.stile === 'ceneri' ? { valvola: 'A · Accendi il braciere' } : {}),
+        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, yaw: () => ctx.renderer.diorama.yaw, insieme: !!rete, fp: { clic: () => fp?.clic() ?? true, riprendi: () => fp?.riprendi(), tasto: (e: KeyboardEvent) => fp?.tasto(e) ?? false }, ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : sc.def.stile === 'diga' ? { valvola: 'A · Gira la ruota', timone: 'A · Gira la ruota' } : sc.def.stile === 'baita' ? { valvola: 'A · Gira la colonnina' } : sc.def.stile === 'ceneri' ? { valvola: 'A · Accendi il braciere' } : {}),
         onAbort: () => (phase === 'end' ? finish() : abort()),
         onZaino: openZaino,
         onSalva: () => { const e = act({ t: 'salva' }); if (e) ctx.hud.toast(e, 1800); },
@@ -204,7 +201,7 @@ export function startRun(ctx: RunCtx, o: {
         // preferiti 1-2-3: l'arma o la magia scelta va in mano (stessa azione dello zaino, quindi vale anche in squadra)
         hero: () => heroNow(s), onPreferito: (p) => { const e = mettiInMano(p, heroNow(s), act); if (e) ctx.hud.toast(e, 1500); },
       });
-      if (primaP) fp = createPrimaPersona({ root: ctx.root, canvas: ctx.canvas, loader: ctx.loader, diorama: ctx.renderer.diorama, sc, avatar: hero.avatar, hero0: view.hero, attivo: () => phase === 'play' && !controls?.paused && !isPanelOpen() && !testi?.aperta, onPerso: () => controls?.apriPausa(), stato: () => s, act, avviso: (t) => ctx.hud.toast(t, 1800) }); else mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: sc.floorY });
+      fp = createPrimaPersona({ root: ctx.root, canvas: ctx.canvas, loader: ctx.loader, diorama: ctx.renderer.diorama, sc, avatar: hero.avatar, hero0: view.hero, attivo: () => phase === 'play' && !controls?.paused && !isPanelOpen() && !testi?.aperta, onPerso: () => controls?.apriPausa(), stato: () => s, act, avviso: (t) => ctx.hud.toast(t, 1800) });
       if (sc.def.testi) testi = createTesti({ root: ctx.root, camera: ctx.renderer.camera, canvas: ctx.canvas, sc, insieme: !!rete, capoMorto: () => view.nemici.some((n) => n.capo && n.anim === 'morto') });
       const ic = hud.icons(); controls.setIcons(ic.d, ic.key);
       if (s.salvato) controls.setSalvato(true);
@@ -253,25 +250,6 @@ export function startRun(ctx: RunCtx, o: {
     if (e.t === 'rotto') hero.rotta();
   };
 
-  /** Arco teso: verso il nemico che la sim prenderà al rilascio (la stessa `aim` di shoot), null se non c'è (la freccia va dritta). */
-  const miraArco = (): { x: number; z: number } | null => {
-    const h = s.hero;
-    if (h.act !== 'tende') return null;
-    const e = aim(s, MAGIA_GITTATA * 2, COS_CONO_ARCO, 0, true);
-    const dx = e ? e.x - h.x : 0, dz = e ? e.z - h.z : 0, d = Math.sqrt(dx * dx + dz * dz);
-    return d > 1e-6 ? { x: dx / d, z: dz / d } : null;
-  };
-  /** Linea di mira dell'eroe di questo client: col mouse (arco o magia in mano) sempre verso il cursore, se no solo l'arco teso, verso chi prenderà. */
-  const miraOra = (): void => {
-    if (fp) return; const h = s.hero, t = controls?.miraDir() ?? null, v = t ?? ((h.incanta || h.arma.kind === 'arco') && !controls?.paused ? mouse?.verso(h.x, h.z) ?? null : null);
-    if (!v) { hero!.mira(miraArco()); return; }
-    hero!.mira({ x: v.x, z: v.z }, true);
-  };
-  /** Indice di mira del mouse mentre si punta con qualcosa che si mira (arco, magia in mano) e il cursore c'è; 0 = mira assistita della sim. */
-  const puntaMouse = (): number => {
-    const h = s.hero;
-    return mouse && (h.incanta || h.arma.kind === 'arco') ? mouse.verso(h.x, h.z)?.m ?? 0 : 0;
-  };
   /** Compagni: posa dalla vista, arma nuova se è cambiata, spariscono quando escono (con un avviso). */
   function tickAmici(): void {
     for (const c of view.compagni) {
@@ -334,7 +312,7 @@ export function startRun(ctx: RunCtx, o: {
       else aTap = act === 'idle' && tapT >= 118; // solo i primi tick: senza frecce o Magicka non si insiste
       if (act === 'tira' || act === 'lancia') tapT = 0;
     }
-    const a = f.a || c.a || aTap, fm = fp?.mira(view, a || c.e, s.hero) ?? null, m = fp ? fm?.m ?? 0 : aTap ? 0 : c.m || (a || s.hero.act === 'tende' || s.hero.act === 'punta' ? puntaMouse() : 0), g = fp ? fp.muovi(f) : f; // la mira (e in prima persona l'alzo) solo mentre si preme: il log resta corto
+    const a = f.a || c.a || aTap, fm = fp?.mira(view, a || c.e, s.hero) ?? null, m = fm?.m ?? 0, g = fp?.muovi(f) ?? f; // la mira e l'alzo solo mentre si preme: il log resta corto
     return { mx: g.mx, my: g.my, a, b: g.b, roll: g.roll, c: false, d: c.d, ...(c.e ? { e: true } : {}), ...(m ? { m } : {}), ...(m && fm?.p ? { p: fm.p } : {}) };
   }
 
@@ -369,7 +347,7 @@ export function startRun(ctx: RunCtx, o: {
     const n = pronti > RECUPERO ? pronti - CUSCINETTO : pronti > SVELTO ? 2 : 1;
     for (let k = 0; k < n && phase !== 'over'; k++) tickRete(n > 2);
     refresh();
-    hero!.tick(view.hero); miraOra(); actors!.tick(view); mfx?.tick(view); dfx?.tick(view); ufx?.tick(view); gfx?.tick(view); tickAmici();
+    hero!.tick(view.hero); actors!.tick(view); mfx?.tick(view); dfx?.tick(view); ufx?.tick(view); gfx?.tick(view); tickAmici();
     if (s.done && phase === 'play') toEnd();
   }
   /** Un tick del turno in testa: al primo tick le azioni del turno (eroe per eroe, come il server le ha messe), poi il passo di tutti. */
@@ -406,7 +384,7 @@ export function startRun(ctx: RunCtx, o: {
       const n = auto ? dungeonLink.autopilot : dungeonLink.altare >= 0 || dungeonLink.vai ? 8 : 1;
       for (let i = 0; i < n && !s.done; i++) tickOnce(f);
       refresh();
-      hero!.tick(dungeonLink.posa ? { ...view.hero, ...dungeonLink.posa } as DungeonView['hero'] : view.hero); miraOra(); actors!.tick(view); fx?.tick(view); afx?.tick(view); ffx?.tick(view); mfx?.tick(view); dfx?.tick(view); ufx?.tick(view); gfx?.tick(view);
+      hero!.tick(dungeonLink.posa ? { ...view.hero, ...dungeonLink.posa } as DungeonView['hero'] : view.hero); actors!.tick(view); fx?.tick(view); afx?.tick(view); ffx?.tick(view); mfx?.tick(view); dfx?.tick(view); ufx?.tick(view); gfx?.tick(view);
       if (s.done) toEnd();
     },
     update(alpha, dt, t) {
@@ -414,7 +392,7 @@ export function startRun(ctx: RunCtx, o: {
       hero.update(alpha, dt);
       for (const a of amici) if (a.actor && !a.done) a.actor.update(alpha, dt);
       const p = hero.avatar.object.position;
-      if (fp) fp.update(dt, t, p, view, s.hero.act === 'punta'); else { ctx.renderer.diorama.follow(p.x, sc.floorY + 0.9, p.z); ctx.renderer.diorama.update(dt); }
+      fp?.update(dt, t, p, view, s.hero.act === 'punta');
       sc.update(p.x, p.z, t);
       actors.update(alpha, dt, t, { x: p.x, z: p.z });
       if (fx) { fx.update(t, { x: p.x, z: p.z }, view); sc.setAcque(view.acque); }
@@ -425,7 +403,7 @@ export function startRun(ctx: RunCtx, o: {
       ufx?.update({ x: p.x, z: p.z }, view);
       gfx?.update(t, { x: p.x, z: p.z }, view);
       testi?.update({ x: p.x, z: p.z }, phase === 'play' && !controls.paused, dt);
-      hud.set(view, dungeon.maxTicks); hud.bars(fp ? fp.barre(actors.bars()) : actors.bars());
+      hud.set(view, dungeon.maxTicks); hud.bars(fp?.barre(actors.bars()) ?? actors.bars());
       if (rete) hud.compagni(amici.filter((a) => a.actor && !a.done).map((a) => {
         const c = view.compagni.find((x) => x.i === a.i), pos = a.actor!.head().clone();
         pos.y += 0.35;
@@ -436,13 +414,11 @@ export function startRun(ctx: RunCtx, o: {
       controls.setLanterna(phase === 'play' && view.lanterna >= 0 ? { salvatoQui: view.salvatoQui, oggetti: nOggetti(view.zaino.bottino), monete: view.zaino.monete } : null);
       sc.setAltare(view.altari.findIndex((a) => a.attivo));
       const h = view.hero, rh = s.runHero, spell = rh.magia !== null ? rh.magie[rh.magia] : null;
-      controls.setMira(phase === 'play' && !fp && (!!h.magia || s.hero.arma.kind === 'arco'));
       // Scarica (perk): bottone E solo con l'arco in mano; si riempie mentre la ricarica passa
       controls.setScarica(phase === 'play' && !!s.runHero.perk?.scarica && s.hero.arma.kind === 'arco' && !h.magia, h.scarica ?? 1);
       controls.setState(h.pozioni);
       controls.setPreferiti({ hero: heroNow(s), mano: { arma: h.arma, magia: h.magia ?? null }, ricarica: spell ? 1 - h.ricaricaMagia / Math.max(0.01, spell.ricarica) : 1, ricariche: h.ricaricaMagie });
-      const cur = mouse?.attivo && (!!h.magia || s.hero.arma.kind === 'arco') ? 'crosshair' : ''; // il cursore diventa un mirino
-      if (cur !== cursore) { cursore = cur; ctx.canvas.style.cursor = cur; } fp?.fine();
+      fp?.fine();
     },
     abort,
     done,
@@ -453,7 +429,7 @@ export function startRun(ctx: RunCtx, o: {
     const v = view, vivi = v.nemici.filter((n) => !n.alleato && n.anim !== 'morto').length, n0 = s.enemies.find((e) => !e.alleato);
     return {
       active: phase !== 'over', phase, dungeon: o.dungeon, tick: v.tick, outcome: v.outcome, frames: frames.length, auto: !!auto, paused: !!controls?.paused, zaino: v.zaino,
-      hero: { x: v.hero.x, z: v.hero.z, vita: v.hero.vita, magicka: v.hero.magicka, stamina: v.hero.stamina, anim: v.hero.anim, arma: v.hero.arma, frecce: v.hero.frecce, magia: v.hero.magia ?? null, fx: v.hero.fx, fz: v.hero.fz }, mouse: mouse?.attivo ?? false,
+      hero: { x: v.hero.x, z: v.hero.z, vita: v.hero.vita, magicka: v.hero.magicka, stamina: v.hero.stamina, anim: v.hero.anim, arma: v.hero.arma, frecce: v.hero.frecce, magia: v.hero.magia ?? null, fx: v.hero.fx, fz: v.hero.fz },
       nemici: v.nemici.filter((n) => !n.alleato).length, vivi, vicinoUscita: v.vicinoUscita, vicinoTimone: v.vicinoTimone, afx: afx?.counts() ?? null,
       acque: v.acque, valvole: v.valvole, vicinoValvola: v.vicinoValvola, geyser: v.geyser.length, rallentato: !!v.hero.rallentato, fx: fx?.counts() ?? null,
       lave: v.lave, fuochi: v.fuochi.length, brucia: !!v.hero.brucia, bagnato: !!v.hero.bagnato, ffx: ffx?.counts() ?? null, mastro: mastro(v),
