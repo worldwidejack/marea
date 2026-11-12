@@ -36,7 +36,8 @@ export default async function (ctx) {
   const vetrina = Array.from({ length: 7 }, (_, i) => {
     const data = +mezzogiorno + i * 86_400_000;
     const oggi = vetrinaOra(data);
-    const terre = oggi.terra.map(def).filter((m) => m && !m.celle).sort((a, b) => a.monete - b.monete);
+    // niente tappeti (altezza < 0,15 m): ci si cammina sopra (casa_mappa.ts), e il test sbatte contro il comodino
+  const terre = oggi.terra.map(def).filter((m) => m && !m.celle && (m.altezza ?? 1) >= 0.15).sort((a, b) => a.monete - b.monete);
     const comodino = terre.find((m) => m.altezza === undefined || m.altezza >= 0.15); // soglia di world/casa_mappa.ts
     return { data, oggi, comodino, stereo: terre.find((m) => m !== comodino), orologio: def(oggi.parete[0]) };
   }).find((v) => v.comodino && v.stereo && v.orologio);
