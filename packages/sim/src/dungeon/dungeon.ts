@@ -92,7 +92,9 @@ export const dungeon: DungeonModule<DungeonState> = {
   // v12: prima persona (docs/PRIMA_PERSONA.md): alzo della mira (DungeonInput.p, log formato 5) con nemici alti quanto il loro modello, bottino a mano
   // (azioni `fruga` e `prendi`), attacco furtivo, Mano ferma e Occhio d'aquila al posto dell'Automira. In terza persona non cambia niente.
   // v14: unici sparsi (docs/UNICI.md): oggetti a terra e resti di avventurieri nelle mappe, scrigni coi loro unici, tratti `rubaVita` e `gelo`
-  id: 'dungeon', version: 14, maxTicks: MAX_TICKS,
+  // v15: i nemici che non ti hanno visto (quiete.ts) vedono in un cono, sentono passi, colpi e lotte, si insospettiscono e vanno a cercare;
+  // prima fanno la ronda o si guardano intorno; chi dorme non vede.
+  id: 'dungeon', version: 15, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
   act(s, a) {

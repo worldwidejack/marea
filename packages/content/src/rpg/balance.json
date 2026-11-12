@@ -13,7 +13,8 @@
     "equip": { "arma": "katana_legno", "corpo": "armatura_legno", "pozione": "pozione_vita_minore", "frecce": "frecce_legno", "magia": "fiammata" },
     "magie": ["fiammata"]
   },
-  "dungeon": { "maxMinuti": 20, "morte": { "bottino": 0, "xp": 1 }, "altare": { "protezione": 3 }, "gruppo": { "max": 4, "vitaPerCompagno": 0.6 }, "furtivo": { "danno": 2, "vista": 0.75, "dorme": 0.5 } },
+  "dungeon": { "maxMinuti": 20, "morte": { "bottino": 0, "xp": 1 }, "altare": { "protezione": 3 }, "gruppo": { "max": 4, "vitaPerCompagno": 0.6 }, "furtivo": { "danno": 2, "vista": 0.75 },
+    "quiete": { "cono": { "fronte": 0.5, "lato": -0.25, "vistaLato": 0.55, "vistaDietro": 0.2 }, "nota": { "vicino": 0.2, "lontano": 1.6 }, "cerca": 0.4, "indaga": 5, "calo": 7, "rumore": { "cammina": 4, "corsa": 9, "colpo": 7, "lotta": 10 }, "orecchio": 1.2, "tettoUdito": 0.9, "dorme": 0.5, "muro": 0.5, "ronda": 0.5, "raggioRonda": 6, "minRonda": 2.5, "passoRonda": 0.4, "passoCerca": 0.6, "sosta": [1.5, 4], "guarda": [2, 5], "gira": 2.5, "guinzaglio": 14 } },
   "arena": { "attributi": { "vita": 100, "magicka": 100, "stamina": 100 }, "dannoMolt": 0.45, "dannoMax": 92, "caricaMassimaMolt": 1.35, "supportoMax": 1.25, "erba": { "raggio": 3, "rivela": 1.2 } },
   "xp": { "forgia": 22, "alchimia": 18, "alchimiaPerLivello": 0.6, "personaggioPerLivelloSkill": 1, "evocazioneLancio": 0.5, "supportoLancio": 0.5 },
   "xpDanno": { "armiLeggere": 0.7, "armiPesanti": 0.7, "arceria": 1.5, "distruzione": 1.5, "evocazione": 1.5, "supporto": 1.5 },

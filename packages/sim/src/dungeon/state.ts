@@ -112,7 +112,7 @@ export type Enemy = {
   /** Perk dell'eroe (v9). Taglio Critico: sanguina fino al tick `emorr` (% della vita massima al secondo `emorrPct`), rallentato fino al tick
    *  `lentoT` (`lentoAcc` accumula i tick: va al passo di `lentoMolt` tick su 1). Colpo fatale: paralizzato fino al tick `paralisi`.
    *  Evocazioni: danno × `dannoM`. Fuori dall'hash. */
-  emorr?: number; emorrPct?: number; lentoT?: number; lentoMolt?: number; lentoAcc?: number; paralisi?: number; dannoM?: number;
+  emorr?: number; emorrPct?: number; lentoT?: number; lentoMolt?: number; lentoAcc?: number; paralisi?: number; dannoM?: number; /** Chi non ti ha visto (quiete.ts). */ q?: import('./quiete.ts').Quiete;
 };
 /** Mausoleo: `lama` = lama d'acqua del Fendiflutti (dell'eroe, trapassa), `lama_nemica` = quella della Guardia d'Onore e del Custode. */
 export type ProjKind = 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica' | 'palla_nemica';
