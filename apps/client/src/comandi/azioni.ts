@@ -61,7 +61,7 @@ export const PROFILI = {
   dungeon: { nome: 'Dungeon', azioni: [
     ...movimento, ['azione', 'Interagisci con scale, valvole e timoni', ['Space'], 0], schiva, attacca, pausa, eroe,
     ['pozione', 'Bevi una pozione', ['KeyR'], 3], ['fruga', 'Fruga o usa la scarica di frecce', ['KeyE'], 2],
-    ['scarica', 'Scarica di frecce', ['KeyH'], null], ['leggi', 'Leggi', ['KeyL'], 11], ...preferiti,
+    ['scarica', 'Scarica di frecce', ['KeyH'], null], ['leggi', 'Leggi', ['KeyL'], 11], ['mappa', 'Apri o chiudi la mappa', ['KeyM'], null], ...preferiti,
     ['salva', 'Salva alla lanterna', ['KeyF'], null], ['esciLanterna', 'Esci dalla lanterna', ['KeyX'], null], hud,
   ] },
   templari: { nome: 'Templari', azioni: [

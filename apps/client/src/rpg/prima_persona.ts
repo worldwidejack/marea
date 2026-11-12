@@ -1,7 +1,8 @@
 // Dungeon in prima persona: la camera sta negli occhi dell'eroe e la sim riceve come direzione di mira quella dello sguardo, in piano (mira.ts)
 // e in alto e in basso (alzo.ts). Qui stanno la camera (passi, schivata, scosse, caduta, lo zoom dell'Occhio d'aquila), l'input che ne deriva,
 // le mani e i filtri dell'HUD. Comandi in fp_comandi.ts, corpo in fp_corpo.ts, sprite davanti agli occhi in fp_mani.ts e fp_pose.ts, avvisi
-// in fp_avvisi.ts; alla Skyrim: bottino da frugare in fp_fruga.ts, bussola e barre in fp_hud.ts, pericoli in piedi in fp_pericoli.ts.
+// in fp_avvisi.ts; alla Skyrim: bottino da frugare in fp_fruga.ts, barre e bersaglio in fp_hud.ts, mappa con la nebbia in fp_mappa.ts, pericoli in
+// piedi in fp_pericoli.ts.
 import * as THREE from 'three';
 import type { InputFrame } from '@marea/sim';
 import { aimIndex } from '@marea/sim/dungeon/mira.ts';
@@ -28,6 +29,7 @@ import type { Arnese } from './fp_pose.ts';
 import { creaAvvisi } from './fp_avvisi.ts';
 import { creaFruga } from './fp_fruga.ts';
 import { creaHudFp } from './fp_hud.ts';
+import { creaMappaFp } from './fp_mappa.ts';
 import { creaPericoli } from './fp_pericoli.ts';
 
 type EroeVista = DungeonView['hero'];
@@ -92,6 +94,7 @@ export function createPrimaPersona(o: {
   const sg = creaSguardo({ canvas: o.canvas, root: o.root, yaw: verso(map, o.hero0.x, o.hero0.z, o.hero0), onPerso: o.onPerso });
   const corpo = creaCorpo(o.avatar), mani = creaMani({ camera, canvas: o.canvas, loader: o.loader }), avvisi = creaAvvisi(o.root);
   const fruga = creaFruga({ root: o.root, tocco: sg.tocco, stato: o.stato, act: o.act, avviso: o.avviso }), hud = creaHudFp({ root: o.root, map });
+  const mappa = creaMappaFp({ root: o.root, map, tocco: sg.tocco, attivo: o.attivo });
   const pericoli = creaPericoli({ scene: o.sc.scene, floorY: o.sc.floorY, root: o.root });
   o.diorama.pilota!(true); camera.far = FAR; camera.rotation.order = 'YXZ'; o.sc.scene.add(camera);
   let px = o.hero0.x, pz = o.hero0.z, vel = 0, lat = 0, fase = 0, scossa = 0, caduta = 0, fov = 0, zoom = 1, clock = 0, swY = 0, swP = 0, cambio = 0, chiave = '', animPrima = '', nColpo = 0, frugaMandata = false;
@@ -176,9 +179,10 @@ export function createPrimaPersona(o: {
         giu: Math.max(Math.sin(Math.PI * cambio), sch * 0.8, cad, fruga.aperta ? 0.7 : 0),
       });
       mani.disegna(pezzi, tinta);
-      // ---- alla Skyrim: bersaglio, bussola, pericoli, bottino ----
+      // ---- alla Skyrim: bersaglio, mappa, pericoli, bottino ----
       for (const e of v.eventi) if (e.t === 'colpo' && e.su === 'nemico' && e.id !== undefined && (e.eroe === undefined || e.eroe === v.io)) hud.colpito(e.id);
       hud.update(v, t, yaw, camera.position);
+      mappa.update(v, yaw);
       pericoli.update(v, t, yaw);
       fruga.update(v, yaw);
       avvisi.update(dt, v, yaw, map, { croce: !!h.magia || arnese === 'arco', rosso: hud.mirato >= 0 });
@@ -219,7 +223,7 @@ export function createPrimaPersona(o: {
     clic: () => sg.clic(),
     riprendi: () => sg.riprendi(),
     dispose() {
-      togliState(); sg.dispose(); mani.dispose(); avvisi.dispose(); fruga.dispose(); hud.dispose(); pericoli.dispose();
+      togliState(); sg.dispose(); mani.dispose(); avvisi.dispose(); fruga.dispose(); hud.dispose(); mappa.dispose(); pericoli.dispose();
       o.sc.scene.remove(camera); camera.far = far0; camera.position.set(0, 0, 0); camera.rotation.set(0, 0, 0); o.diorama.pilota!(false);
     },
   };
