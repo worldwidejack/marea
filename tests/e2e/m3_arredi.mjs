@@ -28,12 +28,21 @@ export default async function (ctx) {
   const mobili = read('mobili.json').mobili, borgo = read('borgo.json'), arch = read('archipelago.json');
   const [X0, Z0, X1, Z1] = borgo.stanza.pavimento, ORIG = arch.islands.find((i) => i.role === 'lotto' && i.slot === 0).at;
   const mondo = (cx, cz) => ({ x: (ORIG[0] + cx) * 2, z: (ORIG[1] + cz) * 2 }); // celle (anche frazionarie) del lotto 0 → m
-  // il negozio vende solo la vetrina di oggi (#384): due mobili 1×1 a terra (i più economici) e uno a parete, tra quelli esposti oggi
+  // La prova di collisione richiede un mobile solido: il primo articolo 1×1 della vetrina di oggi può essere un tappeto.
   const { vetrinaOra } = await sim('economy/vetrina.ts');
-  const oggi = vetrinaOra(Date.now()), def = (id) => mobili.find((m) => m.id === id);
-  const terre = oggi.terra.map(def).filter((m) => m && !m.celle).sort((a, b) => a.monete - b.monete);
-  const comodino = terre[0], stereo = terre[1], orologio = def(oggi.parete[0]);
-  assert(comodino && stereo && orologio, 'la vetrina di oggi non ha due mobili a terra 1×1 e uno a parete');
+  const adesso = new Date(), mezzogiorno = new Date(adesso);
+  mezzogiorno.setUTCHours(12, 0, 0, 0);
+  const def = (id) => mobili.find((m) => m.id === id);
+  const vetrina = Array.from({ length: 7 }, (_, i) => {
+    const data = +mezzogiorno + i * 86_400_000;
+    const oggi = vetrinaOra(data);
+    const terre = oggi.terra.map(def).filter((m) => m && !m.celle).sort((a, b) => a.monete - b.monete);
+    const comodino = terre.find((m) => m.altezza === undefined || m.altezza >= 0.15); // soglia di world/casa_mappa.ts
+    return { data, oggi, comodino, stereo: terre.find((m) => m !== comodino), orologio: def(oggi.parete[0]) };
+  }).find((v) => v.comodino && v.stereo && v.orologio);
+  assert(vetrina, 'nessuna vetrina con due mobili a terra 1×1, di cui uno solido, e uno a parete');
+  const { data, oggi, comodino, stereo, orologio } = vetrina;
+  const offsetVetrina = data - +adesso;
   const pav = borgo.pavimenti.find((f) => f.id === oggi.pavimenti[0]), carta = borgo.carte.find((f) => f.id === oggi.carte[0]); // il negozio vende solo carte e pavimenti di oggi (#393)
   const serve = comodino.monete + stereo.monete + orologio.monete + pav.monete + carta.monete;
 
@@ -54,7 +63,7 @@ export default async function (ctx) {
     let up = false;
     for (let i = 0; i < 120 && !up; i++) { try { up = (await fetch(BASE + '/api/ping')).ok; } catch { /* non ancora */ } if (!up) await sleep(500); }
     if (!up) throw new Error('wrangler dev non risponde:\n' + log.split('\n').slice(-20).join('\n'));
-    const hdr = (tok) => ({ 'x-token': tok, 'content-type': 'application/json' });
+    const hdr = (tok) => ({ 'x-token': tok, 'content-type': 'application/json', 'x-test-now-offset': String(offsetVetrina) });
     const get = async (p, tok = 'tokL') => { const r = await fetch(BASE + p, { headers: hdr(tok) }); return { status: r.status, body: await r.json() }; };
     const post = async (p, b, tok = 'tokL') => { const r = await fetch(BASE + p, { method: 'POST', headers: hdr(tok), body: JSON.stringify(b ?? {}) }); return { status: r.status, body: await r.json() }; };
     const playSolo = async (tok) => {
