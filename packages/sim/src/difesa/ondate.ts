@@ -28,13 +28,13 @@ function curva(x0: number, x1: number, x: number, a: number, b: number): number 
 }
 
 function scegliTipo(s: DState, punti: number, n: number): DTipoNemico | null {
-  const P = prof(s), tipi = defPartita(s).nemici, b = s.livello < 0 ? bandierePassate(s, n) : 0;
+  const P = prof(s), tipi = defPartita(s).nemici, b = s.livello < 0 ? bandierePassate(s, n) : 0, molt = livelloDef(s)?.pesi;
   let tot = 0;
   const pesi: number[] = [];
   for (const t of tipi) {
     const d = P.nemici[t];
     const dall = s.livello < 0 ? Math.max(1, d.dallOndata - Math.floor(curva(18, 50, b, 0, 15))) : d.dallOndata;
-    let w = n + 1 < dall || punti < d.punti ? 0 : d.peso;
+    let w = n + 1 < dall || punti < d.punti ? 0 : d.peso * (molt?.[t] ?? 1);
     if (s.livello < 0 && t === 'base') w = curva(10, 50, b, w, w / 10);
     if (s.livello < 0 && t === 'cono') w = curva(10, 50, b, w, w / 4);
     pesi.push(w); tot += w;
@@ -106,7 +106,7 @@ export function nuovoNemico(s: DState, tipo: DTipoNemico, corsia: number, x: num
   return {
     id: s.nid++, tipo, corsia, x, vita: d.vita, vitaMax: d.vita, armatura: d.armatura, armaturaMax: d.armatura,
     passo, corsa, salto: 0, saltoDa: 0, saltoA: 0, saltoT0: 0, saltoT1: 0,
-    gelo: 0, mangia: 0, testa: true, muore: 0, ondata, nato: s.tick, colpito: -9999,
+    gelo: 0, mangia: 0, testa: true, muore: 0, ondata, nato: s.tick, colpito: -9999, vola: !!d.vola, furia: 0,
   };
 }
 

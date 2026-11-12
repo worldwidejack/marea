@@ -6,17 +6,21 @@ import type { DLivelloDef, DProfilo, DProfiloId, DSopravvivenzaDef, DTipoNemico,
 import { DIFESA, profiloDifesa } from '@marea/content/difesa.ts';
 import { TICK_HZ } from '../constants.ts';
 import { casoIntero } from '../rng.ts';
+import { sceltaPredefinita } from './carte.ts';
 
 /** Un difensore in campo. `t` = tick della prossima azione (colpo, moneta, scoppio, mina armata). */
 export type DUnita = { id: number; tipo: DTipoUnita; corsia: number; col: number; vita: number; vitaMax: number; t: number; armata: boolean; nata: number; morsa: number };
 /** Un nemico. `passo`/`corsa` in caselle al tick; `salto`: 0 = deve ancora saltare (o non salta), 1 = in volo, 2 = fatto.
- *  Senza `testa` non morde più e sparisce a `muore`. */
+ *  Senza `testa` non morde più e sparisce a `muore`. `furia`: 0 = niente, altrimenti il tick in cui, caduta l'armatura, comincia a correre. */
 export type DNemico = {
   id: number; tipo: DTipoNemico; corsia: number; x: number; vita: number; vitaMax: number; armatura: number; armaturaMax: number;
   passo: number; corsa: number; salto: 0 | 1 | 2; saltoDa: number; saltoA: number; saltoT0: number; saltoT1: number;
-  gelo: number; mangia: number; testa: boolean; muore: number; ondata: number; nato: number; colpito: number;
+  gelo: number; mangia: number; testa: boolean; muore: number; ondata: number; nato: number; colpito: number; vola: boolean; furia: number;
 };
-export type DColpo = { id: number; corsia: number; x: number; danno: number; gelo: boolean; vel: number };
+/** Un colpo in volo nella sua corsia; `fuoco` = già potenziato (passa una volta sola). */
+export type DColpo = { id: number; corsia: number; x: number; danno: number; gelo: boolean; vel: number; fuoco: boolean };
+/** Un colpo in arco (il mortaio): parte da `da` e cade a `a` (x e corsia, in caselle) al tick `t1`. */
+export type DLancio = { id: number; da: [number, number]; a: [number, number]; t0: number; t1: number; danno: number; splash: number; centro: number; raggio: number };
 /** Una moneta della valuta: cade dal cielo da `y0` a `yFine` (corsie) o salta fuori da un produttore; tocca terra a `atterra`. */
 export type DMoneta = { id: number; x: number; y0: number; yFine: number; valore: number; cielo: boolean; nata: number; atterra: number; sparisce: number };
 export type DCarta = { tipo: DTipoUnita; pronta: number };
@@ -26,6 +30,11 @@ export type DEvento =
   | { e: 'pianta'; id: number; tipo: DTipoUnita; corsia: number; col: number }
   | { e: 'pala'; tipo: DTipoUnita; corsia: number; col: number }
   | { e: 'spara'; id: number; corsia: number; x: number; gelo: boolean }
+  | { e: 'lancia'; id: number; corsia: number }
+  | { e: 'cade'; x: number; y: number }
+  | { e: 'potenziato'; id: number; corsia: number; col: number }
+  | { e: 'inghiottito'; id: number; tipo: DTipoNemico; corsia: number; x: number; unita: number }
+  | { e: 'furia'; id: number }
   | { e: 'colpito'; id: number; corsia: number; x: number; gelo: boolean; armatura: boolean }
   | { e: 'armatura'; id: number; tipo: DTipoNemico }
   | { e: 'testa'; id: number }
@@ -49,14 +58,15 @@ export type DComando =
   | { t: 'pianta'; tipo: DTipoUnita; corsia: number; col: number }
   | { t: 'raccogli'; id: number }
   | { t: 'pala'; corsia: number; col: number };
-export type DOpzioni = { profilo?: DProfiloId; raccoltaAuto?: boolean; immortale?: boolean };
+/** `carte` = le carte portate (tra quelle del livello, nell'ordine del livello); senza, la scelta di partenza di carte.ts. */
+export type DOpzioni = { profilo?: DProfiloId; raccoltaAuto?: boolean; immortale?: boolean; carte?: readonly DTipoUnita[] };
 
 export type DState = {
   tick: number; caso: number;
   /** Indice in DIFESA.livelli; -1 = Sopravvivenza. */
   livello: number; profilo: DProfiloId;
   corsie: number[]; valuta: number; carte: DCarta[];
-  unita: DUnita[]; nemici: DNemico[]; colpi: DColpo[]; monete: DMoneta[]; tosa: DTosaerba[];
+  unita: DUnita[]; nemici: DNemico[]; colpi: DColpo[]; lanci: DLancio[]; monete: DMoneta[]; tosa: DTosaerba[];
   /** Le ondate già composte (la Sopravvivenza le compone man mano); `ondata` = la prossima da lanciare. */
   ondate: DTipoNemico[][]; ondata: number;
   /** Tick alla prossima ondata, da quanto era partito il conto, vita dell'ondata in corso quando è entrata e soglia per anticipare
@@ -94,8 +104,8 @@ export function nuovaPartita(seme: number, livello: number, opz: DOpzioni = {}):
     tick: 0, caso: (seme >>> 0) || 1, livello: def ? livello : -1, profilo,
     corsie: [...(def ?? sop).corsie],
     valuta: def ? (def.tutorial ? P.economia.inizialeTutorial : P.economia.iniziale) : sop.iniziale,
-    carte: (def ?? sop).carte.map((tipo) => ({ tipo, pronta: tick(P.unita[tipo].ricaricaInizio ?? 0) })),
-    unita: [], nemici: [], colpi: [], monete: [],
+    carte: (opz.carte ? (def ?? sop).carte.filter((t) => opz.carte!.includes(t)) : sceltaPredefinita({ carte: (def ?? sop).carte, nuova: def?.nuova })).map((tipo) => ({ tipo, pronta: tick(P.unita[tipo].ricaricaInizio ?? 0) })),
+    unita: [], nemici: [], colpi: [], lanci: [], monete: [],
     tosa: Array.from({ length: DIFESA.campo.corsie }, () => ({ stato: 0 as const, x: DIFESA.campo.tosaerba })),
     ondate: [], ondata: 0,
     conto: tick((def ?? sop).primaOndata), contoInizio: 0, vitaInizio: 0, vitaProssima: -1, enorme: 0,

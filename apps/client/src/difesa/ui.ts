@@ -10,7 +10,7 @@ import { primo } from './skin.ts';
 
 export type StatoCarta = { tipo: DTipoUnita; costo: number; carica: number; puoi: boolean };
 export type VoceProva = { id: string; etichetta: () => string; premi: () => void };
-export type LivelloMenu = { nome: string; numero: string; aperto: boolean; medaglia: '' | 'oro' | 'argento' | 'bronzo'; nuova: DTipoUnita | null };
+export type LivelloMenu = { nome: string; numero: string; aperto: boolean; medaglia: '' | 'oro' | 'argento' | 'bronzo'; icona: string | null };
 export type Fine = { vinta: boolean; titolo: string; righe: string[]; medaglia?: '' | 'oro' | 'argento' | 'bronzo'; premio?: DTipoUnita | null; avanti: boolean };
 
 const CSS = `
@@ -66,6 +66,16 @@ const CSS = `
 .df-liv.chiuso { filter: grayscale(1) brightness(.6); cursor: default; }
 .df-liv .df-med { position: absolute; right: 6px; top: 6px; width: 18px; height: 18px; border-radius: 50%; border: 2px solid #2a1a0c; }
 .df-med.oro { background: #ffd23f; } .df-med.argento { background: #d8dde3; } .df-med.bronzo { background: #d08a4a; }
+.df-scelta { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 9px; margin: 12px 0 8px; }
+.df-sc { position: relative; padding: 5px 4px 4px; border: 3px solid var(--cartab); border-radius: 12px; background: var(--carta); box-shadow: inset 0 0 0 2px #fffaf0, 0 4px 0 rgba(0,0,0,.3); color: #3b2410; font: inherit; cursor: pointer; opacity: .5; filter: saturate(.5); transition: transform .08s; }
+.df-sc.on { opacity: 1; filter: none; box-shadow: 0 0 0 4px var(--acc), 0 4px 0 rgba(0,0,0,.35); transform: translateY(-3px); }
+.df-sc canvas { display: block; width: 66px; height: 50px; margin: 0 auto; }
+.df-sc span { display: block; font-size: 12px; line-height: 1.1; min-height: 27px; }
+.df-sc .df-costo { justify-content: center; }
+.df-sc .df-nuova { position: absolute; right: -5px; top: -8px; padding: 1px 6px; border: 2px solid #2a0c08; border-radius: 8px; background: #ff5a3c; color: #fff; font-size: 11px; }
+.df-conta { margin: 2px 0 0; font-size: 22px; }
+.df-conta.pieno { color: #2f5e12; }
+.df-grosso:disabled { filter: grayscale(1) brightness(.8); cursor: default; }
 .df-grosso { margin: 6px 6px 0; padding: 10px 26px; border: 4px solid #2f5e12; border-radius: 16px; background: #7ad027; color: #fff; font: inherit; font-size: 24px; text-shadow: 0 2px 0 #2f5e12, 2px 0 0 #2f5e12, -2px 0 0 #2f5e12, 0 -2px 0 #2f5e12; box-shadow: inset 0 3px 0 rgba(255,255,255,.4), 0 5px 0 #2f5e12; cursor: pointer; }
 .df-grosso.b2 { background: var(--carta); border-color: var(--cartab); color: #3b2410; text-shadow: none; box-shadow: inset 0 0 0 2px #fffaf0, 0 5px 0 var(--cartab); }
 .df-premio { display: inline-flex; flex-direction: column; align-items: center; margin: 8px; padding: 8px 18px; background: var(--carta); color: #3b2410; border: 4px solid var(--cartab); border-radius: 16px; animation: df-pulsa 1.2s infinite; }
@@ -95,6 +105,8 @@ const CSS = `
   .df-pan h1 { font-size: 30px; margin: 0; } .df-pan p { font-size: 14px; margin: 2px 0; }
   .df-livelli { grid-template-columns: repeat(6, minmax(64px, 1fr)); gap: 6px; margin: 8px 0; }
   .df-liv { padding: 5px 3px 4px; } .df-liv b { font-size: 22px; } .df-liv span { font-size: 11px; } .df-liv canvas { width: 40px; height: 30px; }
+  .df-scelta { grid-template-columns: repeat(6, minmax(62px, 1fr)); gap: 6px; margin: 6px 0 4px; }
+  .df-sc { padding: 3px 2px 2px; border-width: 2px; } .df-sc canvas { width: 42px; height: 32px; } .df-sc span { font-size: 10px; min-height: 22px; } .df-sc .df-costo { font-size: 12px; } .df-conta { font-size: 16px; }
   .df-grosso { padding: 7px 18px; font-size: 18px; margin-top: 2px; } .df-premio canvas { width: 76px; height: 56px; } .df-premio { padding: 5px 12px; margin: 4px; }
 }`;
 
@@ -205,7 +217,7 @@ export function creaUi(root: HTMLElement) {
       livelli.forEach((l, i) => {
         const b = el('button', 'df-liv' + (l.aperto ? '' : ' chiuso')), cv = el('canvas');
         b.append(el('b', '', l.numero), el('span', '', l.nome));
-        if (l.nuova) { icona(cv, l.nuova); b.append(cv); }
+        if (l.icona) { icona(cv, l.icona); b.append(cv); }
         if (l.medaglia) b.append(el('div', 'df-med ' + l.medaglia));
         if (l.aperto) b.addEventListener('click', () => scegli(i));
         else b.setAttribute('disabled', '');
@@ -228,6 +240,8 @@ export function creaUi(root: HTMLElement) {
       pan.append(fila);
       velo.classList.add('su');
     },
+    /** Un pannello a scelta nel velo (la scelta delle carte): `riempi` scrive dentro il pannello vuoto. */
+    pannello(riempi: (pan: HTMLElement) => void) { pan.innerHTML = ''; riempi(pan); velo.classList.add('su'); },
     chiudiVelo() { velo.classList.remove('su'); },
     veloAperto: () => velo.classList.contains('su'),
     prove(voci: VoceProva[]) {
@@ -244,7 +258,7 @@ export function creaUi(root: HTMLElement) {
       carica.classList.toggle('su', testo !== null);
       if (testo !== null) { caricaTesto.textContent = testo; caricaPiena.style.width = `${Math.round(frazione * 100)}%`; }
     },
-    icona,
+    icona, costo,
   };
 }
 export type Ui = ReturnType<typeof creaUi>;

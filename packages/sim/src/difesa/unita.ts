@@ -1,12 +1,14 @@
 // I difensori della Difesa (docs/DIFESA.md §2.2): si piantano spendendo valuta (e la carta si ricarica), chi spara tira a ritmo fisso
 // quando nella sua corsia c'è un nemico, il produttore fa cadere monete, la bomba scoppia dopo la miccia nel 3 × 3, la mina si arma e
-// scoppia a chi la tocca, il muro ha solo tanta vita. Qui anche i colpi in volo.
-import type { DTipoUnita } from '@marea/content/difesa.ts';
+// scoppia a chi la tocca, il muro ha solo tanta vita, la mangiatutto inghiotte un nemico intero, il potenziatore raddoppia i colpi che
+// gli passano sopra, il mortaio tira in arco (lanci.ts). Qui anche i colpi in volo.
+import type { DTipoUnita, DUnitaDef } from '@marea/content/difesa.ts';
 import { DIFESA } from '@marea/content/difesa.ts';
-import type { DState, DUnita } from './stato.ts';
+import type { DNemico, DState, DUnita } from './stato.ts';
 import { caso, prof, tick, tra, unitaIn, vivo } from './stato.ts';
 import { BOCCA, CORPO, ferisci } from './nemici.ts';
 import { nuovaMoneta } from './monete.ts';
+import { lanciaDa } from './lanci.ts';
 
 /** Pianta un difensore: carta della partita, carta carica, abbastanza valuta, corsia aperta e casella libera. */
 export function pianta(s: DState, tipo: DTipoUnita, corsia: number, col: number): DUnita | null {
@@ -20,7 +22,7 @@ export function pianta(s: DState, tipo: DTipoUnita, corsia: number, col: number)
   s.valuta -= d.costo; s.stats.spesa += d.costo; s.stats.piantate++;
   carta.pronta = s.tick + tick(d.ricarica);
   const vita = d.vita ?? 300;
-  const t = d.tipo === 'tiro' ? s.tick + tick(caso(s) * (d.cadenza ?? 1.5))
+  const t = d.tipo === 'tiro' || d.tipo === 'lancia' ? s.tick + tick(caso(s) * (d.cadenza ?? 1.5))
     : d.tipo === 'produce' ? s.tick + tick(tra(s, d.primo ?? [3, 12]))
     : d.tipo === 'bomba' ? s.tick + tick(d.miccia ?? 1)
     : d.tipo === 'mina' ? s.tick + tick(d.arma ?? 15) : 0;
@@ -44,9 +46,26 @@ export function haBersaglio(s: DState, u: DUnita): boolean {
   return false;
 }
 function scoppia(s: DState, u: DUnita, corsie: number, x0: number, x1: number, danno: number, tipo: 'bomba' | 'mina'): void {
-  for (const e of [...s.nemici]) if (Math.abs(e.corsia - u.corsia) <= corsie && e.x >= x0 && e.x <= x1) ferisci(s, e, danno);
+  // la mina scoppia a terra: chi vola le passa sopra
+  for (const e of [...s.nemici]) if (Math.abs(e.corsia - u.corsia) <= corsie && e.x >= x0 && e.x <= x1 && !(tipo === 'mina' && e.vola)) ferisci(s, e, danno);
   s.unita.splice(s.unita.indexOf(u), 1);
   s.ev.push({ e: 'esplode', tipo, corsia: u.corsia, col: u.col });
+}
+/** La mangiatutto: se davanti a lei c'è un nemico di terra non «grande», lo inghiotte intero (armatura compresa) e passa a digerire. */
+function inghiotte(s: DState, u: DUnita, d: DUnitaDef): void {
+  if (u.t > s.tick) return;
+  const P = prof(s);
+  let best: DNemico | undefined;
+  for (const e of s.nemici) {
+    if (e.corsia !== u.corsia || !vivo(e) || e.vola || e.salto === 1 || P.nemici[e.tipo].grande) continue;
+    if (e.x < u.col + 0.4 || e.x - BOCCA > u.col + 1 + (d.portata ?? 0.9)) continue;
+    if (!best || e.x < best.x) best = e;
+  }
+  if (!best) return;
+  s.nemici.splice(s.nemici.indexOf(best), 1);
+  s.stats.uccisi++;
+  u.t = s.tick + tick(d.digestione ?? 42);
+  s.ev.push({ e: 'inghiottito', id: best.id, tipo: best.tipo, corsia: u.corsia, x: best.x, unita: u.id });
 }
 
 export function passoUnita(s: DState): void {
@@ -58,7 +77,8 @@ export function passoUnita(s: DState): void {
       u.t = s.tick + tick((d.cadenza ?? 1.5) - caso(s) * (d.cadenzaCaso ?? 0));
       if (!haBersaglio(s, u)) continue;
       const x = u.col + 0.8;
-      s.colpi.push({ id: s.nid++, corsia: u.corsia, x, danno: d.danno ?? 20, gelo: !!d.gelo, vel: (d.colpoVel ?? 4) / tick(1) });
+      // più colpi alla volta (il ripetitore): uno dietro l'altro
+      for (let k = 0; k < (d.colpi ?? 1); k++) s.colpi.push({ id: s.nid++, corsia: u.corsia, x: x - k * (d.stacco ?? 0.4), danno: d.danno ?? 20, gelo: !!d.gelo, vel: (d.colpoVel ?? 4) / tick(1), fuoco: false });
       s.ev.push({ e: 'spara', id: u.id, corsia: u.corsia, x, gelo: !!d.gelo });
     } else if (d.tipo === 'produce') {
       if (u.t > s.tick) continue;
@@ -73,16 +93,35 @@ export function passoUnita(s: DState): void {
         if (u.t <= s.tick) { u.armata = true; s.ev.push({ e: 'armata', id: u.id }); }
         continue;
       }
-      const tocca = s.nemici.some((e) => e.corsia === u.corsia && vivo(e) && e.salto !== 1 && e.x - BOCCA <= u.col + 1 && e.x >= u.col - 0.2);
+      const tocca = s.nemici.some((e) => e.corsia === u.corsia && vivo(e) && !e.vola && e.salto !== 1 && e.x - BOCCA <= u.col + 1 && e.x >= u.col - 0.2);
       if (tocca) scoppia(s, u, 0, u.col - 0.3, u.col + 1 + (d.caselle ?? 0.9), d.danno ?? 1800, 'mina');
+    } else if (d.tipo === 'mangia') {
+      inghiotte(s, u, d);
+    } else if (d.tipo === 'lancia') {
+      if (u.t > s.tick) continue;
+      u.t = s.tick + tick((d.cadenza ?? 3) - caso(s) * (d.cadenzaCaso ?? 0));
+      lanciaDa(s, u, d);
     }
   }
 }
 
-/** I colpi in volo: avanzano e colpiscono il primo nemico (il più a sinistra) che toccano nella loro corsia. */
+/** I colpi in volo: avanzano (passando sopra un potenziatore diventano di fuoco: danno × `molt`, il gelo si scioglie) e colpiscono il
+ *  primo nemico (il più a sinistra) che toccano nella loro corsia. */
 export function passoColpi(s: DState): void {
+  const P = prof(s);
   for (const c of [...s.colpi]) {
+    const x0 = c.x;
     c.x += c.vel;
+    if (!c.fuoco) {
+      for (const u of s.unita) {
+        const d = P.unita[u.tipo];
+        if (u.corsia !== c.corsia || d.tipo !== 'potenzia' || x0 >= u.col + 0.5 || c.x < u.col + 0.5) continue;
+        c.fuoco = true; c.danno *= d.molt ?? 2;
+        if (d.scioglie) c.gelo = false;
+        s.ev.push({ e: 'potenziato', id: u.id, corsia: u.corsia, col: u.col });
+        break;
+      }
+    }
     let best = null as null | (typeof s.nemici)[number];
     for (const e of s.nemici) {
       if (e.corsia !== c.corsia || !vivo(e) || e.salto === 1) continue;

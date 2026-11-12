@@ -69,6 +69,10 @@ export default async function (ctx) {
     await pad.premi(15);
     assert(await menu.locator('button[data-pad-focus]:not(.chiuso)').count() === 1, 'focus su un livello chiuso');
     await pad.premi(0);
+    // con un solo livello aperto i due passi a destra arrivano a SOPRAVVIVENZA: ha più di 8 carte, quindi prima si scelgono; il focus parte su VIA!
+    await menu.locator('.df-scelta').waitFor({ timeout: 8000 });
+    assert(/VIA/.test(await menu.locator('button[data-pad-focus]').innerText()), 'nella scelta delle carte il focus parte su VIA!');
+    await pad.premi(0);
     await menu.waitFor({ state: 'hidden', timeout: 8000 });
     await pad.premi(9);
     await menu.getByRole('heading', { name: 'PAUSA' }).waitFor({ timeout: 8000 });
