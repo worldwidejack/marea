@@ -4,7 +4,7 @@
 > Numeri in `packages/content/src/rpg/*.json` (`balance.json` → `dungeon.furtivo`, `dungeon.quiete`, `perk.occhio`, `perk.manoFerma`; `enemies.json` → `altezza`, `quota`, `udito`).
 
 ## 1. Comandi
-- **PC**: il mouse guarda (il primo clic lo cattura, Esc lo lascia e apre la Pausa), WASD cammina, Maiusc corre, clic o Spazio = A, V schiva, R pozione, 1-2-3 i preferiti, I lo zaino. **E** fruga quello che hai sotto il mirino (se non c'è niente da frugare resta la Scarica dell'arco).
+- **PC**: il mouse guarda (il primo clic lo cattura, Esc lo lascia e apre la Pausa), WASD cammina, Maiusc corre, clic o Spazio = A, V schiva, R pozione, 1-2-3 i preferiti, I lo zaino, **M** la mappa. **E** fruga quello che hai sotto il mirino (se non c'è niente da frugare resta la Scarica dell'arco).
 - **Telefono** in orizzontale: joystick a sinistra, il pollice destro trascinato gira la visuale (anche partendo dalla A); il cartellino del bottino sotto il mirino si tocca.
 
 ## 2. Mira in alto e in basso
@@ -41,7 +41,8 @@
 - Se ci sei dentro: **«Pericolo: spostati»**, poi **«VIA DI LÌ!»**, una freccia attorno al mirino verso l'uscita più corta (o verso il varco dell'onda) e un bip che accelera. Chi prepara un colpo fuori dalla vista accende il bordo di quel lato.
 
 ## 7. Interfaccia
-- In alto la **bussola** (punti cardinali, scala d'uscita, lanterne, il capo, i nemici che ti stanno addosso) e sotto la **barra del nemico** sotto il mirino o appena colpito (il capo col nome in oro). Niente barre sopra le teste dei nemici (restano quelle degli alleati).
+- In alto al centro la **barra del nemico** sotto il mirino o appena colpito (il capo col nome in oro). Niente barre sopra le teste dei nemici (restano quelle degli alleati). Non c'è più la bussola.
+- In alto a sinistra la **minimappa** (piccola, 90 px sul telefono, nord in alto, gira solo la freccia che sei tu; `rpg/fp_mappa.ts`). Un tocco (o **M**) apre la **mappa grande**: da soli ferma la partita, e lì si sceglie cosa lasciare da chiusa, **Minimappa** o **Pulsante** (un bottoncino che riapre la grande); la scelta resta sul dispositivo. **Nebbia**: si scopre solo quello che vedi (360° fino a 8 celle, i muri fermano la vista); quello che vedi adesso è più chiaro di quello che ricordi. Scala e lanterne compaiono solo dopo averle viste, i nemici solo se li vedi ora, i compagni sempre. A ogni discesa si riparte dal buio.
 - In basso al centro le tre barre (Magicka, Vita, Stamina) con frecce, pozioni, peso, monete e tempo. Mirino sempre: un punto con le armi, la croce con arco e magie, rosso sopra un nemico.
 - Vita sotto il 30 %: bordi rossi che pulsano col **battito del cuore**.
 
@@ -52,4 +53,4 @@
 - Solo scenografia ferma, calcolata una volta dalla mappa: niente cambia la sim né le collisioni. L'Arena non la usa.
 
 ## 9. Come funziona sotto
-Dungeon **v15** (`sim/dungeon/dungeon.ts`; v15: i nemici vivi di `quiete.ts`): log degli input **formato 5** (un byte d'alzo per riga, solo nelle partite che lo usano), azioni `fruga` e `prendi`, `SqInput` della squadra con l'alzo in quinta posizione. Moduli: `sim/dungeon/alzo.ts` (pendenza, altezze, raggio in 3D), `fruga.ts` (bottino a mano, furtività), `perk.ts` (Mano ferma); client `rpg/prima_persona.ts` con `fp_fruga.ts`, `fp_hud.ts`, `fp_pericoli.ts`. La prova: `tests/e2e/m2_prima_persona.mjs` e `packages/sim/test/dungeon_prima_persona.test.ts`.
+Dungeon **v15** (`sim/dungeon/dungeon.ts`; v15: i nemici vivi di `quiete.ts`): log degli input **formato 5** (un byte d'alzo per riga, solo nelle partite che lo usano), azioni `fruga` e `prendi`, `SqInput` della squadra con l'alzo in quinta posizione. Moduli: `sim/dungeon/alzo.ts` (pendenza, altezze, raggio in 3D), `fruga.ts` (bottino a mano, furtività), `perk.ts` (Mano ferma); client `rpg/prima_persona.ts` con `fp_fruga.ts`, `fp_hud.ts`, `fp_mappa.ts`, `fp_pericoli.ts`. La prova: `tests/e2e/m2_prima_persona.mjs` e `packages/sim/test/dungeon_prima_persona.test.ts`.
