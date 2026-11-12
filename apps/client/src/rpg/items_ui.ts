@@ -10,7 +10,7 @@ import { INSETTI, RETINO } from '@marea/content/insetti.ts';
 import { insettoCanvas } from '../ui/insetti_sprite.ts';
 import { CANNA, PESCI } from '@marea/content/pesci.ts';
 import { pesceCanvas } from '../ui/pesci_sprite.ts';
-import { ICONA, spriteArma, spriteMagia } from './icone.ts';
+import { ICONA, spriteArma, spriteCorredo, spriteMagia, spriteMagiaUnica } from './icone.ts';
 import type { Sprite } from './icone.ts';
 
 export const SKILL_NOME: Record<SkillId, string> = {
@@ -114,6 +114,9 @@ export const iconOf = (it: ItemDef, px = 24): HTMLCanvasElement => {
   // armi, archi e frecce col disegno del loro tipo, o il loro se sono unici
   const arma = it.kind === 'arma' || it.kind === 'arco' || it.kind === 'frecce' ? spriteArma(it, palColor(it.colore)) : null;
   if (arma) return spriteCanvas(arma, px);
+  // armature, vesti e anelli unici col loro disegno; i libri delle magie uniche col disegno della magia
+  const unico = it.kind === 'armatura' || it.kind === 'veste' || it.kind === 'anello' ? spriteCorredo(it.id) : it.kind === 'libro' && it.insegna ? spriteMagiaUnica(it.insegna) : null;
+  if (unico) return spriteCanvas(unico, px);
   // gli insetti (#445) col loro disegno 16×16, il retino col suo
   const ins = it.kind === 'insetto' ? INSETTI.find((d) => d.id === it.id) : undefined;
   if (ins) { const c = insettoCanvas(ins, px / 16); c.classList.add('mz-rp-ico'); return c; }

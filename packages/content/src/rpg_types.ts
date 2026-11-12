@@ -20,6 +20,7 @@ export type Traits = {
   dropRaro?: boolean;          // frecce d'oro: chi uccidi lascia sicuramente il drop raro
   fragile?: number;            // vetro: colpi a segno prima di rompersi (0/assente = mai)
   sanguina?: number;           // danno al secondo per 3 s
+  rubaVita?: number; gelo?: { molt: number; secondi: number }; // unici: frazione del danno in mischia che torna come Vita; la mischia rallenta (velocità × molt per secondi s)
   penetra?: number;            // frazione dell'armatura nemica ignorata (meteorite 0.5, schegge 0.25)
   sbilancia?: boolean;         // respinge e interrompe l'attacco nemico (ossa, frecce contundenti)
   trapassa?: boolean;          // frecce eteree: non si fermano al primo nemico
@@ -299,7 +300,7 @@ export type DungeonDef = {
    *  acuminati (pavimento, fanno male: `rottami` del dungeon); `ponte: n` il ponte mobile alzato sopra l'acqua, un bacino come `acqua: n`
    *  (la ruota lo abbassa); `pilone` bitta di legno: solida come una colonna, ma la carica del capo la fracassa. Santuario: `braciere: n` braciere spento della stanza n (solido): A accanto lo accende; con tutti accesi la stanza si chiude (colata `stanza: n`, bacino `acqua: n`).
    *  Arena: `erba` erba alta (pavimento): chi ci sta dentro non lo vedono gli avversari (sim/dungeon/erba.ts). */
-  legenda: Record<string, { erba?: boolean; nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; raggioColonna?: number; profonditaGrata?: number; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number; vento?: number; timone?: number; grata?: boolean; ferme?: number[]; lava?: number; colata?: number; chiusa?: number; getto?: boolean; cancello?: number; carica?: number; sarcofago?: boolean; ruota?: number; risacca?: number; rottami?: boolean; ponte?: number; pilone?: boolean; tornello?: number; colonnina?: number; ghiaccio?: number; braciere?: number }>;
+  legenda: Record<string, { erba?: boolean; nemico?: string; capo?: boolean; forziere?: string; libro?: string; oggetto?: string; resti?: string; luce?: boolean; colonna?: boolean; raggioColonna?: number; profonditaGrata?: number; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number; vento?: number; timone?: number; grata?: boolean; ferme?: number[]; lava?: number; colata?: number; chiusa?: number; getto?: boolean; cancello?: number; carica?: number; sarcofago?: boolean; ruota?: number; risacca?: number; rottami?: boolean; ponte?: number; pilone?: boolean; tornello?: number; colonnina?: number; ghiaccio?: number; braciere?: number }>;
   /** Dove sta l'ingresso nel mondo: cella di un'isola di islands.json (il modello è `prop_ingresso_<stile>`). */
   ingresso: { island: string; at: [number, number] };
   /** Lore dentro il dungeon (docs/RPG.md §2c): solo testo per il client, la sim non lo vede. */

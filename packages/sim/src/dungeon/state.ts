@@ -7,7 +7,7 @@ import type { DungeonDef, EnemyDef, SpellElement, Traits } from '@marea/content/
 import type { EquipSlot, HeroState, RunHero, RunOutcome, RunWeapon } from '../rpg/types.ts';
 import { createRng } from '../rng.ts';
 import type { Rng } from '../rng.ts';
-import type { DungeonEvent, HeroAnim } from './types.ts';
+import type { DungeonEvent, HeroAnim, TipoBottino } from './types.ts';
 import type { SwingStyle } from './swing.ts';
 import { bfs, cellOf, moveCircle, parseDungeon } from './map.ts';
 import type { DMap, Griglia } from './map.ts';
@@ -160,7 +160,7 @@ export type Salvato = { altare: number; tick: number; bottino: Bag; monete: numb
 /** Quello che resta in un bottino per un eroe: da solo sono i campi del bottino stesso; insieme ogni eroe ha la sua parte (`altri`). */
 export type LootParte = { items: Bag; monete: number; vuoto: boolean; pieno: boolean };
 /** I campi di LootParte sono la parte dell'eroe 0; insieme `altri[i - 1]` è quella dell'eroe i: ognuno raccoglie il suo, uguale. */
-export type Loot = LootParte & { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; altri?: LootParte[] };
+export type Loot = LootParte & { id: number; x: number; z: number; tipo: TipoBottino; altri?: LootParte[] };
 /** Un eroe della spedizione: i suoi campi in DungeonState sono quelli dell'eroe di turno (`cur`). */
 export type EroeRt = {
   hero: HeroRt; runHero: RunHero;
@@ -372,11 +372,11 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
     const dir = sonno.int(0, 3);
     e.fx = dir === 0 ? 1 : dir === 1 ? -1 : 0; e.fz = dir === 2 ? 1 : dir === 3 ? -1 : 0;
   }
-  map.forzieri.forEach((f, i) => {
-    const r = rollLoot(f.tabella, rng.fork(`forziere:${i}`), { molt: 1, raro: false });
-    s.loot.push(nuovoBottino(s, { id: s.nextId++, x: (f.cx + 0.5) * map.tile, z: (f.cz + 0.5) * map.tile, tipo: 'forziere', items: r.items, monete: r.monete, vuoto: false, pieno: false }));
-  });
-  for (const l of map.libri) s.loot.push(nuovoBottino(s, { id: s.nextId++, x: (l.cx + 0.5) * map.tile, z: (l.cz + 0.5) * map.tile, tipo: 'libro', items: { [l.item]: 1 }, monete: 0, vuoto: false, pieno: false }));
+  const posa = (c: { cx: number; cz: number }, tipo: TipoBottino, r: { items: Bag; monete: number }) => s.loot.push(nuovoBottino(s, { id: s.nextId++, x: (c.cx + 0.5) * map.tile, z: (c.cz + 0.5) * map.tile, tipo, items: r.items, monete: r.monete, vuoto: false, pieno: false }));
+  map.forzieri.forEach((f, i) => posa(f, 'forziere', rollLoot(f.tabella, rng.fork(`forziere:${i}`), { molt: 1, raro: false })));
+  for (const l of map.libri) posa(l, 'libro', { items: { [l.item]: 1 }, monete: 0 });
+  for (const o of map.oggetti) posa(o, 'oggetto', { items: { [o.item]: 1 }, monete: 0 }); // unici sparsi (dopo forzieri e libri: i loro id non cambiano)
+  map.resti.forEach((r, i) => posa(r, 'resti', rollLoot(r.tabella, rng.fork(`resti:${i}`), { molt: 1, raro: false })));
   if (s.eroi.length === 1) {
     s.flowCell = cellOf(map, s.hero.x, s.hero.z);
     bfs(map, s.flowCell, s.flow);

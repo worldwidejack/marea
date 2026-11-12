@@ -49,6 +49,13 @@ UNICI = {
     'u1': [('u_unico_albero_stella', 0.3, '', 78), ('u_unico_tavola_valanga', 0.12, '', 70), ('u_unico_martello_re', 0.2, '', 60)],
     'u2': [('u_unico_katana_spettro', 0.1, '', 62), ('u_unico_nunchaku_bandito', 0.3, 'nunchaku', 52), ('u_unico_fendiflutti', 0.1, '', 62)],
     'u3': [('u_unico_grande_lancetta', 0.08, '', 70), ('u_unico_arco_custode', 0.5, 'arco', 64, VUOTO), ('u_unico_arco_carillon', 0.5, 'molla', 64)],
+    # gli unici sparsi nei dungeon (docs/UNICI.md) e le bacchette delle loro magie
+    'u4': [('u_unico_remo_contrabbandiere', 0.3, '', 76), ('u_unico_falce_becchino', 0.18, '', 54), ('u_unico_scheggia_orizzonte', 0.1, '', 62)],
+    'u5': [('u_unico_chiave_capoturno', 0.2, '', 60), ('u_unico_arco_valvola', 0.5, 'arco', 64), ('u_unico_compasso_cartografo', 0.3, 'nunchaku', 52)],
+    'u6': [('u_unico_tenaglia_mastro', 0.2, '', 66), ('u_unico_arpione_palombaro', 0.3, '', 78), ('u_unico_bastoncini_gemelli', 0.3, 'nunchaku', 52)],
+    'u7': [('u_unico_arco_skilift', 0.5, 'arco', 64), ('u_unico_mazza_lucignolo', 0.2, '', 60)],
+    'w1': [('b_lampo_faro', 0.14, '', 34), ('b_corteo_ossa', 0.14, '', 34), ('b_squarcio_vuoto', 0.14, '', 34), ('b_bussola_fulminante', 0.14, '', 34)],
+    'w2': [('b_colata', 0.14, '', 34), ('b_valzer_lame', 0.14, '', 34), ('b_salva_fuciliere', 0.14, '', 34), ('b_pioggia_braci', 0.14, '', 34)],
 }
 # la palette intera (docs/ART_BIBLE.md §2): gli unici sono colorati; il primo è il contorno (fp_griglia lo riconosce per primo)
 TUTTI = ['#2E1E14', '#F4E3C1', '#E2B97F', '#C98A4B', '#8E5A2B', '#5A3A1E', '#D9E872', '#8FC35B', '#4E9A46', '#2C6B3F', '#1E4A3A', '#E8E1D6', '#B9AFA3', '#7F7568',
