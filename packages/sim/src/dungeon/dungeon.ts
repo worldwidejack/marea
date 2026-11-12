@@ -91,7 +91,7 @@ export const dungeon: DungeonModule<DungeonState> = {
   // v11: schivata a stamina e preparazione delle armi separata dallo swing rapido.
   // v12: prima persona (docs/PRIMA_PERSONA.md): alzo della mira (DungeonInput.p, log formato 5) con nemici alti quanto il loro modello, bottino a mano
   // (azioni `fruga` e `prendi`), attacco furtivo, Mano ferma e Occhio d'aquila al posto dell'Automira. In terza persona non cambia niente.
-  id: 'dungeon', version: 12, maxTicks: MAX_TICKS,
+  id: 'dungeon', version: 13, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
   act(s, a) {
