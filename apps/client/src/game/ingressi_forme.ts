@@ -22,6 +22,7 @@ export function placeholder(stile?: string): THREE.Object3D {
   if (stile === 'diga') return prua();
   if (stile === 'baita') return chalet();
   if (stile === 'ceneri') { const g = new THREE.Group(); void import('./ingressi_santuario.ts').then((m) => g.add(m.santuario())); return g; }
+  if (stile === 'orto') { const g = new THREE.Group(); void import('./ingressi_orto.ts').then((m) => g.add(m.vasoRovesciato())); return g; }
   const g = new THREE.Group(), stone = new THREE.MeshLambertMaterial({ color: '#4A4340', flatShading: true }), dark = new THREE.MeshLambertMaterial({ color: '#23201F' });
   for (const sx of [-1.3, 1.3]) { const p = new THREE.Mesh(box(0.8, 2.6, 1.2), stone); p.position.set(sx, 1.3, 0); g.add(p); }
   const top = new THREE.Mesh(box(3.4, 0.7, 1.2), stone); top.position.y = 2.9; g.add(top);

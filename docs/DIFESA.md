@@ -227,6 +227,8 @@ Corse): terra battuta, prato, riva di sassi.
   sinistra, le lumache che arrivano da destra, la capobanda con la bandierina), la **staccionata** con l'arco del cancello verso il casale,
   il **mulino a vento** a nord-est che si vede dal mare, spaventapasseri, carriola, cassette di verdura. Il resto dell'isola è prato
   libero per i mondi dopo (spiaggia, cucina, cameretta… dal foglio delle prove di Codex).
+- **Il dungeon dell'isola.** A est del campo, da dove arrivano gli insetti, c'è un vaso di terracotta enorme rovesciato: è l'ingresso della
+  **Tana del Maggiolone**, il dungeon con gli insetti dell'orto come nemici (`docs/rpg/2h-orto.md`).
 - **Si gioca dal cancello.** Vicino all'arco (≤ 4 m) **DIFENDI L'ORTO** (o A) apre il gioco sopra il mondo: la stessa pagina del banco
   (`difesa.html?mondo=1`) in un riquadro a tutto schermo; intanto il mondo sta fermo e non si disegna (`main.ts` salta il frame).
   Si torna al cancello con **✕ ISOLA** (in basso a sinistra), con Esc fuori dal riquadro o dal gioco stesso (messaggio

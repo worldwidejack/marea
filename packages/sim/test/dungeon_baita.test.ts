@@ -51,7 +51,7 @@ test('baita: difficoltà 7 tra Mausoleo e Vuoto, nemici e capo più forti del Ma
   assert.equal(baita.stile, 'baita');
   assert.equal(baita.difficolta, 7);
   assert.ok(dungeonDef('mausoleo').difficolta < 7 && 7 < dungeonDef('vuoto').difficolta);
-  assert.equal(DUNGEONS.length, 10);
+  assert.equal(DUNGEONS.length, 11);
   assert.equal(m.w, 45); assert.equal(m.h, 30);
   // i numeri stanno nei JSON e sono all'altezza del dungeon (il Mausoleo ha il Custode a 1300 e le Guardie a 95)
   const capo = enemyDef('jean_claude'), custode = enemyDef('custode_egida'), vuoto = enemyDef('custode');

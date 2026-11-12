@@ -21,6 +21,7 @@
 | Diga | **Arpione del Palombaro** (lancia 3,8 m, **gelo**: rallenta) | **Cerata del Disertore** (armatura, rigenera la Vita) | Libro: **Salva del Fuciliere** (colpo di fuoco forte) |
 | Tempio «Doppia Nera» | **Bastoncini da Sci Gemelli** (nunchaku, **gelo**) | **Tuta Fluo del Maestro** (armatura leggera, corsa +12 %) | **Arco a Carrucola dello Skilift** (ignora il 40 % d'armatura) |
 | Santuario delle Ceneri | **Mazza del Lucignolo** (martello, brucia e sbilancia) | **Lanterna dell'Arconte** (+30 Vita, Magicka doppia, Distruzione +25 %) | Libro: **Pioggia di Braci** (bomba di fuoco enorme) |
+| Tana del Maggiolone | **Carota Cannone** (arco a molla: non si tende, 4 colpi) | **Cavolo Corazzato** (armatura di foglie, +20 Vita) | **Peperoncino Rabbioso** (katana che brucia) |
 
 ## 3. Tratti nuovi (sim, `combat.ts`)
 - **`rubaVita`**: una frazione del danno fatto **in mischia** torna come Vita (non frecce, magie o evocazioni).

@@ -34,6 +34,7 @@ import { kitMausoleo } from './mausoleo.ts';
 import { kitDiga } from './diga.ts';
 import { kitBaita } from './baita.ts';
 import { kitCeneri } from './ceneri.ts';
+import { kitOrto } from './orto.ts';
 import { erbaParts, kitArena, STILI_ARENA } from './arena_kit.ts';
 import { arreda, BASE_FP, STILI_FP } from './fp_arredo.ts';
 import type { Pianta, Posa } from './fp_arredo.ts';
@@ -74,6 +75,7 @@ const STYLE: Record<string, Stile> = {
   diga: { floor: PAL.legno, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.acquaProfonda, PAL.ombraCalda, 1.25], coperchio: PAL.ombraCalda },
   baita: { floor: PAL.legno, wall: PAL.legno, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.sabbiaChiara, PAL.acquaProfonda, 1.35], coperchio: PAL.ombraCalda },
   ceneri: { floor: PAL.roccia, wall: PAL.neroCaldo, top: 0.05, lantern: PAL.arancio, hemi: [PAL.arancio, PAL.neroCaldo, 1.35], coperchio: PAL.neroCaldo },
+  orto: { floor: PAL.legno, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.giallo, hemi: [PAL.erba, PAL.ombraCalda, 1.3], coperchio: PAL.ombraCalda },
   // Arena (docs/ARENA.md, rpg/arena_kit.ts): tutto illuminato (niente nebbia), muretti bassi al posto delle grate. L'isola del naufragio (sabbia,
   // scogli), l'osservatorio (pietra blu e viola, più freddo), il forte (prato e bastioni), il porto (tavolato e magazzini)
   naufragio: { floor: PAL.sabbia, wall: PAL.roccia, top: 0.05, lantern: PAL.sabbiaChiara, hemi: [PAL.sabbiaChiara, PAL.acquaProfonda, 2.1], coperchio: PAL.ombraCalda },
@@ -121,7 +123,7 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
       floors.push(i);
       if (isCol(cx, cz)) cols.push(i);
       if (def.legenda[c]?.luce) lightsAt.push(i);
-      if (c === '.' && def.stile !== 'vuoto' && def.stile !== 'archivio' && def.stile !== 'fucina' && def.stile !== 'mausoleo' && def.stile !== 'diga' && def.stile !== 'baita' && def.stile !== 'ceneri' && !arena && cellHash(cx, cz, 7) < 0.035 && Math.abs(cx - map.exit.cx) + Math.abs(cz - map.exit.cz) > 3) bones.push(i);
+      if (c === '.' && def.stile !== 'vuoto' && def.stile !== 'archivio' && def.stile !== 'fucina' && def.stile !== 'mausoleo' && def.stile !== 'diga' && def.stile !== 'baita' && def.stile !== 'ceneri' && def.stile !== 'orto' && !arena && cellHash(cx, cz, 7) < 0.035 && Math.abs(cx - map.exit.cx) + Math.abs(cz - map.exit.cz) > 3) bones.push(i);
     } else if (c === '#') {
       let touches = false;
       for (let dz = -1; dz <= 1 && !touches; dz++) for (let dx = -1; dx <= 1; dx++) if (isFloor(cx + dx, cz + dz)) { touches = true; break; }
@@ -188,7 +190,7 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
   const ACCESO: Ritocco = { taglia: true, griglia: true, minimo: 'acceso' }, SEMPRE: Ritocco = { griglia: true, minimo: 'sempre' }, BASSO: Ritocco = { griglia: true, minimo: 'acceso' };
   // segnaposto in codice finché non ci sono i modelli dng_drenaggio_* / dng_archivio_* / dng_fucina_* / dng_mausoleo_* / dng_diga_* / dng_baita_*
   const ka = kitArena(k, T, st.top); // le mappe dell'Arena: tutto in codice
-  const dk = k === 'drenaggio' ? kitDrenaggio(st.top) : k === 'archivio' ? kitArchivio(st.top) : k === 'fucina' ? kitFucina(st.top) : k === 'mausoleo' ? kitMausoleo(st.top) : k === 'diga' ? kitDiga(st.top) : k === 'baita' ? kitBaita(st.top) : k === 'ceneri' ? kitCeneri(st.top) : null, ak = k === 'archivio' ? kitArchivio(st.top) : null;
+  const dk = k === 'drenaggio' ? kitDrenaggio(st.top) : k === 'archivio' ? kitArchivio(st.top) : k === 'fucina' ? kitFucina(st.top) : k === 'mausoleo' ? kitMausoleo(st.top) : k === 'diga' ? kitDiga(st.top) : k === 'baita' ? kitBaita(st.top) : k === 'ceneri' ? kitCeneri(st.top) : k === 'orto' ? kitOrto(st.top) : null, ak = k === 'archivio' ? kitArchivio(st.top) : null;
   // la Diga, la Baita, le Ceneri e il porto dell'Arena: il pavimento corre tutto nello stesso verso (girato di mezzo giro sì, di un quarto no)
   const bPav = makeBatch(pFloor ?? ka?.pavimento ?? dk?.pavimento ?? [boxPart(T, 0.3, T, -0.3 + st.top, st.floor)], floors, mats(floors, k === 'diga' || k === 'baita' || k === 'ceneri' || k === 'porto' ? (i) => rot(i) & 2 : rot), 'pavimento', TERRA);
   // prima persona: il soffitto è il pavimento del kit capovolto. Si disegna per primo e non scrive profondità: chi è più alto (boss, scala) non resta tagliato

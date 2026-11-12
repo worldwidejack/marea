@@ -2007,5 +2007,219 @@
         }
       ]
     }
+  },
+  {
+    "id": "orto",
+    "nome": "La Tana del Maggiolone",
+    "descr": "Sotto l’orto dell’isola della Difesa: gallerie di terra, carote giganti e il Comando Centrale delle Ondate. Ferro, argento, erbe rubate.",
+    "stile": "orto",
+    "difficolta": 2.5,
+    "tile": 2,
+    "legenda": {
+      "l": {
+        "nemico": "lumaca_orto"
+      },
+      "g": {
+        "nemico": "lumaca_ghianda"
+      },
+      "s": {
+        "nemico": "scarabeo_vasetto"
+      },
+      "h": {
+        "nemico": "cavalletta_orto"
+      },
+      "v": {
+        "nemico": "vespa_orto"
+      },
+      "b": {
+        "nemico": "bruco_scudo"
+      },
+      "B": {
+        "nemico": "lumaca_capobanda"
+      },
+      "K": {
+        "nemico": "maggiolone",
+        "capo": true
+      },
+      "f": {
+        "forziere": "comune_orto"
+      },
+      "R": {
+        "forziere": "raro_orto"
+      },
+      "$": {
+        "forziere": "scrigno_orto"
+      },
+      "&": {
+        "resti": "resti_orto"
+      },
+      "%": {
+        "oggetto": "unico_carota_cannone"
+      },
+      "t": {
+        "luce": true
+      },
+      "o": {
+        "colonna": true
+      },
+      "A": {
+        "altare": true
+      }
+    },
+    "ingresso": {
+      "island": "difesa",
+      "at": [
+        31,
+        17
+      ]
+    },
+    "rows": [
+      "                                            ",
+      "  #########  ##################  ########## ",
+      "  #.......#  #R...............#  #.......R# ",
+      "  #.%...f.#  #...o....K...o...#  #........# ",
+      "  #.......#  #....v.......v...#  #..h.....# ",
+      "  #....b..#  #................#  #.....h..# ",
+      "  #.......#  #...o....s...o...#  #........# ",
+      "  ###.#####  #................#  #...h....# ",
+      "    #.#      ########.#########  #........# ",
+      " ####.###         #......#       ####.##### ",
+      " #......#         #..A...#          #.#     ",
+      " #......####      #......#          #.#     ",
+      " #..b.....t#      ###.####       ####.###   ",
+      " #....g.##.#   ######.#######    #......#   ",
+      " #......##.#   #............#    #..v...#   ",
+      " #########.#####..l.....o.l.######....g.#   ",
+      "         #t...........B..........t.o....#   ",
+      "         #.#####...o.....g..#####.#######   ",
+      "  ########.#   #A...........#   #.#         ",
+      "  #........#   ######.#######  ##.########  ",
+      "  #......f.#        #t#        #.........#  ",
+      "  #..s.....#        #.#        #.......l.#  ",
+      "  #........#     ####.#####    #..l......#  ",
+      "  #......s.#     #........#    #.........#  ",
+      "  #.l......#     #......l.#    #....g....#  ",
+      " ##.########     #.l......#    #f.......&#  ",
+      " #....#          #........#    ###########  ",
+      " #....#          #........#                 ",
+      " #....#          #...<....#                 ",
+      " #$...#          ##########                 ",
+      " ######                                     "
+    ],
+    "testi": {
+      "sottotitolo": "Comando Centrale delle Ondate · solo insetti",
+      "voci": [
+        {
+          "id": "ingresso",
+          "zona": [
+            18,
+            23,
+            25,
+            28
+          ],
+          "chi": "Lumaca di guardia",
+          "testo": "Alt! Chi va là? …Ah, un nuovo arrivo. Prenda il numerino: l’ondata 38 parte fra tre giorni. Forse quattro."
+        },
+        {
+          "id": "mensa",
+          "zona": [
+            3,
+            19,
+            10,
+            24
+          ],
+          "chi": "Scarabeo cuoco",
+          "testo": "Oggi insalata rubata. Domani insalata rubata. Se la carota smette di sparare, dopodomani insalata rubata con le carote."
+        },
+        {
+          "id": "palestra",
+          "zona": [
+            34,
+            2,
+            41,
+            8
+          ],
+          "chi": "Cavalletta istruttrice",
+          "testo": "E uno! E due! Saltare la prima pianta! SEMPRE la prima! Chi salta la seconda torna a fare la lumaca!"
+        },
+        {
+          "id": "maggiolone",
+          "zona": [
+            14,
+            2,
+            29,
+            7
+          ],
+          "chi": "Il Maggiolone",
+          "capo": true,
+          "testo": "UN UMANO NELLA MIA TANA?! Truppe, in corsia! …Come sarebbe a dire che quaggiù non ci sono le corsie?!"
+        }
+      ],
+      "letture": [
+        {
+          "id": "regolamento",
+          "tipo": "libro",
+          "at": [
+            6,
+            4
+          ],
+          "titolo": "Regolamento delle Ondate · edizione 37",
+          "righe": [
+            "Art. 1. Si cammina da destra verso sinistra. Sempre. Chi cammina da sinistra verso destra sta tornando a casa, e va bene così.",
+            "Art. 2. Il cavolo si mangia con calma: quaranta secondi a testa. Chi ha fretta si becca le carote.",
+            "Art. 3. La lumaca con la ghianda non toglie la ghianda. Nemmeno per dormire. Nemmeno se glielo chiede la mamma.",
+            "Art. 4. Chi vede un annaffiatoio a molla non fa l’eroe: scappa e compila il modulo 7 («Bagnato»).",
+            "Art. 5. Il Maggiolone ha sempre ragione. Se il Maggiolone ha torto, vedi articolo 5.",
+            "In fondo, a matita: «Proposta: e se una volta attaccassimo il casale da DIETRO?» Sotto, in rosso: «RESPINTA. Le corsie vanno da destra a sinistra.»"
+          ]
+        },
+        {
+          "id": "lavagna",
+          "tipo": "incisione",
+          "at": [
+            3,
+            10
+          ],
+          "titolo": "Lavagna della Strategia",
+          "righe": [
+            "PIANO A: tutti dalla corsia 3.",
+            "PIANO B: tutti dalla corsia 3, ma più forte.",
+            "PIANO C: (cancellato col gesso, ma si legge ancora) chiedere scusa al casale e farsi dare un po’ di lattuga.",
+            "In un angolo, disegnata male, una carota con gli occhi cattivi e la scritta: «NON GUARDARLA NEGLI OCCHI»."
+          ]
+        },
+        {
+          "id": "diario",
+          "tipo": "libro",
+          "at": [
+            37,
+            22
+          ],
+          "titolo": "Diario di una lumaca · formato tascabile",
+          "righe": [
+            "Giorno 1. Partita per l’orto con l’ondata 12. Che emozione.",
+            "Giorno 4. Ancora in viaggio. Ho superato un sasso.",
+            "Giorno 9. Vedo la staccionata! Mi sembra di vederla. Forse è un’altra staccionata.",
+            "Giorno 15. Arrivata. Una carota mi ha guardata male. Un ravanello mi è esploso vicino. Tutti molto scortesi.",
+            "Giorno 16. Tornata a casa. Bel viaggio. Riparto con l’ondata 38: dicono che ci sarà il buffet."
+          ]
+        },
+        {
+          "id": "cartello",
+          "tipo": "incisione",
+          "at": [
+            17,
+            14
+          ],
+          "titolo": "Cartello della Sala d’Attesa",
+          "righe": [
+            "SALA D’ATTESA DELLE ONDATE",
+            "Ultimo numero chiamato: 37. Si prega di non spingere: siamo lumache.",
+            "Le cavallette sono gentilmente pregate di non saltare la fila.",
+            "Sotto, scritto da qualcuno con sei zampe: «Il mio numero è 4.512. Ci vediamo in primavera.»"
+          ]
+        }
+      ]
+    }
   }
 ]
