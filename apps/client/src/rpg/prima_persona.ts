@@ -21,7 +21,7 @@ import { coloreMagia, palColor } from './items_ui.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
 import { creaSguardo } from './fp_comandi.ts';
 import { creaCorpo } from './fp_corpo.ts';
-import { creaMani } from './fp_mani.ts';
+import { creaMani, haPezzo } from './fp_mani.ts';
 import type { Colore } from './fp_mani.ts';
 import { posa, puntaRaggio } from './fp_pose.ts';
 import type { Arnese } from './fp_pose.ts';
@@ -95,7 +95,7 @@ export function createPrimaPersona(o: {
   const pericoli = creaPericoli({ scene: o.sc.scene, floorY: o.sc.floorY, root: o.root });
   o.diorama.pilota!(true); camera.far = FAR; camera.rotation.order = 'YXZ'; o.sc.scene.add(camera);
   let px = o.hero0.x, pz = o.hero0.z, vel = 0, lat = 0, fase = 0, scossa = 0, caduta = 0, fov = 0, zoom = 1, clock = 0, swY = 0, swP = 0, cambio = 0, chiave = '', animPrima = '', nColpo = 0, frugaMandata = false;
-  let arnese: Arnese = 'pugni', lama: Colore = BIANCO, magia: Colore = BIANCO, forma: string | undefined, tinta: [number, number, number] = [1, 1, 1];
+  let arnese: Arnese = 'pugni', sprite = '', lama: Colore = BIANCO, magia: Colore = BIANCO, forma: string | undefined, tinta: [number, number, number] = [1, 1, 1];
   const qui = new THREE.Vector3(), tip = new THREE.Vector3(), dir = new THREE.Vector3();
   let bobX = 0, bobY = 0, magiaId = '', ultima: DungeonView | null = null;
   /** Per i test: i nemici più vicini (posizione, stato) e i bottini attorno. */
@@ -122,6 +122,7 @@ export function createPrimaPersona(o: {
     const def = h.arma && hasItem(h.arma) ? itemDef(h.arma) : null;
     arnese = !def ? 'pugni' : def.kind === 'arco' ? 'arco' : def.tipo && TIPI.has(def.tipo) ? def.tipo as Arnese : 'katana';
     lama = def?.colore ? coloreLama(palColor(def.colore)) : BIANCO;
+    sprite = def?.unico && haPezzo(`u_${def.id}`) ? `u_${def.id}` : '';
   };
 
   return {
@@ -169,7 +170,7 @@ export function createPrimaPersona(o: {
       }
       bobX = Math.cos(fase) * MANI_PASSO.x * bob; bobY = -Math.abs(Math.sin(fase)) * MANI_PASSO.y * bob - scossa * 0.03; magiaId = h.magia ?? '';
       const pezzi = posa({
-        h, arnese, lama, magia, magiaId: h.magia ?? '', forma, punta, clock, nColpo, u: mani.u,
+        h, arnese, sprite, lama, magia, magiaId: h.magia ?? '', forma, punta, clock, nColpo, u: mani.u,
         bobX, bobY,
         swayX: Math.max(-0.05, Math.min(0.05, swY * 0.3)), swayY: Math.max(-0.04, Math.min(0.04, -swP * 0.25)),
         giu: Math.max(Math.sin(Math.PI * cambio), sch * 0.8, cad, fruga.aperta ? 0.7 : 0),

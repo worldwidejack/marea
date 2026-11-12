@@ -1,9 +1,10 @@
 // Icone a pixel 16×16 delle armi, degli archi, delle frecce e delle magie: ognuna ha il suo disegno, scritto come righe di lettere
-// (icone_armi.ts, icone_magie.ts) e trasformato qui in una griglia di colori della palette. Puro: niente DOM, lo disegna items_ui.ts.
+// (icone_armi.ts, icone_unici.ts, icone_magie.ts) e trasformato qui in una griglia di colori della palette. Puro: niente DOM, lo disegna items_ui.ts.
 // Armi: m/w/s sono il colore del materiale (medio, chiaro, scuro), il resto è fisso. Il contorno nero caldo lo aggiunge questo file.
 import { PALETTE as P } from '../render/palette.ts';
 import { ARMI } from './icone_armi.ts';
 import { MAGIE } from './icone_magie.ts';
+import { UNICI } from './icone_unici.ts';
 
 export const ICONA = 16;
 /** Colori per riga e colonna; null = trasparente. */
@@ -37,7 +38,7 @@ function griglia(righe: readonly string[], materiale: string = P.pietraScura): S
 
 /** Il disegno di un'arma, di un arco o di frecce (anche gli unici); null se non ne ha uno suo. `materiale` = colore base del materiale. */
 export function spriteArma(it: { id: string; kind: string; tipo?: string }, materiale: string): Sprite | null {
-  const righe = ARMI[it.id] ?? (it.kind === 'arco' ? ARMI['arco'] : it.kind === 'frecce' ? ARMI['frecce'] : it.tipo ? ARMI[it.tipo] : undefined);
+  const righe = UNICI[it.id] ?? ARMI[it.id] ?? (it.kind === 'arco' ? ARMI['arco'] : it.kind === 'frecce' ? ARMI['frecce'] : it.tipo ? ARMI[it.tipo] : undefined);
   return righe ? griglia(righe, materiale) : null;
 }
 /** Il disegno di una magia; null se non ne ha uno suo. */
