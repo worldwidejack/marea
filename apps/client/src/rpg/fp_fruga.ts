@@ -5,7 +5,7 @@
 import { ENEMIES } from '@marea/content/rpg.ts';
 import { aPortata, contenuto } from '@marea/sim/dungeon/fruga.ts';
 import type { DungeonState } from '@marea/sim/dungeon/state.ts';
-import type { DungeonAzione, DungeonView } from '@marea/sim/dungeon/types.ts';
+import type { DungeonAzione, DungeonView, TipoBottino } from '@marea/sim/dungeon/types.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
 import { suona } from '../audio/ponte.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
@@ -49,7 +49,9 @@ export type Fruga = {
   dispose(): void;
 };
 
-type Bersaglio = { id: number; tipo: 'cadavere' | 'forziere' | 'libro'; nome: string; vuoto: boolean };
+type Bersaglio = { id: number; tipo: TipoBottino; nome: string; vuoto: boolean };
+/** Libri e oggetti a terra: una cosa sola, si prende e basta. */
+const SOLO = (t: TipoBottino): boolean => t === 'libro' || t === 'oggetto';
 
 export function creaFruga(o: { root: HTMLElement; tocco: boolean; stato(): DungeonState; act(a: DungeonAzione): string | null; avviso(t: string): void }): Fruga {
   if (!document.getElementById('mz-fp-fruga')) { const st = document.createElement('style'); st.id = 'mz-fp-fruga'; st.textContent = CSS; document.head.appendChild(st); }
@@ -102,7 +104,7 @@ export function creaFruga(o: { root: HTMLElement; tocco: boolean; stato(): Dunge
   };
   const apri = (b: Bersaglio) => {
     if (b.vuoto) return;
-    if (b.tipo === 'libro') { aperto = b; prendi(); aperto = null; return; } // un libro solo: si prende e basta
+    if (SOLO(b.tipo)) { aperto = b; prendi(); aperto = null; return; } // un libro o un oggetto solo: si prende e basta
     aperto = b; firma = '';
     win.classList.add('on'); disegna();
     addEventListener('keydown', tasti, true);
@@ -139,13 +141,13 @@ export function creaFruga(o: { root: HTMLElement; tocco: boolean; stato(): Dunge
         if (c < COS_MIRA || c - d * 0.1 <= bv) continue;
         bv = c - d * 0.1;
         const morto = b.tipo === 'cadavere' ? v.nemici.find((n) => n.anim === 'morto' && !n.alleato && Math.abs(n.x - b.x) < 0.05 && Math.abs(n.z - b.z) < 0.05) : undefined;
-        const libro = b.tipo === 'libro' ? Object.keys(contenuto(s, b.id)?.items ?? {})[0] : undefined;
-        best = { id: b.id, tipo: b.tipo, vuoto: b.vuoto, nome: b.tipo === 'forziere' ? 'Forziere' : libro ? nomeOggetto(libro) : morto ? NOMI.get(morto.tipo) ?? 'Cadavere' : 'Bottino' };
+        const libro = SOLO(b.tipo) ? Object.keys(contenuto(s, b.id)?.items ?? {})[0] : undefined;
+        best = { id: b.id, tipo: b.tipo, vuoto: b.vuoto, nome: b.tipo === 'forziere' ? 'Forziere' : b.tipo === 'resti' ? 'Resti di un avventuriero' : libro ? nomeOggetto(libro) : morto ? NOMI.get(morto.tipo) ?? 'Cadavere' : 'Bottino' };
       }
       mira = best;
       cart.classList.toggle('on', !!best); cart.classList.toggle('vuoto', !!best?.vuoto);
       if (!best) return;
-      const azione = best.tipo === 'forziere' ? 'Apri' : best.tipo === 'libro' ? 'Prendi' : 'Fruga', tasto = o.tocco ? '' : 'E · ';
+      const azione = best.tipo === 'forziere' ? 'Apri' : SOLO(best.tipo) ? 'Prendi' : 'Fruga', tasto = o.tocco ? '' : 'E · ';
       const testo = best.vuoto ? `${best.nome} · vuoto` : `${tasto}<b>${azione}</b> · ${best.nome}`;
       if (cart.dataset['t'] !== testo) { cart.dataset['t'] = testo; cart.innerHTML = testo; }
     },

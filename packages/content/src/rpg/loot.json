@@ -158,5 +158,25 @@
     { "item": "frammento_meteorite", "p": 0.7, "n": [1, 3] }, { "item": "frammento_vetro", "p": 0.7, "n": [2, 4] },
     { "item": "pozione_vita_grande", "p": 0.5, "n": [1, 1] }, { "item": "katana_vetro", "p": 0.15, "n": [1, 1], "raro": true },
     { "item": "frecce_meteorite", "p": 0.15, "n": [3, 6], "raro": true }, { "item": "unico_arco_custode", "p": 0.05, "n": [1, 1], "raro": true },
-    { "item": "libro_golem_evocato", "p": 0.05, "n": [1, 1], "raro": true }, { "item": "libro_cura_bomba", "p": 0.1, "n": [1, 1], "raro": true }, { "item": "libro_furia_bomba", "p": 0.1, "n": [1, 1], "raro": true } ] }
+    { "item": "libro_golem_evocato", "p": 0.05, "n": [1, 1], "raro": true }, { "item": "libro_cura_bomba", "p": 0.1, "n": [1, 1], "raro": true }, { "item": "libro_furia_bomba", "p": 0.1, "n": [1, 1], "raro": true } ] },
+
+  { "id": "scrigno_grotta", "monete": [20, 50], "voci": [{ "item": "libro_lampo_faro", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita", "p": 0.6, "n": [1, 1] }] },
+  { "id": "resti_grotta", "monete": [5, 13], "voci": [{ "item": "unico_giubba_furetto", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita", "p": 0.4, "n": [1, 1] }] },
+  { "id": "scrigno_cripta", "monete": [40, 90], "voci": [{ "item": "libro_corteo_ossa", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita", "p": 0.6, "n": [1, 1] }] },
+  { "id": "resti_cripta", "monete": [10, 23], "voci": [{ "item": "unico_sudario_priore", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita", "p": 0.4, "n": [1, 1] }] },
+  { "id": "scrigno_vuoto", "monete": [150, 300], "voci": [{ "item": "libro_squarcio_vuoto", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita_grande", "p": 0.6, "n": [1, 1] }] },
+  { "id": "resti_vuoto", "monete": [38, 75], "voci": [{ "item": "unico_anello_eco_vuota", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita", "p": 0.4, "n": [1, 1] }] },
+  { "id": "scrigno_drenaggio", "monete": [60, 120], "voci": [{ "item": "unico_arco_valvola", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita_grande", "p": 0.6, "n": [1, 1] }] },
+  { "id": "resti_drenaggio", "monete": [15, 30], "voci": [{ "item": "unico_scafandro_rattoppato", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita", "p": 0.4, "n": [1, 1] }] },
+  { "id": "scrigno_archivio", "monete": [80, 150], "voci": [{ "item": "libro_bussola_fulminante", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita_grande", "p": 0.6, "n": [1, 1] }] },
+  { "id": "resti_archivio", "monete": [20, 38], "voci": [{ "item": "unico_mantella_navigatore", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita", "p": 0.4, "n": [1, 1] }] },
+  { "id": "scrigno_fucina", "monete": [90, 170], "voci": [{ "item": "libro_colata", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita_grande", "p": 0.6, "n": [1, 1] }] },
+  { "id": "resti_fucina", "monete": [23, 43], "voci": [{ "item": "unico_grembiule_brace", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita", "p": 0.4, "n": [1, 1] }] },
+  { "id": "scrigno_mausoleo", "monete": [110, 210], "voci": [{ "item": "libro_valzer_lame", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita_grande", "p": 0.6, "n": [1, 1] }] },
+  { "id": "scrigno_diga", "monete": [160, 320], "voci": [{ "item": "libro_salva_fuciliere", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita_grande", "p": 0.6, "n": [1, 1] }] },
+  { "id": "resti_diga", "monete": [40, 80], "voci": [{ "item": "unico_cerata_disertore", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita", "p": 0.4, "n": [1, 1] }] },
+  { "id": "scrigno_baita", "monete": [130, 260], "voci": [{ "item": "unico_arco_skilift", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita_grande", "p": 0.6, "n": [1, 1] }] },
+  { "id": "resti_baita", "monete": [33, 65], "voci": [{ "item": "unico_tuta_fluo", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita", "p": 0.4, "n": [1, 1] }] },
+  { "id": "scrigno_ceneri", "monete": [200, 400], "voci": [{ "item": "libro_pioggia_braci", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita_grande", "p": 0.6, "n": [1, 1] }] },
+  { "id": "resti_ceneri", "monete": [50, 100], "voci": [{ "item": "unico_lanterna_arconte", "p": 1, "n": [1, 1], "raro": true }, { "item": "pozione_vita", "p": 0.4, "n": [1, 1] }] }
 ]

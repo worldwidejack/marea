@@ -14,6 +14,8 @@ import type { SwingStyle } from './swing.ts';
  * per tick e lo quantizza con quantizeDungeon (mx, my a 1/8). A sulla scala d'uscita = esci. e = la Scarica dell'arco (perk Scarica, v9), assente = no.
  * p = alzo della mira (prima persona, alzo.ts): indice 1..ALZO_N della pendenza dello sguardo, insieme a `m`; assente = mira piatta.
  * In Arena (terza persona) `p` è invece la portata della bomba (portata.ts): dove atterra, da PORTATA_MIN m alla gittata; assente = mira assistita. */
+/** Bottini: cadaveri dei nemici, forzieri, libri e (unici sparsi) oggetti a terra e resti di avventurieri. */
+export type TipoBottino = 'cadavere' | 'forziere' | 'libro' | 'oggetto' | 'resti';
 export type DungeonInput = { mx: number; my: number; a: boolean; b: boolean; c: boolean; d: boolean; m?: number; e?: boolean; roll?: boolean; p?: number };
 export const NO_DUNGEON_INPUT: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
 /** RLE: [[ticks, mx×8, my×8, bit a|b<<1|c<<2|d<<3|e<<4|roll<<5, mira?, alzo?], ...]; la mira (1..AIM_N) e l'alzo (1..ALZO_N) solo nelle righe che ce
@@ -244,7 +246,8 @@ export type DungeonView = {
     mole?: number;
     /** Magie: elemento; bomba: dove atterra (x, z) e raggio dello scoppio in m (il client disegna il cerchio a terra). */
     el?: SpellElement; bomba?: [number, number]; r?: number }[];
-  bottini: { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; vuoto: boolean }[];
+  /** `item`: per gli oggetti a terra, cosa sono (il client ne disegna l'icona). */
+  bottini: { id: number; x: number; z: number; tipo: TipoBottino; vuoto: boolean; item?: string }[];
   uscita: { x: number; z: number };
   vicinoUscita: boolean;
   /** Altari di salvataggio; `attivo` = l'ultimo toccato (lì ti risvegli). */

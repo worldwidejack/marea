@@ -28,6 +28,7 @@ import { PAL } from '../ui/style.ts';
 import { boxes, materialsOf, object, tintBlade } from './dungeon_kit.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
 import { armaArco, frecciaInVolo } from './arco.ts';
+import { oggettoATerra, restiAvventuriero } from './bottino_unici.ts';
 import { formaNemico } from './drenaggio.ts';
 import { formaNemico as formaArchivio, giriAstrolabio } from './archivio.ts';
 import { formaNemico as formaFucina } from './fucina.ts';
@@ -136,7 +137,9 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
     return e;
   }
 
-  function lootObj(tipo: string, vuoto: boolean): Promise<THREE.Object3D> {
+  function lootObj(tipo: string, vuoto: boolean, item = ''): Promise<THREE.Object3D> {
+    if (tipo === 'oggetto') return Promise.resolve(oggettoATerra(item));
+    if (tipo === 'resti') return Promise.resolve(restiAvventuriero());
     const name = tipo === 'forziere' ? (vuoto ? 'dng_forziere_aperto' : 'dng_forziere') : tipo === 'libro' ? 'dng_libro' : 'prop_sacco';
     const fb: Record<string, (number | string)[][]> = {
       dng_forziere: [[0.9, 0.6, 0.6, 0, 0.3, 0, PAL.legno], [0.92, 0.08, 0.62, 0, 0.5, 0, PAL.giallo]],
@@ -199,13 +202,13 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
       const ls = new Set<number>();
       for (const b of v.bottini) {
         ls.add(b.id);
-        const want = b.tipo === 'cadavere' && (b.vuoto || o.fp) ? 'via' : `${b.tipo}:${b.tipo === 'forziere' && b.vuoto ? 1 : 0}`;
+        const want = (b.tipo === 'cadavere' && (b.vuoto || o.fp)) || (b.tipo === 'oggetto' && b.vuoto) ? 'via' : `${b.tipo}:${b.tipo === 'forziere' && b.vuoto ? 1 : 0}`;
         const cur = loot.get(b.id);
         if (cur?.state === want) continue;
         cur?.obj.removeFromParent();
         const g = new THREE.Group(); g.position.set(b.x, fy, b.z); g.rotation.y = (b.id * 1.7) % (Math.PI * 2); root.add(g);
         loot.set(b.id, { obj: g, state: want });
-        if (want !== 'via') void lootObj(b.tipo, b.vuoto).then((m) => g.add(m));
+        if (want !== 'via') void lootObj(b.tipo, b.vuoto, b.item).then((m) => g.add(m));
       }
       for (const [id, l] of loot) if (!ls.has(id)) { l.obj.removeFromParent(); loot.delete(id); }
     },

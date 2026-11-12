@@ -17,6 +17,9 @@ export type DMap = {
   nemici: (Spawn & { tipo: string; capo?: true })[];
   forzieri: (Spawn & { tabella: string })[];
   libri: (Spawn & { item: string })[];
+  /** Unici sparsi: oggetti a terra da raccogliere (legenda `oggetto`) e resti di avventurieri da frugare (legenda `resti`: la tabella di loot.json). */
+  oggetti: (Spawn & { item: string })[];
+  resti: (Spawn & { tabella: string })[];
   /** Altari di salvataggio (legenda `altare`), in ordine di lettura: l'indice è quello di `salvato.altare`. */
   altari: (Spawn & { x: number; z: number; asciutti?: number[]; ferme?: number[] })[];
   /** Drenaggio: bacini allagati (legenda `acqua: n`, in ordine di n) con le loro celle (solide finché c'è l'acqua, non opache) e le
@@ -74,7 +77,7 @@ export function parseDungeon(def: DungeonDef): DMap {
   const solid = new Uint8Array(w * h), opaque = new Uint8Array(w * h);
   const tondi = new Map<number, number>(), rettangoli = new Map<number, readonly [number, number]>();
   let exit: { cx: number; cz: number } | null = null;
-  const nemici: DMap['nemici'] = [], forzieri: DMap['forzieri'] = [], libri: DMap['libri'] = [], altari: DMap['altari'] = [], floor: number[] = [];
+  const nemici: DMap['nemici'] = [], forzieri: DMap['forzieri'] = [], libri: DMap['libri'] = [], oggetti: DMap['oggetti'] = [], resti: DMap['resti'] = [], altari: DMap['altari'] = [], floor: number[] = [];
   const bacini = new Map<number, number[]>(), valvole: DMap['valvole'] = [];
   const zona = new Uint8Array(w * h), grata = new Uint8Array(w * h), timoni: DMap['timoni'] = [], grate: number[] = [];
   const lava = new Uint8Array(w * h), getto = new Uint8Array(w * h), getti: DMap['getti'] = [];
@@ -121,6 +124,8 @@ export function parseDungeon(def: DungeonDef): DMap {
         }
         if (l.forziere) forzieri.push({ cx, cz, ch, tabella: l.forziere });
         if (l.libro) libri.push({ cx, cz, ch, item: l.libro });
+        if (l.oggetto) oggetti.push({ cx, cz, ch, item: l.oggetto });
+        if (l.resti) resti.push({ cx, cz, ch, tabella: l.resti });
         if (l.altare) altari.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, ...(l.asciutti ? { asciutti: l.asciutti } : {}), ...(l.ferme ? { ferme: l.ferme } : {}) });
         const vento = l.vento ?? l.risacca; // Diga: le correnti di risacca sono venti
         if (vento !== undefined) zona[i] = vento;
@@ -174,7 +179,7 @@ export function parseDungeon(def: DungeonDef): DMap {
   });
   const m: DMap = {
     ...(tondi.size ? { tondi } : {}), ...(rettangoli.size ? { rettangoli } : {}),
-    id: def.id, w, h, tile, solid, opaque, exit: { ...ex, x: (ex.cx + 0.5) * tile, z: (ex.cz + 0.5) * tile }, spawn, nemici, forzieri, libri, altari, floor,
+    id: def.id, w, h, tile, solid, opaque, exit: { ...ex, x: (ex.cx + 0.5) * tile, z: (ex.cz + 0.5) * tile }, spawn, nemici, forzieri, libri, oggetti, resti, altari, floor,
     bacini: [...bacini].sort((a, b) => a[0] - b[0]).map(([n, celle]) => ({ n, celle })), valvole, venti, zona, timoni, grate, grata,
     lave, lava, getti, getto, lancette, sarcofago, rottami, piloni, erba, ghiaccio, bracieri,
   };

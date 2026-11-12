@@ -4,6 +4,8 @@
 import { PALETTE as P } from '../render/palette.ts';
 import { ARMI } from './icone_armi.ts';
 import { MAGIE } from './icone_magie.ts';
+import { CORREDO } from './icone_corredo.ts';
+import { MAGIE_UNICHE } from './icone_magie_uniche.ts';
 import { UNICI } from './icone_unici.ts';
 
 export const ICONA = 16;
@@ -43,6 +45,16 @@ export function spriteArma(it: { id: string; kind: string; tipo?: string }, mate
 }
 /** Il disegno di una magia; null se non ne ha uno suo. */
 export function spriteMagia(id: string): Sprite | null {
-  const righe = MAGIE[id];
+  const righe = MAGIE[id] ?? MAGIE_UNICHE[id];
+  return righe ? griglia(righe) : null;
+}
+/** Il disegno di un'armatura, una veste o un anello unico (icone_corredo.ts); null per gli altri (restano 8×8). */
+export function spriteCorredo(id: string): Sprite | null {
+  const righe = CORREDO[id];
+  return righe ? griglia(righe) : null;
+}
+/** Il disegno di una magia unica dei dungeon (per il suo libro); null per le altre (il libro resta il libro 8×8). */
+export function spriteMagiaUnica(id: string): Sprite | null {
+  const righe = MAGIE_UNICHE[id];
   return righe ? griglia(righe) : null;
 }
