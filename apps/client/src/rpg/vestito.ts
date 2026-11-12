@@ -54,6 +54,14 @@ const HUE: Record<string, Hue> = {
   veste_distruzione: { b: '#E8433F', d: '#4A4340', l: '#F2A33A', t: '#F5D547' },
   veste_evocazione: { b: '#A64DFF', d: '#4A4340', l: '#8A5CFF', t: '#7FE3E0' },
   unico_veste_arcimago: { b: '#8A5CFF', d: '#2E1E14', l: '#3DF5FF', t: '#F5D547' },
+  // gli unici sparsi (docs/UNICI.md): se no prenderebbero i colori del materiale di base
+  unico_giubba_furetto: { b: '#2C6B3F', d: '#5A3A1E', l: '#4E9A46', t: '#C98A4B' },
+  unico_scafandro_rattoppato: { b: '#7F7568', d: '#4A4340', l: '#F2A33A', t: '#E8433F' },
+  unico_grembiule_brace: { b: '#8E5A2B', d: '#5A3A1E', l: '#F2A33A', t: '#E8433F' },
+  unico_cerata_disertore: { b: '#F5D547', d: '#F2A33A', l: '#F4E3C1', t: '#2E1E14' },
+  unico_tuta_fluo: { b: '#B6FF3D', d: '#4E9A46', l: '#D9E872', t: '#FF3DA6' },
+  unico_sudario_priore: { b: '#E8E1D6', d: '#B9AFA3', l: '#F4E3C1', t: '#8E5A2B' },
+  unico_mantella_navigatore: { b: '#2478A8', d: '#163F73', l: '#3FB9C9', t: '#F5D547' },
 };
 const hueDi = (id: string, materiale: string | undefined, colore: string): Hue =>
   HUE[id] ?? (materiale ? HUE[materiale] : undefined) ?? { b: palColor(colore), d: '#4A4340', l: '#F4E3C1', t: '#F4E3C1' };
