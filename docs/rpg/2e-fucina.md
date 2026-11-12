@@ -1,4 +1,4 @@
-> Mondo Sotterraneo, §2e: la Fucina a Pressione (Epopea della Regata 3: lava, cascate e Mastro Forgiatore). Ingressi in [§2](0-2-loop-e-ingressi.md), il resto nell'[indice](../RPG.md).
+> Mondo Sotterraneo, §2e: la Fucina a Pressione (Epopea della Regata 3: lava, cascate e Mastro Forgiatore). Ingresso, difficoltà e l'unico che il capo lascia sempre: [§2](0-2-loop-e-ingressi.md); il resto nell'[indice](../RPG.md).
 
 ## 2e. Fucina a Pressione (Epopea della Regata, dungeon 3 — 9 ott 2026)
 - **Dove**: sull'arco nord dell'anello della Laguna (cella [26, 5]), proseguendo a piedi dall'Archivio verso nord. **Porta sigillata** finché non hai completato l'Archivio Navigazionale (ucciso l'Astrolabio): sbarre incrociate e sigillo rosso sulla bocca dell'altoforno, «SIGILLATO · prima: Archivio Navigazionale», niente AFFRONTA INSIEME; il server rifiuta comunque (`DungeonDef.richiede`).

@@ -1,4 +1,4 @@
-> Mondo Sotterraneo, §2b: l'Impianto di Drenaggio (Epopea della Regata 1: valvole e Capoturno). Ingressi in [§2](0-2-loop-e-ingressi.md), il resto nell'[indice](../RPG.md).
+> Mondo Sotterraneo, §2b: l'Impianto di Drenaggio (Epopea della Regata 1: valvole e Capoturno). Ingresso, difficoltà e l'unico che il capo lascia sempre: [§2](0-2-loop-e-ingressi.md); il resto nell'[indice](../RPG.md).
 
 ## 2b. Impianto di Drenaggio (Epopea della Regata, dungeon 1 — 8 ott 2026, #142)
 - **Dove**: si attracca al molo della Laguna (A al molo: la Regata parte dal suo bottone, R) e l'ingresso è una ventina di metri a sud-est, sull'arco sud dell'anello, dietro al torii: dall'imbocco della laguna non si vede (Riccardo). Aperto a tutti; la porta dell'Archivio (dungeon 2) resta sigillata finché non completi il Drenaggio (§2d), e così via fino al 4.

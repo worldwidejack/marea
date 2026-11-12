@@ -13,12 +13,12 @@
 |---|---|---|--:|
 | §0 | chi fa cosa: Jack la superficie, Riccardo la parte GDR | [0-2-loop-e-ingressi.md](rpg/0-2-loop-e-ingressi.md) | 6,2 |
 | §1 | il loop superficie → dungeon → villaggio | [0-2-loop-e-ingressi.md](rpg/0-2-loop-e-ingressi.md) | 6,2 |
-| §2 | i dieci ingressi, difficoltà invisibile, porte sigillate, «completato», l'unico sicuro di ogni capo | [0-2-loop-e-ingressi.md](rpg/0-2-loop-e-ingressi.md) | 6,2 |
-| §2b | Impianto di Drenaggio (Epopea 1): bacini e valvole, Capoturno | [2b-drenaggio.md](rpg/2b-drenaggio.md) | 4,0 |
+| §2 | i dieci ingressi, difficoltà invisibile, porte sigillate, «completato», l'unico che ogni capo lascia sempre | [0-2-loop-e-ingressi.md](rpg/0-2-loop-e-ingressi.md) | 6,2 |
+| §2b | Impianto di Drenaggio (Epopea 1): bacini e valvole, Capoturno | [2b-drenaggio.md](rpg/2b-drenaggio.md) | 4,1 |
 | §2c | lore nei dungeon: scritta, voci, libri e incisioni facoltativi | [2c-lore-dungeon.md](rpg/2c-lore-dungeon.md) | 1,9 |
 | §2d | Archivio Navigazionale (Epopea 2): vento, grate, Astrolabio Impazzito | [2d-archivio.md](rpg/2d-archivio.md) | 6,4 |
 | §2e | Fucina a Pressione (Epopea 3): lava, cascate, Mastro Forgiatore | [2e-fucina.md](rpg/2e-fucina.md) | 6,6 |
-| §2f | Mausoleo Cinetico (Epopea 4): lancette, Custode dell'Egida, unici della Regina | [2f-mausoleo.md](rpg/2f-mausoleo.md) | 8,5 |
+| §2f | Mausoleo Cinetico (Epopea 4): lancette, Custode dell'Egida, unici della Regina | [2f-mausoleo.md](rpg/2f-mausoleo.md) | 8,6 |
 | §2g | Diga dei Disertori: ruote, risacca, Capitano Vaelen, l'Albero | [2g-diga-disertori.md](rpg/2g-diga-disertori.md) | 9,6 |
 | §3 | barre, crescita, 8 abilità, ripristino a 100, perk, libri, evocazioni | [3-statistiche-perk.md](rpg/3-statistiche-perk.md) | 7,0 |
 | §4 | colpi, schivata, caricato, arco, magie, mira, morte, lanterne, dungeon insieme | [4-combattimento-magie.md](rpg/4-combattimento-magie.md) | 10,8 |

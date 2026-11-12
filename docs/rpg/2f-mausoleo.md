@@ -1,4 +1,4 @@
-> Mondo Sotterraneo, §2f: il Mausoleo Cinetico (Epopea della Regata 4: lancette, Custode dell'Egida, unici della Regina). Ingressi in [§2](0-2-loop-e-ingressi.md), il resto nell'[indice](../RPG.md).
+> Mondo Sotterraneo, §2f: il Mausoleo Cinetico (Epopea della Regata 4: lancette, Custode dell'Egida, unici della Regina). Ingresso, difficoltà e l'unico che il capo lascia sempre: [§2](0-2-loop-e-ingressi.md); il resto nell'[indice](../RPG.md).
 
 ## 2f. Mausoleo Cinetico (Epopea della Regata, dungeon 4 — 10 ott 2026)
 - **Dove**: sull'arco nord-ovest dell'anello della Laguna (cella [8, 13]), proseguendo a piedi dalla Fucina; l'ingresso è un tempietto di marmo bianco con l'orologio sopra la porta. **Porta sigillata** finché non hai completato la Fucina a Pressione (ucciso il Mastro Forgiatore); il server rifiuta comunque (`DungeonDef.richiede`).

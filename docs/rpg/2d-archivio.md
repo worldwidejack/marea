@@ -1,4 +1,4 @@
-> Mondo Sotterraneo, §2d: l'Archivio Navigazionale (Epopea della Regata 2: vento e Astrolabio Impazzito). Ingressi in [§2](0-2-loop-e-ingressi.md), il resto nell'[indice](../RPG.md).
+> Mondo Sotterraneo, §2d: l'Archivio Navigazionale (Epopea della Regata 2: vento e Astrolabio Impazzito). Ingresso, difficoltà e l'unico che il capo lascia sempre: [§2](0-2-loop-e-ingressi.md); il resto nell'[indice](../RPG.md).
 
 ## 2d. Archivio Navigazionale (Epopea della Regata, dungeon 2 — 9 ott 2026)
 - **Dove**: sull'arco est dell'anello della Laguna (cella [47, 36]), proseguendo a piedi dal Drenaggio verso est. **Porta sigillata** (Epopea §2, Riccardo): finché non hai completato l'Impianto di Drenaggio (ucciso il Capoturno) davanti alla bocca ci sono due sbarre incrociate e un sigillo rosso, il cartello dice «SIGILLATO» e il bottone «SIGILLATO · prima: Impianto di Drenaggio» non fa entrare; niente AFFRONTA INSIEME (in squadra entra solo chi l'ha sbloccato). Anche il server rifiuta (`DungeonDef.richiede`). Completato il Drenaggio, il sigillo sparisce da solo.

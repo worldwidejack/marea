@@ -1,4 +1,4 @@
-> Mondo Sotterraneo, §2g: la Diga dei Disertori (Isola della Tempesta: ruote, risacca, Capitano Vaelen). Ingressi in [§2](0-2-loop-e-ingressi.md), il resto nell'[indice](../RPG.md).
+> Mondo Sotterraneo, §2g: la Diga dei Disertori (Isola della Tempesta: ruote, risacca, Capitano Vaelen). Ingresso, difficoltà e l'unico che il capo lascia sempre: [§2](0-2-loop-e-ingressi.md); il resto nell'[indice](../RPG.md).
 
 ## 2g. La Diga dei Disertori (15 ott 2026, #354)
 Scheda di Riccardo (scritta con Gemini, adattata dal suo Claude al gioco vero); **i numeri sono [proposta, da tarare giocando]**.
