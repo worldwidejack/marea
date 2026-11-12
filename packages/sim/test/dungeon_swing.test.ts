@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { newEnemy } from '../src/dungeon/state.ts';
 import type { DungeonState, Enemy } from '../src/dungeon/state.ts';
-import { angolo, bladeAngle, sweepTo } from '../src/dungeon/swing.ts';
+import { angolo, bladeAngle, inPortata, sweepTo } from '../src/dungeon/swing.ts';
 import { COLPI, HOLD_TICKS } from '../src/dungeon/tuning.ts';
 import { dungeon } from '../src/dungeon/dungeon.ts';
 import { arena, heroBase, inp, katana, run } from './dungeon_util.ts';
@@ -92,4 +92,18 @@ test('swing: lancia = affondo stretto — lontano davanti sì, di lato no', () =
   const hit = hitTicks(s, 60, inp());
   assert.ok(hit.has(lontano.id), 'la punta arriva a 2,7 m');
   assert.ok(!hit.has(lato.id), 'l’affondo non spazza di lato');
+});
+
+test('swing: inPortata — i nemici che il colpo prenderebbe: davanti e entro la portata sì, dietro o troppo lontani no; l’affondo solo in linea', () => {
+  const R = 0.4, E = 0.35, d = (deg: number, m: number): [number, number] => [Math.sin(deg * DEG) * m, -Math.cos(deg * DEG) * m]; // l'eroe guarda verso −z, + = destra
+  const fend = (deg: number, m: number): boolean => inPortata('fendente', 1.8, 0, -1, ...d(deg, m), R, E);
+  assert.ok(fend(0, 1.5) && fend(0, 2.1), 'davanti, dentro 1,8 m + il suo raggio');
+  assert.ok(!fend(0, 2.4), 'oltre la portata');
+  assert.ok(fend(70, 1.5) && fend(-70, 1.5), 'il fendente spazza 150°: anche di lato');
+  assert.ok(!fend(110, 1.5) && !fend(180, 1.5), 'dietro no');
+  const aff = (deg: number, m: number): boolean => inPortata('affondo', 3, 0, -1, ...d(deg, m), R, E);
+  assert.ok(aff(0, 3.3) && !aff(0, 3.6), 'la lancia arriva a 3 m + il raggio');
+  assert.ok(!aff(55, 2), 'l’affondo non spazza di lato');
+  assert.ok(inPortata('giro', 1.8, 0, -1, ...d(180, 1.5), R, E), 'il giro prende anche dietro');
+  assert.ok(inPortata('fendente', 1.8, 0, -1, 0.2, 0.1, R, E), 'attaccato all’eroe: sempre dentro');
 });

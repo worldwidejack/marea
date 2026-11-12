@@ -35,6 +35,7 @@
 - Chi aveva preso l'Automira si ritrova i punti da spendere (`fitHero`).
 
 ## 6. Nemici e pericoli
+- **Portata della mischia** (12 nov 2026): il nemico che il colpo di adesso prenderebbe (entro la portata dell'arma, dentro l'arco della lama: `inPortata` in `swing.ts`, lo stesso conto della sim) **brilla piano di giallo**; più forte mentre carichi il giro. Con arco o magia in mano niente. La lancia si affonda per tutta la sua portata (3 m).
 - I nemici non arrivano più addosso agli occhi: in prima persona restano almeno 0,35 m più in là (`SPAZIO_FP`), così si vedono interi anche in mischia.
 - Tutto quello che dall'alto si leggeva come un disegno a terra si alza in piedi (`rpg/fp_pericoli.ts`): i cerchi d'avviso (bombe, magma, geyser, cannonate, colpi ad area dei capi, forme della Baita) diventano **muri di luce** con l'orlo che sale col tempo; le corsie dei colpi dritti due pareti; le onde del Mausoleo un muro d'acqua coi suoi varchi; le lancette lastre in piedi; le zone del calore del Santuario quattro muri; le linee di mira (il Fuciliere, i raggi dei capi) un filo rosso all'altezza del petto.
 - Quello che viene lanciato (bombe dell'Aerostato e dell'Albatros, magma del Mastro, globi del Lanciatore, sputi di Korok) **vola da chi lo lancia** fin dove cade; le cannonate cadono dall'alto.

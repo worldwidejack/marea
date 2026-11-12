@@ -41,7 +41,7 @@ const DIGA = ['guardiano_paratia', 'fuciliere_acquafonda', 'albatros_pece', 'cap
 /** Eroe da fine gioco: spadone di meteorite, piastre, pozioni grandi. */
 const leggenda = () => heroBase({
   livello: 30, max: { vita: 320, magicka: 150, stamina: 200 },
-  arma: { id: 'spadone_meteorite', kind: 'mischia', skill: 'armiPesanti', classe: 'pesante', danno: 46, tempo: 1.25, portata: 2.2, carica: 1.5, caricaMolt: 3, gittata: 0, traits: { penetra: 0.5 } },
+  arma: { id: 'spadone_meteorite', kind: 'mischia', skill: 'armiPesanti', classe: 'pesante', danno: 46, tempo: 1.25, portata: 2.2, carica: 1.5, caricaMolt: 3, traits: { penetra: 0.5 } },
   armatura: { id: 'armatura_meteorite', difesa: 80, malus: 0.05, vsMagia: 1, vsTaglio: 1, vsContundente: 1, moneteSuColpito: 0, terrore: 0, velocitaMolt: 1.12 },
   pozioni: [{ id: 'pozione_vita_grande', n: 8, cura: { vita: 180 }, buff: null }],
 });

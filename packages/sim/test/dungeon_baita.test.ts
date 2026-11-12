@@ -39,7 +39,7 @@ function terrazza(hero = immortale()): DungeonState { const s = nuovo(hero); via
 const vistaDi = (s: DungeonState, e: Enemy) => dungeon.view(s).nemici.find((n) => n.id === e.id)!;
 const sciatore = () => heroBase({
   livello: 24, max: { vita: 280, magicka: 130, stamina: 180 },
-  arma: { id: 'spadone_meteorite', kind: 'mischia', skill: 'armiPesanti', classe: 'pesante', danno: 42, tempo: 1.25, portata: 2.2, carica: 1.5, caricaMolt: 3, gittata: 0, traits: { penetra: 0.5 } },
+  arma: { id: 'spadone_meteorite', kind: 'mischia', skill: 'armiPesanti', classe: 'pesante', danno: 42, tempo: 1.25, portata: 2.2, carica: 1.5, caricaMolt: 3, traits: { penetra: 0.5 } },
   armatura: { id: 'armatura_meteorite', difesa: 70, malus: 0.05, vsMagia: 1, vsTaglio: 1, vsContundente: 1, moneteSuColpito: 0, terrore: 0, velocitaMolt: 1.1 },
   pozioni: [{ id: 'pozione_vita_grande', n: 8, cura: { vita: 180 }, buff: null }],
 });

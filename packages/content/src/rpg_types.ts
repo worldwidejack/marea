@@ -71,11 +71,10 @@ export type MaterialDef = {
   banco: 1 | 2 | 3;
   arma: { danno: number; velocita: number; peso: number; quanti: number; traits?: Traits; descr: string };
   armatura: { difesa: number; peso: number; quanti: number; vsMagia?: number; vsTaglio?: number; vsContundente?: number; moneteSuColpito?: number; terrore?: number; descr: string };
-  arco: { danno: number; tensione: number; gittata: number; peso: number; quanti: number; traits?: Traits; descr: string };
-  frecce: { danno: number; gittata: number; gravita: number; quanti: number; n: number; traits?: Traits; descr: string };
+  arco: { danno: number; tensione: number; peso: number; quanti: number; traits?: Traits; descr: string };
+  frecce: { danno: number; quanti: number; n: number; traits?: Traits; descr: string };
 };
 export type WeaponTypeDef = { id: WeaponTypeId; nome: string; classe: WeaponClass; danno: number; velocita: number; portata: number; peso: number; carica: number; caricaMolt: number; model: string; descr: string };
-
 export type ItemKind = 'arma' | 'arco' | 'frecce' | 'armatura' | 'veste' | 'anello' | 'pozione' | 'libro' | 'ingrediente' | 'materiale' | 'strumento' | 'insetto' | 'pesce';
 /** Oggetti scritti a mano (anelli, vesti, pozioni, libri, ingredienti, materiali, unici). Armi/armature/archi/frecce dei materiali li genera la sim (tipo × materiale). */
 export type ItemDefRaw = {
@@ -368,6 +367,7 @@ export type RpgBalance = {
   /** R-rpg, facoltativi: arma quando non ne hai una; quanto ogni livello di abilità sopra skillIniziale alza danno (armi e magie) e potenza delle pozioni. */
   pugni?: { danno: number; velocita: number; portata: number; carica: number; caricaMolt: number };
   abilita?: { dannoPerLivello: number; potenzaPerLivello: number };
+  arco: { velocita: number; gravita: number }; // tutte le frecce volano uguali: partono a `velocita` m/s e cadono con `gravita` m/s² (~24 m a piena tensione)
   /** Zaino, equipaggiamento e magie di chi comincia (le monete di partenza stanno nel lotto: balance.json `monete.partenza`, #414). */
   partenza: { inv: Record<string, number>; equip: Record<string, string>; magie: string[] };
   /** altare.protezione: secondi senza danni dopo il risveglio all'altare (i nemici non ti uccidono appena riapri gli occhi). */

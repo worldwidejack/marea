@@ -17,9 +17,9 @@ Più gli **archi** e le **frecce**. **Armi uniche**: drop speciali non forgiabil
 **Materiali** (si forgiano armi leggere, pesanti, archi, frecce e armature)
 | Materiale | Armi da mischia | Armatura (pezzo unico) | Arco | Frecce |
 |---|---|---|---|---|
-| Legno / Tela | danni ridicoli, solo all'inizio | vesti base: difesa bassissima, malus zero | corto: veloce, gittata ridicola | di legno: parabola ripidissima |
-| Bronzo / Rame | primo vero upgrade, pesanti | prima corazza: protegge, il malus si sente | rinforzato: più faticoso, più danno | pesanti: fanno male, perdono quota in fretta |
-| Ferro / Acciaio | lo standard mid-game | l'equilibrio | lungo: il bilanciamento perfetto | standard: dritte a lungo |
+| Legno / Tela | danni ridicoli, solo all'inizio | vesti base: difesa bassissima, malus zero | corto: si tende subito | di legno: leggere |
+| Bronzo / Rame | primo vero upgrade, pesanti | prima corazza: protegge, il malus si sente | rinforzato: più faticoso, più danno | pesanti: fanno male |
+| Ferro / Acciaio | lo standard mid-game | l'equilibrio | lungo: il bilanciamento perfetto | standard |
 | Argento | danni bonus devastanti contro non-morti e mostri | anti-magia: meno difesa dell'acciaio, riduce i danni magici | benedetto: raddoppia il bonus delle frecce d'argento | purificanti: fondono i mostri, quasi inutili su bestie e banditi |
 | Oro | pessime per combattere, ×2 drop e monete | puro flex: pesantissima, protegge poco; più ti colpiscono più monete droppano | dorato: ogni colpo può far cadere monete | di lusso: costosissime; chi uccidi con queste lascia il drop raro |
 | Vetro / Cristallo | velocissime, alto danno, **si rompono** dopo un po' | glass cannon: leggera, difesa alta dai tagli, **doppio danno dai contundenti** | composito: ricarica istantanea | a schegge: ignorano un po' d'armatura, sanguinamento |

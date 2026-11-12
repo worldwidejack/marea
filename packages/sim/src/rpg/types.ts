@@ -58,7 +58,7 @@ export type ArenaBuilds = { build: ArenaBuild[]; scelta: number };
 export type ItemDef = {
   id: string; nome: string; kind: ItemKind; peso: number; descr: string; colore: string;
   materiale?: MaterialId; tipo?: WeaponTypeId; classe?: WeaponClass;
-  danno?: number; velocita?: number; portata?: number; difesa?: number; tensione?: number; gittata?: number;
+  danno?: number; velocita?: number; portata?: number; difesa?: number; tensione?: number;
   traits?: Traits; unico?: boolean;
   /** Modello 3D (arma in mano, oggetto a terra). */
   model?: string;
@@ -66,8 +66,6 @@ export type ItemDef = {
   forgia?: { costo: Record<string, number>; banco: 1 | 2 | 3; n?: number };
   /** Pozioni, anelli, vesti, libri, armature uniche: come in items.json (R-rpg, facoltativi). */
   cura?: Partial<Record<AttrId, number>>; buff?: { mod: string; valore: number; secondi: number }; mods?: Partial<Record<string, number>>; insegna?: string;
-  /** Frecce: gravità in m/s² (R-rpg, facoltativo). */
-  gravita?: number;
   /** Insetti (#445): monete che dà il Contrabbandiere per un pezzo (`prezzo` di insetti.json). */
   valore?: number;
 };
@@ -95,13 +93,11 @@ export type RunWeapon = {
   portata: number;
   /** Secondi di carica per l'attacco caricato e moltiplicatore del danno. */
   carica: number; caricaMolt: number;
-  /** Arco: velocità di base della freccia (m/s); si somma a quella della freccia. */
-  gittata: number;
   traits: Traits;
   /** Armi fragili (R-rpg, facoltativo): colpi già dati con la copia in uso prima della spedizione (HeroState.usura). */
   usura?: number;
 };
-export type RunArrows = { id: string; n: number; danno: number; gittata: number; gravita: number; traits: Traits };
+export type RunArrows = { id: string; n: number; danno: number; traits: Traits };
 export type RunArmor = {
   id: string | null;
   difesa: number;

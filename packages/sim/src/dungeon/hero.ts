@@ -22,7 +22,7 @@ import { colpisciBandierine } from './jean_claude.ts';
 /** Pugni quando l'arma si rompe: da RPG.pugni (balance.json), ripiego in tuning. */
 export function pugni(): RunWeapon {
   const P = RPG.pugni, p = P ? { danno: P.danno, tempo: 1 / P.velocita, portata: P.portata, carica: P.carica, caricaMolt: P.caricaMolt } : PUGNI;
-  return { id: null, kind: 'pugni', skill: 'armiLeggere', classe: null, danno: p.danno, tempo: p.tempo, portata: p.portata, carica: p.carica, caricaMolt: p.caricaMolt, gittata: 0, traits: {} };
+  return { id: null, kind: 'pugni', skill: 'armiLeggere', classe: null, danno: p.danno, tempo: p.tempo, portata: p.portata, carica: p.carica, caricaMolt: p.caricaMolt, traits: {} };
 }
 
 /** I bersagli dell'eroe di turno: i nemici vivi e, in Arena, le evocazioni avversarie (gli eroi avversari a parte: pvp.ts). */
@@ -175,14 +175,14 @@ function shoot(s: DungeonState, dir: Mira): void {
   const t = Math.max(TENSIONE_MIN, h.carica);
   h.act = 'tira'; h.actT = 0; h.actDur = LANCIA_TICKS; h.carica = 0;
   if (!fr || h.frecce <= 0) return;
-  const v = (a.gittata + fr.gittata) * t;
+  const v = RPG.arco.velocita * t;
   if (dir) faceDir(s, dir); else faceTo(s, aim(s, MAGIA_GITTATA * 2, COS_CONO_ARCO, 0, true));
   const traits = mergeTraits(a.traits, fr.traits);
   // Faretra infinita: a volte la freccia non si consuma
   if (!(s.runHero.perk?.risparmio && s.rng.next() < s.runHero.perk.risparmio)) { h.frecce--; consuma(s, fr.id, s.usati); }
   s.proj.push({
     id: s.nextId++, tipo: 'freccia', x: h.x + h.fx * 0.4, y: FRECCIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v,
-    g: traits.noGravita ? 0 : fr.gravita * (a.traits.carillon?.gravita ?? 1), danno: (a.danno + fr.danno) * t * (1 + buff(s, 'dannoArco')), life: VOLO_MAX_TICKS,
+    g: traits.noGravita ? 0 : RPG.arco.gravita * (a.traits.carillon?.gravita ?? 1), danno: (a.danno + fr.danno) * t * (1 + buff(s, 'dannoArco')), life: VOLO_MAX_TICKS,
     traits, raggio: 0, colpiti: [], dalNemico: false, contundente: !!traits.sbilancia, magico: false, arrowId: fr.id, da: s.cur,
   });
   alza(s, s.proj[s.proj.length - 1]!); // prima persona: dagli occhi, dove punta il mirino

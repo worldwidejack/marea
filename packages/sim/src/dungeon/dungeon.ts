@@ -94,7 +94,8 @@ export const dungeon: DungeonModule<DungeonState> = {
   // v14: unici sparsi (docs/UNICI.md): oggetti a terra e resti di avventurieri nelle mappe, scrigni coi loro unici, tratti `rubaVita` e `gelo`
   // v15: i nemici che non ti hanno visto (quiete.ts) vedono in un cono, sentono passi, colpi e lotte, si insospettiscono e vanno a cercare;
   // prima fanno la ronda o si guardano intorno; chi dorme non vede.
-  id: 'dungeon', version: 15, maxTicks: MAX_TICKS,
+  // v16: archi alla pari (tutte le frecce volano allo stesso modo, balance.json `arco`) e lo Sciamano del Fumo sparisce nel fumo solo per qualche secondo
+  id: 'dungeon', version: 16, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
   act(s, a) {

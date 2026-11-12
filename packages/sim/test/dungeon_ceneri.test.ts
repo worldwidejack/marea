@@ -9,7 +9,7 @@ import { parseDungeon } from '../src/dungeon/map.ts';
 import { accendi, alRiparoBraciere, braciereVicino, nascosto, spegni, stanzaAcca } from '../src/dungeon/braci.ts';
 import { hitEnemy } from '../src/dungeon/combat.ts';
 import { brucia, lavaSu } from '../src/dungeon/fuoco.ts';
-import { newEnemy } from '../src/dungeon/state.ts';
+import { newEnemy, secToTicks } from '../src/dungeon/state.ts';
 import type { DungeonState, Enemy } from '../src/dungeon/state.ts';
 import { packDungeon, quantizeDungeon, replayDungeon } from '../src/dungeon/replay.ts';
 import { SCOLO_TICKS } from '../src/dungeon/tuning.ts';
@@ -42,7 +42,7 @@ const VECCHI = ['sentinella_braciere', 'cantore_fuliggine', 'totem_censo', 'arco
 
 const campione = () => heroBase({
   livello: 35, max: { vita: 360, magicka: 180, stamina: 220 },
-  arma: { id: 'spadone_meteorite', kind: 'mischia', skill: 'armiPesanti', classe: 'pesante', danno: 48, tempo: 1.25, portata: 2.2, carica: 1.5, caricaMolt: 3, gittata: 0, traits: { penetra: 0.5 } },
+  arma: { id: 'spadone_meteorite', kind: 'mischia', skill: 'armiPesanti', classe: 'pesante', danno: 48, tempo: 1.25, portata: 2.2, carica: 1.5, caricaMolt: 3, traits: { penetra: 0.5 } },
   armatura: { id: 'armatura_meteorite', difesa: 85, malus: 0.05, vsMagia: 1, vsTaglio: 1, vsContundente: 1, moneteSuColpito: 0, terrore: 0, velocitaMolt: 1.12 },
   pozioni: [{ id: 'pozione_vita_grande', n: 10, cura: { vita: 180 }, buff: null }],
 });
@@ -235,12 +235,15 @@ test('ceneri: Guerriero Colossale — la clava cade su una corsia e resta incast
   assert.equal(u.bracieri[br], false);
 });
 
-test('ceneri: Sciamano del Fumo — invisibile e intoccabile lontano dai bracieri accesi; la lanterna colpita lo stordisce e lo tiene visibile; evoca fuochi fatui', () => {
+test('ceneri: Sciamano del Fumo — si vede; dopo l’evocazione sparisce nel fumo per 3 s (intoccabile lontano dai bracieri accesi) e torna; la lanterna colpita lo stordisce e lo tiene visibile', () => {
   const s = nuovo(immortale());
   via(s);
   const br = s.map.bracieri.findIndex((b) => b.n === 2), b = s.map.bracieri[br]!;
   const e = newEnemy(s, 'sciamano_fumo', 20, 24);
   e.x = b.x + 3; e.z = b.z + 3; e.aggro = true; e.st = 'insegue';
+  assert.equal(nascosto(s, e), false, 'di serie si vede');
+  assert.equal(dungeon.view(s).nemici.find((n) => n.id === e.id)!.invisibile, undefined);
+  e.fumoFino = s.tick + 600; // nel fumo
   assert.equal(nascosto(s, e), true);
   assert.equal(dungeon.view(s).nemici.find((n) => n.id === e.id)!.invisibile, true);
   const v0 = e.vita;
@@ -262,7 +265,8 @@ test('ceneri: Sciamano del Fumo — invisibile e intoccabile lontano dai bracier
   via(u);
   metti(u, 26, 26);
   const sc = newEnemy(u, 'sciamano_fumo', 30, 26), q = cella(30, 26);
-  sc.x = q.x; sc.z = q.z; sc.aggro = true; sc.st = 'insegue'; sc.rivelato = true;
+  sc.x = q.x; sc.z = q.z; sc.aggro = true; sc.st = 'insegue';
+  assert.equal(nascosto(u, sc), false, 'prima di evocare si vede');
   let linea = false;
   for (let i = 0; i < 400 && !u.enemies.some((x) => x.tipo === 'fuoco_fatuo'); i++) {
     dungeon.step(u, inp());
@@ -271,6 +275,10 @@ test('ceneri: Sciamano del Fumo — invisibile e intoccabile lontano dai bracier
   }
   assert.ok(linea, 'la linea che ti lega a lui');
   assert.equal(u.enemies.filter((x) => x.tipo === 'fuoco_fatuo').length, 2);
+  assert.equal(nascosto(u, sc), true, 'evocati i fatui si dissolve nel fumo');
+  assert.equal(dungeon.view(u).nemici.find((x) => x.id === sc.id)!.invisibile, true);
+  run(u, secToTicks(ENEMIES.find((d) => d.id === 'sciamano_fumo')!.sciamano!.fumo) + 5);
+  assert.equal(nascosto(u, sc), false, 'dopo qualche secondo torna visibile');
 });
 
 test('ceneri: fuoco fatuo e Mite di lava — inseguono e scoppiano a contatto; il fatuo si dissolve dopo 6 s, il Mite scoppia dopo 5 s', () => {

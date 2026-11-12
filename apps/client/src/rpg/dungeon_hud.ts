@@ -202,7 +202,7 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         case 'arpionato': say('Arpionato! Il drone ti tira a sé', 1600); break;
         case 'urto': say('Sbattuto contro il muro', 1400); break;
         case 'parato': say(e.perche === 'scafandro' ? 'Lo scafandro para: colpiscilo alle valvole sulla schiena' : e.perche === 'fornace' ? 'Il fuoco lo protegge: fallo caricare dentro una cascata'
-          : e.perche === 'volo' ? 'È in aria: aspetta che atterri' : e.perche === 'scudo' ? (diga ? 'Lo scudo para: un colpo caricato lo sfonda, o prendilo alle spalle' : 'Lo scudo para e ti respinge: un colpo caricato lo sfonda, o prendila alle spalle') : e.perche === 'fumo' ? 'È nel fumo: accendi un braciere vicino a lui per vederlo' : e.perche === 'cuore' ? (ceneri ? 'Korok ruggisce: adesso non lo scalfisci' : 'Cambia cuore: adesso non lo scalfisci')
+          : e.perche === 'volo' ? 'È in aria: aspetta che atterri' : e.perche === 'scudo' ? (diga ? 'Lo scudo para: un colpo caricato lo sfonda, o prendilo alle spalle' : 'Lo scudo para e ti respinge: un colpo caricato lo sfonda, o prendila alle spalle') : e.perche === 'fumo' ? 'È nel fumo: aspetta che torni visibile, o accendi un braciere vicino a lui' : e.perche === 'cuore' ? (ceneri ? 'Korok ruggisce: adesso non lo scalfisci' : 'Cambia cuore: adesso non lo scalfisci')
           : e.perche === 'catene' ? 'Spezza le catene: adesso non lo scalfisci' : 'Gli anelli lo proteggono: rompili!', 2200); break;
         case 'sfondato': say(baita ? 'Sparaneve in tilt: la prossima raffica va contro gli altri!' : diga ? 'Scudo in frantumi: colpisci adesso!' : 'Scudo sfondato: colpiscila adesso!', 1800); break;
         case 'lancetta': say('Travolto dalla lancetta', 1200); break;
