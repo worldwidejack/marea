@@ -13,7 +13,7 @@
 // l'ingranaggio, il cancello del Santuario è un bacino di sbarre), Diga (rpg/diga.ts: tavolato e fasciame della nave, cannoni sugli affusti al
 // posto delle colonne, mare scuro nei bacini), Arena (rpg/arena_kit.ts: l'erba alta delle celle `erba`, pavimento, muri, colonne e muretti di
 // ogni mappa). Per un dungeon nuovo: una riga in STYLE e, se serve, un kit in codice.
-// Prima persona: foschia, vista corta e arredo dello stile in fp_arredo.ts (riga in STILI_FP) e fp_vuoto.ts.
+// Prima persona: foschia, vista corta e arredo dello stile in fp_arredo.ts (riga in STILI_FP; senza riga BASE_FP, la pietra) e fp_vuoto.ts.
 import * as THREE from 'three';
 import { dungeonDef } from '@marea/content/rpg.ts';
 import type { DungeonDef } from '@marea/content/rpg.ts';
@@ -35,7 +35,7 @@ import { kitDiga } from './diga.ts';
 import { kitBaita } from './baita.ts';
 import { kitCeneri } from './ceneri.ts';
 import { erbaParts, kitArena, STILI_ARENA } from './arena_kit.ts';
-import { arreda, STILI_FP } from './fp_arredo.ts';
+import { arreda, BASE_FP, STILI_FP } from './fp_arredo.ts';
 import type { Pianta, Posa } from './fp_arredo.ts';
 import { arredaVuoto } from './fp_vuoto.ts';
 import type { Vuoto } from './fp_vuoto.ts';
@@ -102,7 +102,7 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
   const arena = STILI_ARENA.has(def.stile);
   const st = STYLE[def.stile] ?? STYLE['grotta']!;
   // prima persona: foschia, vista e arredo dello stile (fp_arredo.ts, fp_vuoto.ts); l'Arena resta com'è
-  const sf = fp && !arena ? STILI_FP[def.stile] : undefined, buio = sf?.fondo ?? PAL.neroCaldo;
+  const sf = fp && !arena ? STILI_FP[def.stile] ?? BASE_FP : undefined, buio = sf?.fondo ?? PAL.neroCaldo;
   const scene = new THREE.Scene(); scene.name = 'dungeon_' + def.id; scene.userData.near = fp ? 0.1 : 4; // render/scene.ts: piano vicino
   scene.background = new THREE.Color(buio);
   const group = new THREE.Group(); group.name = 'kit'; scene.add(group);

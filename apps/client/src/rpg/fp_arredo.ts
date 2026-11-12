@@ -25,6 +25,8 @@ export type StileFp = {
   tappeto?: true;
 };
 const COSTRUITO = (z: string, c: string, p: string, t: string, nebbia: string, tappeto = false): StileFp => ({ foschia: [6, 22, nebbia, 0.75], fascia: [z, c], pilastro: p, travi: t, stendardi: true, ...(tappeto ? { tappeto: true as const } : {}) });
+/** Una riga per stile. Uno stile senza riga prende `BASE_FP` (pietra, come la Cripta): un dungeon nuovo ha subito foschia, arredo e colori
+ *  per stanza; la riga sua serve solo per dargli i suoi colori o un arredo diverso (grotta, vuoto). */
 export const STILI_FP: Record<string, StileFp> = {
   grotta: { foschia: [5, 20, PAL.ombraCalda, 0.8], fascia: null, pilastro: null, travi: null, stendardi: false, grotta: true },
   cripta: COSTRUITO(PAL.pietraScura, PAL.pietra, PAL.pietra, PAL.pietraScura, PAL.neroCaldo, true),
@@ -37,6 +39,7 @@ export const STILI_FP: Record<string, StileFp> = {
   baita: COSTRUITO(PAL.legnoScuro, PAL.legnoScuro, PAL.legnoScuro, PAL.legnoScuro, PAL.ombraCalda, true),
   ceneri: COSTRUITO(PAL.neroCaldo, PAL.roccia, PAL.neroCaldo, PAL.neroCaldo, PAL.neroCaldo),
 };
+export const BASE_FP: StileFp = COSTRUITO(PAL.pietraScura, PAL.pietra, PAL.pietra, PAL.pietraScura, PAL.neroCaldo, true);
 /** I colori delle stanze, in giro (palette). */
 export const ACCENTI = [PAL.rosso, PAL.acquaBassa, PAL.giallo, PAL.viola, PAL.erba, PAL.arancio, PAL.rosaNeon, PAL.pietraChiara] as const;
 
