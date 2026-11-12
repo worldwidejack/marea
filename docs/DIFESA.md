@@ -8,7 +8,7 @@
 ## 0. In tre righe
 Un **tower defense a corsie alla Plants vs Zombies**: il campo ha 5 corsie × 9 caselle, i nemici entrano da destra e camminano verso la
 tua base a sinistra, tu metti difensori nelle caselle spendendo una valuta che cade dal cielo e che producono alcuni difensori. Si gioca
-**da soli**, a livelli, con una novità per livello; poi la Sopravvivenza infinita. L'isola della Difesa avrà **più mondi**, ognuno con
+**da soli**, a 12 livelli, con una novità per livello; poi la Sopravvivenza infinita. L'isola della Difesa avrà **più mondi**, ognuno con
 ambientazione e stile suoi (non per forza pirati o zombie).
 
 ## 1. Le decisioni di Jack (16 ott 2026)
@@ -117,9 +117,12 @@ divertire come l'originale; la taratura nostra arriva dopo il giro con gli amici
 |---|---|---|
 | Sparapiselli · Girasole · Ciliegia · Noce · Patata · Gelido | `sparatore` · `produttore` · `bomba` · `muro` · `mina` · `gelo` | li dà la pelle (lo stile scelto) |
 | Zombie base · bandiera · cono · saltatore · secchio | `base` · `bandiera` · `cono` · `saltatore` · `secchio` | idem |
+| Mangiatutto · Ripetitore · Noce alta · Torcia | `mangiatutto` · `ripetitore` · `muroAlto` · `potenziatore` | Dionea · Cetriolo gemello · Zucca gigante · Pannocchia ardente |
+| (nostro) | `mortaio` | Melone mortaio |
+| Zombie col giornale · col palloncino · Gargantuar | `scudo` · `volante` · `gigante` | Bruco con lo scudo · Vespa · Maggiolino gigante |
 | Sole · tosaerba | valuta · tosaerba | idem |
 
-**I 6 livelli** (una novità per livello, come 1-1 → 1-8 senza il bowling):
+**I 12 livelli** (una novità per livello, come 1-1 → 1-8 senza il bowling; i primi 6 qui, i livelli 7-12 sotto):
 | Livello | Corsie | Novità | Ondate | Nemici |
 |---|---|---|---|---|
 | 1 Il primo giorno | 1 | sparatore (tutorial: si parte con 150, niente arriva finché non pianti) | 4 | base |
@@ -128,8 +131,29 @@ divertire come l'originale; la taratura nostra arriva dopo il giro con gli amici
 | 4 Tutto il campo | 5 | muro | 10 | base, cono |
 | 5 Chi salta | 5 | mina | 10 | + saltatore |
 | 6 La grande ondata | 5 | gelo | 20 (2 bandiere) | + secchio |
+| 7 Il boccone | 5 | mangiatutto | 12 | + bruco con lo scudo |
+| 8 Doppio colpo | 5 | ripetitore | 14 | + vespa |
+| 9 L'alto muro | 5 | muro alto (saltatori ×3) | 16 | — |
+| 10 Pannocchie accese | 5 | potenziatore | 16 | — |
+| 11 Pioggia di meloni | 5 | mortaio | 20 (2 bandiere) | — |
+| 12 Il maggiolino | 5 | — (tutte le carte) | 20 (2 bandiere) | + maggiolino gigante |
 
-**Sopravvivenza**: 5 corsie, tutte le carte, si parte con 150, ondate infinite col budget della Sopravvivenza; il record sono le ondate.
+### 3.1 Le novità dei livelli 7-12 (numeri in `difesa.json`, profilo `pvz`)
+Dove PvZ ha l'equivalente i numeri sono i suoi; il mortaio e la vespa sono nostri. Le carte sbloccate salgono fino
+a 11, ma se ne portano al massimo 8: vedi «Scegliere le carte» in §4.
+| Cosa | Costo · ricarica · vita | Come funziona |
+|---|---|---|
+| **Dionea** `mangiatutto` | 150 · 7,5 s · 300 | inghiotte intero (armatura compresa) il nemico di terra davanti a sé, fino a 0,9 caselle oltre la sua; poi digerisce 42 s fermo. Non inghiotte il maggiolino né chi vola. |
+| **Cetriolo gemello** `ripetitore` | 200 · 7,5 s · 300 | come il tiratore ma due colpi alla volta (40 di danno per volta, a 0,4 caselle uno dall'altro). |
+| **Zucca gigante** `muroAlto` | 125 · 30 s (20 s all'inizio) · 8000 | muro altissimo: la cavalletta non lo scavalca, si ferma a mangiarlo (resta a camminare piano dopo). |
+| **Pannocchia ardente** `potenziatore` | 175 · 7,5 s · 300 | i colpi dritti che le passano sopra fanno ×2 (di fuoco) e perdono il gelo; una volta sola per colpo. Va messa a destra dei tiratori. |
+| **Melone mortaio** `mortaio` | 175 · 12 s (8 s all'inizio) · 300 | ogni ~3,2 s tira un colpo in arco sul nemico di terra più avanzato di QUALSIASI corsia, ma non entro 2,2 caselle da sé (zona morta). Il colpo ci mette 0,8 s + 0,1 s a casella, cade dove il bersaglio sarà; 60 di danno entro 0,5 caselle, 30 di splash fino a 1 casella. Non prende chi vola. |
+| **Bruco con lo scudo** `scudo` | 270 + 250 di foglia · punti 3 · dall'ondata 3 | caduta la foglia resta fermo 0,6 s e poi va 2,5 volte più veloce. |
+| **Vespa** `volante` | 200 · punti 3 · dall'ondata 4 · passo 0,16-0,21 | vola sopra i difensori senza morderli: la fermano i colpi dritti, la bomba e l'annaffiatoio; mina, ravanello e mangiatutto non la toccano; il mortaio non la prende. |
+| **Maggiolino gigante** `gigante` | 3000 · punti 10 · dall'ondata 8 · passo 0,09-0,115 | schiaccia: morde a 900 al secondo (un difensore normale cade subito, il cavolo in 4 s). Niente testa che cade, la mangiatutto non lo inghiotte. Esce nelle bandiere e nell'ultima ondata. |
+Nel livello 9 il peso dei saltatori è ×3 (`pesi` nel livello) per far provare la zucca gigante.
+
+**Sopravvivenza**: 5 corsie, tutte le 11 carte e tutti i nemici, si parte con 150, ondate infinite col budget della Sopravvivenza; il record sono le ondate.
 
 **Bilanciamento** (`node tools/difesa_bilancio.mjs --semi 200`, 16 ott, profilo marea = pvz). Tre giocatori finti: il **bravo** pianta al
 posto giusto e raccoglie subito; il **medio** ragiona ogni ~1 s e sbaglia casella una volta su 7; il **distratto** reagisce ogni ~2 s, perde
@@ -144,6 +168,17 @@ il 30 % delle monete, mette i difensori un po' a caso e non usa mine.
 | 6 | 100 % | 98,5 % | 37 % | 6,5 min | 2,0 |
 | Sopravvivenza | 41 ondate | 39 ondate | 25 ondate | 9-13 min | — |
 
+Livelli 7-12 e Sopravvivenza (200 semi per riga, 30 per la Sopravvivenza; il pilota porta le 8 carte di partenza e usa le piante nuove come una persona):
+| Livello | Bravo vince | Medio vince | Distratto vince | Durata | Tosaerba (distratto) |
+|---|---|---|---|---|---|
+| 7 | 99 % | 98,5 % | 50,5 % | 4,7 min | 1,7 |
+| 8 | 100 % | 100 % | 60 % | 4,9 min | 1,7 |
+| 9 | 99,5 % | 99,5 % | 40,5 % | 5,4 min | 2,0 |
+| 10 | 99,5 % | 99,5 % | 53,5 % | 5,4 min | 1,7 |
+| 11 | 100 % | 99,5 % | 50 % | 6,2 min | 1,7 |
+| 12 | 91 % | 92,5 % | 14,5 % | 7,2 min | 2,5 |
+| Sopravvivenza | 45 ondate | 43 ondate | 30 ondate | 10-13 min | — |
+
 La curva è quella giusta (i primi due livelli non si perdono, poi sale); il medio vince quasi sempre: è PvZ, facile per chi gioca. Da
 decidere con Jack dopo la prova degli amici se indurire gli ultimi livelli (strumento pronto: si cambia un numero in `profili.marea`, si
 rilancia, si guarda la tabella).
@@ -151,13 +186,18 @@ rilancia, si guarda la tabella).
 ## 4. Come si gioca (banco)
 - **Toccare la carta, poi la casella** (o trascinare la carta sulla casella); la carta si scurisce mentre si ricarica, si spegne se non
   bastano le monete. **Toccare le monete** per raccoglierle (anche mentre cadono); la pala toglie un difensore (senza rimborso).
-- PC: mouse; tasti 1-6 carte, E pala, Spazio pausa, F veloce ×2, T pilota automatico, M muto, R ricomincia, Esc annulla.
+- **Scegliere le carte**: in partita se ne portano al massimo 8 (`carte.max` in `difesa.json`). Dove le carte sbloccate sono di più (dal livello 9 e
+  nella Sopravvivenza) prima del livello compare «SCEGLI LE CARTE»: si toccano le carte da portare (n / 8, la nona non entra: se ne toglie una),
+  VIA! avvia. Parte già con la scelta dell'ultima volta (resta nel telefono) e la carta nuova del livello dentro, poi si riempie nell'ordine di
+  `carte.priorita`; la barra le mette nell'ordine del livello. RICOMINCIA e RIPROVA tengono la stessa scelta; AVANTI chiede di nuovo. Col pilota
+  automatico e nelle prove (`prova=1`) non si sceglie: carte di partenza (`carte.ts` nella sim).
+- PC: mouse; tasti 1-8 carte, E pala, Spazio pausa, F veloce ×2, T pilota automatico, M muto, R ricomincia, Esc annulla.
 - Telefono in **orizzontale** (in verticale «GIRA IL TELEFONO» e il gioco si ferma); la pagina in secondo piano mette in pausa.
 - Pannello «⚙ prove»: STILE (le pelli), numeri PvZ/MAREA, raccolta automatica delle monete, pilota automatico (bravo, medio,
   distratto), velocità, suoni, livelli tutti aperti, ricomincia, scegli il livello.
 - Medaglia a fine livello: oro senza tosaerba usati, argento con uno, bronzo con di più. Livelli sbloccati, medaglie e record restano
   nel telefono (localStorage).
-- Indirizzo: `difesa.html?livello=1..6|s&stile=<pelle>&profilo=pvz|marea&auto=bravo&veloce=2&raccolta=1&seme=N`.
+- Indirizzo: `difesa.html?livello=1..12|s&stile=<pelle>&profilo=pvz|marea&auto=bravo&veloce=2&raccolta=1&seme=N`.
 
 ## 5. Regole per chi ci lavora
 - La sim sta in `packages/sim/src/difesa/` ed è pura come il resto (`check_static`): il caso è un intero nello stato (mulberry32), tempi
@@ -171,7 +211,12 @@ rilancia, si guarda la tabella).
   modifica della posa base, poi stessa scala e allineamento: `tools/difesa_pelle.py` dal manifest `assets/concept/difesa/orto/manifest.json`),
   19 suoni ElevenLabs. Le pelli stanno in `apps/client/public/assets/difesa/<id>/` (budget a parte nella build: `difesaAssetsMB`; l'orto
   1,2 MB su 4). La pelle segnaposto da codice resta con `?stile=segnaposto`.
-- Test: `node --test packages/sim/test/difesa.test.ts` (sim) e `node tests/run.mjs m4_difesa` (banco).
+- I personaggi nuovi dei livelli 7-12 (#738) sono su una pagina a parte dell'atlas, aggiunta al pelle.json senza toccare quello che c'era:
+  `assets/concept/difesa/orto/manifest_nuovi.json` (sorgenti in `dionea/`, `gemello/`, `zuccone/`, `pannocchia/`, `mortaio/`, `scudo/`,
+  `scudoNudo/`, `vespa/`, `gigante/`, `fuoco/`, `palla/`, `foglia/`: disegnati da Codex sul foglio `_FOGLIO_nuovi.jpg`, poi ogni
+  fotogramma è una modifica della posa base) e `tools/difesa_pelle.py <manifest_nuovi> --aggiungi`. I PNG stanno solo sul computer di chi
+  li ha fatti (nel repo i JPG, i manifest e i brief).
+- Test: `node --test packages/sim/test/difesa.test.ts packages/sim/test/difesa_nuovi.test.ts` (sim) e `node tests/run.mjs m4_difesa` (banco).
 
 ## 6. L'isola della Difesa (18 ott 2026, #395)
 Jack: «costruire l'isola tower defense in cui mettere il nostro Plants vs Zombies ed altro in futuro». L'isola `difesa` sta a ovest del

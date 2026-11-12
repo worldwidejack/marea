@@ -1,7 +1,7 @@
 // La resa della Difesa (#358, #379) su un canvas 2D: fondale, annaffiatoi (tosaerba), difensori, nemici, colpi, monete ed effetti,
 // corsia per corsia dall'alto in basso (così chi sta sotto copre chi sta sopra). Le pose a fotogrammi le sceglie pose.ts dallo stato
 // della sim; qui sopra resta il movimento da codice che fa da contorno: la molla quando pianti, un respiro leggero, il lampo bianco
-// quando colpisci, l'azzurro del gelo, l'arco del salto. Dove la pelle non ha la clip (la segnaposto) torna il movimento da codice di
+// quando colpisci, l'azzurro del gelo, l'arco del salto, la quota di chi vola e l'arco dei colpi del mortaio. Dove la pelle non ha la clip (la segnaposto) torna il movimento da codice di
 // prima: rinculo, miccia che si gonfia, passo che ondeggia, morso che dondola, crepe del muro.
 import type { DState, DNemico, DUnita } from '@marea/sim/difesa/stato.ts';
 import { DIFESA } from '@marea/content/difesa.ts';
@@ -49,7 +49,7 @@ export function creaResa(tela: HTMLCanvasElement) {
     const a = A(u.id, t), [x, y] = scherm(p, q, u.col + 0.5, u.corsia + CORSIA_PIEDI), H = altCasella(p, q, u.corsia);
     aggiorna(s, a, null, false, false);
     const posa = posaUnita(s, p, u, a);
-    const vivo = animato(p, u.tipo, 'spara', 'manovella', 'gonfia', 'rosicchiato', 'sotto', 'chiusi');
+    const vivo = animato(p, u.tipo, 'spara', 'manovella', 'gonfia', 'rosicchiato', 'sotto', 'chiusi', 'inghiotte', 'mastica');
     const pop = Math.min(1, (t - a.nato) / 0.18), molla = pop < 1 ? 0.3 + 0.7 * pop + Math.sin(pop * Math.PI) * 0.25 : 1;
     const respiro = Math.sin(t * 5.6 + u.id) * (vivo ? 0.012 : 0.03), r = Math.max(0, 1 - (t - a.rinculo) / 0.14), m = Math.max(0, 1 - (t - a.morso) / 0.15);
     const spara = animato(p, u.tipo, 'spara');
@@ -62,7 +62,7 @@ export function creaResa(tela: HTMLCanvasElement) {
       bianco = Math.max(bianco, k * (z < 0.1 ? 0.2 : 0.5) * (0.5 + 0.5 * Math.sin(t * 30)));
     }
     if (u.tipo === 'mina' && u.armata && !animato(p, 'mina', 'spunta')) { const k = Math.max(0, 1 - (t - a.armata) / 0.25); sy *= 1 + 0.3 * k; bianco = Math.max(bianco, Math.sin(t * 8) > 0.6 ? 0.35 : 0); }
-    const crepe = u.tipo === 'muro' && !animato(p, 'muro', 'rosicchiato');
+    const crepe = (u.tipo === 'muro' || u.tipo === 'muroAlto') && !animato(p, u.tipo, 'rosicchiato');
     if (crepe) { const f = u.vita / u.vitaMax; rot = f < 1 / 3 ? -0.1 : f < 2 / 3 ? -0.05 : 0; }
     if (u.tipo === 'produttore' && !animato(p, 'produttore', 'manovella') && u.t - s.tick < TICK_HZ) bianco = Math.max(bianco, 0.25 + 0.25 * Math.sin(t * 14));
     spr(p, posa, x + ox, y, H, { sx, sy, rot, bianco });
@@ -81,6 +81,12 @@ export function creaResa(tela: HTMLCanvasElement) {
     let alzo = 0;
     if (e.salto === 1) { const k = Math.min(1, (s.tick - e.saltoT0) / Math.max(1, e.saltoT1 - e.saltoT0)); alzo = Math.sin(k * Math.PI) * H * 0.9; }
     const [x, y] = scherm(p, q, e.x, e.corsia + CORSIA_PIEDI);
+    if (e.vola) {
+      // chi vola sta a mezz'aria, con l'ombra sulla riga; senza testa cade
+      const quota = e.testa ? 1 : Math.max(0, Math.min(1, (e.muore - s.tick) / TICK_HZ));
+      alzo = H * (0.4 + Math.sin(t * 5 + e.id) * 0.04) * quota;
+      g.fillStyle = 'rgba(30,18,10,0.3)'; g.beginPath(); g.ellipse(x, y, H * 0.22, H * 0.06, 0, 0, Math.PI * 2); g.fill();
+    }
     const posa = posaNemico(s, p, e, a), cammina = animato(p, posa.k, 'cammina', 'corre');
     const colpo = Math.max(0, 1 - (s.tick - e.colpito) / TICK_HZ / 0.12);
     let rot = Math.sin(a.passo) * (cammina ? 0.012 : 0.07), by = cammina ? 0 : Math.abs(Math.sin(a.passo)) * H * 0.04, sy = 1;
@@ -124,8 +130,17 @@ export function creaResa(tela: HTMLCanvasElement) {
       for (const c of s.colpi) {
         if (c.corsia !== r) continue;
         const [x, y] = scherm(p, q, c.x, r + CORSIA_PIEDI);
-        spr(p, { k: c.gelo ? 'colpoGelo' : 'colpo', clip: 'fermo', i: 0 }, x, y - p.volo * H, H, { rot: t * 9 + c.id });
+        spr(p, { k: c.fuoco ? 'colpoFuoco' : c.gelo ? 'colpoGelo' : 'colpo', clip: 'fermo', i: 0 }, x, y - p.volo * H, H, { rot: t * 9 + c.id });
       }
+    }
+    // i colpi del mortaio: arco sopra tutte le corsie, mirino a terra dove cadranno
+    for (const l of s.lanci) {
+      const k = Math.min(1, (s.tick - l.t0) / Math.max(1, l.t1 - l.t0)), Hc = altCasella(p, q, 2);
+      const [x, y] = scherm(p, q, l.da[0] + (l.a[0] - l.da[0]) * k, l.da[1] + (l.a[1] - l.da[1]) * k + 0.3), [ax, ay] = scherm(p, q, l.a[0], l.a[1] + 0.3);
+      g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = Math.max(2, Hc * 0.03);
+      g.beginPath(); g.ellipse(ax, ay, Hc * 0.34 * (1.3 - 0.3 * k), Hc * 0.1 * (1.3 - 0.3 * k), 0, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = 'rgba(30,18,10,0.25)'; g.beginPath(); g.ellipse(x, y, Hc * 0.14, Hc * 0.04, 0, 0, Math.PI * 2); g.fill();
+      spr(p, { k: 'palla', clip: 'fermo', i: 0 }, x, y - p.volo * Hc - Math.sin(k * Math.PI) * Hc * (1.1 + Math.abs(l.a[0] - l.da[0]) * 0.12), Hc, { rot: t * 6 + l.id });
     }
     if (fantasma && fantasma.ok && fantasma.tipo !== 'pala') {
       const [x, y] = scherm(p, q, fantasma.col + 0.5, fantasma.corsia + CORSIA_PIEDI);

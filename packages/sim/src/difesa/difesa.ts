@@ -1,11 +1,12 @@
 // La Difesa a corsie (difesa.html, #358; docs/DIFESA.md): un passo della partita. Ordine del tick: comandi del giocatore,
-// cielo e ondate (fermi nel tutorial finché non pianti), difensori, colpi, nemici, tosaerba, monete, fine partita.
+// cielo e ondate (fermi nel tutorial finché non pianti), difensori, colpi, lanci, nemici, tosaerba, monete, fine partita.
 // Vittoria: lanciate tutte le ondate e nessun nemico in campo. Sconfitta: un nemico in fondo a una corsia che ha già usato il tosaerba.
 import type { DComando, DState } from './stato.ts';
 import { totOndate } from './stato.ts';
 import { passoOndate } from './ondate.ts';
 import { passoNemici, passoTosaerba } from './nemici.ts';
 import { pala, passoColpi, passoUnita, pianta } from './unita.ts';
+import { passoLanci } from './lanci.ts';
 import { passoCielo, passoMonete, raccogli } from './monete.ts';
 
 export { nuovaPartita } from './stato.ts';
@@ -23,6 +24,7 @@ export function passo(s: DState, comandi: readonly DComando[] = []): void {
   if (!s.attesa) { passoCielo(s); passoOndate(s); }
   passoUnita(s);
   passoColpi(s);
+  passoLanci(s);
   passoNemici(s);
   passoTosaerba(s);
   passoMonete(s);

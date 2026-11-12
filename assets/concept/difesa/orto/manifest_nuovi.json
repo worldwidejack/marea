@@ -1,0 +1,93 @@
+{
+  "id": "orto",
+  "nome": "L'orto",
+  "cella": 200,
+  "pagina": 2048,
+  "qualita": 85,
+  "uscita": "apps/client/public/assets/difesa/orto",
+  "aggiunta": "nuovi",
+  "nomi": {
+    "mangiatutto": "Dionea",
+    "ripetitore": "Cetriolo gemello",
+    "muroAlto": "Zucca gigante",
+    "potenziatore": "Pannocchia ardente",
+    "mortaio": "Melone mortaio",
+    "scudo": "Bruco con lo scudo",
+    "volante": "Vespa",
+    "gigante": "Maggiolino gigante"
+  },
+  "consigli": {
+    "mangiatutto": "Dionea: inghiotte un insetto intero!",
+    "ripetitore": "Cetriolo gemello: due colpi alla volta",
+    "muroAlto": "Zucca gigante: le cavallette non la scavalcano",
+    "potenziatore": "Pannocchia: i colpi che passano fanno il doppio",
+    "mortaio": "Melone mortaio: colpisce ovunque, non da vicino",
+    "scudo": "Senza la foglia il bruco corre: attenta!",
+    "volante": "Le vespe volano: servono i tiratori",
+    "gigante": "Il maggiolino schiaccia tutto: fermalo da lontano"
+  },
+  "sprite": {
+    "mangiatutto": {
+      "cartella": "dionea", "base": "fermo.png", "alto": 1.0,
+      "clip": {
+        "fermo": ["fermo.png"], "chiusi": ["chiusi.png"], "inghiotte": ["inghiotte.png"],
+        "mastica": { "f": ["mastica_1.png", "mastica_2.png"], "fps": 4 }
+      }
+    },
+    "ripetitore": {
+      "cartella": "gemello", "base": "fermo.png", "alto": 0.62,
+      "clip": { "fermo": ["fermo.png"], "chiusi": ["chiusi.png"], "carica": ["carica.png"], "spara": { "f": ["spara.png"], "fps": 10 } }
+    },
+    "muroAlto": {
+      "cartella": "zuccone", "base": "fermo.png", "alto": 1.15,
+      "clip": { "fermo": ["fermo.png"], "chiusi": ["chiusi.png"], "rosicchiato": ["rosicchiato.png"], "mezzo": ["mezzo.png"] }
+    },
+    "potenziatore": {
+      "cartella": "pannocchia", "base": "fermo.png", "alto": 1.0,
+      "clip": { "fermo": ["fermo.png"], "chiusi": ["chiusi.png"], "lampo": ["lampo.png"] }
+    },
+    "mortaio": {
+      "cartella": "mortaio", "base": "fermo.png", "alto": 0.85,
+      "clip": { "fermo": ["fermo.png"], "chiusi": ["chiusi.png"], "carica": ["carica.png"], "spara": { "f": ["spara.png"], "fps": 10 } }
+    },
+    "scudo": {
+      "cartella": "scudo", "base": "fermo.png", "alto": 0.7,
+      "clip": {
+        "fermo": ["fermo.png"],
+        "cammina": { "f": ["cammina_1.png", "cammina_2.png", "cammina_3.png", "cammina_4.png"], "giro": 0.2 },
+        "mangia": { "f": ["mangia_1.png", "mangia_2.png"], "fps": 7 },
+        "ko": ["ko.png"]
+      }
+    },
+    "scudoNudo": {
+      "cartella": "scudoNudo", "base": "fermo.png", "alto": 0.7, "scala_di": "scudo",
+      "clip": {
+        "fermo": ["fermo.png"],
+        "corre": { "f": ["corre_1.png", "corre_2.png", "corre_3.png", "corre_4.png"], "giro": 0.45 },
+        "cammina": { "f": ["corre_1.png", "corre_2.png", "corre_3.png", "corre_4.png"], "giro": 0.3 },
+        "mangia": { "f": ["mangia_1.png", "mangia_2.png"], "fps": 7 },
+        "ko": ["ko.png"]
+      }
+    },
+    "volante": {
+      "cartella": "vespa", "base": "fermo.png", "alto": 0.68,
+      "clip": {
+        "fermo": ["fermo.png"],
+        "cammina": { "f": ["cammina_1.png", "cammina_2.png", "cammina_3.png", "cammina_2.png"], "fps": 14, "terra": false },
+        "ko": { "f": ["ko.png"], "terra": false }
+      }
+    },
+    "gigante": {
+      "cartella": "gigante", "base": "fermo.png", "alto": 1.35,
+      "clip": {
+        "fermo": ["fermo.png"],
+        "cammina": { "f": ["cammina_1.png", "cammina_2.png", "cammina_3.png", "cammina_4.png"], "giro": 0.15 },
+        "mangia": { "f": ["mangia_1.png", "mangia_2.png", "mangia_3.png"], "fps": 5 },
+        "ko": ["ko.png"]
+      }
+    },
+    "colpoFuoco": { "cartella": "fuoco", "base": "fermo.png", "alto": 0.38, "piedi": "centro", "clip": { "fermo": ["fermo.png"] } },
+    "palla": { "cartella": "palla", "base": "fermo.png", "alto": 0.4, "piedi": "centro", "clip": { "fermo": ["fermo.png"] } },
+    "armaturaFoglia": { "cartella": "foglia", "base": "fermo.png", "alto": 0.42, "piedi": "centro", "clip": { "fermo": ["fermo.png"] } }
+  }
+}

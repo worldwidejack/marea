@@ -1,7 +1,7 @@
 // La Difesa a corsie alla Plants vs Zombies: difesa.html, pagina a parte; si apre da sola o dal cancello dell'isola (?mondo=1)
 // (docs/DIFESA.md). Sim pura in @marea/sim/difesa (60 Hz fissi); qui la resa su canvas 2D (disegna.ts) con la pelle scelta (skin.ts: di
 // serie «L'orto», animata a fotogrammi, pose.ts), gli effetti, i suoni e l'interfaccia in HTML (ui.ts). Si tocca la carta e poi la casella (o si trascina la carta sulla casella); si toccano le
-// monete per raccoglierle. PC: 1-6 carte, E pala, Spazio pausa, F veloce, T pilota automatico, M muto, R ricomincia, Esc annulla.
+// monete per raccoglierle. PC: 1-8 carte, E pala, Spazio pausa, F veloce, T pilota automatico, M muto, R ricomincia, Esc annulla.
 // Indirizzo: ?livello=1..6|s&stile=<pelle>&profilo=pvz|marea&auto=bravo|medio|distratto&veloce=2&seme=N&raccolta=1&prova=1
 // (prova = parte subito senza menù né tutorial a schermo: per i test). Telefono in orizzontale; in verticale «GIRA IL TELEFONO».
 // Test: window.__difesa = { ready, state(), set({...}), avanti(n), premi(cmd), perf(), partita(), rendi(), casella(col, corsia), moneta(id) }.
@@ -12,19 +12,23 @@ import { nuovaPartita, passo } from '@marea/sim/difesa/difesa.ts';
 import type { DComando, DEvento, DState } from '@marea/sim/difesa/stato.ts';
 import { livelloDef, totOndate } from '@marea/sim/difesa/stato.ts';
 import { eBandiera } from '@marea/sim/difesa/ondate.ts';
+import { sceltaPredefinita } from '@marea/sim/difesa/carte.ts';
 import type { DBot, DBravura } from '@marea/sim/difesa/bot.ts';
 import { autopilota, creaBot } from '@marea/sim/difesa/bot.ts';
 import type { Pelle, Posa } from './skin.ts';
-import { PELLE_DI_SERIE, PELLI, caricaPelle, clipDi, spoglio } from './skin.ts';
+import { PELLE_DI_SERIE, PELLI, PEZZO_ARMATURA, caricaPelle, clipDi, spoglio } from './skin.ts';
 import type { Inquadratura } from './tavolo.ts';
 import { aSchermo, casella, daFondale, daSchermo, inquadra, suFondale } from './tavolo.ts';
 import type { Fantasma } from './disegna.ts';
 import { creaResa } from './disegna.ts';
 import { creaEffetti } from './effetti.ts';
+import { eventoNuovo } from './eventi_nuovi.ts';
+import { CONSIGLI } from './consigli.ts';
+import { sceltaCarte } from './scelta_carte.ts';
 import { creaUi } from './ui.ts';
 import { creaSuoni } from './suoni.ts';
 
-type Salvato = { v?: number; sbloccati?: number; medaglie?: Record<string, 'oro' | 'argento' | 'bronzo'>; record?: number; stile?: string; profilo?: DProfiloId; raccolta?: boolean; muto?: boolean; tutto?: boolean };
+type Salvato = { v?: number; sbloccati?: number; medaglie?: Record<string, 'oro' | 'argento' | 'bronzo'>; record?: number; carte?: DTipoUnita[]; stile?: string; profilo?: DProfiloId; raccolta?: boolean; muto?: boolean; tutto?: boolean };
 const q = new URLSearchParams(location.search);
 const leggi = (): Salvato => { try { return JSON.parse(localStorage.getItem('marea.difesa') ?? '{}') as Salvato; } catch { return {}; } };
 const mem: Salvato = leggi();
@@ -46,6 +50,7 @@ const resa = creaResa(tela), fx = creaEffetti(), ui = creaUi(root), suoni = crea
 suoni.muto(muto);
 let pelle: Pelle | null = null, Q: Inquadratura = { scala: 1, ox: 0, oy: 0, W: 1, H: 1 };
 let s: DState = nuovaPartita(1, 0, { profilo });
+let portate: DTipoUnita[] | undefined; // le carte scelte per la partita (e per ricominciarla)
 let inGioco = false, finita = false, bot: DBot | null = null, coda: DComando[] = [], scelta: DTipoUnita | 'pala' | null = null, fantasma: Fantasma = null;
 let tutorialPasso = 0, scossa = 0, ready = false;
 
@@ -63,17 +68,12 @@ function misura(): void {
 addEventListener('resize', misura); window.visualViewport?.addEventListener('resize', misura);
 
 // ---------- partita ----------
-// Le frasi del tutorial e dei consigli (massimo 8 parole, regola di George Fan): quelle della pelle, coi nomi del suo cast, o queste.
-const CONSIGLI: Record<string, string> = {
-  primo: 'Tocca la carta, poi tocca il prato', semi: 'Tocca le monete che cadono!', altro: 'Pianta un altro difensore!',
-  produttore: 'Produttore: fa monete, piantane tanti!', bomba: 'Bomba: scoppia e spazza tutto attorno!',
-  muro: 'Muro: regge a lungo, mettilo davanti', mina: 'Mina: si arma piano, mettila lontano', gelo: 'Gelo: rallenta i nemici che colpisce',
-  sopravvivenza: 'Resisti più ondate che puoi!', riprova: 'Riprova: metti prima i produttori, poi i tiratori.',
-};
+// Le frasi del tutorial e dei consigli: quelle della pelle, coi nomi del suo cast, o quelle di consigli.ts.
 const consiglio = (k: string) => pelle?.consigli[k] ?? CONSIGLI[k] ?? '';
-function avvia(livello: number): void {
+function avvia(livello: number, carte = portate): void {
   const seme = Number(q.get('seme')) || 1 + Math.floor(Math.random() * 99999);
-  s = nuovaPartita(seme, livello, { profilo, raccoltaAuto });
+  const tante = (livello >= 0 ? DIFESA.livelli[livello]! : DIFESA.sopravvivenza).carte.length > DIFESA.carte.max;
+  s = nuovaPartita(seme, livello, { profilo, raccoltaAuto, carte: tante ? carte : undefined });
   if (prova) s.attesa = false;
   inGioco = true; finita = false; scelta = null; fantasma = null; coda = []; tutorialPasso = 0;
   resa.nuovaPartita(); fx.svuota();
@@ -85,9 +85,21 @@ function avvia(livello: number): void {
   ui.consiglio(null); ui.mano(null);
   if (!prova) {
     if (def?.tutorial) ui.consiglio(consiglio('primo'), 0);
-    else if (def && consiglio(def.nuova)) ui.consiglio(consiglio(def.nuova), 7);
+    else if (def?.nuova && consiglio(def.nuova)) ui.consiglio(consiglio(def.nuova), 7);
     else if (!def) ui.consiglio(consiglio('sopravvivenza'), 5);
+    // il nemico nuovo del livello: il suo consiglio viene dopo quello del difensore nuovo
+    const intro = def?.intro, mia = s;
+    if (!def?.tutorial && intro && consiglio(intro)) setTimeout(() => { if (s === mia && !finita) ui.consiglio(consiglio(intro), 6); }, def.nuova ? 7500 : 0);
   }
+}
+/** Avvia un livello: con più carte sbloccate di `carte.max` prima si scelgono quelle da portare (non nelle prove né col pilota). */
+function vai(livello: number): void {
+  const def = livello >= 0 ? DIFESA.livelli[livello]! : DIFESA.sopravvivenza, P = profiloDifesa(profilo);
+  if (prova || auto || def.carte.length <= DIFESA.carte.max) { avvia(livello); return; }
+  const nuova = 'nuova' in def ? def.nuova : null;
+  inGioco = false;
+  sceltaCarte(ui, { titolo: def.nome, carte: def.carte, nuova, costi: Object.fromEntries(def.carte.map((t) => [t, P.unita[t].costo])), nomi: (t) => pelle?.nomi[t] ?? t, max: DIFESA.carte.max, iniziale: sceltaPredefinita({ carte: def.carte, nuova }, mem.carte) },
+    (scelte) => { portate = mem.carte = scelte; salva(); avvia(livello, scelte); }, menuLivelli);
 }
 function sceglie(t: DTipoUnita | 'pala'): void {
   if (!inGioco || finita) return;
@@ -101,8 +113,8 @@ function sceglie(t: DTipoUnita | 'pala'): void {
 function menuLivelli(): void {
   inGioco = false;
   const sbl = mem.tutto ? 99 : mem.sbloccati ?? 0;
-  ui.menu('DIFESA', `${pelle?.nome ?? 'Banco di prova'} · scegli il livello`, DIFESA.livelli.map((l, i) => ({ nome: l.nome, numero: String(l.id), aperto: i <= sbl, medaglia: mem.medaglie?.[l.id] ?? '', nuova: l.nuova })),
-    `SOPRAVVIVENZA${mem.record ? ` · record ${mem.record}` : ''}`, (i) => avvia(i));
+  ui.menu('DIFESA', `${pelle?.nome ?? 'Banco di prova'} · scegli il livello`, DIFESA.livelli.map((l, i) => ({ nome: l.nome, numero: String(l.id), aperto: i <= sbl, medaglia: mem.medaglie?.[l.id] ?? '', icona: l.nuova ?? l.intro })),
+    `SOPRAVVIVENZA${mem.record ? ` · record ${mem.record}` : ''}`, (i) => vai(i));
 }
 function medaglia(): 'oro' | 'argento' | 'bronzo' {
   const persi = s.corsie.filter((r) => s.tosa[r]!.stato !== 0).length;
@@ -126,7 +138,7 @@ function fine(vinta: boolean): void {
       mem.medaglie = { ...mem.medaglie, [def!.id]: prima === 'oro' || (prima === 'argento' && m === 'bronzo') ? prima : m };
       mem.sbloccati = Math.max(mem.sbloccati ?? 0, lv + 1); salva();
       const prossimo = DIFESA.livelli[lv + 1];
-      ui.fine({ vinta: true, titolo: 'DIFESA RIUSCITA!', righe: [`${def!.nome} · ${tempo}`, `Medaglia: ${m.toUpperCase()} (tosaerba usati: ${s.stats.tosaerba})`], premio: prossimo?.nuova ?? null, avanti: !!prossimo }, () => avvia(lv), () => avvia(prossimo ? lv + 1 : lv), menuLivelli);
+      ui.fine({ vinta: true, titolo: 'DIFESA RIUSCITA!', righe: [`${def!.nome} · ${tempo}`, `Medaglia: ${m.toUpperCase()} (tosaerba usati: ${s.stats.tosaerba})`], premio: prossimo?.nuova ?? null, avanti: !!prossimo }, () => avvia(lv), () => vai(prossimo ? lv + 1 : lv), menuLivelli);
     } else {
       ui.fine({ vinta: false, titolo: 'HANNO SFONDATO!', righe: [`${def!.nome} · ondata ${s.ondata} di ${totOndate(s)}`, consiglio('riprova')], avanti: false }, () => avvia(lv), () => {}, menuLivelli);
     }
@@ -148,8 +160,8 @@ function eventi(evs: DEvento[], t: number): void {
         const e = s.nemici.find((n) => n.id === ev.id);
         if (e) {
           // l'armatura (ghianda, vasetto) salta via girando; senza il pezzo nella pelle, solo schegge
-          const [x, y] = sullo(e.x, e.corsia + 0.8), H = altezza(e.corsia);
-          if (!fx.pezzo(pelle!, ev.tipo === 'cono' ? 'armaturaCono' : 'armaturaSecchio', x, y, H)) { const [x2, y2] = sullo(e.x, e.corsia + 0.2); fx.schegge(x2, y2, ev.tipo === 'cono' ? '#ff8a2a' : '#a8b0b8', 9, 220); }
+          const [x, y] = sullo(e.x, e.corsia + 0.8), H = altezza(e.corsia), pezzo = PEZZO_ARMATURA[ev.tipo];
+          if (!pezzo || !fx.pezzo(pelle!, pezzo, x, y, H)) { const [x2, y2] = sullo(e.x, e.corsia + 0.2); fx.schegge(x2, y2, ev.tipo === 'cono' ? '#ff8a2a' : ev.tipo === 'scudo' ? '#3f9a2b' : '#a8b0b8', 9, 220); }
           suoni.armatura();
         }
         break;
@@ -181,6 +193,7 @@ function eventi(evs: DEvento[], t: number): void {
       case 'ondata': if (ev.finale && !prova) setTimeout(() => ui.avviso('ULTIMA ONDATA!', 2.5), 400); break;
       case 'vinta': suoni.vinta(); fine(true); break;
       case 'persa': suoni.persa(); fine(false); break;
+      case 'lancia': case 'cade': case 'potenziato': case 'inghiottito': case 'furia': eventoNuovo(ev, { s, pelle: pelle!, fx, resa, suoni, t, sullo, altezza }); break;
       case 'rifiuto': suoni.no(); break;
     }
   }
@@ -344,8 +357,8 @@ void (async () => {
   await cambiaPelle();
   opzioni();
   const lq = q.get('livello');
-  if (lq === 's') avvia(-1);
-  else if (lq && DIFESA.livelli.some((l) => String(l.id) === lq)) avvia(DIFESA.livelli.findIndex((l) => String(l.id) === lq));
+  if (lq === 's') vai(-1);
+  else if (lq && DIFESA.livelli.some((l) => String(l.id) === lq)) vai(DIFESA.livelli.findIndex((l) => String(l.id) === lq));
   else if (prova || auto) avvia(0);
   else menuLivelli();
   requestAnimationFrame(frame);
@@ -359,9 +372,10 @@ const stato = () => ({
 (window as unknown as { __difesa: unknown }).__difesa = {
   get ready() { return ready; },
   state: stato,
-  set(o: { livello?: number; auto?: DBravura | null; pausa?: boolean; veloce?: number; valuta?: number; stile?: string; profilo?: DProfiloId; raccolta?: boolean }) {
+  set(o: { livello?: number; carte?: DTipoUnita[]; auto?: DBravura | null; pausa?: boolean; veloce?: number; valuta?: number; stile?: string; profilo?: DProfiloId; raccolta?: boolean }) {
     if (o.profilo) profilo = o.profilo;
     if (o.raccolta !== undefined) { raccoltaAuto = o.raccolta; s.raccoltaAuto = o.raccolta; }
+    if (o.carte) portate = o.carte;
     if (o.livello !== undefined) avvia(o.livello);
     if (o.auto !== undefined) { auto = o.auto; bot = auto ? creaBot(auto, 7) : null; }
     if (o.pausa !== undefined) pausa = o.pausa;
