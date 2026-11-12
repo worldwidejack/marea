@@ -1,121 +1,119 @@
-// Comandi: controller e tasti rimappabili. Un controller finto (navigator.getGamepads) muove l'eroe in analogico, i suoi pulsanti
-// arrivano come tasti del gioco, e un tasto cambiato nella schermata «Comandi e controller» (Impostazioni) fa quello che ha preso, mentre
-// il vecchio non fa più niente. Le scelte restano dopo il ricaricamento. Screenshot a 390×844 e su desktop.
+import { collegaController } from '../lib/controller.mjs';
+
 export const timeout = 240000;
 
 export default async function (ctx) {
   const { assert } = ctx;
-  const p = await ctx.open('?test=1&net=0');
-  const page = p.page;
+  const p = await ctx.open('?test=1&net=0', { viewport: { width: 1280, height: 800 } });
+  const { page } = p;
   await ctx.waitReady(page, 20000);
-  const st = async () => (await ctx.getState(page)).comandi;
-  /** I tasti che il gioco vede (in ordine), dopo la rimappa. */
-  const registra = () => page.evaluate(() => { window.__k = []; for (const t of ['keydown', 'keyup']) addEventListener(t, (e) => window.__k.push(`${t === 'keydown' ? '+' : '-'}${e.code}`)); });
-  const visti = () => page.evaluate(() => { const k = window.__k; window.__k = []; return k; });
-  const tasto = (id, slot, code) => page.evaluate((a) => window.__game.test.comandi_tasto(a), { id, slot, code });
-  const pulsante = (id, b) => page.evaluate((a) => window.__game.test.comandi_pad(a), { id, b });
-  const padFinto = (axes, giu = []) => page.evaluate(([a, g]) => {
-    window.__pad = { connected: true, id: 'Controller finto (STANDARD GAMEPAD)', axes: a, buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: g.includes(i), value: g.includes(i) ? 1 : 0 })) };
-    navigator.getGamepads = () => [window.__pad];
-    dispatchEvent(new Event('gamepadconnected')); // come fa il browser alla prima pressione (dopo un ricaricamento serve di nuovo)
-  }, [axes, giu]);
+  const registra = () => page.evaluate(() => {
+    window.__k = [];
+    for (const t of ['keydown', 'keyup']) addEventListener(t, (e) => window.__k.push((t === 'keydown' ? '+' : '-') + e.code));
+  });
+  const visti = () => page.evaluate(() => window.__k.splice(0));
+  const imposta = (profilo, id, slot, code) => page.evaluate((a) => window.__game.test.comandi_tasto(a), { profilo, id, slot, code });
+  const bindPad = (profilo, id, b) => page.evaluate((a) => window.__game.test.comandi_pad(a), { profilo, id, b });
+  let pad;
   await registra();
 
-  await ctx.test('senza controller: niente collegato, i tasti di serie passano', async () => {
-    ctx.assert((await st()).pad === null, 'pad già collegato');
+  await ctx.test('senza controller i tasti di serie passano', async () => {
+    assert((await ctx.getState(page)).comandi.pad === null, 'pad già collegato');
     await page.keyboard.press('Space');
+    assert((await visti()).join(' ') === '+Space -Space', 'Spazio non è arrivato al gioco');
+  });
+
+  await ctx.test('Borgo: stick analogico, Y cambia attrezzo, B fa la capriola', async () => {
+    pad = await collegaController(page);
+    await pad.stato([], [0.9, 0, 0, 0]);
+    await ctx.waitState(page, (s) => s.wp2_input.src === 'pad' && s.wp2_input.mag > 0.5, 8000);
+    assert((await visti()).includes('+KeyD'), 'stick non tradotto per i giochi che leggono i tasti');
+    await pad.stato([1], [0.9, 0, 0, 0]);
+    await ctx.waitState(page, (s) => s.avatar.anim === 'roll', 8000);
+    await pad.stato();
+    await pad.premi(3);
     const k = await visti();
-    assert(k.includes('+Space') && k.includes('-Space'), `Space non arriva: ${k}`);
+    assert(k.includes('-KeyD') && k.includes('+KeyQ') && k.includes('-KeyQ'), 'movimento incollato o cambio attrezzo assente: ' + k);
   });
 
-  await ctx.test('il controller si collega e lo stick sinistro muove in analogico', async () => {
-    await padFinto([0.9, 0, 0, 0]);
-    await ctx.waitState(page, (s) => s.comandi && s.comandi.pad && s.comandi.mov.x > 0.5, 8000).catch(async (e) => { throw new Error(`${e.message.slice(0, 60)} · stato ${JSON.stringify(await st())} · pad ${await page.evaluate(() => JSON.stringify(navigator.getGamepads().map((g) => g && g.connected)))}`); });
-    const k = (await visti()).join(' ');
-    assert(k.includes('+KeyD'), `la destra non è arrivata come tasto: ${k}`);
-    const s = await ctx.waitState(page, (g) => g.wp2_input && g.wp2_input.src === 'pad', 8000).then(() => ctx.getState(page));
-    assert(s.wp2_input.mag > 0.5, `forza ${s.wp2_input.mag}`);
-    await padFinto([0, 0, 0, 0]);
-    await ctx.waitState(page, (g) => g.comandi.mov.x === 0, 8000);
-    assert((await visti()).join(' ').includes('-KeyD'), 'KeyD non rilasciato');
-  });
-
-  await ctx.test('A del controller = Spazio, Start = Esc; un pulsante tolto non fa più niente', async () => {
-    await padFinto([0, 0, 0, 0], [0]);
-    await page.waitForFunction(() => window.__k.includes('+Space'), null, { timeout: 8000 });
-    await padFinto([0, 0, 0, 0], []);
-    await page.waitForFunction(() => window.__k.includes('-Space'), null, { timeout: 8000 });
-    await visti();
-    await padFinto([0, 0, 0, 0], [9]);
-    await page.waitForFunction(() => window.__k.includes('+Escape'), null, { timeout: 8000 });
-    await padFinto([0, 0, 0, 0], []);
-    await pulsante('azione', 3); // A passa a Y: Y prende il posto della pozione, che resta senza
-    assert((await st()).azione.pad === 3, 'A non è passata a Y');
-    await visti();
-    await padFinto([0, 0, 0, 0], [0]);
-    await page.waitForTimeout(600);
-    assert(!(await visti()).includes('+Space'), 'A ha ancora un tasto');
-    await padFinto([0, 0, 0, 0], []); await page.waitForTimeout(300); await visti();
-    await padFinto([0, 0, 0, 0], [3]);
-    await page.waitForFunction(() => window.__k.includes('+Space'), null, { timeout: 8000 });
-    await padFinto([0, 0, 0, 0], []);
-    assert((await st()).pozione.pad === null, 'la pozione teneva ancora Y');
-    await pulsante('azione', 0);
-  });
-
-  await ctx.test('tasto cambiato: Q fa da A, Spazio e il resto non più; E (serie di un altro slot) resta', async () => {
-    await visti();
-    await tasto('azione', 0, 'KeyQ');
-    await page.keyboard.press('KeyQ');
-    let k = await visti();
-    assert(k.includes('+Space') && k.includes('-Space') && !k.includes('+KeyQ'), `Q non è diventato Spazio: ${k}`);
-    await page.keyboard.press('Space');
-    k = await visti();
-    assert(!k.includes('+Space'), `Spazio fa ancora qualcosa: ${k}`);
-    await page.keyboard.press('KeyE');
-    assert((await visti()).includes('+KeyE'), 'E (secondo slot di A) non passa più');
-    await tasto('azione', 0, 'Space'); // riportato
-  });
-
-  await ctx.test('un tasto, un’azione: darlo a un’altra lo toglie alla prima', async () => {
-    const perso = await tasto('pozione', 0, 'KeyM'); // M era la mappa
-    assert(perso === 'Mappa', `perso: ${perso}`);
-    await page.keyboard.press('KeyM');
-    const k = await visti();
-    assert(k.includes('+KeyR') && !k.includes('+KeyM'), `M non fa la pozione: ${k}`);
-  });
-
-  await ctx.test('le scelte restano dopo il ricaricamento', async () => {
-    const salvato = await page.evaluate(() => localStorage.getItem('marea:comandi:1'));
-    assert(salvato && salvato.includes('KeyM'), `non salvato: ${salvato}`);
-    await page.reload(); await ctx.waitReady(page, 20000); await registra();
-    await page.keyboard.press('KeyM');
-    assert((await visti()).includes('+KeyR'), 'dopo il ricaricamento M non fa più la pozione');
-  });
-
-  await ctx.test('schermata Comandi: tocchi uno slot, premi un tasto, cambia; Ripristina rimette tutto', async () => {
-    await page.click('#mzSetBtn');
-    await page.click('#mzSet [data-set="comandi"]');
-    await ctx.shot(page, 'schermata');
-    await page.click('#mzSet [data-cmd="foto:k0"]');
+  await ctx.test('lo stesso pulsante e lo stesso tasto possono fare cose diverse in Borgo e in barca', async () => {
+    await bindPad('borgo', 'attrezzo', 2);
+    await imposta('borgo', 'attrezzo', 0, 'KeyZ');
+    await imposta('barca', 'perle', 0, 'KeyZ');
+    await pad.premi(2);
     await page.keyboard.press('KeyZ');
-    const t = await page.textContent('#mzSet [data-cmd="foto:k0"]');
-    assert(t === 'Z', `slot foto: «${t}»`);
-    await page.click('#mzSet [data-cmd="foto:k0"]'); await page.keyboard.press('Escape'); // Esc annulla senza chiudere le Impostazioni
-    assert(await page.evaluate(() => document.getElementById('mzSet').classList.contains('on')), 'Esc ha chiuso le Impostazioni');
-    await page.click('#mzSet [data-cmd="foto:k0"]'); await page.keyboard.press('Backspace');
-    assert((await page.textContent('#mzSet [data-cmd="foto:k0"]')) === '—', 'slot non svuotato');
-    await padFinto([0, 0, 0, 0], []);
-    await page.click('#mzSet [data-cmd="diario:p0"]');
-    await padFinto([0, 0, 0, 0], [5]);
-    await page.waitForFunction(() => document.querySelector('#mzSet [data-cmd="diario:p0"]').textContent === 'RB', null, { timeout: 8000 });
-    await padFinto([0, 0, 0, 0], []);
-    await ctx.shot(page, 'schermata_modificata');
-    await page.click('#mzSet .mz-cmd-top .mz-set-cam:nth-child(2)'); // Ripristina
-    assert((await page.textContent('#mzSet [data-cmd="foto:k0"]')) === 'O', 'foto non ripristinata');
-    assert((await page.textContent('#mzSet [data-cmd="azione:p0"]')) === 'A', 'A del controller non ripristinata');
-    await page.click('#mzSet .mz-x');
+    const borgo = await visti();
+    assert(borgo.filter((k) => k === '+KeyQ').length === 2 && !borgo.includes('+KeyT'), 'binding Borgo: ' + borgo);
+    await page.evaluate(() => window.__game.test.setMode('boat'));
+    await pad.premi(2);
+    await page.keyboard.press('KeyZ');
+    const barca = await visti();
+    assert(barca.includes('+KeyP') && barca.includes('+KeyT') && !barca.includes('+KeyQ'), 'binding Barca: ' + barca);
+    await page.evaluate(() => window.__game.test.setMode('walk'));
+    await page.reload(); await ctx.waitReady(page, 20000); await registra();
+    await page.keyboard.press('KeyZ');
+    assert((await visti()).includes('+KeyQ'), 'la rimappatura non è rimasta salvata');
+    pad = await collegaController(page);
+  });
+
+  const seleziona = async (sel) => {
+    for (let i = 0; i < 60; i++) {
+      if (await page.locator(sel + '[data-pad-focus]').count()) return;
+      await pad.premi(5);
+    }
+    throw new Error('Pulsante irraggiungibile col controller: ' + sel);
+  };
+
+  await ctx.test('Start apre le impostazioni e si cambia il binding usando solo il pad', async () => {
+    await pad.premi(9);
+    await page.waitForSelector('#mzSet.on');
+    await seleziona('#mzSet [data-set="comandi"]');
+    await pad.premi(0);
+    await page.waitForSelector('#mzCmdModo');
+    await seleziona('#mzCmdModo');
+    await pad.premi(15);
+    await page.waitForFunction(() => document.querySelector('#mzCmdModo').value === 'barca');
+    await seleziona('#mzCmdStick');
+    await pad.premi(15);
+    await page.waitForFunction(() => document.querySelector('#mzCmdStick').value === '1');
+    await seleziona('[data-cmd="azione:p0"]');
+    await pad.premi(0);
+    await page.waitForSelector('[data-cmd="azione:p0"].attesa');
+    await pad.premi(5);
+    assert((await page.textContent('[data-cmd="azione:p0"]')) === 'RB', 'pulsante non assegnato');
+    await ctx.shot(page, 'schermata_controller');
+    await pad.premi(1);
+    await page.waitForSelector('#mzSet [data-set="comandi"]');
+    await pad.premi(1);
+    await page.waitForSelector('#mzSet.on', { state: 'hidden' });
+    assert((await ctx.getState(page)).comandi.azione.pad === 0, 'assegnazione Barca applicata nel Borgo');
+    await page.evaluate(() => window.__game.test.setMode('boat'));
+    await pad.stato();
+    await pad.stato([], [0, 0, 0.9, 0]);
+    await ctx.waitState(page, (s) => s.comandi.mov.x > 0.5, 8000);
+    await pad.stato();
   });
 
   ctx.noErrors(p, 'comandi');
+  await page.context().close();
+
+  await ctx.test('telefono: modalità, assegnazione e ripristino del solo profilo', async () => {
+    const tel = await ctx.open('?test=1&net=0', { viewport: { width: 390, height: 844, isMobile: true, hasTouch: true } });
+    await ctx.waitReady(tel.page, 35000);
+    await tel.page.click('#mzSetBtn');
+    await tel.page.click('#mzSet [data-set="comandi"]');
+    const select = tel.page.locator('#mzCmdModo');
+    await select.selectOption('dungeon');
+    assert((await tel.page.textContent('[data-cmd="eroe:p0"]')) === 'Select', 'inventario Dungeon assente');
+    assert((await tel.page.textContent('[data-cmd="pausa:p0"]')) === 'Start', 'pausa Dungeon assente');
+    await ctx.shot(tel.page, 'dungeon_390');
+    await select.selectOption('borgo');
+    await tel.page.click('[data-cmd="foto:k0"]');
+    await tel.page.keyboard.press('KeyZ');
+    assert((await tel.page.textContent('[data-cmd="foto:k0"]')) === 'Z', 'tasto Foto non rimappato');
+    await tel.page.click('.mz-cmd-top button:nth-child(2)');
+    assert((await tel.page.textContent('[data-cmd="foto:k0"]')) === 'O', 'profilo Borgo non ripristinato');
+    ctx.noErrors(tel, 'comandi al telefono');
+  });
+
 }

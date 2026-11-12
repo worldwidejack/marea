@@ -5,6 +5,8 @@
 // manda `marea:difesa:partita` → `onPartita` (la missione dell'isola, storia/missioni.ts). Livelli e medaglie restano
 // quelli del banco (localStorage del browser): sono gli stessi dentro e fuori dal mondo.
 // Bundle iniziale: piccolo, niente import della sim. Prove: ?difesa=1 mette il bottone 🥕 (vai all'orto).
+import { avviaRimappa } from '../comandi/mappa.ts';
+import { cercaMenu } from '../comandi/pannelli.ts';
 import * as THREE from 'three';
 import { ISLANDS } from '@marea/content';
 import type { GameWorld } from './world.ts';
@@ -77,7 +79,13 @@ export function createDifesa(o: { world: GameWorld; renderer: Renderer; hud: Hud
     x.addEventListener('click', chiudi);
     velo.append(fr, x);
     document.body.append(velo);
-    fr.addEventListener('load', () => { try { fr.contentWindow?.focus(); } catch { /* altra origine: pazienza */ } });
+    fr.addEventListener('load', () => {
+      const win = fr.contentWindow;
+      if (win && fr.contentDocument) {
+        avviaRimappa(() => !!cercaMenu(win.document), win);
+        win.focus();
+      }
+    });
     addEventListener('keydown', esc, true);
   }
   function chiudi(): void {

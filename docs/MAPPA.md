@@ -10,7 +10,7 @@
 | `avvio/` | i pezzi dell'avvio: registro delle modalità, bussola, tasti, grafica, rientro, scritta sotto A, gancio della storia | tutti |
 | `flags.ts` | interruttori dall'URL (`?test=1`, `?fps=1`, `?net=0`…) | tutti |
 | `game/` | il mondo: avatar, barca, input; Borgo, casa, arredi, negozio, botteghe, pala, insetti, pesca; Porto; posti dei minigiochi; ingressi di dungeon e isole; animali | tutti, R sul Borgo |
-| `comandi/` | tasti rimappabili e controller (la schermata è `ui/comandi_ui.ts`) | tutti |
+| `comandi/` | profili in `azioni.ts`, rimappatura, controller e menu | tutti |
 | `render/` | grafica 3D: scena a metà risoluzione, camera, acqua, luce, meteo e nuvole, isole (un file per isola a tema), mobili | J, R |
 | `ui/` | interfaccia: HUD «Allegro», minimappa, bussola, impostazioni, editor dell'avatar, diario, minigiochi a pixel, pannelli del Porto | J |
 | `net/` | `api.ts` (HTTP `/api/*`), `client.ts` (WebSocket della zona) | tutti |

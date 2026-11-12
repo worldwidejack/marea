@@ -189,6 +189,11 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
 
   const kd = (e: KeyboardEvent) => {
     if (e.altKey || e.ctrlKey || e.metaKey || fine.classList.contains('on')) return;
+    if (e.code === 'KeyZ') {
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (!e.repeat && !pausa && !chiedi) { keys.add(e.code); aLatch = true; }
+      return;
+    }
     if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) { if (chiedi) setChiedi(false); else setPausa(!pausa); } return; }
     const n = /^(?:Digit|Numpad)([1-9])$/.exec(e.code)?.[1];
     const k = n ? Number(n) : 0;
@@ -211,7 +216,7 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
     get paused() { return pausa || chiedi; },
     sample() {
       const st = stick.sample();
-      const out = { a: aLatch || mouseA || st.held, m: st.m, f: st.m ? stick.forza() : 0, tap: st.tap, e: eLatch || keys.has('KeyE'), slot: slotL, ulti: ultiL };
+      const out = { a: aLatch || mouseA || keys.has('KeyZ') || st.held, m: st.m, f: st.m ? stick.forza() : 0, tap: st.tap, e: eLatch || keys.has('KeyE'), slot: slotL, ulti: ultiL };
       aLatch = eLatch = ultiL = false; slotL = null;
       return out;
     },

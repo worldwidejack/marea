@@ -95,6 +95,7 @@ export function creaFruga(o: { root: HTMLElement; tocco: boolean; stato(): Dunge
     if (!lista.children.length) lista.appendChild(el('div', 'niente', 'Non c\'è niente.'));
     const piede = el('div', 'piede'), tutto = el('button', 'tutto', o.tocco ? 'Prendi tutto' : 'Prendi tutto · R'), via = el('button', 'chiudi', o.tocco ? 'Chiudi' : 'Chiudi · E');
     tutto.type = via.type = 'button'; tutto.dataset['k'] = 'tutto'; via.dataset['k'] = 'chiudi';
+    tutto.dataset['padAction'] = 'prendiTutto'; via.dataset['padBack'] = '';
     tutto.addEventListener('click', () => prendi()); via.addEventListener('click', chiudi);
     piede.append(tutto, via);
     win.replaceChildren(testa, lista, piede);
