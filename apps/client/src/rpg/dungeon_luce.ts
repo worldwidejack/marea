@@ -22,7 +22,6 @@ export type LuceDungeon = {
   dispose(): void;
 };
 export const VISTO = 0.28, LONTANO = 0.55, RES = 2;
-const R_VICINO = 8, R_VISTA = 19; // m
 const VEL = 3.2; // nebbia: unità al secondo
 
 const dataTex = (data: Uint8Array, w: number, h: number, f: THREE.PixelFormat) => {
@@ -33,9 +32,10 @@ const dataTex = (data: Uint8Array, w: number, h: number, f: THREE.PixelFormat) =
   return t;
 };
 
-/** `tutto`: niente nebbia, si vede tutta la mappa (il colosseo dell'Arena: nel duello l'avversario si vede sempre). */
-export function createLuce(map: DMap, o: { isFloor(cx: number, cz: number): boolean; muro(cx: number, cz: number): boolean; sorgenti: Sorgente[]; tutto?: boolean }): LuceDungeon {
-  const W = map.w, H = map.h, T = map.tile, N = W * H;
+/** `tutto`: niente nebbia, si vede tutta la mappa (il colosseo dell'Arena: nel duello l'avversario si vede sempre). `raggi`: fin dove si vede
+ *  chiaro e fin dove si vede (m; il Vuoto in prima persona, che non ha muri, vede più corto). */
+export function createLuce(map: DMap, o: { isFloor(cx: number, cz: number): boolean; muro(cx: number, cz: number): boolean; sorgenti: Sorgente[]; tutto?: boolean; raggi?: readonly [number, number] }): LuceDungeon {
+  const W = map.w, H = map.h, T = map.tile, N = W * H, [R_VICINO, R_VISTA] = o.raggi ?? [8, 19];
 
   // ---- luce cotta ----
   const LW = W * RES, LH = H * RES, LT = T / RES, LN = LW * LH;

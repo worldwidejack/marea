@@ -42,5 +42,11 @@
 - In basso al centro le tre barre (Magicka, Vita, Stamina) con frecce, pozioni, peso, monete e tempo. Mirino sempre: un punto con le armi, la croce con arco e magie, rosso sopra un nemico.
 - Vita sotto il 30 %: bordi rossi che pulsano col **battito del cuore**.
 
-## 8. Come funziona sotto
+## 8. Scenografia (per orientarsi)
+- **Foschia di lontananza** a 6 gradini, del colore dello stile (`render/finestra.ts`): da vicino nitido, lontano si sfuma; le fiamme ne prendono la metà e restano punti di riferimento.
+- **Dungeon costruiti** (`rpg/fp_arredo.ts`): zoccolo e cornice lungo i muri, pilastri negli angoli, sugli spigoli delle porte e ogni 4 m, travi al soffitto ogni 4 m, muri e pavimenti in tre toni a cella. **Ogni stanza ha un colore** (stendardi alle pareti; in cripta, archivio, mausoleo e baita anche il tappeto al centro). **Grotta**: massi alla base e sporgenze, pile di massi sugli spigoli, stalattiti, funghi luminosi del colore della stanza.
+- **Portale del Vuoto** (`rpg/fp_vuoto.ts`): vista corta (15 m) e foschia viola dello stesso colore del fondo, così quello che è lontano sparisce nel nulla; piattaforme con orlo di cristallo, spessore e rocce a punta sotto; un faro per stanza col filo di luce del suo colore fino al cielo; stelle e il portale in cielo, sempre in direzione del Custode.
+- Solo scenografia ferma, calcolata una volta dalla mappa: niente cambia la sim né le collisioni. L'Arena non la usa.
+
+## 9. Come funziona sotto
 Dungeon **v12** (`sim/dungeon/dungeon.ts`): log degli input **formato 5** (un byte d'alzo per riga, solo nelle partite che lo usano), azioni `fruga` e `prendi`, `SqInput` della squadra con l'alzo in quinta posizione. Moduli: `sim/dungeon/alzo.ts` (pendenza, altezze, raggio in 3D), `fruga.ts` (bottino a mano, furtività), `perk.ts` (Mano ferma); client `rpg/prima_persona.ts` con `fp_fruga.ts`, `fp_hud.ts`, `fp_pericoli.ts`. La prova: `tests/e2e/m2_prima_persona.mjs` e `packages/sim/test/dungeon_prima_persona.test.ts`.
