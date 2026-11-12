@@ -95,7 +95,8 @@ export const dungeon: DungeonModule<DungeonState> = {
   // v15: i nemici che non ti hanno visto (quiete.ts) vedono in un cono, sentono passi, colpi e lotte, si insospettiscono e vanno a cercare;
   // prima fanno la ronda o si guardano intorno; chi dorme non vede.
   // v16: archi alla pari (tutte le frecce volano allo stesso modo, balance.json `arco`) e lo Sciamano del Fumo sparisce nel fumo solo per qualche secondo
-  id: 'dungeon', version: 16, maxTicks: MAX_TICKS,
+  // v17: i nemici ti notano prima: cono più largo di lato e dietro, sospetto più veloce (balance.json `dungeon.quiete`)
+  id: 'dungeon', version: 17, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
   act(s, a) {
