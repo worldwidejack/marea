@@ -27,6 +27,7 @@ import type { CompagnoView, DungeonAzione, DungeonAzioni, DungeonEvent, DungeonI
 import { NO_DUNGEON_INPUT } from '@marea/sim/dungeon/types.ts';
 import { SQ_TICKS } from '@marea/protocol/squadra.ts';
 import type { SqInput } from '@marea/protocol/squadra.ts';
+import { FLAGS } from '../flags.ts';
 import { PAL } from '../ui/style.ts';
 import { dungeonLink } from '../game/ingressi.ts';
 import { dungeonEvento, dungeonPasso } from '../audio/ponte.ts';
@@ -68,7 +69,6 @@ const END_WAIT = 100; // tick di scritta finale prima di consegnare
 const OUT: Record<string, [string, string]> = { uscito: ['SEI USCITO', PAL.erbaChiara], morto: ['SEI CADUTO', PAL.rosso], tempo: ['TEMPO SCADUTO', PAL.arancio] };
 const NO_ACT: Record<DungeonAzione['t'], string> = { equip: 'Non si può mettere qui', butta: 'Non ce l’hai nello zaino', bevi: 'Non ce l’hai nello zaino', salva: 'Qui è già tutto al sicuro', esci: 'Serve una lanterna', ritira: 'Non si può', fruga: 'Non si può', prendi: 'Non entra nello zaino: è troppo pesante' };
 const nOggetti = (b: Record<string, number>) => Object.values(b).reduce((a, n) => a + n, 0);
-/** Per i test (Fucina): il Mastro Forgiatore, se c'è. */
 /** Per i test (Mausoleo): il Custode dell'Egida, se c'è. */
 const custode = (v: DungeonView) => { const k = v.nemici.find((n) => n.tipo === 'custode_egida'); return k ? { x: k.x, z: k.z, vita: k.vita, max: k.max, anim: k.anim, attacco: k.attacco ?? null, fase: k.fase ?? 0, cariche: k.cariche ?? null, mira: k.mira ?? null } : null; };
 /** Per i test (Diga / Baita): il Capitano Vaelen o Jean-Claude «Valanga», se c'è. */
@@ -344,7 +344,7 @@ export function startRun(ctx: RunCtx, o: {
     if (pronti <= 0) { attesa = true; return; }
     if (attesa && pronti < CUSCINETTO) return;
     attesa = false;
-    const n = pronti > RECUPERO ? pronti - CUSCINETTO : pronti > SVELTO ? 2 : 1;
+    const n = pronti > RECUPERO ? 4 : pronti > SVELTO ? 2 : 1; // recupera senza esaurire tutta la coda nello stesso passo
     for (let k = 0; k < n && phase !== 'over'; k++) tickRete(n > 2);
     refresh();
     hero!.tick(view.hero); actors!.tick(view); mfx?.tick(view); dfx?.tick(view); ufx?.tick(view); gfx?.tick(view); tickAmici();
@@ -364,7 +364,7 @@ export function startRun(ctx: RunCtx, o: {
       if (mie) { nuovoEquip(); refresh(); refreshBag(); }
     }
     stepParty(s, t.f.map(frameOf));
-    if (s.tick % 300 === 0) firme[s.tick] = dungeon.result(s).hash; // test: ogni 5 s lo stato di tutti, uguale per ogni giocatore
+    if (FLAGS.test && s.tick % 300 === 0) firme[s.tick] = dungeon.result(s).hash; // test: ogni 5 s lo stato di tutti, uguale per ogni giocatore
     if (!muto) { dungeonPasso(s.hero.x, s.hero.z); for (const e of s.eventi) onEvent(e); }
     if (++inTurno >= SQ_TICKS) { r.turni.shift(); inTurno = 0; }
   }

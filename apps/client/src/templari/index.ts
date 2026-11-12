@@ -538,7 +538,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     if (pronti <= 0) { attesa = true; return; }
     if (attesa && pronti < CUSCINETTO) return;
     attesa = false;
-    const n = pronti > RECUPERO ? pronti - CUSCINETTO : pronti > SVELTO ? 2 : 1;
+    const n = pronti > RECUPERO ? 4 : pronti > SVELTO ? 2 : 1; // recupera senza esaurire tutta la coda nello stesso passo
     for (let k = 0; k < n && !s.done; k++) tickRete(n > 2);
     dopoTick();
   }
@@ -551,7 +551,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     }
     stepTemplariInsieme(s, t.f.map(frameDi));
     usa(s, io);
-    if (s.tick % 300 === 0) firme[s.tick] = templari.result(s).hash; // test: ogni 5 s lo stato di tutti, uguale per ogni giocatore
+    if (FLAGS.test && s.tick % 300 === 0) firme[s.tick] = templari.result(s).hash; // test: ogni 5 s lo stato di tutti, uguale per ogni giocatore
     if (!muto) dopoPasso();
     if (++inTurno >= SQ_TICKS) { r.turni.shift(); inTurno = 0; }
   }
