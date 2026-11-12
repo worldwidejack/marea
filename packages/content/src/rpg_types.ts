@@ -133,7 +133,7 @@ export type RecipeDef = { id: string; nome: string; ingredienti: Record<string, 
 export type EnemyDef = {
   id: string; nome: string; kind: EnemyKind; model: string;
   vita: number; danno: number; armatura: number; resistMagia?: number;
-  velocita: number; vista: number; portata: number; preparazione: number; recupero: number; raggio: number; /** Prima persona: alto (m) e, chi vola, a che quota (alzo.ts). */ altezza?: number; quota?: number;
+  velocita: number; vista: number; portata: number; preparazione: number; recupero: number; raggio: number; /** Prima persona: alto (m) e, chi vola, a che quota (alzo.ts). */ altezza?: number; quota?: number; /** Udito (× i rumori di dungeon.quiete, assente = 1). */ udito?: number;
   /** `torretta` (Drenaggio, Valvola-SparaVapore): non si muove mai (né la spingono), si gira verso l'eroe e tira quando lo vede.
    *  Archivio: `bombardiere` (Aerostato-Spia) sta a qualche metro dall'eroe e sgancia `bomba`; `astrolabio` è il capo con `astrolabio`;
    *  `anello` sono gli anelli-scudo che il capo stacca a metà vita (non hanno IA: girano attorno a lui).
@@ -374,7 +374,7 @@ export type RpgBalance = {
   dungeon: {
     maxMinuti: number; morte: { bottino: number; xp: number }; altare: { protezione: number };
     /** Dungeon insieme (#118): al massimo `max` eroi; la vita dei nemici cresce di `vitaPerCompagno` (frazione) per ogni eroe oltre il primo. */
-    gruppo?: { max: number; vitaPerCompagno: number }; /** Prima persona: il colpo su chi non ti ha visto fa × `danno` (i boss no); camminando ti notano a `vista` della distanza, chi dorme a `dorme` in più. */ furtivo?: { danno: number; vista: number; dorme: number };
+    gruppo?: { max: number; vitaPerCompagno: number }; /** Prima persona: il colpo su chi non ti ha visto fa × `danno` (i boss no); camminando ti vedono a `vista` della distanza. Chi non ti ha visto: `quiete`. */ furtivo?: { danno: number; vista: number }; quiete: import('./rpg_quiete_types.ts').QuieteBalance;
   };
   /** Arena PvP (docs/ARENA.md Step 1): statistiche di base normalizzate (100/100/100), scala e tetto ai danni tra giocatori (niente one-shot). */
   arena: RpgArenaBalance;

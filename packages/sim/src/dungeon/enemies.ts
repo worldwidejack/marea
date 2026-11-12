@@ -1,4 +1,4 @@
-// IA dei nemici e degli alleati evocati: dorme/veglia → aggro (vista + linea di vista), inseguimento col flow field, preparazione
+// IA dei nemici e degli alleati evocati: dorme/veglia (quiete.ts) → aggro, inseguimento col flow field, preparazione
 // telegrafata → colpo → recupero; arcieri e maghi tengono la distanza e tirano; i boss alternano un colpo ad area; i deboli scappano dalle ossa.
 // Drenaggio: le torrette (Valvola-SparaVapore) stanno ferme e tirano getti d'acqua; il colpo ad area c'è anche per chi ha `area` (sbuffo di
 // vapore dell'Operaio) e con `geyser` fa salire i geyser (Capoturno); il colpo del Tubo-strisciante rallenta (acque.ts).
@@ -17,7 +17,7 @@ import { DT } from '../constants.ts';
 import type { EnemyDef } from '@marea/content/rpg.ts';
 import type { DungeonState, Enemy } from './state.ts';
 import { conEroe, ev, finita, inGioco, secToTicks } from './state.ts';
-import { hitEnemy, hitHero, kill, wake } from './combat.ts';
+import { hitEnemy, hitHero, kill } from './combat.ts';
 import { colpisciEroe, eroiNemici, ostile } from './pvp.ts';
 import { bfs, cellCenter, cellOf, lineOfSight, moveCircle, stepDown } from './map.ts';
 import { geyserDa, rallenta } from './acque.ts';
@@ -35,10 +35,10 @@ import { giraVerso, girata, moveToward, potenza, setState } from './passi.ts';
 import { colpoCorsia, corsiaFino } from './diga.ts';
 import { brucia, scia } from './fuoco.ts';
 import { passoNemico, sanguina } from './perk.ts';
-import { furtivita } from './fruga.ts';
+import { stepQuiete } from './quiete.ts';
 import {
   ALLEATO_SEGUE, BOSS_AREA_DANNO, BOSS_AREA_OGNI, BOSS_AREA_PREP, BOSS_AREA_RAGGIO, COLPISCE_TICKS, COS_CONO_NEMICO, COS_SCAFANDRO, DISTANZA_TIRATORI,
-  BOMBA_LONTANO, BOMBA_VICINO, FLOW_OGNI, MAGIA_Y, SPAZIO_FP, RAGGIO_ALLARME, RAGGIO_ATTIVO, TOLLERANZA_NEMICO, VISTA_DORMENDO,
+  BOMBA_LONTANO, BOMBA_VICINO, FLOW_OGNI, MAGIA_Y, SPAZIO_FP, RAGGIO_ATTIVO, TOLLERANZA_NEMICO,
 } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -82,15 +82,6 @@ function bersaglio(s: DungeonState, e: Enemy): number {
     if (d < bd) { bd = d; best = i; }
   }
   return best;
-}
-/** Un eroe in gioco entro `vista` e in linea di vista (da solo: l'eroe); in prima persona chi cammina piano si fa notare più tardi (fruga.ts). */
-function vedeEroe(s: DungeonState, e: Enemy, vista: number): boolean {
-  for (const r of s.eroi) {
-    if (r.done) continue;
-    const dx = r.hero.x - e.x, dz = r.hero.z - e.z, d = Math.sqrt(dx * dx + dz * dz);
-    if (d <= vista * furtivita(r, e.st === 'dorme') && lineOfSight(s.map, e.x, e.z, r.hero.x, r.hero.z)) return true;
-  }
-  return false;
 }
 
 /** Passo verso l'eroe: diretto se lo vede ed è vicino, altrimenti lungo il flow field (aggira i muri). Sulla griglia del nemico (chi sale
@@ -316,18 +307,7 @@ function stepFoe(s: DungeonState, e: Enemy): void {
   if (def.comportamento === 'fuciliere' && (e.st === 'insegue' || e.modo === 'fucile') && !fearful(s, e)) { stepFuciliere(s, e); return; }
   if (def.comportamento === 'chierico' && e.st === 'insegue') { if (!fearful(s, e)) { stepChierico(s, e); return; } }
   switch (e.st) {
-    case 'dorme': case 'veglia': {
-      const vista = def.vista * (e.st === 'dorme' ? VISTA_DORMENDO : 1);
-      if (vedeEroe(s, e, vista)) {
-        wake(s, e);
-        for (const o of s.enemies) {
-          if (o === e || o.aggro || o.alleato || o.st === 'morto') continue;
-          const ox = o.x - e.x, oz = o.z - e.z;
-          if (ox * ox + oz * oz <= RAGGIO_ALLARME * RAGGIO_ALLARME) wake(s, o);
-        }
-      }
-      return;
-    }
+    case 'dorme': case 'veglia': stepQuiete(s, e); return; // non ti ha ancora visto: cono, udito, sospetto, ronda (quiete.ts)
     case 'insegue': {
       if (fisso(e)) {
         // torretta: girata verso l'eroe, tira quando lo vede ed è carica; non insegue mai

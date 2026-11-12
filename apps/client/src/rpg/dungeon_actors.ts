@@ -41,6 +41,8 @@ import type { Arco } from './arco.ts';
 import { rigNemico } from './nemici_rig.ts';
 import type { Rig } from './nemici_rig.ts';
 import { posaNemico } from './nemici_pose.ts';
+import { posaSegno, segnoNuovo } from './nemici_allerta.ts';
+import type { Segno } from './nemici_allerta.ts';
 
 type NemV = DungeonView['nemici'][number] & { area?: number };
 type Enemy = {
@@ -54,6 +56,8 @@ type Enemy = {
   arco: { obj: THREE.Object3D; a: Arco } | null; tiro: boolean;
   /** Snodato (nemici_rig.ts): le ossa, i metri fatti (fase del passo), la velocità e dov'era il fotogramma prima. */
   rig: Rig | null; passo: number; vel: number; lx: number; lz: number;
+  /** Il «!» o il «?» sopra la testa (nemici_allerta.ts). */
+  segno: Segno;
 };
 /** `capo`: corona sopra la barra, che si vede anche a vita piena (il nemico da battere per completare il dungeon). */
 export type Bar = { id: number; pos: THREE.Vector3; frac: number; ally: boolean; boss: boolean; capo: boolean };
@@ -117,7 +121,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
   function addEnemy(n: NemV): Enemy {
     const r = new THREE.Group(); r.name = 'nemico_' + n.id; root.add(r);
     const body = new THREE.Group(); r.add(body);
-    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false, alt: 0, giri: [], spento: false, sveglio: -9, rig: null, passo: 0, vel: 0, lx: n.x, lz: n.z };
+    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false, alt: 0, giri: [], spento: false, sveglio: -9, rig: null, passo: 0, vel: 0, lx: n.x, lz: n.z, segno: null };
     if (ARCIERI.has(n.tipo) && !n.alleato) {
       void object(o.loader, 'arm_arco', () => boxes([[0.05, 1.3, 0.05, 0, 0, 0, PAL.legno]])).then((m) => {
         tintBlade(m, PAL.legnoChiaro); // chiaro: sul pavimento scuro della grotta si legge
@@ -180,6 +184,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
         e.px = e.x; e.pz = e.z; e.x = n.x; e.z = n.z;
         if (n.anim === 'morto' && e.v.anim !== 'morto') e.diedAt = performance.now() / 1000;
         if (e.v.anim === 'dorme' && n.anim !== 'dorme') e.sveglio = performance.now() / 1000;
+        e.segno = segnoNuovo(e.segno, e.v, n, e.root, performance.now() / 1000);
         e.v = n;
       }
       for (const [id, e] of enemies) if (!seen.has(id)) { e.root.removeFromParent(); enemies.delete(id); }
@@ -223,6 +228,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
         const dead = n.anim === 'morto', since = dead ? now - e.diedAt : 0;
         e.root.visible = lit && !n.invisibile && !n.volo && (!dead || !!o.fp || since < 1.2); // lo Sciamano nel fumo e Jean-Claude in aria non si vedono
         if (e.ring) e.ring.visible = false;
+        e.segno = posaSegno(e.segno, e.height + e.alt, now);
         if (!e.root.visible) continue;
         e.root.position.set(x, fy, z); e.root.rotation.y = yawOf(n.fx, n.fz);
         const b = e.body, bs = n.boss ? 1.2 : 1; b.position.set(0, 0, 0); b.rotation.set(0, 0, 0); b.scale.setScalar(bs);

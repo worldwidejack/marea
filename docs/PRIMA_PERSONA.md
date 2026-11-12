@@ -1,7 +1,7 @@
 # MAREA — Dungeon in prima persona
 
 > Come si gioca un dungeon: **solo dagli occhi dell'eroe**, alla Skyrim (la vista dall'alto non c'è più, 11 nov 2026). Le regole del combattimento, dei perk e dei dungeon stanno in `RPG.md`: qui solo quello che la prima persona aggiunge. La sim non distingue: nell'Arena (vista dall'alto) non cambia niente e i log vecchi si rigiocano uguali.
-> Numeri in `packages/content/src/rpg/*.json` (`balance.json` → `dungeon.furtivo`, `perk.occhio`, `perk.manoFerma`; `enemies.json` → `altezza`, `quota`).
+> Numeri in `packages/content/src/rpg/*.json` (`balance.json` → `dungeon.furtivo`, `dungeon.quiete`, `perk.occhio`, `perk.manoFerma`; `enemies.json` → `altezza`, `quota`, `udito`).
 
 ## 1. Comandi
 - **PC**: il mouse guarda (il primo clic lo cattura, Esc lo lascia e apre la Pausa), WASD cammina, Maiusc corre, clic o Spazio = A, V schiva, R pozione, 1-2-3 i preferiti, I lo zaino. **E** fruga quello che hai sotto il mirino (se non c'è niente da frugare resta la Scarica dell'arco).
@@ -21,7 +21,10 @@
 - Sotto: appena entri il client manda l'azione `fruga` (l'eroe non raccoglie più passandoci sopra), ogni presa è l'azione `prendi` (`sim/dungeon/fruga.ts`), registrata col tick e rigiocata dal server come quelle dello zaino. Insieme ognuno fruga la sua parte, uguale per tutti.
 
 ## 4. Furtività
-- Camminando (senza correre) i nemici ti notano più tardi: a **¾ della loro vista**, e chi dorme ancora più tardi (un bandito che dorme si sveglia a meno di 2 m). Correre si sente come sempre.
+- **Chi non ti ha visto** (`sim/dungeon/quiete.ts`) vede in un **cono**: davanti col raggio pieno (7-20 m secondo il nemico), di lato a metà, dietro quasi niente. Camminando (senza correre) ti vede a **¾ del raggio**. Non scatta subito: il **sospetto** (solo nel motore, a schermo nessuna barra) sale in fretta se sei vicino e davanti, piano se sei al bordo, e cala piano.
+- **Sente**: i passi (camminando pochi metri, correndo molti), i colpi, l'arco e le magie, le lotte vicine; dietro un muro a metà. Il sentito da solo non basta per attaccare: si gira e viene a cercare.
+- A metà sospetto **cerca** dove ti ha visto o sentito (un **«?»** giallo sopra la testa), poi si guarda intorno e torna a casa; pieno ti ha visto (un **«!»** rosso per un secondo) e sveglia chi ha vicino.
+- Prima di tutto questo **non sta immobile**: metà di chi cammina fa la **ronda** tra due punti vicini, gli altri restano lì e si guardano intorno. **Chi dorme non vede**, sente a metà e, sveglio, va a vedere.
 - **Attacco furtivo**: il colpo su chi non ti ha ancora visto (dorme o veglia) fa **×2** (i capi no), con la scritta e il suono. L'**occhio** sotto il mirino lo dice: una riga chiusa = nessuno ti ha visto, rosso aperto = qualcuno ti è addosso.
 - I non-morti che dormono stanno **distesi a terra** e si tirano su quando ti sentono.
 
@@ -49,4 +52,4 @@
 - Solo scenografia ferma, calcolata una volta dalla mappa: niente cambia la sim né le collisioni. L'Arena non la usa.
 
 ## 9. Come funziona sotto
-Dungeon **v12** (`sim/dungeon/dungeon.ts`): log degli input **formato 5** (un byte d'alzo per riga, solo nelle partite che lo usano), azioni `fruga` e `prendi`, `SqInput` della squadra con l'alzo in quinta posizione. Moduli: `sim/dungeon/alzo.ts` (pendenza, altezze, raggio in 3D), `fruga.ts` (bottino a mano, furtività), `perk.ts` (Mano ferma); client `rpg/prima_persona.ts` con `fp_fruga.ts`, `fp_hud.ts`, `fp_pericoli.ts`. La prova: `tests/e2e/m2_prima_persona.mjs` e `packages/sim/test/dungeon_prima_persona.test.ts`.
+Dungeon **v15** (`sim/dungeon/dungeon.ts`; v15: i nemici vivi di `quiete.ts`): log degli input **formato 5** (un byte d'alzo per riga, solo nelle partite che lo usano), azioni `fruga` e `prendi`, `SqInput` della squadra con l'alzo in quinta posizione. Moduli: `sim/dungeon/alzo.ts` (pendenza, altezze, raggio in 3D), `fruga.ts` (bottino a mano, furtività), `perk.ts` (Mano ferma); client `rpg/prima_persona.ts` con `fp_fruga.ts`, `fp_hud.ts`, `fp_pericoli.ts`. La prova: `tests/e2e/m2_prima_persona.mjs` e `packages/sim/test/dungeon_prima_persona.test.ts`.

@@ -207,8 +207,8 @@ export type DungeonView = {
     carico?: { tipo: 'pressione' | 'ritmo' | 'molla' | 'brezza' | 'fresca' | 'vampa' | 'elicottero'; n: number; max: number; tic?: number };
   };
   nemici: { id: number; tipo: string; model: string; x: number; z: number; fx: number; fz: number; anim: EnemyAnim; t: number; vita: number; max: number; alleato: boolean; sanguina: boolean; boss: boolean;
-    /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. */
-    capo?: boolean;
+    /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. Non ti ha visto ma ti cerca (quiete.ts): il «?». */
+    capo?: boolean; cerca?: boolean;
     /** Perk: paralizzato (Colpo fatale; per il client è come stordito) o rallentato dal sanguinamento del Taglio Critico. */
     paralizzato?: boolean; lento?: boolean;
     /** Raggio in m del colpo ad area dei boss, solo mentre lo prepara (il client disegna il cerchio a terra). */

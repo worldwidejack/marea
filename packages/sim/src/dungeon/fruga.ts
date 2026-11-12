@@ -11,10 +11,10 @@ import { pesoDi, pesoZaino } from './loot.ts';
 /** Fin dove arriva la mano: distanza dal centro dell'eroe al centro del bottino, oltre al raggio dell'eroe. */
 const RAGGIO_FRUGA = 1.9;
 
-/** Prima persona: camminando (senza correre) i nemici ti notano più tardi, chi dorme quasi solo se gli arrivi addosso: moltiplica la loro vista. */
-export function furtivita(r: EroeRt, dorme: boolean): number {
+/** Prima persona: camminando (senza correre) i nemici ti vedono da più vicino: moltiplica la loro vista (quiete.ts). */
+export function furtivita(r: EroeRt): number {
   const F = RPG.dungeon.furtivo;
-  return F && r.hero.fruga && !r.hero.running ? F.vista * (dorme ? F.dorme : 1) : 1;
+  return F && r.hero.fruga && !r.hero.running ? F.vista : 1;
 }
 
 /** Da qui in poi l'eroe di turno prende il bottino a mano. */
