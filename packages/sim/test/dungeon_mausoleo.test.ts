@@ -5,7 +5,7 @@
 // scarica della Barriera), il sarcofago col bottino e l'Anello dell'Onda, gli unici della Regina, la porta sigillata dalla Fucina, il replay.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dungeonDef, enemyDef } from '@marea/content/rpg.ts';
+import { RPG, dungeonDef, enemyDef } from '@marea/content/rpg.ts';
 import type { DungeonDef } from '@marea/content/rpg.ts';
 import { dungeon, createPartyRun, stepParty } from '../src/dungeon/dungeon.ts';
 import { cellOf, parseDungeon } from '../src/dungeon/map.ts';
@@ -329,12 +329,12 @@ test('mausoleo: La Grande Lancetta — i colpi a tempo col tic salgono di danno,
 
 test('mausoleo: Arco Carillon — tre colpi pieni subito, poi scarico; una molla ogni due secondi e mezzo; frecce più tese', () => {
   const M = itemDef('unico_arco_carillon').traits!.carillon!;
-  const arma: RunWeapon = { id: 'unico_arco_carillon', kind: 'arco', skill: 'arceria', classe: null, danno: 26, tempo: 1, portata: 0, carica: 1, caricaMolt: 1, gittata: 30, traits: { carillon: M } };
-  const s = arena(immortale({ arma, frecce: { id: 'frecce_ferro', n: 20, danno: 8, gittata: 10, gravita: 6, traits: {} } }));
+  const arma: RunWeapon = { id: 'unico_arco_carillon', kind: 'arco', skill: 'arceria', classe: null, danno: 26, tempo: 1, portata: 0, carica: 1, caricaMolt: 1, traits: { carillon: M } };
+  const s = arena(immortale({ arma, frecce: { id: 'frecce_ferro', n: 20, danno: 8, traits: {} } }));
   for (let i = 0; i < M.colpi; i++) { colpo(s); run(s, 25); }
   assert.equal(s.hero.frecce, 20 - M.colpi, 'tre tiri senza tendere');
   const f = s.proj.find((p) => p.tipo === 'freccia');
-  assert.ok(!f || f.g === 6 * M.gravita);
+  assert.ok(!f || f.g === RPG.arco.gravita * M.gravita);
   run(s, 1, inp({ a: true }));
   assert.ok(s.eventi.some((e) => e.t === 'scarico'));
   run(s, 1);

@@ -9,6 +9,7 @@
 // stelle cerca gli avversari. Non tocca lo stato della partita: la sua memoria sta in una WeakMap e quello che fa passa da input e azioni,
 // registrati come quelli di un giocatore.
 import { ARENA, arenaMappa, arenaUlti } from '@marea/content/arena.ts';
+import { RPG } from '@marea/content/rpg.ts';
 import type { Rng } from '../rng.ts';
 import type { DungeonInput } from '../dungeon/types.ts';
 import { NO_DUNGEON_INPUT } from '../dungeon/types.ts';
@@ -187,7 +188,7 @@ export function botArena(d: PartitaState, i: number, rng: Rng): { input: Dungeon
   // con l'arco o una magia la mira va su di lui, a metà dell'anticipo giusto (un umano medio)
   let mira = 0, portata = 0;
   if (o && puoTirare && (tipo === 'arco' || tipo === 'magia') && (a || h.act === 'tende' || h.act === 'punta')) {
-    const v = tipo === 'arco' ? Math.max(8, rh.arma.gittata + (rh.frecce?.gittata ?? 0)) : sp?.forma === 'bomba' ? dist / Math.max(0.2, sp.volo ?? 1) : sp?.forma === 'raggio' ? 1e9 : Math.max(6, sp?.velocita ?? 12);
+    const v = tipo === 'arco' ? RPG.arco.velocita : sp?.forma === 'bomba' ? dist / Math.max(0.2, sp.volo ?? 1) : sp?.forma === 'raggio' ? 1e9 : Math.max(6, sp?.velocita ?? 12);
     const t = (dist / v) * 0.5, tx = o.x + vx * t - h.x, tz = o.z + vz * t - h.z;
     mira = aimIndex(tx, tz);
     if (sp?.forma === 'bomba') portata = portataIndex(Math.sqrt(tx * tx + tz * tz), sp.gittata ?? 9); // la bomba la tira dove prevede che sarà, come una persona

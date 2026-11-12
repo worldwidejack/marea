@@ -26,6 +26,8 @@ export type Contesto = {
   nColpo: number;
   /** Un pixel dello sprite in frazioni dell'altezza dello schermo. */
   u: number;
+  /** Portata dell'arma in m: l'affondo della lancia va lontano quanto lei (3 m) e non come una katana (1,8 m). */
+  portata: number;
 };
 
 const PESANTI = new Set<Arnese>(['lancia', 'spadone', 'martello']);
@@ -86,7 +88,7 @@ function fendente(c: Contesto, out: Pezzo[], st: 'fendente' | 'giro'): void {
 
 function affondo(c: Contesto, out: Pezzo[]): void {
   const t = c.h.t, co = COLPI.affondo, avanti = t < co.da ? -0.5 * liscio(t / co.da) : t < co.a ? lerp(-0.5, 1, liscio((t - co.da) / (co.a - co.da))) : 1 - liscio((t - co.a) / (1 - co.a));
-  const rot = -0.62, x = 0.2 + Math.sin(rot) * avanti * 0.14, y = 0.2 + Math.cos(rot) * avanti * 0.14;
+  const rot = -0.62, corsa = 0.14 * Math.max(1, c.portata / 1.8), x = 0.2 + Math.sin(rot) * avanti * corsa, y = 0.2 + Math.cos(rot) * avanti * corsa;
   arma(c, x, y, rot, out);
   out.push({ id: 'affondo', x, y: y - 0.02 });
 }

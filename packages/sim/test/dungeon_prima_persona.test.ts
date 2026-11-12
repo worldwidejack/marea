@@ -18,8 +18,8 @@ import { arena, heroBase, inp, run } from './dungeon_util.ts';
 
 const GRADO = Math.PI / 180;
 const arco = () => heroBase({
-  arma: { id: 'arco_ferro', kind: 'arco', skill: 'arceria', classe: null, danno: 14, tempo: 0.9, portata: 0, carica: 0.9, caricaMolt: 1, gittata: 28, traits: {} },
-  frecce: { id: 'frecce_ferro', n: 20, danno: 6, gittata: 6, gravita: 7, traits: {} },
+  arma: { id: 'arco_ferro', kind: 'arco', skill: 'arceria', classe: null, danno: 14, tempo: 0.9, portata: 0, carica: 0.9, caricaMolt: 1, traits: {} },
+  frecce: { id: 'frecce_ferro', n: 20, danno: 6, traits: {} },
 });
 function bersaglio(s: DungeonState, dx: number, tipo = 'bandito', dz = 0): Enemy {
   const e = newEnemy(s, tipo, s.hero.x + dx, s.hero.z + dz);

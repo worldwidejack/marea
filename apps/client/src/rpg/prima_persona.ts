@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import type { InputFrame } from '@marea/sim';
 import { aimIndex } from '@marea/sim/dungeon/mira.ts';
+import { swingStyle } from '@marea/sim/dungeon/swing.ts';
 import { OCCHI_Y, alzoIndex, quotaNemico } from '@marea/sim/dungeon/alzo.ts';
 import { lineOfSight } from '@marea/sim/dungeon/map.ts';
 import type { DMap } from '@marea/sim/dungeon/map.ts';
@@ -20,6 +21,7 @@ import { dungeonLink } from '../game/ingressi.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { coloreMagia, palColor } from './items_ui.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
+import type { Mischia } from './dungeon_actors.ts';
 import { creaSguardo } from './fp_comandi.ts';
 import { creaCorpo } from './fp_corpo.ts';
 import { creaMani, haPezzo } from './fp_mani.ts';
@@ -42,6 +44,8 @@ export type PrimaPersona = {
   punta(): THREE.Vector3;
   /** La direzione dello sguardo in mondo (versore): il tuo raggio va di lì. */
   sguardo(): THREE.Vector3;
+  /** Il colpo di mischia che l'eroe darebbe adesso (i nemici che ci stanno dentro brillano): null con arco o magia in mano, o a terra. */
+  mischia(v: DungeonView): Mischia | null;
   /** Ogni frame, in fondo all'update della spedizione: gira e arretra il corpo (chi lo segue ha già letto la posizione vera). */
   fine(): void;
   /** Mira da mandare alla sim adesso (angolo e alzo): solo mentre serve, così il log resta corto; null = niente. */
@@ -173,7 +177,7 @@ export function createPrimaPersona(o: {
       }
       bobX = Math.cos(fase) * MANI_PASSO.x * bob; bobY = -Math.abs(Math.sin(fase)) * MANI_PASSO.y * bob - scossa * 0.03; magiaId = h.magia ?? '';
       const pezzi = posa({
-        h, arnese, sprite, lama, magia, magiaId: h.magia ?? '', forma, punta, clock, nColpo, u: mani.u,
+        h, arnese, sprite, lama, magia, magiaId: h.magia ?? '', forma, punta, clock, nColpo, u: mani.u, portata: o.stato().hero.arma.portata,
         bobX, bobY,
         swayX: Math.max(-0.05, Math.min(0.05, swY * 0.3)), swayY: Math.max(-0.04, Math.min(0.04, -swP * 0.25)),
         giu: Math.max(Math.sin(Math.PI * cambio), sch * 0.8, cad, fruga.aperta ? 0.7 : 0),
@@ -193,6 +197,11 @@ export function createPrimaPersona(o: {
       return tip.set(p.x * a, (p.y - 0.5) * a, -d).applyMatrix4(camera.matrixWorld);
     },
     sguardo() { return camera.getWorldDirection(dir); },
+    mischia(v) {
+      const s = o.stato(), h = v.hero, a = s.hero.arma;
+      if (h.anim === 'morto' || h.magia || a.kind === 'arco' || a.portata <= 0) return null;
+      return { st: swingStyle(a, h.anim === 'carica' && h.carica >= 1), portata: a.portata, fx: -Math.sin(sg.yaw), fz: -Math.cos(sg.yaw), r: s.runHero.raggio, forte: h.anim === 'carica' };
+    },
     fine() { corpo.update(sg.yaw, caduta > 0); },
     mira(v, preme, h) {
       if (!preme && !ATTIVE.has(h.act) && !(h.raffica > 0)) return null;

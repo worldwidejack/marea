@@ -80,10 +80,10 @@ export function braciereAcceso(s: DungeonState, x: number, z: number, r: number)
   return best;
 }
 
-/** Lo Sciamano del Fumo che nessuno vede: lontano da ogni braciere acceso e mai colpito alla lanterna. Non si prende, né di mira né di lama. */
+/** Lo Sciamano del Fumo nel fumo: per `fumo` s dopo aver evocato i fuochi fatui, se non c'è un braciere acceso vicino e non l'hai mai colpito alla lanterna. Non si prende, né di mira né di lama. */
 export function nascosto(s: DungeonState, e: Enemy): boolean {
   const S = e.def.sciamano;
-  return !!S && e.st !== 'morto' && !e.rivelato && braciereAcceso(s, e.x, e.z, S.rivela) < 0;
+  return !!S && e.st !== 'morto' && !e.rivelato && (e.fumoFino ?? 0) > s.tick && braciereAcceso(s, e.x, e.z, S.rivela) < 0;
 }
 
 /** Stato di un'ondata di calore a questo tick: tick dentro il giro e se sta per scoppiare. */

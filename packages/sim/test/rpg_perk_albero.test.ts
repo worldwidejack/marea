@@ -28,8 +28,8 @@ function caricato(s: DungeonState): DungeonState['eventi'] {
   return [...run(s, n, inp({ a: true })), ...run(s, 70)];
 }
 const arcoHero = (perk?: RunPerk): RunHero => heroBase({
-  arma: { id: 'arco_ferro', kind: 'arco', skill: 'arceria', classe: null, danno: 14, tempo: 0.9, portata: 0, carica: 0.9, caricaMolt: 1, gittata: 28, traits: {} },
-  frecce: { id: 'frecce_ferro', n: 40, danno: 6, gittata: 6, gravita: 7, traits: {} },
+  arma: { id: 'arco_ferro', kind: 'arco', skill: 'arceria', classe: null, danno: 14, tempo: 0.9, portata: 0, carica: 0.9, caricaMolt: 1, traits: {} },
+  frecce: { id: 'frecce_ferro', n: 40, danno: 6, traits: {} },
   ...(perk ? { perk } : {}),
 });
 const con = (h: HeroState, id: string, slot: 'corpo' | 'arma' | 'frecce'): HeroState => ({ ...h, inv: { ...h.inv, [id]: (h.inv[id] ?? 0) + 1 }, equip: { ...h.equip, [slot]: id } });

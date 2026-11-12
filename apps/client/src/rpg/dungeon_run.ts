@@ -180,7 +180,7 @@ export function startRun(ctx: RunCtx, o: {
         const r = s.eroi[a.i]!;
         a.actor = await createHeroActor({ loader: ctx.loader, look: rete!.eroi[a.i]!.look, hero: r.runHero, scene: sc.scene, floorY: sc.floorY, x: r.hero.x, z: r.hero.z });
       }
-      actors = createActors({ loader: ctx.loader, scene: sc, lampo: 0.25, fp: true });
+      actors = createActors({ loader: ctx.loader, scene: sc, lampo: 0.25, fp: true, mischia: () => (phase === 'play' ? fp?.mischia(view) ?? null : null) });
       // Fucina prima: anche lei ha una valvola (la chiusa) e un bacino (la Colata Maestra), ma i suoi effetti sono lava, cascate e fuoco
       if (sc.def.stile === 'fucina') ffx = createFucinaFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       // Mausoleo prima del Drenaggio: anche lui ha una valvola (la chiave di carica) e un bacino (il cancello)

@@ -50,12 +50,11 @@ test('rpg armi: tabella danno / colpi al secondo / DPS (stampata) e ordine di do
   for (const m of MATERIALS) if (m.id !== 'ossa') assert.ok(M('ossa').armatura.difesa > m.armatura.difesa && M('ossa').armatura.peso > m.armatura.peso, m.id);
   assert.ok(M('meteorite').armatura.peso < 0 && M('meteorite').armatura.difesa === M('ferro').armatura.difesa);
   assert.equal(M('vetro').armatura.vsContundente, 2);
-  // archi: vetro ricarica istantanea, ossa il più forte, legno il più corto
+  // archi: vetro ricarica istantanea, ossa il più forte; la portata è uguale per tutti (balance.json `arco`), nessun materiale ha la sua
   for (const m of MATERIALS) {
     if (m.id !== 'vetro') assert.ok(M('vetro').arco.tensione < m.arco.tensione, `arco vetro più rapido di ${m.id}`);
     if (m.id !== 'ossa') assert.ok(M('ossa').arco.danno > m.arco.danno, m.id);
-    if (m.id !== 'legno') assert.ok(M('legno').arco.gittata < m.arco.gittata, m.id);
+    assert.ok(!('gittata' in m.arco) && !('gittata' in m.frecce) && !('gravita' in m.frecce), `${m.id}: arco e frecce non hanno una portata loro`);
   }
   assert.equal(M('meteorite').arco.traits?.noGravita, true);
-  assert.ok(M('legno').frecce.gravita > M('ferro').frecce.gravita && M('bronzo').frecce.gravita > M('ferro').frecce.gravita);
 });

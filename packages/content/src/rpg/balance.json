@@ -7,6 +7,7 @@
   "peso": { "base": 20, "perStamina": 0.8 },
   "armatura": { "k": 100, "malusPerPeso": 0.012, "malusMax": 0.6, "leggera": 12, "liberi": 2 },
   "pugni": { "danno": 3, "velocita": 2, "portata": 1.1, "carica": 0.6, "caricaMolt": 1.5 },
+  "arco": { "velocita": 38, "gravita": 7 },
   "abilita": { "dannoPerLivello": 0.005, "potenzaPerLivello": 0.01 },
   "partenza": {
     "inv": { "katana_legno": 1, "armatura_legno": 1, "pozione_vita_minore": 2, "arco_legno": 1, "frecce_legno": 20 },

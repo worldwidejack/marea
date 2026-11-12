@@ -10,10 +10,10 @@ export type LanciatoreDef = { distanza: number; gittata: number; carica: number;
  *  dopo il colpo la clava resta incastrata `incastrata` s: da dietro un colpo di mischia lo stordisce `stordito` s e fa × `retro`. Ogni `calcio.ogni` s, se un
  *  braciere acceso è entro `calcio.cerca` m, ci va e lo spegne con un calcio (preparazione `calcio.prep`). */
 export type ColossoDef = { lungo: number; largo: number; incastrata: number; stordito: number; retro: number; calcio: { ogni: number; cerca: number; prep: number } };
-/** Lo Sciamano del Fumo (`sciamano`): invisibile e intoccabile se non è entro `rivela` m da un braciere acceso. Tiene `distanza` m; ogni `ogni` s una linea ti
+/** Lo Sciamano del Fumo (`sciamano`): dopo ogni evocazione si dissolve nel fumo per `fumo` s, invisibile e intoccabile se non è entro `rivela` m da un braciere acceso. Tiene `distanza` m; ogni `ogni` s una linea ti
  *  collega a lui per `avviso` s, poi evoca `n` `fatuo` (nemici di enemies.json; al massimo 2 × `n` vivi). Colpito in mischia (visibile) sta stordito `stordito` s
  *  e resta visibile per sempre. */
-export type SciamanoDef = { rivela: number; distanza: number; ogni: number; avviso: number; n: number; fatuo: string; stordito: number };
+export type SciamanoDef = { rivela: number; distanza: number; ogni: number; avviso: number; n: number; fatuo: string; stordito: number; fumo: number };
 /** Fuoco fatuo e Mite di lava (`miccia`): inseguono l'eroe; a contatto (o, se `scoppia`, allo scadere dei `durata` s) esplodono: `danno` entro `raggio` m.
  *  Senza `scoppia` allo scadere si dissolvono e basta. */
 export type MicciaDef = { durata: number; raggio: number; danno: number; scoppia: boolean };

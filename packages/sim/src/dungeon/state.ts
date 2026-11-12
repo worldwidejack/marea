@@ -107,8 +107,8 @@ export type Enemy = {
    *  mischia. Il Custode (custode.ts): fase (0 acqua, 1 vapore, 2 moto) e colpi presi verso la scarica della Barriera. */
   potT?: number; potM?: number; potV?: number; rotto?: number; stordito?: number; comboN?: number; mischia?: boolean; fase?: number; colpiB?: number;
   /** Diga, il Capitano Vaelen (vaelen.ts): il pilone (indice in map.piloni) contro cui finirà la carica in corso, -1 = un muro. Le corsie dei
-   *  colpi dritti (la schiacciata della Guardia, gli affondi e la carica di Vaelen, la linea del Fuciliere) stanno in `mira`. Santuario (ceneri.ts, korok.ts): `rivelato` visibile per sempre (Sciamano colpito alla lanterna), `fuso` scadenza della miccia, `braciere` bersaglio del calcio, `esp` moltiplicatore della finestra di Korok. */
-  pilone?: number; rivelato?: boolean; fuso?: number; braciere?: number; esp?: number;
+   *  colpi dritti (la schiacciata della Guardia, gli affondi e la carica di Vaelen, la linea del Fuciliere) stanno in `mira`. Santuario (ceneri.ts, korok.ts): `rivelato` visibile per sempre (Sciamano colpito alla lanterna), `fumoFino` tick fino a cui lo Sciamano sta nel fumo, `fuso` scadenza della miccia, `braciere` bersaglio del calcio, `esp` moltiplicatore della finestra di Korok. */
+  pilone?: number; rivelato?: boolean; fumoFino?: number; fuso?: number; braciere?: number; esp?: number;
   /** Perk dell'eroe (v9). Taglio Critico: sanguina fino al tick `emorr` (% della vita massima al secondo `emorrPct`), rallentato fino al tick
    *  `lentoT` (`lentoAcc` accumula i tick: va al passo di `lentoMolt` tick su 1). Colpo fatale: paralizzato fino al tick `paralisi`.
    *  Evocazioni: danno × `dannoM`. Fuori dall'hash. */

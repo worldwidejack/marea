@@ -85,7 +85,7 @@ function weaponOf(h: HeroState, m: Mods, leggera: boolean): RunWeapon {
   if (it && it.kind === 'arco') {
     const k = 1 + mod(m, 'dannoArco') + skillBonus(h, 'arceria', dannoPerLv());
     const tempo = r2(Math.max(0.1, (it.tensione ?? 1) * clamp(1 - mod(m, 'tensioneArco'), 0.2, 2)));
-    return { id: it.id, kind: 'arco', skill: 'arceria', classe: null, danno: r2((it.danno ?? 0) * k), tempo, portata: 0, carica: tempo, caricaMolt: 1, gittata: it.gittata ?? 0, traits: { ...(it.traits ?? {}) } };
+    return { id: it.id, kind: 'arco', skill: 'arceria', classe: null, danno: r2((it.danno ?? 0) * k), tempo, portata: 0, carica: tempo, caricaMolt: 1, traits: { ...(it.traits ?? {}) } };
   }
   if (it && it.kind === 'arma') {
     const t = weaponTypeOf(it);
@@ -95,13 +95,13 @@ function weaponOf(h: HeroState, m: Mods, leggera: boolean): RunWeapon {
     const vel = (it.velocita ?? 1) * (1 + mod(m, pesante ? 'velocitaPesanti' : 'velocitaLeggere'));
     const w: RunWeapon = {
       id: it.id, kind: 'mischia', skill, classe: it.classe ?? null, danno: r2(((it.danno ?? 0) + (it.forgia ? mod(m, 'dannoForgiato') / Math.max(0.05, it.velocita ?? 1) : 0)) * k), tempo: r2(1 / Math.max(0.05, vel)), // Armaiolo: +15 danni AL SECONDO alle armi forgiate (a colpo: 15 / colpi al secondo)
-      portata: it.portata ?? 1.5, carica: r2((t?.carica ?? 1) * caricaK), caricaMolt: t?.caricaMolt ?? 2, gittata: 0, traits: { ...(it.traits ?? {}), ...(pesante && mod(m, 'penetraPesanti') > 0 ? { penetra: Math.max(it.traits?.penetra ?? 0, mod(m, 'penetraPesanti')) } : {}) }, // Spaccaossa
+      portata: it.portata ?? 1.5, carica: r2((t?.carica ?? 1) * caricaK), caricaMolt: t?.caricaMolt ?? 2, traits: { ...(it.traits ?? {}), ...(pesante && mod(m, 'penetraPesanti') > 0 ? { penetra: Math.max(it.traits?.penetra ?? 0, mod(m, 'penetraPesanti')) } : {}) }, // Spaccaossa
     };
     if (it.traits?.fragile) w.usura = h.usura[it.id] ?? 0;
     return w;
   }
   const k = 1 + mod(m, 'dannoLeggere') + leggeraBonus + skillBonus(h, 'armiLeggere', dannoPerLv());
-  return { id: null, kind: 'pugni', skill: 'armiLeggere', classe: null, danno: r2(P.danno * k), tempo: r2(1 / P.velocita), portata: P.portata, carica: r2(P.carica * caricaK), caricaMolt: P.caricaMolt, gittata: 0, traits: {} };
+  return { id: null, kind: 'pugni', skill: 'armiLeggere', classe: null, danno: r2(P.danno * k), tempo: r2(1 / P.velocita), portata: P.portata, carica: r2(P.carica * caricaK), caricaMolt: P.caricaMolt, traits: {} };
 }
 
 function arrowsOf(h: HeroState, m: Mods): RunArrows | null {
@@ -109,7 +109,7 @@ function arrowsOf(h: HeroState, m: Mods): RunArrows | null {
   if (!it || it.kind !== 'frecce') return null;
   const k = 1 + mod(m, 'dannoArco') + skillBonus(h, 'arceria', dannoPerLv());
   const traits: Traits = { ...(it.traits ?? {}), ...(mod(m, 'frecceTrapassano') > 0 ? { trapassa: true } : {}) }; // Frecce perforanti
-  return { id: it.id, n: h.inv[it.id] ?? 0, danno: r2((it.danno ?? 0) * k), gittata: it.gittata ?? 0, gravita: it.gravita ?? materialOf(it)?.frecce.gravita ?? 9.8, traits };
+  return { id: it.id, n: h.inv[it.id] ?? 0, danno: r2((it.danno ?? 0) * k), traits };
 }
 
 function hasEvocazionePerk(h: HeroState): boolean {

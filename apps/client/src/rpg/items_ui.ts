@@ -184,8 +184,8 @@ export function row(k: string, icon: Node | null, name: string, sub: string, on:
 export function statLines(it: ItemDef): string[] {
   const out: string[] = [];
   if (it.kind === 'arma') out.push(`Danno ${num(it.danno ?? 0)} · velocità ${num(it.velocita ?? 0, 2)} · portata ${num(it.portata ?? 0)} m`);
-  if (it.kind === 'arco') out.push(`Danno ${num(it.danno ?? 0)} · tendere ${num(it.tensione ?? 0, 2)} s · gittata ${num(it.gittata ?? 0)}`);
-  if (it.kind === 'frecce') out.push(`Danno ${num(it.danno ?? 0)} · gittata ${num(it.gittata ?? 0)}`);
+  if (it.kind === 'arco') out.push(`Danno ${num(it.danno ?? 0)} · tendere ${num(it.tensione ?? 0, 2)} s`);
+  if (it.kind === 'frecce') out.push(`Danno ${num(it.danno ?? 0)}`);
   if (it.kind === 'armatura') out.push(`Difesa ${num(it.difesa ?? 0)}`);
   if (it.traits?.fragile) out.push(`Si rompe dopo ${it.traits.fragile} colpi`);
   const cura = Object.entries(it.cura ?? {}).filter(([, v]) => v).map(([a, v]) => `+${v} ${ATTR_NOME[a as AttrId] ?? a}`);

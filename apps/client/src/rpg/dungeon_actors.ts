@@ -23,6 +23,8 @@
 import * as THREE from 'three';
 import { ENEMIES } from '@marea/content/rpg.ts';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
+import { inPortata } from '@marea/sim/dungeon/swing.ts';
+import type { SwingStyle } from '@marea/sim/dungeon/swing.ts';
 import type { Loader } from '../render/loader.ts';
 import { PAL } from '../ui/style.ts';
 import { boxes, materialsOf, object, tintBlade } from './dungeon_kit.ts';
@@ -58,6 +60,8 @@ type Enemy = {
   rig: Rig | null; passo: number; vel: number; lx: number; lz: number;
   /** Il «!» o il «?» sopra la testa (nemici_allerta.ts). */
   segno: Segno;
+  /** Quanto si vede, 0..1: lo Sciamano che si dissolve nel fumo (o ne esce) sfuma a gradini in mezzo secondo. */
+  vis: number;
 };
 /** `capo`: corona sopra la barra, che si vede anche a vita piena (il nemico da battere per completare il dungeon). */
 export type Bar = { id: number; pos: THREE.Vector3; frac: number; ally: boolean; boss: boolean; capo: boolean };
@@ -98,7 +102,10 @@ const FUOCO = new THREE.Color(PAL.arancio), AZZURRO = new THREE.Color(PAL.acquaB
 const ARCO_GIU = new THREE.Vector3(-0.38, 0.85, -0.06), ARCO_SU = new THREE.Vector3(-0.04, 1.28, -0.62), FIANCO = -0.9, ALLUNGO = 0.45;
 const YA = new THREE.Vector3(0, 1, 0);
 
-export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza del lampo bianco di chi è colpito (prima persona: da vicino riempirebbe lo schermo). */ lampo?: number; fp?: boolean }): Actors {
+/** Il colpo di mischia che l'eroe darebbe adesso (prima persona): chi ci sta dentro brilla, più forte se sta caricando il giro. */
+export type Mischia = { st: SwingStyle; portata: number; fx: number; fz: number; r: number; forte: boolean };
+const RAGGIO = new Map(ENEMIES.map((d) => [d.id, d.raggio]));
+export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza del lampo bianco di chi è colpito (prima persona: da vicino riempirebbe lo schermo). */ lampo?: number; fp?: boolean; mischia?(): Mischia | null }): Actors {
   const root = new THREE.Group(); root.name = 'attori'; o.scene.scene.add(root);
   const enemies = new Map<number, Enemy>();
   const proj = new Map<number, { obj: THREE.Object3D; px: number; py: number; pz: number; x: number; y: number; z: number; vy: number; tipo: string; bomba: boolean }>();
@@ -121,7 +128,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
   function addEnemy(n: NemV): Enemy {
     const r = new THREE.Group(); r.name = 'nemico_' + n.id; root.add(r);
     const body = new THREE.Group(); r.add(body);
-    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false, alt: 0, giri: [], spento: false, sveglio: -9, rig: null, passo: 0, vel: 0, lx: n.x, lz: n.z, segno: null };
+    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false, alt: 0, giri: [], spento: false, sveglio: -9, rig: null, passo: 0, vel: 0, lx: n.x, lz: n.z, segno: null, vis: n.invisibile ? 0 : 1 };
     if (ARCIERI.has(n.tipo) && !n.alleato) {
       void object(o.loader, 'arm_arco', () => boxes([[0.05, 1.3, 0.05, 0, 0, 0, PAL.legno]])).then((m) => {
         tintBlade(m, PAL.legnoChiaro); // chiaro: sul pavimento scuro della grotta si legge
@@ -221,12 +228,13 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
       let nb = 0;
       const blob = (x: number, z: number, r: number) => { if (nb >= MAXB) return; m4.compose(v3.set(x, fy + 0.03, z), q.identity(), s3.set(r, 1, r)); blobs.setMatrixAt(nb++, m4); };
       blob(hero.x, hero.z, 0.9);
-      const now = performance.now() / 1000;
+      const now = performance.now() / 1000, M = o.mischia?.() ?? null;
       for (const e of enemies.values()) {
         const n = e.v, x = e.px + (e.x - e.px) * alpha, z = e.pz + (e.z - e.pz) * alpha;
         const lit = o.scene.light(x, z) >= 0.45 || (Math.abs(x - hero.x) < 6 && Math.abs(z - hero.z) < 6);
         const dead = n.anim === 'morto', since = dead ? now - e.diedAt : 0;
-        e.root.visible = lit && !n.invisibile && !n.volo && (!dead || !!o.fp || since < 1.2); // lo Sciamano nel fumo e Jean-Claude in aria non si vedono
+        e.vis = Math.max(0, Math.min(1, e.vis + (n.invisibile ? -dt : dt) * 2));
+        e.root.visible = lit && e.vis > 0 && !n.volo && (!dead || !!o.fp || since < 1.2); // lo Sciamano nel fumo e Jean-Claude in aria non si vedono
         if (e.ring) e.ring.visible = false;
         e.segno = posaSegno(e.segno, e.height + e.alt, now);
         if (!e.root.visible) continue;
@@ -307,6 +315,8 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
           a.rotation.set(-0.15 * (1 - su), -yaw, 0.15 * su, 'YXZ'); // corda verso di sé, un filo inclinato
           e.arco.a.tendi(tiro && n.anim === 'prepara' && su > 0 ? cocca.set(0, 0, 0.17 + ALLUNGO * tesa) : null, true);
         }
+        // prima persona: chi sta nel colpo che puoi dare adesso brilla piano (più forte mentre carichi il giro)
+        if (M && !glowC && !dead && !n.alleato && !n.alto && !n.invisibile && inPortata(M.st, M.portata, M.fx, M.fz, x - hero.x, z - hero.z, RAGGIO.get(n.tipo) ?? 0.4, M.r)) { glowC = ORO; glow = M.forte ? 0.4 : 0.2; }
         e.flashT = Math.max(0, e.flashT - dt);
         if (e.flashT > 0 || n.anim === 'colpito') { glowC = WHITE; glow = o.lampo ?? 0.9; }
         const fade = dead && since > 0.6 && !o.fp ? 1 - steps((since - 0.6) / 0.6, 3) : 1;
@@ -315,7 +325,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
         e.mats.forEach((m, i) => {
           if (glowC) m.emissive.copy(glowC).multiplyScalar(glow); else m.emissive.copy(e.base[i]!);
           if (n.alleato) m.emissive.lerp(n.avversario ? RED : NEON, 0.35);
-          const op = (n.alleato ? 0.85 : 1) * fade * (n.attacco === 'scatto' && n.anim === 'prepara' ? 0.35 : 1); // nella nebbia sbiadisce
+          const op = (n.alleato ? 0.85 : 1) * fade * steps(e.vis, 4) * (n.attacco === 'scatto' && n.anim === 'prepara' ? 0.35 : 1); // nella nebbia sbiadisce
           if (op < 1 !== m.transparent) { m.transparent = op < 1; m.needsUpdate = true; }
           m.opacity = op;
         });
