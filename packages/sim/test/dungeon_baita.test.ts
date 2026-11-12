@@ -59,7 +59,7 @@ test('baita: difficoltà 7 tra Mausoleo e Vuoto, nemici e capo più forti del Ma
   for (const id of ['acrobata_fuoripista', 'alchimista_bombardino', 'sparaneve_automatico']) assert.ok(enemyDef(id).vita >= enemyDef('guardia_onore').vita, id);
   assert.deepEqual(m.valvole.map((v) => v.n).sort(), [1, 2, 3, 4]);
   assert.deepEqual(m.bacini.map((b) => b.n), [1, 2, 3, 4]);
-  assert.equal(m.altari.length, 2); assert.equal(m.forzieri.length, 5);
+  assert.equal(m.altari.length, 2); assert.equal(m.forzieri.filter((f) => !f.tabella.startsWith('scrigno_')).length, 5); // più lo scrigno degli unici (docs/UNICI.md)
   assert.deepEqual(m.altari[1]!.asciutti, [1, 2, 3, 4], 'la lanterna davanti al capo riparte coi tornelli aperti');
   const s = nuovo(), tipi = (t: string) => s.enemies.filter((e) => e.tipo === t).length;
   assert.deepEqual(s.enemies.filter((e) => e.capo).map((e) => e.tipo), ['jean_claude']);
