@@ -77,7 +77,7 @@ export function createEditor(o: EditorOpts): Editor {
   injectUiStyle();
   const { api } = o;
   const root = o.root ?? (document.getElementById('ui') as HTMLElement | null) ?? document.body;
-  const sheet = el('div', 'mz mz-sheet mz-side mz-ed'); sheet.id = 'mzEditor';
+  const sheet = el('div', 'mz mz-sheet mz-side mz-ed mz-grande'); sheet.id = 'mzEditor';
   sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Il tuo avatar');
   root.appendChild(sheet);
 

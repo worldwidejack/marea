@@ -28,14 +28,14 @@ let busy = false, lastSet: LotState | null = null, drawn: LotState | null = null
 let bag: RunBag | null = null;
 /** Battuta del Furetto in cima al suo banco (la sceglie game/porto.ts a ogni apertura). */
 let battuta = '';
-const ui: UiState = { tab: 'pg', skill: null, item: null, chest: null, focus: null, butta: null };
+const ui: UiState = { tab: 'pg', skill: null, item: null, cat: null, chest: null, focus: null, butta: null };
 
 const curLot = (): LotState | null => ctx?.getLot() ?? lastSet;
 const heroBtn = (): HTMLElement | null => document.getElementById('mzHeroBtn');
 
 function ensureSheet(root: HTMLElement): HTMLElement {
   if (sheet && sheet.isConnected) return sheet;
-  const s = el('div', 'mz mz-sheet mz-side mz-rpg'); s.id = 'mzEroe';
+  const s = el('div', 'mz mz-sheet mz-side mz-rpg mz-grande'); s.id = 'mzEroe';
   s.setAttribute('role', 'dialog'); s.setAttribute('aria-label', 'Personaggio');
   for (const ev of ['pointerdown', 'touchstart']) s.addEventListener(ev, (e) => e.stopPropagation()); // niente tocchi al canvas o al joystick
   root.appendChild(s);
@@ -143,7 +143,12 @@ const onKey = (e: KeyboardEvent): void => {
   if (!view || !sheet) return;
   if ((e.code === 'KeyC' || e.code === 'KeyF') && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) return; // main apre editor/feed, e questo si chiude
   if (e.key === 'Escape' || e.code === 'KeyI') { e.preventDefault(); e.stopPropagation(); if (!e.repeat) closePanels(); return; }
-  if (view === 'eroe' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+  if (view === 'eroe' && ui.tab === 'zaino' && (e.key === '[' || e.key === ']' || e.key === 'PageUp' || e.key === 'PageDown')) { // categorie dello zaino
+    e.preventDefault();
+    const cats = [...sheet.querySelectorAll<HTMLElement>('[data-cat].zn-cat')], i = cats.findIndex((c) => c.getAttribute('aria-pressed') === 'true');
+    const su = e.key === '[' || e.key === 'PageUp';
+    if (cats.length > 1 && !e.repeat) cats[(Math.max(0, i) + (su ? cats.length - 1 : 1)) % cats.length]?.click();
+  } else if (view === 'eroe' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
     e.preventDefault();
     const i = TABS.findIndex((t) => t.id === ui.tab), n = TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length]!;
     setTab(n.id);
@@ -225,7 +230,7 @@ registerStateProvider('eroe', () => {
   const l = curLot(), h = bag ? bag.hero() : l ? heroOf(l) : null, d = h ? heroDerived(h) : null;
   return {
     loaded: true, open: view !== null, view, tab: view === 'eroe' ? ui.tab : null, busy, sotto: !!bag,
-    livello: h?.livello ?? 0, xp: h?.xp ?? 0, carico: d?.carico ?? 0, caricoMax: d?.caricoMax ?? 0, scelte: h?.scelte ?? 0, perkPunti: h?.perkPunti ?? 0,
+    cat: ui.cat, livello: h?.livello ?? 0, xp: h?.xp ?? 0, carico: d?.carico ?? 0, caricoMax: d?.caricoMax ?? 0, scelte: h?.scelte ?? 0, perkPunti: h?.perkPunti ?? 0,
     monete: l?.monete ?? 0, equip: h ? { ...h.equip } : {}, inv: h ? { ...h.inv } : {}, forziere: l?.forziere ? { ...l.forziere } : {},
   };
 });

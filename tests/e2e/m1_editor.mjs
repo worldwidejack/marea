@@ -102,9 +102,9 @@ export default async function (ctx) {
       const txt = await anna.page.locator('#mzEditor').innerText();
       assert(txt.includes(avatar.capelli[want.capelli].charAt(0).toUpperCase()), 'nomi dai dati mancanti: ' + txt.slice(0, 200));
       assert((await anna.page.locator('#mzEditor [data-row="vestito"], #mzEditor [data-row="cappello"]').count()) === 0, 'righe Vestito/Cappello ancora nell’Aspetto');
-      // il pannello sta a destra (340 px), il centro dello schermo resta libero per l'avatar
-      const box = await anna.page.locator('#mzEditor').boundingBox();
-      assert(box && box.x > 640 && box.width <= 342, 'pannello non a destra da 340 px: ' + S(box));
+      // il foglio è grande e centrato (quasi tutto lo schermo, tetto 1100 px)
+      const box = await anna.page.locator('#mzEditor').boundingBox(), vw = anna.page.viewportSize();
+      assert(box && vw && box.height >= vw.height * 0.9 && box.width >= Math.min(1090, vw.width * 0.9) && Math.abs(box.x - (vw.width - box.width) / 2) <= 2, 'foglio non grande e centrato: ' + S(box));
       await ctx.shot(anna.page, 'desktop_editor_aperto');
       assert(posts.look.length === 0, 'POST /api/look durante l’anteprima: ' + posts.look.length);
     });
@@ -217,7 +217,7 @@ export default async function (ctx) {
       assert(!(await st(anna)).editor.linkVisibile, 'il campo col link resta dopo la chiusura');
     });
 
-    await ctx.test('telefono 390×844: AVATAR → Aspetto apre il foglio (#417), il centro resta libero', async () => {
+    await ctx.test('telefono 390×844: AVATAR → Aspetto apre il foglio (#417) a tutto schermo', async () => {
       const bruno = await open('tokB', ctx.B.IPHONE);
       const b0 = (await st(bruno)).wp2_avatar.look;
       await bruno.page.locator('#mzAvatarBtn').tap();
@@ -227,7 +227,7 @@ export default async function (ctx) {
       await ctx.waitState(bruno.page, (s) => s.editor.lotFresco === true, 15000);
       const box = await bruno.page.locator('#mzEditor').boundingBox();
       ctx.log('foglio: ' + S(box));
-      assert(box && box.y > 844 / 2 + 10, 'il foglio copre il centro del canvas: ' + S(box));
+      assert(box && box.width >= 390 * 0.9 && box.height >= 844 * 0.9, 'il foglio non è a tutto schermo: ' + S(box));
       const sw = await nav(bruno, 'coloreCapelli:3').boundingBox();
       assert(sw && sw.width >= 44 && sw.height >= 44, 'campione < 44 px: ' + S(sw));
       await nav(bruno, 'coloreCapelli:3').tap();

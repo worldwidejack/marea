@@ -34,6 +34,8 @@ export const GROUPS: readonly { id: string; nome: string; kinds: readonly ItemKi
 export type UiState = {
   tab: 'pg' | 'abilita' | 'zaino';
   skill: SkillId | null; item: string | null;
+  /** Categoria aperta nello zaino (id di GROUPS, o 'magie'). */
+  cat: string | null;
   chest: { side: 'zaino' | 'forziere'; id: string } | null;
   /** Dopo il prossimo ridisegno: porta in vista l'elemento con questo data-k. */
   focus: string | null;
