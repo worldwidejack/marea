@@ -20,6 +20,7 @@ import type { CompagnoView, DungeonEvent, DungeonInput, DungeonView } from '@mar
 import { NO_DUNGEON_INPUT } from '@marea/sim/dungeon/types.ts';
 import { SQ_TICKS } from '@marea/protocol/arena.ts';
 import type { ArClientMsg, ArTurno, SqInput } from '@marea/protocol/arena.ts';
+import { FLAGS } from '../flags.ts';
 import { PAL } from '../ui/style.ts';
 import { dungeonEvento, dungeonPasso } from '../audio/ponte.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
@@ -295,15 +296,15 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     if (pronti <= 0) { attesa = true; return; }
     if (attesa && pronti < CUSCINETTO) return;
     attesa = false;
-    const n = pronti > RECUPERO ? pronti - CUSCINETTO : pronti > SVELTO ? 2 : 1;
-    for (let k = 0; k < n && phase !== 'over'; k++) tickRete(n > 2);
+    const n = pronti > RECUPERO ? pronti - CUSCINETTO : pronti > SVELTO ? 2 : 1, fine = performance.now() + 8; // recupero a tempo: almeno 4 passi, poi basta se il frame si allunga (a FPS bassi non resta indietro)
+    for (let k = 0; k < n && phase !== 'over' && (k < 4 || performance.now() < fine); k++) tickRete(n > 2);
   }
   /** Un tick del turno in testa: al primo tick le azioni del turno (come le ha messe il server), poi il passo di tutti. */
   function tickRete(muto: boolean): void {
     const r = rete!, t = r.turni[0]!;
     if (inTurno === 0) for (const [i, a] of t.az ?? []) { const ev = actPartita(d, i, a); if (ev && !muto) for (const e of ev) onEvent(e); }
     stepPartita(d, t.f.map(frameOf));
-    if (d.tick % 300 === 0) firme[d.tick] = hashPartita(d); // test: ogni 5 s lo stato, uguale per tutti i giocatori
+    if (FLAGS.test && d.tick % 300 === 0) firme[d.tick] = hashPartita(d); // test: ogni 5 s lo stato, uguale per tutti i giocatori
     if (!muto) { dungeonPasso(d.s.eroi[io]!.hero.x, d.s.eroi[io]!.hero.z); for (const e of d.s.eventi) onEvent(e); }
     onPartita();
     if (++inTurno >= SQ_TICKS) { r.turni.shift(); inTurno = 0; }
