@@ -31,6 +31,7 @@ import { boxes, materialsOf, object, tintBlade } from './dungeon_kit.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
 import { armaArco, frecciaInVolo } from './arco.ts';
 import { oggettoATerra, restiAvventuriero } from './bottino_unici.ts';
+import { formaMagia } from './magie_forme.ts';
 import { formaNemico } from './drenaggio.ts';
 import { formaNemico as formaArchivio, giriAstrolabio } from './archivio.ts';
 import { formaNemico as formaFucina } from './fucina.ts';
@@ -115,7 +116,7 @@ const RAGGIO = new Map(ENEMIES.map((d) => [d.id, d.raggio]));
 export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza del lampo bianco di chi è colpito (prima persona: da vicino riempirebbe lo schermo). */ lampo?: number; fp?: boolean; mischia?(): Mischia | null }): Actors {
   const root = new THREE.Group(); root.name = 'attori'; o.scene.scene.add(root);
   const enemies = new Map<number, Enemy>();
-  const proj = new Map<number, { obj: THREE.Object3D; px: number; py: number; pz: number; x: number; y: number; z: number; vy: number; tipo: string; bomba: boolean }>();
+  const proj = new Map<number, { obj: THREE.Object3D; px: number; py: number; pz: number; x: number; y: number; z: number; vy: number; tipo: string; bomba: boolean; anima?: (t: number) => void }>();
   const loot = new Map<number, { obj: THREE.Group; state: string }>();
   const fy = o.scene.floorY;
   let ultima: DungeonView | null = null;
@@ -210,7 +211,8 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
           const holder = new THREE.Group(); root.add(holder);
           if (p.mole) holder.scale.setScalar(p.mole); // Grandi Magie
           r = { obj: holder, px: p.x, py: p.y, pz: p.z, x: p.x, y: p.y, z: p.z, vy: 0, tipo: p.tipo, bomba: !!p.bomba };
-          void projObj(p.tipo, p.el, !!p.bomba).then((m) => holder.add(m));
+          const forma = p.tipo === 'magia' && p.m ? formaMagia(p.m) : null; // dungeon: ogni magia la sua forma (magie_forme.ts); l'Arena non manda `m`
+          if (forma) { holder.add(forma); r.anima = forma.userData['anima'] as (t: number) => void; } else void projObj(p.tipo, p.el, !!p.bomba).then((m) => holder.add(m));
           proj.set(p.id, r);
         }
         r.vy = (p.y - r.y) * 60; r.px = r.x; r.py = r.y; r.pz = r.z; r.x = p.x; r.y = p.y; r.z = p.z;
@@ -343,7 +345,8 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
       blobs.count = nb; blobs.instanceMatrix.needsUpdate = true;
       for (const r of proj.values()) {
         r.obj.position.set(r.px + (r.x - r.px) * alpha, r.py + (r.y - r.py) * alpha, r.pz + (r.z - r.pz) * alpha);
-        if (r.bomba) r.obj.rotation.set(Math.floor(t * 8) * 0.6, Math.floor(t * 6) * 0.8, 0); // gira a scatti
+        if (r.anima) { r.anima(t); r.obj.visible = (r.obj.position.x - hero.x) ** 2 + (r.obj.position.z - hero.z) ** 2 > 0.8; } // a un passo dagli occhi coprirebbe la vista
+        else if (r.bomba) r.obj.rotation.set(Math.floor(t * 8) * 0.6, Math.floor(t * 6) * 0.8, 0); // gira a scatti
       }
       for (const l of loot.values()) l.obj.visible = o.scene.light(l.obj.position.x, l.obj.position.z) > 0;
     },

@@ -220,7 +220,7 @@ function cast(s: DungeonState, dir: Mira): void {
     id: s.nextId++, tipo: 'magia', x: h.x + h.fx * 0.4, y: MAGIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v, g: 0,
     danno: sp.danno * (1 + buff(s, 'dannoDistruzione')) * (vampa ? 1 + vampa.danno : 1), life: Math.max(1, Math.round((MAGIA_GITTATA / Math.max(1, v)) * HZ)),
     traits: sp.sanguina ? { sanguina: sp.sanguina } : {}, raggio: sp.raggio * (vampa ? vampa.raggioMolt : 1), colpiti: [], dalNemico: false, contundente: false, magico: true, arrowId: null, da: s.cur,
-    ...(mole > 1 ? { mole } : {}), ...(sp.elemento ? { elemento: sp.elemento } : {}), ...(sp.rallenta ? { rallenta: sp.rallenta } : {}), ...(vampa ? { vampa: true as const } : {}),
+    ...(mole > 1 ? { mole } : {}), ...(sp.elemento ? { elemento: sp.elemento } : {}), ...(sp.rallenta ? { rallenta: sp.rallenta } : {}), ...(vampa ? { vampa: true as const } : {}), ...(s.pvp ? {} : { magia: sp.id }),
   });
   alza(s, s.proj[s.proj.length - 1]!);
 }

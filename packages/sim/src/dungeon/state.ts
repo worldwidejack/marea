@@ -54,7 +54,7 @@ export type HeroRt = {
    *  verso il colpo letale mentre tieni il colpo, e se il colpo che sta partendo è quello letale. */
   cdScarica: number; raffica: number; raffT: number; massimaP: number; massimo: boolean;
   /** Magia a raggio (Fuoco/Elettricità continua, Cura/Furia a flusso, magie.ts): tick da quando è accesa (0 = spenta), metri liberi davanti all'eroe, elemento. */
-  canale: number; canaleLen: number; canaleEl?: SpellElement; canaleFin?: number;
+  canale: number; canaleLen: number; canaleEl?: SpellElement; canaleFin?: number; canaleM?: string; bussolaId?: number; bussolaT?: number; // id della magia (solo dungeon), Concentra (magie_tratti.ts)
   /** Diga dei Disertori: tick fino a cui i rottami non lo riprendono; Vento in Poppa dell'Albero della «Stella del Mattino» (unici.ts):
    *  cariche di Brezza, metri corsi verso la prossima, e se il colpo in corso è quello che le ha consumate (l'onda d'urto).
    *  Tempio della «Doppia Nera»: tick rimasti «In Fresca», metri corsi verso la carica e se il colpo in corso solleva l'onda di neve.
@@ -127,7 +127,7 @@ export type Proj = {
   /** Arpione (Drone Idro-Ragno): chi è preso è tirato di `tira` m all'indietro lungo il volo in `tiraT` tick. */
   tira?: number; tiraT?: number; spinge?: number;
   /** Magie: fattore di Grandi Magie (assente = 1). Tirato con l'alzo (alzo.ts): colpisce i nemici alla loro altezza, il soffitto lo ferma. */
-  mole?: number; alzo?: true;
+  mole?: number; alzo?: true; magia?: string; buchi?: number; giro?: true; // dungeon: id della magia, nemici che può ancora attraversare, secondo giro (magie_tratti.ts)
   /** Magie: elemento (Combustione, Catena di fulmini, Cura, Furia). */
   elemento?: SpellElement;
   /** Bomba (magie.ts): dove atterra (x, z); vola sopra muri e nemici e scoppia a terra. Elettriche: rallenta chi colpisce. Supporto: cura o furia. */

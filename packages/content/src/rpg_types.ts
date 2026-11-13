@@ -124,7 +124,7 @@ export type SpellDef = {
   cura?: number;
   furia?: { danno: number; velocita: number; secondi: number };
   /** Evocazione: alleato (id di enemies.json) per `durata` s. */
-  evoca?: string; durata?: number;
+  evoca?: string; durata?: number; tratto?: import('./rpg_magie_types.ts').TrattoMagia; // solo dungeon
 };
 export type PerkDef = { id: string; skill: SkillId; nome: string; descr: string; livello: number; richiede?: string; mods: Partial<Record<ModKey, number>> };
 export type RecipeDef = { id: string; nome: string; ingredienti: Record<string, number>; risultato: string; n: number; livello: number };

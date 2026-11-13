@@ -234,7 +234,8 @@ test('dungeon: xp = danno utile (mai oltre la vita del nemico) × moltiplicatore
   assert.ok(Math.abs((dungeon.result(s).xp.armiPesanti ?? 0) - 10 * RPG.xpDanno!.armiPesanti!) < 1e-9);
   // la fiammata: xp di distruzione solo se colpisce, × RPG.xpDanno.distruzione
   const m = arena(heroBase()), e = dummy(m, 'bandito', 6, 1000);
-  const ev = [...run(m, 1, inp({ c: true, a: true })), ...run(m, 90)];
+  const ev = run(m, 1, inp({ c: true, a: true }));
+  for (let i = 0; i < 90 && !colpiSu(ev, e.id).length; i++) ev.push(...run(m, 1)); // fino al colpo: poi la fiammella a terra (tratto del dungeon) dà altra xp
   const d = colpiSu(ev, e.id)[0]!;
   assert.ok(d > 0);
   assert.ok(Math.abs((dungeon.result(m).xp.distruzione ?? 0) - d * RPG.xpDanno!.distruzione!) < 1, `distruzione ${dungeon.result(m).xp.distruzione} vs colpo ${d}`);

@@ -84,7 +84,7 @@ export function viewOf(s: DungeonState): DungeonView {
       const a = enemyAnim(e);
       return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0 || sanguinante(s, e), boss: !!e.def.boss, ...(paralizzato(s, e) ? { paralizzato: true, stordito: true } : {}), ...(rallentato(s, e) ? { lento: true } : {}), ...(e.capo ? { capo: true } : {}), ...(e.q?.cerca && !e.aggro ? { cerca: true } : {}), ...(e.st === 'prepara' && e.area ? { area: areaRaggio(e.def) } : {}), ...(e.st === 'prepara' && e.tiro ? { tiro: true } : {}), ...archivio(s, e), ...mausoleo(s, e), ...diga(s, e), ...ceneri(s, e), ...baitaNemico(e), ...(evocazioneNemica(s, e) ? { avversario: true } : {}) };
     }),
-    proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: p.x, y: p.y, z: p.z, vx: p.vx, vz: p.vz, ...(p.mole ? { mole: p.mole } : {}), ...(p.elemento ? { el: p.elemento } : {}), ...(p.bomba ? { bomba: p.bomba, r: r2(p.raggio) } : {}) })),
+    proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: p.x, y: p.y, z: p.z, vx: p.vx, vz: p.vz, ...(p.mole ? { mole: p.mole } : {}), ...(p.elemento ? { el: p.elemento } : {}), ...(p.bomba ? { bomba: p.bomba, r: r2(p.raggio) } : {}), ...(p.magia ? { m: p.magia } : {}) })),
     bottini: s.loot.map((l) => ({ id: l.id, x: l.x, z: l.z, tipo: l.tipo, vuoto: parte(s, l).vuoto, ...(l.tipo === 'oggetto' ? { item: Object.keys(l.items)[0] ?? '' } : {}) })),
     uscita: { x: s.map.exit.x, z: s.map.exit.z },
     vicinoUscita: vicinoUscita(s),
@@ -214,9 +214,9 @@ function perkVista(s: DungeonState): { scarica?: number; massima?: number } {
   return o;
 }
 /** Il raggio acceso dell'eroe di turno (niente chiave se è spento). */
-function canaleVista(s: DungeonState): { canale?: { len: number; el?: import('@marea/content/rpg.ts').SpellElement; fin?: number; n?: number } } {
+function canaleVista(s: DungeonState): { canale?: { len: number; el?: import('@marea/content/rpg.ts').SpellElement; fin?: number; n?: number; m?: string; k?: number } } {
   const h = s.hero;
-  return h.canale > 0 ? { canale: { len: r2(h.canaleLen), ...(h.canaleEl ? { el: h.canaleEl } : {}), ...(h.canaleFin !== undefined && h.canaleFin < h.canaleLen ? { fin: r2(h.canaleFin) } : {}), ...(h.alzo ? { n: r2(h.alzo[1]) } : {}) } } : {};
+  return h.canale > 0 ? { canale: { len: r2(h.canaleLen), ...(h.canaleEl ? { el: h.canaleEl } : {}), ...(h.canaleFin !== undefined && h.canaleFin < h.canaleLen ? { fin: r2(h.canaleFin) } : {}), ...(h.alzo ? { n: r2(h.alzo[1]) } : {}), ...(h.canaleM ? { m: h.canaleM } : {}), ...(h.bussolaT ? { k: r2(h.bussolaT / HZ) } : {}) } } : {};
 }
 /** La magia in mano all'eroe di turno (niente chiave con l'arma in mano). */
 function inMano(s: DungeonState): { magia?: string } {
