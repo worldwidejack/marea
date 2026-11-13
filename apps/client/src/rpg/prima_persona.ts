@@ -20,6 +20,7 @@ import type { Avatar } from '../game/avatar.ts';
 import { dungeonLink } from '../game/ingressi.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { coloreMagia, palColor } from './items_ui.ts';
+import { stile } from './magie_stile.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
 import type { Mischia } from './dungeon_actors.ts';
 import { creaSguardo } from './fp_comandi.ts';
@@ -126,7 +127,7 @@ export function createPrimaPersona(o: {
     chiave = k;
     if (h.magia) {
       arnese = 'bacchetta';
-      try { const sp = spellDef(h.magia); magia = colore(coloreMagia(h.magia, sp.scuola)); forma = sp.forma; } catch { magia = BIANCO; forma = undefined; }
+      try { const sp = spellDef(h.magia); magia = colore(stile(h.magia)?.mano ?? coloreMagia(h.magia, sp.scuola)); forma = sp.forma; } catch { magia = BIANCO; forma = undefined; }
       return;
     }
     const def = h.arma && hasItem(h.arma) ? itemDef(h.arma) : null;

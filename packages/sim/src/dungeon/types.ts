@@ -127,7 +127,7 @@ export type DungeonEvent = (
   | { t: 'terremoto'; x: number; z: number }
   | { t: 'catena'; da: [number, number]; a: [number, number] }
   /** Una bomba è atterrata e scoppia (raggio in m, elemento). */
-  | { t: 'scoppio'; x: number; z: number; r: number; el?: SpellElement }
+  | { t: 'scoppio'; x: number; z: number; r: number; el?: SpellElement; m?: string; giro?: true }
   | { t: 'caricaMassima' }
   /** Diga dei Disertori: i rottami acuminati ti tagliano · un pilone fracassato dalla carica del Capitano · il Fuciliere spara · una
    *  cannonata della salva cade · la lancia del Capitano resta incastrata nelle assi. Vento in Poppa: una carica di Brezza in più (`n`
@@ -193,8 +193,8 @@ export type DungeonView = {
     /** Rallentato dal Tubo-strisciante (Drenaggio). Mano ferma (perk): il mondo va al rallentatore mentre tendi l'arco. */
     rallentato?: boolean; rallenty?: boolean;
     /** Magia a raggio accesa: lunghezza in m davanti all'eroe (già accorciata dal primo muro; con l'alzo lungo il raggio, che sale o scende col seno `n`),
-     *  elemento e, se ha preso un nemico, a che distanza lungo il raggio (`fin`: lì il raggio si vede finire). */
-    canale?: { len: number; el?: SpellElement; fin?: number; n?: number };
+     *  elemento e, se ha preso un nemico, a che distanza lungo il raggio (`fin`: lì il raggio si vede finire); solo dungeon: `m` = id della magia, `k` = s di Concentra. */
+    canale?: { len: number; el?: SpellElement; fin?: number; n?: number; m?: string; k?: number };
     /** Archivio: nel vento che soffia (e ti sposta), al riparo dietro uno scaffale, spinto da fuori (arpione, raffica, bomba). */
     vento?: boolean; riparo?: boolean; spinto?: boolean;
     /** Tempio della «Doppia Nera»: scivola sul Ghiaccio Vivo, nella direzione (asse) [dx, dz]; da qui non comandi i piedi finché non ti fermi. */
@@ -245,7 +245,7 @@ export type DungeonView = {
     /** Grandi Magie: la magia è più grande di questo fattore (assente = 1). */
     mole?: number;
     /** Magie: elemento; bomba: dove atterra (x, z) e raggio dello scoppio in m (il client disegna il cerchio a terra). */
-    el?: SpellElement; bomba?: [number, number]; r?: number }[];
+    el?: SpellElement; bomba?: [number, number]; r?: number; m?: string }[];
   /** `item`: per gli oggetti a terra, cosa sono (il client ne disegna l'icona). */
   bottini: { id: number; x: number; z: number; tipo: TipoBottino; vuoto: boolean; item?: string }[];
   uscita: { x: number; z: number };
@@ -306,7 +306,7 @@ export type DungeonView = {
 /** Un compagno visto da me: posa per l'avatar, vita per la barra, finito (uscito, caduto, andato via) = non si disegna più. */
 export type CompagnoView = {
   i: number; x: number; z: number; fx: number; fz: number; anim: HeroAnim; t: number; carica: number; stile?: SwingStyle;
-  vita: number; max: number; arma: string | null; magia?: string; canale?: { len: number; el?: SpellElement; fin?: number; n?: number }; protetto: boolean; done: boolean; outcome: RunOutcome | null;
+  vita: number; max: number; arma: string | null; magia?: string; canale?: { len: number; el?: SpellElement; fin?: number; n?: number; m?: string; k?: number }; protetto: boolean; done: boolean; outcome: RunOutcome | null;
 };
 
 /** Il modulo della spedizione da solo. Insieme (#118): createParty / stepParty / actParty di dungeon.ts; act, result, view e autopilot

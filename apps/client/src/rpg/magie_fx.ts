@@ -12,13 +12,17 @@ import type { DungeonView } from '@marea/sim/dungeon/types.ts';
 import { MAGIA_Y } from '@marea/sim/dungeon/tuning.ts';
 import { OCCHI_Y } from '@marea/sim/dungeon/alzo.ts';
 import { PAL } from '../ui/style.ts';
+import { stile } from './magie_stile.ts';
+import { RAGGI_NUOVI, disegnaRaggio } from './magie_raggi.ts';
+import type { Lungo } from './magie_raggi.ts';
+import { createMagieColpi } from './magie_colpi.ts';
 
 export type MagieFx = {
   tick(v: DungeonView): void;
   update(t: number, hero: { x: number; z: number }, v: DungeonView): void;
   /** L'ombra di mira della bomba che stai puntando (null = nessuna): dove atterra, raggio dello scoppio, elemento. */
   ombra(p: { x: number; z: number; r: number; el?: El } | null): void;
-  counts(): { raggi: number; bombe: number; scoppi: number };
+  counts(): { raggi: number; bombe: number; scoppi: number; pezzi: number };
   dispose(): void;
 };
 
@@ -44,6 +48,7 @@ const SCALA_FP: Record<'fuoco' | 'cura' | 'furia', readonly string[]> = { fuoco:
  *  la direzione degli occhi (il raggio va di lì). */
 export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?: () => THREE.Vector3; sguardo?: () => THREE.Vector3 } = {}): MagieFx {
   const root = new THREE.Group(); root.name = 'magie_fx'; scene.add(root);
+  const colpi = o.origine ? createMagieColpi(scene, floorY) : null; // solo nel dungeon (prima persona): colpi a segno, scie, scoppi per magia, evocazioni
   const box = new THREE.BoxGeometry(1, 1, 1);
   const mats = new Map<string, THREE.MeshBasicMaterial>();
   const mat = (c: string, opacity = 1): THREE.MeshBasicMaterial => {
@@ -151,6 +156,26 @@ export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?:
     }
   };
 
+  /** Dungeon (la vista dice quale magia è, `m`): i raggi col disegno loro (magie_raggi.ts). false = si disegna quello per elemento. */
+  const lato3 = new THREE.Vector3(), su3 = new THREE.Vector3(0, 1, 0), da3 = new THREE.Vector3();
+  const disegnaNuovo = (r: Raggio, fp: boolean, x: number, z: number, fx: number, fz: number, len: number, n: number, m: string | undefined, kc: number, t: number): boolean => {
+    const st = stile(m);
+    if (!st?.raggio || !RAGGI_NUOVI.has(st.raggio)) return false;
+    let lungo: Lungo;
+    if (fp && o.origine) { // il tuo: dalla punta della bacchetta fin dove guardi, pezzi piccoli vicino alla mano
+      const da = da3.copy(o.origine()), occhi = o.sguardo?.();
+      const fine = occhi ? b3.set(x + occhi.x * len, floorY + OCCHI_Y + occhi.y * len, z + occhi.z * len) : b3.set(x + fx * len, floorY + MAGIA_Y, z + fz * len);
+      const dx = fine.x - da.x, dy = fine.y - da.y, dz = fine.z - da.z, d1 = Math.max(FP.d0 + 0.5, Math.sqrt(dx * dx + dy * dy + dz * dz) + FP.d0);
+      lungo = (s, out) => { const k = inMondo(s, d1); out.set(da.x + dx * k, da.y + dy * k, da.z + dz * k); return (FP.a0 + (FP.a1 - FP.a0) * s) * (FP.d0 + (d1 - FP.d0) * k) * 0.6; };
+    } else { // un compagno: dalle sue mani in avanti, salendo o scendendo col suo alzo
+      const cn = Math.sqrt(Math.max(0, 1 - n * n)), L = Math.max(0.3, len * cn - 0.45), sale = cn > 1e-3 ? n / cn : 0, x0 = x + fx * 0.45, z0 = z + fz * 0.45, y0 = floorY + MAGIA_Y - 0.05;
+      lungo = (s, out) => { out.set(x0 + fx * L * s, y0 + sale * L * s, z0 + fz * L * s); return 0.14; };
+    }
+    r.g.visible = true; r.glow.visible = false; for (const c of r.colpo) c.visible = false;
+    disegnaRaggio(st.raggio, r.segs, st.col, (c) => mat(c), t, lungo, lato3.set(-fz, 0, fx), su3, kc);
+    return true;
+  };
+
   // ---- bombe: cerchio d'atterraggio per ogni bomba in volo
   const ringGeo = new THREE.RingGeometry(0.9, 1, 24, 1); ringGeo.rotateX(-Math.PI / 2);
   const discGeo = new THREE.CircleGeometry(1, 24); discGeo.rotateX(-Math.PI / 2);
@@ -178,9 +203,10 @@ export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?:
   let nRaggi = 0;
   return {
     tick(v) {
+      colpi?.tick(v);
       const now = performance.now() / 1000;
       for (const e of v.eventi) {
-        if (e.t !== 'scoppio') continue; // gli scoppi si vedono tutti, anche quelli dei compagni
+        if (e.t !== 'scoppio' || (colpi && stile(e.m)?.scoppio)) continue; // gli scoppi si vedono tutti, anche quelli dei compagni; quelli con un disegno loro li fa magie_colpi.ts
         let s = scoppi.find((x) => !x.viva) ?? (scoppi.length < SCOPPI_MAX ? undefined : scoppi.reduce((a, b) => (a.t0 < b.t0 ? a : b)));
         if (!s) { s = nuovoScoppio(); scoppi.push(s); }
         s.t0 = now; s.r = Math.max(0.8, e.r); s.el = e.el; s.viva = true;
@@ -191,13 +217,15 @@ export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?:
       }
     },
     update(t, hero, v) {
+      colpi?.update();
       const now = performance.now() / 1000;
       // raggi: il tuo e quelli dei compagni
       nRaggi = 0;
       const usati = new Set<number>();
-      const accendi = (k: number, x: number, z: number, fx: number, fz: number, c: { len: number; el?: El; fin?: number; n?: number } | undefined): void => {
+      const accendi = (k: number, x: number, z: number, fx: number, fz: number, c: { len: number; el?: El; fin?: number; n?: number; m?: string; k?: number } | undefined): void => {
         if (!c) return;
         usati.add(k); nRaggi++;
+        if (disegnaNuovo(raggio(k), k === 0, x, z, fx, fz, c.fin ?? c.len, c.n ?? 0, c.m, c.k ?? 0, t)) return;
         if (k === 0 && o.origine) disegnaFp(raggio(k), o.origine(), x, z, fx, fz, c.fin ?? c.len, c.el, t); else { disegna(raggio(k), x, z, fx, fz, c.fin ?? c.len, c.el, t, k, c.n ?? 0); for (const m of raggio(k).colpo) m.visible = false; }
       };
       accendi(0, hero.x, hero.z, v.hero.fx, v.hero.fz, v.hero.canale);
@@ -248,7 +276,7 @@ export function createMagieFx(scene: THREE.Scene, floorY: number, o: { origine?:
       ombraG.scale.setScalar(Math.max(0.5, p.r));
       ombraAnello.material = mat(COL[p.el ?? 'fuoco'][0]!, 0.9);
     },
-    counts: () => ({ raggi: nRaggi, bombe: bombe.size, scoppi: scoppi.filter((s) => s.viva).length }),
-    dispose() { root.removeFromParent(); box.dispose(); ringGeo.dispose(); discGeo.dispose(); for (const m of mats.values()) m.dispose(); },
+    counts: () => ({ raggi: nRaggi, bombe: bombe.size, scoppi: scoppi.filter((s) => s.viva).length, pezzi: colpi?.counts().pezzi ?? 0 }),
+    dispose() { colpi?.dispose(); root.removeFromParent(); box.dispose(); ringGeo.dispose(); discGeo.dispose(); for (const m of mats.values()) m.dispose(); },
   };
 }

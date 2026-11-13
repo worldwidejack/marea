@@ -16,6 +16,7 @@ import { effettiMagia } from './perk.ts';
 import { caricaVampa, chiazzaVampa, consumaVampa } from './unici.ts';
 import { amica, colpisciEroe, compagno, eroiNelCerchio, eroiNemici, ostile, squadraDi } from './pvp.ts';
 import { portataDist } from './portata.ts';
+import { braci, dopoRaggio, dopoScoppio, fineRaggio, magiaDi, moltConcentra, tratto } from './magie_tratti.ts';
 import { BOMBA_G, BOMBA_LATO, BOMBA_VUOTO, CANALE_EFFETTI, CANALE_OGNI, HZ, MAGIA_Y } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -137,6 +138,7 @@ export function canale(s: DungeonState, sp: RunSpell): boolean {
   }
   h.canale++;
   if (sp.elemento) h.canaleEl = sp.elemento; else delete h.canaleEl;
+  if (!s.pvp) h.canaleM = sp.id; // dungeon: il client disegna il raggio di questa magia
   const g = sp.gittata ?? 5, A = h.alzo; // con l'alzo la lunghezza è lungo il raggio (in piano ne fa len × coseno)
   h.canaleLen = A ? Math.min(g, finoAlTetto(s, A[1]), A[0] > 1e-3 ? libera(s, h.fx, h.fz, g * A[0]) / A[0] : g) : libera(s, h.fx, h.fz, g);
   if ((h.canale - 1) % CANALE_OGNI === 0) colpiRaggio(s, sp, ((h.canale - 1) / CANALE_OGNI) % CANALE_EFFETTI === 0);
@@ -175,7 +177,7 @@ function colpiRaggio(s: DungeonState, sp: RunSpell, effetti: boolean): void {
     if (!ostile(s, e)) continue;
     const lungo = lungoRaggio(s, e.x, e.z, e.def.raggio, quotaNemico(s, e), len, w);
     if (lungo === null) continue;
-    hitEnemy(s, e, colpoMagia(s, sp, danno, h.x, h.z));
+    hitEnemy(s, e, colpoMagia(s, sp, danno * moltConcentra(s, sp.id, e), h.x, h.z));
     if (lungo < pd) { pd = lungo; primo = e; }
   }
   // Arena: il raggio brucia anche gli avversari nel corridoio
@@ -185,6 +187,7 @@ function colpiRaggio(s: DungeonState, sp: RunSpell, effetti: boolean): void {
     colpisciEroe(s, j, colpoMagia(s, sp, danno, h.x, h.z));
   }
   const c = h.alzo ? h.alzo[0] : 1; h.canaleFin = primo && c > 1e-3 ? Math.min(len, Math.max(0, pd) / c) : undefined; // dove il raggio si vede finire
+  dopoRaggio(s, sp.id, primo); // dungeon: Concentra della Bussola, pozze della Colata
   if (effetti && primo && sp.elemento === 'fuoco') {
     if (V) chiazzaVampa(s, primo.x, primo.z); else caricaVampa(s);
   }
@@ -201,7 +204,7 @@ export function fermaCanale(s: DungeonState, sp?: RunSpell): void {
     const cd = secToTicks(sp.ricarica);
     h.cdMagia = (h.cdMagie ??= {})[sp.id] = Math.max((h.cdMagie ??= {})[sp.id] ?? 0, cd);
   }
-  h.canale = 0; h.sovralimentata = false;
+  h.canale = 0; h.sovralimentata = false; delete h.canaleM; fineRaggio(s);
 }
 
 // ---------- bomba ----------
@@ -256,22 +259,39 @@ export function lanciaBomba(s: DungeonState, sp: RunSpell): void {
   const h = s.hero, supp = isSupporto(sp), vampa = !supp && sp.elemento === 'fuoco' ? consumaVampa(s) : null;
   if (supp) add(s.xp, 'supporto', sp.costo * RPG.xp.supportoLancio);
   const d = distanzaBomba(s, sp, h.fx, h.fz, h.portata);
-  const N = Math.max(8, Math.round((sp.volo ?? 1.1) * HZ)), T = N * DT, y0 = MAGIA_Y;
-  const orizz = Math.max(0, d - 0.4) / T; // parte 0,4 m davanti all'eroe
+  const N = Math.max(8, Math.round((sp.volo ?? 1.1) * HZ)), T = N * DT;
+  const danno = supp ? 0 : sp.danno * (1 + buff(s, 'dannoDistruzione')) * (vampa ? 1 + vampa.danno : 1), raggio = sp.raggio * (vampa ? vampa.raggioMolt : 1);
+  const tx = h.x + h.fx * d, tz = h.z + h.fz * d, P = tratto(s, sp.id)?.pioggia, cade = P && braci(s, sp.id, tx, tz);
+  if (!P || !cade) {
+    const orizz = Math.max(0, d - 0.4) / T; // parte 0,4 m davanti all'eroe
+    tira(s, sp, N, h.fx * orizz, h.fz * orizz, [r2(tx), r2(tz)], danno, raggio, vampa);
+    return;
+  }
+  // Pioggia di Braci (solo dungeon): tante braci piccole, sparse attorno al punto di mira, una dopo l'altra
+  const x0 = h.x + h.fx * 0.4, z0 = h.z + h.fz * 0.4;
+  for (const b of cade) {
+    const n = N + b.ritardo, t = n * DT;
+    tira(s, sp, n, (b.x - x0) / t, (b.z - z0) / t, [r2(b.x), r2(b.z)], danno * P.frazione, P.raggio * (vampa ? vampa.raggioMolt : 1), vampa);
+  }
+}
+
+/** Una bomba in volo per `N` tick, con la velocità in piano (vx, vz): arriva a terra proprio al tick N in `bomba` (x, z). */
+function tira(s: DungeonState, sp: RunSpell, N: number, vx: number, vz: number, bomba: [number, number], danno: number, raggio: number, vampa: { danno: number } | null): void {
+  const h = s.hero, T = N * DT, y0 = MAGIA_Y;
   const vy0 = (BOMBA_G * DT * DT * ((N * (N + 1)) / 2) - y0) / T; // somma dei passi (Eulero semi-implicito, come projectiles.ts) = −y0 al tick N
   s.proj.push({
-    id: s.nextId++, tipo: 'magia', x: h.x + h.fx * 0.4, y: y0, z: h.z + h.fz * 0.4, vx: h.fx * orizz, vy: vy0, vz: h.fz * orizz, g: BOMBA_G,
-    danno: supp ? 0 : sp.danno * (1 + buff(s, 'dannoDistruzione')) * (vampa ? 1 + vampa.danno : 1), life: N, traits: sp.sanguina ? { sanguina: sp.sanguina } : {}, raggio: sp.raggio * (vampa ? vampa.raggioMolt : 1), colpiti: [],
-    dalNemico: false, contundente: false, magico: true, arrowId: null, da: s.cur, bomba: [r2(h.x + h.fx * d), r2(h.z + h.fz * d)],
+    id: s.nextId++, tipo: 'magia', x: h.x + h.fx * 0.4, y: y0, z: h.z + h.fz * 0.4, vx, vy: vy0, vz, g: BOMBA_G,
+    danno, life: N, traits: sp.sanguina ? { sanguina: sp.sanguina } : {}, raggio, colpiti: [],
+    dalNemico: false, contundente: false, magico: true, arrowId: null, da: s.cur, bomba,
     ...(sp.mole ? { mole: sp.mole } : {}), ...(sp.elemento ? { elemento: sp.elemento } : {}), ...(sp.rallenta ? { rallenta: sp.rallenta } : {}),
     ...(sp.cura ? { cura: sp.cura } : {}), ...(sp.furia ? { furia: { ...sp.furia } } : {}),
-    ...(vampa ? { vampa: true as const } : {}),
+    ...(vampa ? { vampa: true as const } : {}), ...magiaDi(s, sp.id),
   });
 }
 
 /** La bomba è a terra: scoppia, tutti i nemici nel raggio prendono il danno (o gli alleati ed evocazioni ricevono Cura / Furia). */
 export function scoppio(s: DungeonState, p: Proj): void {
-  ev(s, { t: 'scoppio', x: r2(p.x), z: r2(p.z), r: r2(p.raggio), ...(p.elemento ? { el: p.elemento } : {}) });
+  ev(s, { t: 'scoppio', x: r2(p.x), z: r2(p.z), r: r2(p.raggio), ...(p.elemento ? { el: p.elemento } : {}), ...(p.magia ? { m: p.magia } : {}), ...(p.giro ? { giro: true } : {}) });
   if (p.cura || p.furia) {
     const c: Sostegno = { cura: p.cura ?? 0, furia: p.furia, secondi: p.furia?.secondi ?? 0 }, da: [number, number] = [r2(p.x), r2(p.z)];
     for (const e of s.enemies) {
@@ -289,13 +309,15 @@ export function scoppio(s: DungeonState, p: Proj): void {
   }
   let primo: Enemy | null = null, pd = Infinity;
   const src = { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione' as const, caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ox: p.x, oz: p.z, ...(p.rallenta ? { rallenta: p.rallenta } : {}) };
+  const presi: Enemy[] = [];
   for (const e of s.enemies.slice()) {
     if (!ostile(s, e)) continue;
     const dx = e.x - p.x, dz = e.z - p.z, r = p.raggio + e.def.raggio, d2 = dx * dx + dz * dz;
     if (d2 > r * r) continue;
-    hitEnemy(s, e, src);
+    hitEnemy(s, e, src); presi.push(e);
     if (d2 < pd) { pd = d2; primo = e; }
   }
+  dopoScoppio(s, p, presi); // dungeon: brace, risucchio, secondo giro
   for (const j of eroiNelCerchio(s, p.x, p.z, p.raggio)) colpisciEroe(s, j, src); // Arena: anche gli avversari nel cerchio
   if (p.vampa) chiazzaVampa(s, p.x, p.z);
   else if (primo && p.elemento === 'fuoco') caricaVampa(s);

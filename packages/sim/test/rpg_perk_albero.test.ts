@@ -140,7 +140,8 @@ test('Combustione: una magia di fuoco lascia una chiazza che brucia i nemici (no
   const n = arena(heroBase({ magie: [fiammata] }));
   dummy(n, 'bandito', 6, 1000);
   run(n, 1, inp({ c: true, a: true })); run(n, 40);
-  assert.equal(n.fuochi.length, 0);
+  assert.equal(n.fuochi.length, 1, 'senza il perk solo la fiammella del Proiettile infuocato (tratto del dungeon)');
+  assert.ok(n.fuochi[0]!.r <= 0.8, 'piccola');
 });
 
 test('Catena di fulmini: l\'elettricità salta al nemico più vicino entro 5 m con metà del danno', () => {
