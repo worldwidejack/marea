@@ -98,7 +98,9 @@ export const dungeon: DungeonModule<DungeonState> = {
   // v17: i nemici ti notano prima: cono più largo di lato e dietro, sospetto più veloce (balance.json `dungeon.quiete`)
   // v18: le frecce e le pozioni raccolte sono subito pronte (prima restavano a zero finché un cambio dal menu non rifaceva i conteggi) e un
   // cadavere lungo, il capo, si fruga anche dal suo lato lontano (fruga.ts)
-  id: 'dungeon', version: 19, maxTicks: MAX_TICKS,
+  // v20: chi corre (o cammina) ti nota ancora prima: il passo non accorcia più la vista, cono frontale a ±90°, di lato vista piena, dietro 0.7,
+  // sospetto più rapido (balance.json `dungeon.furtivo.vista` e `dungeon.quiete`)
+  id: 'dungeon', version: 20, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
   act(s, a) {
