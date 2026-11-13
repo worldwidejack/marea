@@ -2,6 +2,7 @@
 // pomello di un joystick (tenuto dentro l'anello). Il joystick di movimento vive in game/input.ts, quello di mira in rpg/mira_stick.ts:
 // usano `pomello`. I posti con un tocco tutto loro (lo sparatutto alla COD Mobile in sparo/tocco.ts, lo snowboard in adrenalina/comandi.ts,
 // la Difesa a tocchi sulla tela) restano com'erano.
+import { alTuttiSu } from './tocchi_su.ts';
 
 export type Tenuto = {
   /** Almeno un dito (o il mouse) è giù sul bottone. */
@@ -41,11 +42,15 @@ export function tieniPremuto(b: HTMLElement, o: { premi?(): void; cambia?(giu: b
     for (const ev of ['touchend', 'touchcancel']) b.addEventListener(ev, (e) => { for (const t of (e as TouchEvent).changedTouches) if (tocchi.delete(t.identifier) && !premuto()) pinta(); });
   }
   if (o.bloccaTocchi) for (const ev of ['touchstart', 'touchmove']) b.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
+  const lascia = () => { if (!premuto()) return; dita.clear(); tocchi.clear(); pinta(); };
+  // nessun dito sullo schermo: se il bottone si crede ancora premuto, il pointerup si è perso (tocchi_su.ts). Un dito simulato dai test (-1) resta.
+  let visto = false; // il bottone è stato nella pagina: se ne esce, si toglie da solo
+  const togli = alTuttiSu(() => { if (b.isConnected) { visto = true; if (!dita.has(-1)) lascia(); } else if (visto) togli(); });
   return {
     get giu() { return premuto(); },
-    lascia() { if (!premuto()) return; dita.clear(); tocchi.clear(); pinta(); },
+    lascia,
     simula(on) { const prima = premuto(); if (on) dita.add(-1); else dita.delete(-1); if (prima !== premuto()) pinta(); },
-    dispose() { if (o.finestra) for (const ev of ['pointerup', 'pointercancel']) removeEventListener(ev, su as EventListener); },
+    dispose() { togli(); if (o.finestra) for (const ev of ['pointerup', 'pointercancel']) removeEventListener(ev, su as EventListener); },
   };
 }
 

@@ -30,6 +30,7 @@ import { posa, puntaRaggio } from './fp_pose.ts';
 import type { Arnese } from './fp_pose.ts';
 import { creaAvvisi } from './fp_avvisi.ts';
 import { creaFruga } from './fp_fruga.ts';
+import type { Corpo } from './corpi_a_terra.ts';
 import { creaHudFp } from './fp_hud.ts';
 import { creaMappaFp } from './fp_mappa.ts';
 import { creaPericoli } from './fp_pericoli.ts';
@@ -93,11 +94,13 @@ export function createPrimaPersona(o: {
   root: HTMLElement; canvas: HTMLCanvasElement; loader: Loader; diorama: DioramaCamera; sc: DungeonScene; avatar: Avatar; hero0: EroeVista; attivo(): boolean; onPerso(): void;
   /** La partita (bottino e perk) e le azioni dal menu (`fruga`, `prendi`): come lo zaino. */
   stato(): DungeonState; act(a: DungeonAzione): string | null; avviso(t: string): void;
+  /** Dove giace il nemico caduto `id` (dungeon_actors.ts): il bottino si fruga dove si vede il corpo. */
+  corpo(id: number): Corpo | null;
 }): PrimaPersona {
   const camera = o.diorama.camera, far0 = camera.far, map = o.sc.map;
   const sg = creaSguardo({ canvas: o.canvas, root: o.root, yaw: verso(map, o.hero0.x, o.hero0.z, o.hero0), onPerso: o.onPerso });
   const corpo = creaCorpo(o.avatar), mani = creaMani({ camera, canvas: o.canvas, loader: o.loader }), avvisi = creaAvvisi(o.root);
-  const fruga = creaFruga({ root: o.root, tocco: sg.tocco, stato: o.stato, act: o.act, avviso: o.avviso }), hud = creaHudFp({ root: o.root, map });
+  const fruga = creaFruga({ root: o.root, tocco: sg.tocco, stato: o.stato, act: o.act, avviso: o.avviso, occhi: camera.position, floorY: o.sc.floorY, corpo: o.corpo }), hud = creaHudFp({ root: o.root, map });
   const mappa = creaMappaFp({ root: o.root, map, tocco: sg.tocco, attivo: o.attivo });
   const pericoli = creaPericoli({ scene: o.sc.scene, floorY: o.sc.floorY, root: o.root });
   o.diorama.pilota!(true); camera.far = FAR; camera.rotation.order = 'YXZ'; o.sc.scene.add(camera);
@@ -188,7 +191,7 @@ export function createPrimaPersona(o: {
       hud.update(v, t, yaw, camera.position);
       mappa.update(v, yaw);
       pericoli.update(v, t, yaw);
-      fruga.update(v, yaw);
+      fruga.update(v, yaw, sg.pitch);
       avvisi.update(dt, v, yaw, map, { croce: !!h.magia || arnese === 'arco', rosso: hud.mirato >= 0 });
     },
     punta() {

@@ -7,6 +7,7 @@ import { aimDir, aimIndex } from '@marea/sim/dungeon/mira.ts';
 import { screenToWorld } from '../game/input.ts';
 import { PAL, el } from '../ui/style.ts';
 import { pomello } from '../ui/comandi_touch.ts';
+import { alTuttiSu } from '../ui/tocchi_su.ts';
 import { padMira } from '../comandi/pad.ts';
 
 const MIRA = 108, KNOB = 44, MIRA_R = 36, MIRA_DEAD = 0.3, TAP_MS = 350; // px: anello, pomello, corsa del pomello; zona morta (frazione della corsa); durata massima di un tap
@@ -84,6 +85,7 @@ export function createMiraStick(o: { id: string; yaw(): number; blocked(): boole
   aim.addEventListener('pointermove', (e) => { if (e.pointerId === id) { e.preventDefault(); move(e); } });
   const up = (e: PointerEvent) => { if (e.pointerId === id) end(); };
   for (const ev of ['pointerup', 'pointercancel']) { aim.addEventListener(ev, up as EventListener); addEventListener(ev, up as EventListener); }
+  const togliSu = alTuttiSu(end); // nessun dito sullo schermo e il pomello si crede tenuto: pointerup perso (lascia, e l'arco parte)
   aim.addEventListener('contextmenu', (e) => e.preventDefault());
   aim.addEventListener('touchstart', (e) => e.stopPropagation());
   aim.addEventListener('touchmove', (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
@@ -116,7 +118,7 @@ export function createMiraStick(o: { id: string; yaw(): number; blocked(): boole
     grande(want) { vuoleGrande = want; applicaGrande(); },
     cancel,
     dispose() {
-      removeEventListener('pointerup', up as EventListener); removeEventListener('pointercancel', up as EventListener); removeEventListener('pointerdown', seen, true);
+      removeEventListener('pointerup', up as EventListener); removeEventListener('pointercancel', up as EventListener); removeEventListener('pointerdown', seen, true); togliSu();
       aim.remove();
     },
   };

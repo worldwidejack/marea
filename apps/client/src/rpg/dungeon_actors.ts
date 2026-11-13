@@ -44,6 +44,8 @@ import { rigNemico } from './nemici_rig.ts';
 import type { Rig } from './nemici_rig.ts';
 import { posaNemico } from './nemici_pose.ts';
 import { posaSegno, segnoNuovo } from './nemici_allerta.ts';
+import { improntaCorpo } from './corpi_a_terra.ts';
+import type { Corpo } from './corpi_a_terra.ts';
 import type { Segno } from './nemici_allerta.ts';
 
 type NemV = DungeonView['nemici'][number] & { area?: number };
@@ -62,6 +64,8 @@ type Enemy = {
   segno: Segno;
   /** Quanto si vede, 0..1: lo Sciamano che si dissolve nel fumo (o ne esce) sfuma a gradini in mezzo secondo. */
   vis: number;
+  /** Prima persona: dove giace da morto, a posa finita (corpi_a_terra.ts). */
+  corpo: Corpo | null;
 };
 /** `capo`: corona sopra la barra, che si vede anche a vita piena (il nemico da battere per completare il dungeon). */
 export type Bar = { id: number; pos: THREE.Vector3; frac: number; ally: boolean; boss: boolean; capo: boolean };
@@ -72,6 +76,8 @@ export type Actors = {
   bars(): Bar[];
   /** Posizione (interpolata) di un nemico, per i numeri del danno. */
   posOf(id: number): THREE.Vector3 | null;
+  /** Dove giace il nemico caduto `id` (prima persona), null se la posa non è ancora finita. */
+  corpo(id: number): Corpo | null;
   counts(): { enemies: number; drawn: number; proj: number; loot: number };
   dispose(): void;
 };
@@ -128,7 +134,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
   function addEnemy(n: NemV): Enemy {
     const r = new THREE.Group(); r.name = 'nemico_' + n.id; root.add(r);
     const body = new THREE.Group(); r.add(body);
-    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false, alt: 0, giri: [], spento: false, sveglio: -9, rig: null, passo: 0, vel: 0, lx: n.x, lz: n.z, segno: null, vis: n.invisibile ? 0 : 1 };
+    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false, alt: 0, giri: [], spento: false, sveglio: -9, rig: null, passo: 0, vel: 0, lx: n.x, lz: n.z, segno: null, vis: n.invisibile ? 0 : 1, corpo: null };
     if (ARCIERI.has(n.tipo) && !n.alleato) {
       void object(o.loader, 'arm_arco', () => boxes([[0.05, 1.3, 0.05, 0, 0, 0, PAL.legno]])).then((m) => {
         tintBlade(m, PAL.legnoChiaro); // chiaro: sul pavimento scuro della grotta si legge
@@ -329,6 +335,8 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
           if (op < 1 !== m.transparent) { m.transparent = op < 1; m.needsUpdate = true; }
           m.opacity = op;
         });
+        if (dead && o.fp && !e.corpo && since > 0.8) e.corpo = improntaCorpo(e.root, fy); // caduto del tutto: dove giace si legge dai vertici, una volta sola
+        else if (!dead && e.corpo) e.corpo = null;
         if (!dead) blob(x, z, (n.boss ? 2.2 : 1.1) * (n.model === 'nem_ragno' ? 1.6 : 1));
       }
       blobs.count = nb; blobs.instanceMatrix.needsUpdate = true;
@@ -349,6 +357,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene; /** Forza
       return out;
     },
     posOf(id) { const e = enemies.get(id); return e ? e.root.position.clone().setY(fy + e.height + e.alt) : null; },
+    corpo(id) { return enemies.get(id)?.corpo ?? null; },
     counts: () => ({ enemies: enemies.size, drawn: [...enemies.values()].filter((e) => e.root.visible).length, proj: proj.size, loot: loot.size }),
     dispose() { root.removeFromParent(); blobGeo.dispose(); ringGeo.dispose(); discGeo.dispose(); },
   };

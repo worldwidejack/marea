@@ -46,6 +46,8 @@ export default async function (ctx) {
     const hook = (n, ...a) => page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
     /** Gira lo sguardo verso (x, z), con la pendenza `pitch` (rad). */
     const guarda = async (x, z, pitch) => { const f = (await st()).fp; await hook('dungeonGuarda', Math.atan2(-(x - f.hero.x), -(z - f.hero.z)), pitch); await sleep(200); };
+    /** Gira lo sguardo sul cadavere `c` a terra: il mirino sta al centro del suo corpo come si vede (occhi a 1,4 m). Il bottino sta dove è caduto, il corpo si stende da lì. */
+    const guardaCorpo = async (c) => { const q = await st(), f = q.fp, k = q.fruga.forme?.[c.id] ?? c; await guarda(k.x, k.z, -Math.atan2(1.4, Math.hypot(k.x - f.hero.x, k.z - f.hero.z))); };
     let before = null, preso = null;
 
     await ctx.test('Grotta in prima persona: si entra frugando a mano; minimappa in alto a sinistra, barre in basso, mirino sempre', async () => {
@@ -80,7 +82,12 @@ export default async function (ctx) {
       await hook('dungeonVai', Math.floor(cad.x / 2), Math.floor(cad.z / 2));
       await ctx.waitState(page, (s, id) => (s.fp.bottini.find((b) => b.id === id)?.d ?? 99) < 1.6, 15000, cad.id);
       await hook('dungeonVai', null, null); await sleep(500);
-      await guarda(cad.x, cad.z, -0.6);
+      await guardaCorpo(cad);
+      await ctx.waitState(page, (s, id) => s.fruga && s.fruga.mira && s.fruga.mira.id === id, 4000, cad.id);
+      // e con lo sguardo dritto all'orizzonte il cadavere non è sotto il mirino
+      await guarda(cad.x, cad.z, 0);
+      await ctx.waitState(page, (s) => s.fruga && !s.fruga.mira, 4000);
+      await guardaCorpo(cad);
       await ctx.waitState(page, (s, id) => s.fruga && s.fruga.mira && s.fruga.mira.id === id, 4000, cad.id);
       await ctx.shot(page, '2_cadavere_1280');
       await page.keyboard.press('KeyE');

@@ -201,7 +201,7 @@ export function startRun(ctx: RunCtx, o: {
         // preferiti 1-2-3: l'arma o la magia scelta va in mano (stessa azione dello zaino, quindi vale anche in squadra)
         hero: () => heroNow(s), onPreferito: (p) => { const e = mettiInMano(p, heroNow(s), act); if (e) ctx.hud.toast(e, 1500); },
       });
-      fp = createPrimaPersona({ root: ctx.root, canvas: ctx.canvas, loader: ctx.loader, diorama: ctx.renderer.diorama, sc, avatar: hero.avatar, hero0: view.hero, attivo: () => phase === 'play' && !controls?.paused && !isPanelOpen() && !testi?.aperta, onPerso: () => controls?.apriPausa(), stato: () => s, act, avviso: (t) => ctx.hud.toast(t, 1800) });
+      fp = createPrimaPersona({ root: ctx.root, canvas: ctx.canvas, loader: ctx.loader, diorama: ctx.renderer.diorama, sc, avatar: hero.avatar, hero0: view.hero, attivo: () => phase === 'play' && !controls?.paused && !isPanelOpen() && !testi?.aperta, onPerso: () => controls?.apriPausa(), stato: () => s, act, avviso: (t) => ctx.hud.toast(t, 1800), corpo: (id) => actors?.corpo(id) ?? null });
       if (sc.def.testi) testi = createTesti({ root: ctx.root, camera: ctx.renderer.camera, canvas: ctx.canvas, sc, insieme: !!rete, capoMorto: () => view.nemici.some((n) => n.capo && n.anim === 'morto') });
       const ic = hud.icons(); controls.setIcons(ic.d, ic.key);
       if (s.salvato) controls.setSalvato(true);

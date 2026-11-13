@@ -18,6 +18,8 @@ const TAB: readonly (readonly [number, number])[] = Array.from({ length: ALZO_N 
 export const OCCHI_Y = 1.4, SOFFITTO_Y = 2.6;
 /** Altezza di chi non la dice e di un capo; quanto sta su chi vola basso (scende a colpire) e chi è aggrappato alle grate. */
 const ALTEZZA_BASE = 1.8, ALTEZZA_CAPO = 3.2, VOLO_BASSO = 0.35, SU_GRATA = 1.0;
+/** Quanto è lungo un nemico caduto (m): da morto giace lungo quanto era alto, un capo (modello più grande di un quinto) di più. */
+export const lunghezzaCorpo = (e: Enemy): number => (e.def.altezza ?? (e.def.boss ? ALTEZZA_CAPO : ALTEZZA_BASE)) * (e.def.boss ? 1.2 : 1);
 /** Tolleranza in altezza (m) per i colpi dell'eroe: meglio un colpo regalato che uno che sembra preso e non conta. */
 const MARGINE_Y = 0.2;
 

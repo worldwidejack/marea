@@ -3,7 +3,7 @@
 // oggetto alla volta (tocco o clic) o tutto (R, «Prendi tutto»). I libri si prendono subito. Le prese sono azioni della sim (`prendi`,
 // sim/dungeon/fruga.ts): si registrano col tick e il server le rigioca. Da soli la finestra ferma la partita (panels.ts, registraFinestra).
 import { ENEMIES } from '@marea/content/rpg.ts';
-import { aPortata, contenuto } from '@marea/sim/dungeon/fruga.ts';
+import { aPortata, contenuto, portataMano } from '@marea/sim/dungeon/fruga.ts';
 import type { DungeonState } from '@marea/sim/dungeon/state.ts';
 import type { DungeonAzione, DungeonView, TipoBottino } from '@marea/sim/dungeon/types.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
@@ -13,9 +13,13 @@ import { CORNICE_LIBRO, FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 import { el } from '../ui/style.ts';
 import { fmtKg, iconOf } from './items_ui.ts';
 import { registraFinestra } from './panels.ts';
+import { corpoTondo, distanzaCorpo, raggioSuCorpo } from './corpi_a_terra.ts';
+import type { Corpo } from './corpi_a_terra.ts';
 
-/** Il bottino conta «sotto il mirino» entro questo mezzo angolo (coseno) o se ci stai sopra (m). */
-const COS_MIRA = Math.cos((26 * Math.PI) / 180), SOPRA = 0.9;
+/** Il bottino conta «sotto il mirino» quando il raggio dello sguardo passa dentro il suo corpo, allargato di questo (m); lasciato il corpo il
+ *  cartellino resta ancora un attimo (s), il tempo di toccarlo dal telefono. Forma dei bottini che non sono cadaveri (raggio, altezza, m). */
+const MARGINE = 0.18, GRAZIA = 0.45;
+const FORMA: Record<TipoBottino, [number, number]> = { cadavere: [0.7, 0.4], forziere: [0.6, 0.7], libro: [0.4, 0.6], oggetto: [0.35, 0.4], resti: [0.55, 0.3] };
 const NOMI = new Map(ENEMIES.map((d) => [d.id, d.nome]));
 const nomeOggetto = (id: string): string => (hasItem(id) ? itemDef(id).nome : id);
 const CSS = `
@@ -41,8 +45,8 @@ const CSS = `
 `;
 
 export type Fruga = {
-  /** Ogni frame: il bottino sotto il mirino (yaw dello sguardo) e il suo cartellino; con la finestra aperta la ridisegna se cambia. */
-  update(v: DungeonView, yaw: number): void;
+  /** Ogni frame: il bottino sotto il mirino (yaw e pitch dello sguardo) e il suo cartellino; con la finestra aperta la ridisegna se cambia. */
+  update(v: DungeonView, yaw: number, pitch: number): void;
   /** Un tasto: E fruga quello sotto il mirino (true = preso, la Scarica non parte). */
   tasto(e: KeyboardEvent): boolean;
   readonly aperta: boolean;
@@ -53,11 +57,13 @@ type Bersaglio = { id: number; tipo: TipoBottino; nome: string; vuoto: boolean }
 /** Libri e oggetti a terra: una cosa sola, si prende e basta. */
 const SOLO = (t: TipoBottino): boolean => t === 'libro' || t === 'oggetto';
 
-export function creaFruga(o: { root: HTMLElement; tocco: boolean; stato(): DungeonState; act(a: DungeonAzione): string | null; avviso(t: string): void }): Fruga {
+export function creaFruga(o: { root: HTMLElement; tocco: boolean; stato(): DungeonState; act(a: DungeonAzione): string | null; avviso(t: string): void;
+  /** Dove stanno gli occhi (si aggiorna da sé), il pavimento, e dove giace il nemico caduto `id` (null = posa non finita). */ occhi: { x: number; y: number; z: number }; floorY: number; corpo(id: number): Corpo | null }): Fruga {
   if (!document.getElementById('mz-fp-fruga')) { const st = document.createElement('style'); st.id = 'mz-fp-fruga'; st.textContent = CSS; document.head.appendChild(st); }
   const cart = el('div', 'mz-fp-cart' + (o.tocco ? ' tocco' : '')); o.root.appendChild(cart);
   const win = el('div', 'mz-fp-fruga'); win.setAttribute('role', 'dialog'); o.root.appendChild(win);
-  let mira: Bersaglio | null = null, aperto: Bersaglio | null = null, firma = '', ultima: DungeonView | null = null;
+  let mira: Bersaglio | null = null, aperto: Bersaglio | null = null, firma = '', ultima: DungeonView | null = null, persaT = -1;
+  const forme: Record<number, Corpo> = {}; // per i test: i corpi a portata nell'ultimo frame
   const togli = registraFinestra(() => aperto !== null);
 
   const chiudi = () => {
@@ -123,27 +129,35 @@ export function creaFruga(o: { root: HTMLElement; tocco: boolean; stato(): Dunge
     }
   };
   cart.addEventListener('click', () => { if (mira && o.tocco) apri(mira); });
-  const togliStato = registerStateProvider('fruga', () => ({ mira, aperto: aperto?.id ?? null, righe: [...win.querySelectorAll<HTMLElement>('.riga')].map((r) => r.dataset['item']) }));
+  const togliStato = registerStateProvider('fruga', () => ({ mira, aperto: aperto?.id ?? null, righe: [...win.querySelectorAll<HTMLElement>('.riga')].map((r) => r.dataset['item']), forme }));
   registerTestHook('dungeonFruga', (cosa) => { if (cosa === 'apri' && mira) apri(mira); else if (cosa === 'tutto') prendi(); else if (cosa === 'chiudi') chiudi(); else if (typeof cosa === 'string' && cosa) prendi(cosa); return !!aperto; });
 
   return {
     get aperta() { return aperto !== null; },
-    update(v, yaw) {
+    update(v, yaw, pitch) {
       ultima = v;
       if (aperto) { disegna(); cart.classList.remove('on'); return; }
-      const s = o.stato(), h = v.hero, fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-      if (h.anim === 'tende' || h.anim === 'carica' || h.anim === 'lancia' || h.anim === 'attacca') { mira = null; cart.classList.remove('on'); return; } // mentre miri o colpisci, niente cartellino
-      let best: Bersaglio | null = null, bv = -Infinity;
+      const s = o.stato(), h = v.hero, cp = Math.cos(pitch), dx = -Math.sin(yaw) * cp, dy = Math.sin(pitch), dz = -Math.cos(yaw) * cp, E = o.occhi;
+      if (h.anim === 'tende' || h.anim === 'carica' || h.anim === 'lancia' || h.anim === 'attacca') { mira = null; persaT = -1; cart.classList.remove('on'); return; } // mentre miri o colpisci, niente cartellino
+      let best: Bersaglio | null = null, bd = Infinity;
       for (const b of v.bottini) {
         const l = s.loot.find((x) => x.id === b.id);
         if (!l || !aPortata(s, l)) continue;
-        const dx = b.x - h.x, dz = b.z - h.z, d = Math.sqrt(dx * dx + dz * dz), c = d < SOPRA ? 1 : (dx * fx + dz * fz) / d;
-        if (c < COS_MIRA || c - d * 0.1 <= bv) continue;
-        bv = c - d * 0.1;
         const morto = b.tipo === 'cadavere' ? v.nemici.find((n) => n.anim === 'morto' && !n.alleato && Math.abs(n.x - b.x) < 0.05 && Math.abs(n.z - b.z) < 0.05) : undefined;
+        // il corpo com'è a terra (il bottino sta dove è caduto, il corpo si stende da lì); finché cade, un disco attorno
+        const forma: Corpo = (morto && o.corpo(morto.id)) || corpoTondo(b.x, b.z, FORMA[b.tipo][0], FORMA[b.tipo][1]);
+        forme[b.id] = forma;
+        if (distanzaCorpo(forma, h.x, h.z) > portataMano(s) || !raggioSuCorpo(forma, E.x, E.y, E.z, dx, dy, dz, o.floorY, MARGINE)) continue;
+        const d = (forma.x - E.x) * (forma.x - E.x) + (forma.z - E.z) * (forma.z - E.z);
+        if (d >= bd) continue;
+        bd = d;
         const libro = SOLO(b.tipo) ? Object.keys(contenuto(s, b.id)?.items ?? {})[0] : undefined;
         best = { id: b.id, tipo: b.tipo, vuoto: b.vuoto, nome: b.tipo === 'forziere' ? 'Forziere' : b.tipo === 'resti' ? 'Resti di un avventuriero' : libro ? nomeOggetto(libro) : morto ? NOMI.get(morto.tipo) ?? 'Cadavere' : 'Bottino' };
       }
+      const ora = performance.now();
+      if (!best && mira && persaT < 0) persaT = ora; // appena fuori mira: resta ancora un attimo
+      if (best) persaT = -1;
+      else if (mira && persaT >= 0 && ora - persaT < GRAZIA * 1000 && v.bottini.some((x) => x.id === mira!.id && !x.vuoto)) best = mira;
       mira = best;
       cart.classList.toggle('on', !!best); cart.classList.toggle('vuoto', !!best?.vuoto);
       if (!best) return;

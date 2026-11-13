@@ -96,7 +96,9 @@ export const dungeon: DungeonModule<DungeonState> = {
   // prima fanno la ronda o si guardano intorno; chi dorme non vede.
   // v16: archi alla pari (tutte le frecce volano allo stesso modo, balance.json `arco`) e lo Sciamano del Fumo sparisce nel fumo solo per qualche secondo
   // v17: i nemici ti notano prima: cono più largo di lato e dietro, sospetto più veloce (balance.json `dungeon.quiete`)
-  id: 'dungeon', version: 17, maxTicks: MAX_TICKS,
+  // v18: le frecce e le pozioni raccolte sono subito pronte (prima restavano a zero finché un cambio dal menu non rifaceva i conteggi) e un
+  // cadavere lungo, il capo, si fruga anche dal suo lato lontano (fruga.ts)
+  id: 'dungeon', version: 18, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
   act(s, a) {

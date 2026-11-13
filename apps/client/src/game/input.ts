@@ -11,6 +11,7 @@ import { creaComandoSchivata } from './schivata_input.ts';
 import type { InputFrame } from '@marea/sim';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { pomello, tieniPremuto } from '../ui/comandi_touch.ts';
+import { alTuttiSu } from '../ui/tocchi_su.ts';
 import { eDelPad, padMovimento } from '../comandi/pad.ts';
 import { FONT_LIBRO, LIBRO as L } from '../ui/kit.ts';
 
@@ -128,6 +129,7 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
   joy.addEventListener('pointermove', onMove); joy.addEventListener('pointerup', onEnd); joy.addEventListener('pointercancel', onEnd);
   // rete di sicurezza: se la cattura salta (uscita dal browser), lo stick si rilascia comunque; i movimenti del joystick volante arrivano dal canvas
   addEventListener('pointermove', onMove); addEventListener('pointerup', onEnd); addEventListener('pointercancel', onEnd);
+  const togliSu = alTuttiSu(() => { if (jid !== null) endStick(); }); // nessun dito sullo schermo e il joystick si crede ancora tenuto: pointerup perso
 
   // ---- bottoni: un set di dita per bottone (ui/comandi_touch.ts, più dita insieme); il latch cattura anche i tocchi più brevi di un tick ----
   const paintBtns = () => {
@@ -186,7 +188,7 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
     dispose() {
       roll.dispose();
       removeEventListener('keydown', kd); removeEventListener('keyup', ku); removeEventListener('blur', releaseAll);
-      removeEventListener('pointermove', onMove); removeEventListener('pointerup', onEnd); removeEventListener('pointercancel', onEnd); tA.dispose(); tB.dispose();
+      removeEventListener('pointermove', onMove); removeEventListener('pointerup', onEnd); removeEventListener('pointercancel', onEnd); togliSu(); tA.dispose(); tB.dispose();
       o.canvas.removeEventListener('pointerdown', onCanvasDown); if (restT !== null) clearTimeout(restT);
       document.removeEventListener('visibilitychange', onVis);
       for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.removeEventListener(ev, noGesture as EventListener);
