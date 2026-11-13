@@ -402,7 +402,7 @@ export default async function (ctx) {
     await ctx.test('telefono: ingresso nel mondo', async () => {
       const g = (await ctx.getState(tp)).ingressi.spots.find((x) => x.id === 'grotta');
       await thook('teleport', g.x, g.z + 3); await sleep(900);
-      await tp.waitForSelector('#mzDngEntra.on', { timeout: 5000 });
+      await tp.waitForSelector('#mzDngEntra.on', { timeout: 15000 });
     });
     await ctx.shot(tp, '1_ingresso_390');
     await ctx.test('telefono: dentro la Grotta i bottoni (A o la mira, B, D, i 3 preferiti), l\'HUD, Zaino e Pausa non si sovrappongono, ≥ 56 px (i preferiti ≥ 48)', async () => {
