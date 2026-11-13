@@ -51,7 +51,7 @@ test('ceneri: difficoltà 10 (il più difficile), Isola Vulcano, aperto a tutti,
   const ceneri = dungeonDef('ceneri'), m = parseDungeon(ceneri);
   assert.deepEqual([ceneri.stile, ceneri.difficolta, ceneri.richiede, ceneri.ingresso.island, ceneri.ingresso.at], ['ceneri', 10, undefined, 'vulcano', [15, 18]]);
   assert.ok(DUNGEONS.every((x) => x.id === 'ceneri' || x.difficolta < ceneri.difficolta), 'il più difficile del gioco');
-  assert.equal(DUNGEONS.length, 10);
+  assert.equal(DUNGEONS.length, 11);
   for (const v of VECCHI) assert.ok(!ENEMIES.some((e) => e.id === v), `${v}: il vecchio nemico (clone della Diga) non c'è più`);
 
   // niente logica della Diga: né ruote, né piloni, né correnti, né il comportamento del Capitano

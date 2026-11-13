@@ -62,6 +62,7 @@ const HUE: Record<string, Hue> = {
   unico_tuta_fluo: { b: '#B6FF3D', d: '#4E9A46', l: '#D9E872', t: '#FF3DA6' },
   unico_sudario_priore: { b: '#E8E1D6', d: '#B9AFA3', l: '#F4E3C1', t: '#8E5A2B' },
   unico_mantella_navigatore: { b: '#2478A8', d: '#163F73', l: '#3FB9C9', t: '#F5D547' },
+  unico_cavolo_corazzato: { b: '#8FC35B', d: '#4E9A46', l: '#D9E872', t: '#4E9A46' },
 };
 const hueDi = (id: string, materiale: string | undefined, colore: string): Hue =>
   HUE[id] ?? (materiale ? HUE[materiale] : undefined) ?? { b: palColor(colore), d: '#4A4340', l: '#F4E3C1', t: '#F4E3C1' };

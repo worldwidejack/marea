@@ -197,7 +197,7 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         case 'risveglio': say('Ti risvegli alla lanterna: perso solo il bottino raccolto dopo', 3200); break;
         case 'valvola': say(fucina ? 'Chiusa aperta: l’acqua raffredda la Colata Maestra…' : mausoleo ? 'Chiave caricata: il cancello del Santuario scende…' : diga ? (e.n === 5 ? 'Ruota girata: il ponte mobile si abbassa…' : 'Ruota girata: le paratie si aprono, l’acqua scende…') : baita ? 'Colonnina accesa: il ghiaccio si scioglie e il tornello si sgela…' : 'Valvola girata: l’acqua scende…', 2200); break;
         case 'asciutto': say(fucina ? 'La Colata è fredda: adesso si passa' : mausoleo ? 'Il cancello è aperto: il Santuario ti aspetta' : diga ? (e.n === 5 ? 'Il ponte è giù: la via breve per la stiva' : 'Prosciugato: adesso si passa') : baita ? 'Il tornello è sgelato: adesso si passa!' : ceneri ? 'Il canale di lava si è raffreddato: adesso si passa!' : 'Svuotato: adesso si passa', 2200); break;
-        case 'rallentato': say(baita ? 'Sciolina: ti rallenta' : 'La fanghiglia ti rallenta', 1600); break;
+        case 'rallentato': say(baita ? 'Sciolina: ti rallenta' : o.stile === 'orto' ? 'Bava di lumaca: ti rallenta' : 'La fanghiglia ti rallenta', 1600); break;
         case 'timone': say(diga ? 'Ruota girata: la risacca si ferma' : 'Timone girato: il vento si ferma', 2400); break;
         case 'arpionato': say('Arpionato! Il drone ti tira a sé', 1600); break;
         case 'urto': say('Sbattuto contro il muro', 1400); break;

@@ -21,7 +21,7 @@ export type Pianta = { def: DungeonDef; map: DMap; ch(cx: number, cz: number): s
 export type StileFp = {
   foschia: readonly [number, number, string, number]; raggi?: readonly [number, number]; fondo?: string;
   fascia: readonly [string, string] | null; pilastro: string | null; travi: string | null; stendardi: boolean; grotta?: true; vuoto?: true;
-  /** Tappeto del colore della stanza nel mezzo delle sale (le stanze «abitate»: cripta, archivio, mausoleo, baita). */
+  /** Tappeto del colore della stanza nel mezzo delle sale (le stanze «abitate»: cripta, archivio, mausoleo, baita, orto). */
   tappeto?: true;
 };
 const COSTRUITO = (z: string, c: string, p: string, t: string, nebbia: string, tappeto = false): StileFp => ({ foschia: [6, 22, nebbia, 0.75], fascia: [z, c], pilastro: p, travi: t, stendardi: true, ...(tappeto ? { tappeto: true as const } : {}) });
@@ -38,6 +38,7 @@ export const STILI_FP: Record<string, StileFp> = {
   diga: COSTRUITO(PAL.legnoScuro, PAL.legnoScuro, PAL.legnoScuro, PAL.legnoScuro, PAL.acquaProfonda),
   baita: COSTRUITO(PAL.legnoScuro, PAL.legnoScuro, PAL.legnoScuro, PAL.legnoScuro, PAL.ombraCalda, true),
   ceneri: COSTRUITO(PAL.neroCaldo, PAL.roccia, PAL.neroCaldo, PAL.neroCaldo, PAL.neroCaldo),
+  orto: COSTRUITO(PAL.ombraCalda, PAL.legno, PAL.legnoChiaro, PAL.legno, PAL.ombraCalda, true),
 };
 export const BASE_FP: StileFp = COSTRUITO(PAL.pietraScura, PAL.pietra, PAL.pietra, PAL.pietraScura, PAL.neroCaldo, true);
 /** I colori delle stanze, in giro (palette). */

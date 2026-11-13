@@ -25,7 +25,7 @@ export default async function (ctx) {
 
   await ctx.test('gli ingressi in game/ingressi.ts coincidono con DUNGEONS (isola, cella, stile, nome, difficoltà, porta sigillata)', async () => {
     const src = fs.readFileSync(path.join(ctx.ROOT, 'apps/client/src/game/ingressi.ts'), 'utf8');
-    const rows = [...src.matchAll(/\{ id: '(\w+)', nome: '([^']+)', island: '(\w+)', at: \[(\d+), (\d+)\], stile: '(\w+)', difficolta: (\d+)(?:, richiede: '(\w+)')? \}/g)].map((m) => ({ id: m[1], nome: m[2], island: m[3], at: [Number(m[4]), Number(m[5])], stile: m[6], difficolta: Number(m[7]), richiede: m[8] }));
+    const rows = [...src.matchAll(/\{ id: '(\w+)', nome: '([^']+)', island: '(\w+)', at: \[(\d+), (\d+)\], stile: '(\w+)', difficolta: (\d+(?:\.\d+)?)(?:, richiede: '(\w+)')? \}/g)].map((m) => ({ id: m[1], nome: m[2], island: m[3], at: [Number(m[4]), Number(m[5])], stile: m[6], difficolta: Number(m[7]), richiede: m[8] }));
     assert(rows.length === DUNGEONS.length, `ingressi.ts ha ${rows.length} ingressi, DUNGEONS ${DUNGEONS.length}`);
     for (const d of DUNGEONS) {
       const r = rows.find((x) => x.id === d.id);
