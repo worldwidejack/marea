@@ -335,6 +335,7 @@ export default async function (ctx) {
       const t0 = (await st()).dungeon.tick; await sleep(400);
       assert((await st()).dungeon.tick === t0, 'con lo zaino aperto la partita deve stare ferma');
       const click = async (sel) => { const l = page.locator(sel).first(); await l.scrollIntoViewIfNeeded(); await l.click(); };
+      await click('#mzEroe [data-cat="archi"]');
       await click('#mzEroe [data-item="arco_legno"]');
       await click('#mzEroe [data-det="arco_legno"] [data-act="equipaggia"]');
       await ctx.waitState(page, (s, a) => s.dungeon.hero.arma === 'arco_legno' && s.dungeon.azioni === a + 1, 3000, az0);

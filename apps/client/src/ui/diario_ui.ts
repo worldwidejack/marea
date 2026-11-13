@@ -73,7 +73,7 @@ const STYLE = `
 export function createDiarioUi(ctx: DiarioCtx) {
   injectUiStyle();
   if (!document.getElementById('mz-diarioui-style')) { const st = document.createElement('style'); st.id = 'mz-diarioui-style'; st.textContent = STYLE; document.head.appendChild(st); }
-  const sheet = el('div', 'mz mz-sheet mz-dia'); sheet.id = 'mzDiario'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Diario del capitano');
+  const sheet = el('div', 'mz mz-sheet mz-dia mz-grande'); sheet.id = 'mzDiario'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Diario del capitano');
   for (const ev of ['pointerdown', 'touchstart']) sheet.addEventListener(ev, (x) => x.stopPropagation());
   ctx.root.appendChild(sheet);
   const meId = ctx.me?.id ?? null;

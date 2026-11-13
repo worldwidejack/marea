@@ -4,7 +4,6 @@ import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
 const CSS = `
 #mzEroe.mz-rpg { padding-top: 0; overscroll-behavior: contain; }
-@media (max-width: 699px) { #mzEroe.mz-rpg { max-height: 72%; } }
 #mzEroe .mz-rp-top { position: sticky; top: 0; z-index: 3; margin: 0 -12px 6px; padding: 6px 12px 8px; background: ${L.carta}; border-bottom: 2px solid ${L.oro}; }
 #mzEroe .mz-rp-top .mz-head { margin-bottom: 6px; }
 .mz-rp-coins { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; color: ${L.acquaScura}; font-weight: 700; white-space: nowrap; }
@@ -86,6 +85,50 @@ const CSS = `
 .mz-btn.vita { background: ${L.rosso}; color: ${L.inchiostro}; } .mz-btn.magicka { background: ${L.acqua}; } .mz-btn.stamina { background: ${L.acqua}; }
 #mzHeroBtn canvas { width: 24px; height: 24px; }
 body.mz-sotto #mzEroe:not(.sotto) { display: none; }
+#mzEroe [data-panel]:not([data-panel="eroe-zaino"]) { max-width: 760px; margin: 0 auto; }
+.zn-eq { margin-bottom: 8px; }
+.zn-fig { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; align-items: center; }
+.zn-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.zn-sagoma { display: flex; align-items: center; justify-content: center; }
+.zn-bambola { height: 140px; width: auto; aspect-ratio: 26 / 34; image-rendering: pixelated; }
+.zn-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 60px; padding: 3px; box-sizing: border-box; min-width: 0; background: ${L.cartaChiara}; border: 2px dashed ${L.filo}; color: ${L.inchiostro2}; font: 700 14px/1.15 ${FONT_LIBRO}; text-align: center; cursor: pointer; }
+.zn-slot.full { border-style: solid; border-color: ${L.oro}; color: ${L.inchiostro}; }
+.zn-slot.on { border-color: ${L.acqua}; }
+.zn-slot .ic { display: flex; align-items: center; justify-content: center; min-height: 28px; }
+.zn-slot.full .k, .zn-slot:not(.full) .v { display: none; }
+.zn-slot .k, .zn-slot .v { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.zn-slot .v { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
+.zn-slot .tg { color: ${L.acquaScura}; font-size: 13px; }
+.zn-peso { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 15px; color: ${L.inchiostro2}; }
+.zn-peso b { color: ${L.inchiostro}; }
+.zn-cats { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px; margin-bottom: 4px; position: sticky; top: var(--rp-top, 60px); z-index: 2; background: ${L.carta}; scrollbar-width: thin; }
+.zn-cat { flex: none; display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; background: ${L.cartaScura}; border: 2px solid ${L.oro}; color: ${L.inchiostro2}; font: 700 15px ${FONT_LIBRO}; cursor: pointer; }
+.zn-cat.on { background: ${L.acqua}; color: ${L.cartaChiara}; box-shadow: inset 0 0 0 1.5px ${L.acquaScura}; }
+.zn-cat i { font-style: normal; font-size: 13px; opacity: .85; }
+.zn-lista .mz-rp-row { min-height: 54px; font-size: 16px; }
+.zn-lista .mz-rp-row .q { font-size: 14px; }
+.zn-lista .mz-rp-det { font-size: 15px; }
+@media (min-width: 700px), (orientation: landscape) and (max-height: 520px) {
+  .zn { display: grid; grid-template-columns: minmax(250px, 38%) minmax(0, 1fr); gap: 14px; align-items: start; }
+  .zn-eq { position: sticky; top: calc(var(--rp-top, 60px) + 6px); max-height: calc(100dvh - var(--rp-top, 60px) - 36px); overflow-y: auto; margin-bottom: 0; }
+}
+@media (min-height: 700px) { .zn-bambola { height: 190px; } .zn-slot { min-height: 72px; } }
+@media (max-height: 520px) {
+  #mzEroe .mz-rp-top { display: flex; align-items: center; gap: 8px; padding: 4px 12px; }
+  #mzEroe .mz-rp-top .mz-head { display: contents; }
+  #mzEroe .mz-rp-top .mz-title { order: 1; font-size: 20px; }
+  #mzEroe .mz-rp-top .mz-title::after { display: none; }
+  #mzEroe .mz-rp-top .mz-rp-tabs { order: 2; flex: 1; }
+  #mzEroe .mz-rp-top .mz-rp-coins { order: 3; margin-left: 0; }
+  #mzEroe .mz-rp-top .mz-x { order: 4; }
+  .mz-rp-tab { min-height: 40px; }
+  .zn-bambola { height: 120px; }
+  .zn-slot { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; column-gap: 5px; min-height: 50px; padding: 3px 4px; font-size: 13px; text-align: left; }
+  .zn-slot .ic { grid-row: 1 / span 2; }
+  .zn-slot .k, .zn-slot .v { grid-column: 2; grid-row: 1; }
+  .zn-slot .tg { grid-column: 2; grid-row: 2; }
+  .zn-slot .v { -webkit-line-clamp: 2; }
+}
 `;
 
 let injected = false;
