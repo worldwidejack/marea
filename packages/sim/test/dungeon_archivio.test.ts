@@ -271,7 +271,8 @@ test('archivio: porta sigillata — senza il Drenaggio completato non si entra, 
 });
 
 test('archivio: una partita col pilota automatico si rigioca uguale (vento, timone, grate, bombe, anelli nel replay)', () => {
-  const s = nuovo(heroForte(), 7), log: DungeonInput[] = [], rng = createRng(7);
+  // seme scelto perché, con i nemici che ti notano prima, il pilota passi comunque su timone, arpione e bombe
+  const s = nuovo(heroForte(), 1), log: DungeonInput[] = [], rng = createRng(1);
   const visti = new Set<string>();
   for (let t = 0; t < 60 * 60 * 3 && !s.done; t++) {
     const f = quantizeDungeon(dungeon.autopilot(s, rng));
@@ -279,6 +280,6 @@ test('archivio: una partita col pilota automatico si rigioca uguale (vento, timo
     for (const e of s.eventi) visti.add(e.t);
   }
   assert.ok(visti.has('timone') && visti.has('arpionato') && visti.has('bomba'), [...visti].join(','));
-  const r = replayDungeon(7, 'archivio', heroForte(), packDungeon(log));
+  const r = replayDungeon(1, 'archivio', heroForte(), packDungeon(log));
   assert.equal(r.hash, dungeon.result(s).hash, 'stesso hash nel replay');
 });
