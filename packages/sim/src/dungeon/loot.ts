@@ -2,7 +2,7 @@
 import type { DungeonState, Loot, LootParte } from './state.ts';
 import { ev, inGioco, parte } from './state.ts';
 import { PESO_IGNOTO, RAGGIO_RACCOLTA } from './tuning.ts';
-import { invNow } from './zaino.ts';
+import { invNow, riallinea } from './zaino.ts';
 
 export const pesoDi = (s: DungeonState, item: string): number => s.runHero.pesi[item] ?? PESO_IGNOTO;
 
@@ -47,10 +47,12 @@ function take(s: DungeonState, l: LootParte): void {
   let peso = pesoZaino(s);
   const max = s.runHero.caricoMax;
   let bloccato = '';
+  const presi: string[] = [];
   for (const k of Object.keys(l.items).sort()) {
     const n = l.items[k]!, w = pesoDi(s, k);
     const quanti = w <= 0 ? n : Math.min(n, Math.floor((max - peso + 1e-9) / w));
     if (quanti > 0) {
+      presi.push(k);
       s.bottino[k] = (s.bottino[k] ?? 0) + quanti;
       peso += quanti * w;
       ev(s, { t: 'raccolto', item: k, n: quanti });
@@ -62,6 +64,7 @@ function take(s: DungeonState, l: LootParte): void {
   if (bloccato && !l.pieno) ev(s, { t: 'pieno', item: bloccato });
   l.pieno = bloccato !== '';
   l.vuoto = Object.keys(l.items).length === 0 && l.monete === 0;
+  riallinea(s, presi);
 }
 
 /** C'è qualcosa in questo bottino che entra nello zaino? (per l'autopilot: chi fruga a mano non raccoglie passandoci sopra, quindi no) */

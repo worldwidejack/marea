@@ -47,20 +47,23 @@ export function consuma(s: DungeonState, id: string, into: Bag): void {
 
 /** RunHero rifatto da `stato` con lo zaino e l'equipaggiamento di adesso. `carico` e `pesi` restano quelli dell'entrata (il peso lo conta
  *  pesoZaino dallo zaino di adesso). Le barre restano dove sono, tagliate ai massimi nuovi; frecce e pozioni pronte = quelle nello zaino.
- *  Cambiando arma l'azione in corso (colpo, carica, arco teso) si interrompe. */
-export function rebuild(s: DungeonState): void {
+ *  Cambiando arma l'azione in corso (colpo, carica, arco teso) si interrompe. `soloConti`: dopo un bottino, rifà solo il RunHero e i conteggi
+ *  (frecce, pozioni): l'arma e la mano di adesso, e l'azione in corso, restano quelle che sono. */
+export function rebuild(s: DungeonState, soloConti = false): void {
   const st = s.stato;
   if (!st) return;
   const h = s.hero, old = s.runHero;
   const rh = buildRunHero({ ...st, inv: invNow(s), equip: s.equip, usura: { ...st.usura, ...s.usura } }, { arena: old.arena });
   s.runHero = { ...rh, carico: old.carico, pesi: old.pesi };
   h.vita = Math.min(h.vita, rh.max.vita); h.magicka = Math.min(h.magicka, rh.max.magicka); h.stamina = Math.min(h.stamina, rh.max.stamina);
-  const cambia = h.arma.id !== rh.arma.id || h.arma.kind !== rh.arma.kind, manoPrima = h.incanta;
-  const cambiaMagia = old.magia !== rh.magia || manoPrima !== !!rh.manoMagia;
-  h.arma = { ...rh.arma, traits: { ...rh.arma.traits } };
-  h.incanta = !!rh.manoMagia;
-  const curSp = rh.magia !== null ? rh.magie[rh.magia] : undefined;
-  h.cdMagia = curSp ? ((h.cdMagie ??= {})[curSp.id] ?? 0) : 0;
+  const cambia = !soloConti && (h.arma.id !== rh.arma.id || h.arma.kind !== rh.arma.kind), manoPrima = h.incanta;
+  const cambiaMagia = !soloConti && (old.magia !== rh.magia || manoPrima !== !!rh.manoMagia);
+  if (!soloConti) {
+    h.arma = { ...rh.arma, traits: { ...rh.arma.traits } };
+    h.incanta = !!rh.manoMagia;
+    const curSp = rh.magia !== null ? rh.magie[rh.magia] : undefined;
+    h.cdMagia = curSp ? ((h.cdMagie ??= {})[curSp.id] ?? 0) : 0;
+  }
   if (cambia) {
     h.colpiFragile = rh.arma.usura ?? 0;
     // unici del Mausoleo, della Diga e della Baita: l'arma nuova parte carica (pressione, molle) e senza ritmo/brezza/fresca
@@ -75,6 +78,13 @@ export function rebuild(s: DungeonState): void {
   h.pozioni = rh.pozione !== null ? rh.pozioni[rh.pozione]?.n ?? 0 : 0;
   if (!rh.armatura.barriera) h.barr = 0; // tolta l'Armatura del Moto Perpetuo, la Barriera si spegne
   if (!rh.armatura.vampa) { h.vampa = 0; h.sovralimentata = false; } // tolto il Manto del Primo Lucignolo, la Vampa si spegne
+}
+
+/** Hai raccolto `preso` (id degli oggetti): se sono frecce o pozioni i conteggi pronti dell'eroe (frecce nell'arco, pozioni da bere) si
+ *  rifanno dallo zaino di adesso. Senza, chi ha finito le frecce e ne trova da un cadavere non tira, e la pozione finita non si beve più,
+ *  finché un cambio dal menu non rifà tutto. Senza `stato` i conteggi restano quelli dell'entrata. */
+export function riallinea(s: DungeonState, preso: string[]): void {
+  if (s.stato && preso.some((k) => k.startsWith('frecce_') || k.startsWith('pozione'))) rebuild(s, true);
 }
 
 /** Cambia equipaggiamento (item null = togli). null se non si può: niente `stato`, oggetto che non hai, slot sbagliato, niente da cambiare.

@@ -44,6 +44,40 @@ test('zaino: cambio d’arma dal menu (katana → arco): RunHero rifatto, arma i
   assert.equal(dungeon.act(vecchia, { t: 'equip', slot: 'arma', item: 'arco_legno' }), null);
 });
 
+test('zaino: frecce e pozioni raccolte (a mano o passandoci sopra) sono subito pronte, senza passare dal menu', () => {
+  const finite = (): DungeonState => {
+    const s = partenza();
+    dungeon.act(s, { t: 'equip', slot: 'arma', item: 'arco_legno' });
+    s.usati['frecce_legno'] = 20; s.usati['pozione_vita_minore'] = 2; // tirate tutte, bevute tutte
+    s.hero.frecce = 0; s.hero.pozioni = 0;
+    return s;
+  };
+  const tabella = { frecce_legno: 5, pozione_vita_minore: 1 };
+  // a mano (prima persona): il cadavere ha frecce e una pozione
+  const a = finite();
+  dungeon.act(a, { t: 'fruga' });
+  const l = { id: a.nextId++, x: a.hero.x + 1, z: a.hero.z, tipo: 'cadavere' as const, items: { ...tabella }, monete: 0, vuoto: false, pieno: false };
+  a.loot.push(l);
+  assert.ok(dungeon.act(a, { t: 'prendi', id: l.id }));
+  assert.equal(a.hero.frecce, 5, 'le frecce trovate si possono tirare');
+  assert.equal(a.hero.pozioni, 1, 'la pozione trovata si può bere');
+  assert.equal(a.hero.arma.kind, 'arco', 'l’arma in mano non cambia');
+  // passandoci sopra (terza persona)
+  const b = finite();
+  b.loot.push({ id: b.nextId++, x: b.hero.x + 0.5, z: b.hero.z, tipo: 'cadavere', items: { ...tabella }, monete: 0, vuoto: false, pieno: false });
+  run(b, 40, inp({ mx: 0.4 }));
+  assert.equal(b.hero.frecce, 5); assert.equal(b.hero.pozioni, 1);
+  // e col colpo in corso non si interrompe niente
+  const c = finite();
+  run(c, 3, inp({ a: true }));
+  dungeon.act(c, { t: 'fruga' });
+  const l2 = { id: c.nextId++, x: c.hero.x + 1, z: c.hero.z, tipo: 'cadavere' as const, items: { ...tabella }, monete: 0, vuoto: false, pieno: false };
+  c.loot.push(l2);
+  const act = c.hero.act;
+  dungeon.act(c, { t: 'prendi', id: l2.id });
+  assert.equal(c.hero.act, act, 'raccogliere non interrompe l’azione in corso');
+});
+
 test('zaino: si equipaggia quello raccolto nel dungeon; uscendo resta, morendo (perso) lo slot torna a com’era', () => {
   const s = partenza();
   s.bottino['katana_ferro'] = 1; s.bottino['anello_vita_debole'] = 1;
