@@ -21,7 +21,7 @@
 - Sotto: appena entri il client manda l'azione `fruga` (l'eroe non raccoglie più passandoci sopra), ogni presa è l'azione `prendi` (`sim/dungeon/fruga.ts`), registrata col tick e rigiocata dal server come quelle dello zaino. Insieme ognuno fruga la sua parte, uguale per tutti.
 
 ## 4. Furtività
-- **Chi non ti ha visto** (`sim/dungeon/quiete.ts`) vede in un **cono**: davanti col raggio pieno (7-20 m secondo il nemico), di lato a metà, dietro quasi niente. Camminando (senza correre) ti vede a **¾ del raggio**. Non scatta subito: il **sospetto** (solo nel motore, a schermo nessuna barra) sale in fretta se sei vicino e davanti, piano se sei al bordo, e cala piano.
+- **Chi non ti ha visto** (`sim/dungeon/quiete.ts`) vede col raggio pieno (7-20 m secondo il nemico) davanti e di lato (fino a ±105°), dietro a **0,7** del raggio; camminando o correndo non cambia. Non scatta subito: il **sospetto** (solo nel motore, a schermo nessuna barra) sale in fretta (da 0,04 s se sei vicino a 0,27 s al bordo della vista) e cala piano. Chi corre dritto verso un bandito (vista 9 m) fa scattare l'allarme a ~7,6 m davanti e ~5,2 m se arriva alle spalle (v20).
 - **Sente**: i passi (camminando pochi metri, correndo molti), i colpi, l'arco e le magie, le lotte vicine; dietro un muro a metà. Il sentito da solo non basta per attaccare: si gira e viene a cercare.
 - A metà sospetto **cerca** dove ti ha visto o sentito (un **«?»** giallo sopra la testa), poi si guarda intorno e torna a casa; pieno ti ha visto (un **«!»** rosso per un secondo) e sveglia chi ha vicino.
 - Prima di tutto questo **non sta immobile**: metà di chi cammina fa la **ronda** tra due punti vicini, gli altri restano lì e si guardano intorno. **Chi dorme non vede**, sente a metà e, sveglio, va a vedere.

@@ -376,7 +376,7 @@ test('diga: aperta fin dall’inizio — un eroe appena nato ci entra (nessun du
 
 test('diga: una partita col pilota automatico si rigioca uguale (ruote, risacca, rottami, fucili e barili); dalla lanterna del Timone anche il Capitano', () => {
   // seme scelto perché il pilota passi su tutto (col bottino degli unici sparsi, col seme 1 la strada non tocca più i rottami)
-  const s = nuovo(leggenda(), 7), log: DungeonInput[] = [], rng = createRng(7);
+  const s = nuovo(leggenda(), 8), log: DungeonInput[] = [], rng = createRng(8);
   const visti = new Set<string>();
   for (let i = 0; i < 9000 && !s.done; i++) {
     const f = quantizeDungeon(dungeon.autopilot(s, rng));
@@ -384,7 +384,7 @@ test('diga: una partita col pilota automatico si rigioca uguale (ruote, risacca,
     for (const e of s.eventi) visti.add(e.t);
   }
   assert.ok(['valvola', 'asciutto', 'sparo', 'bomba', 'rottami'].every((t) => visti.has(t)), [...visti].join(','));
-  const r = replayDungeon(7, 'diga', leggenda(), packDungeon(log));
+  const r = replayDungeon(8, 'diga', leggenda(), packDungeon(log));
   assert.equal(r.hash, dungeon.result(s).hash, 'stesso hash nel replay');
   const t = nuovo(leggenda(), 4, 1), log2: DungeonInput[] = [], rng2 = createRng(4), visti2 = new Set<string>();
   while (!t.done && !t.enemies.find((e) => e.capo)!.fase && t.tick < 20000) {
