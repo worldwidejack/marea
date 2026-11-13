@@ -344,8 +344,8 @@ export function startRun(ctx: RunCtx, o: {
     if (pronti <= 0) { attesa = true; return; }
     if (attesa && pronti < CUSCINETTO) return;
     attesa = false;
-    const n = pronti > RECUPERO ? 4 : pronti > SVELTO ? 2 : 1; // recupera senza esaurire tutta la coda nello stesso passo
-    for (let k = 0; k < n && phase !== 'over'; k++) tickRete(n > 2);
+    const n = pronti > RECUPERO ? pronti - CUSCINETTO : pronti > SVELTO ? 2 : 1, fine = performance.now() + 8; // recupero a tempo: almeno 4 passi, poi basta se il frame si allunga (a FPS bassi non resta indietro)
+    for (let k = 0; k < n && phase !== 'over' && (k < 4 || performance.now() < fine); k++) tickRete(n > 2);
     refresh();
     hero!.tick(view.hero); actors!.tick(view); mfx?.tick(view); dfx?.tick(view); ufx?.tick(view); gfx?.tick(view); tickAmici();
     if (s.done && phase === 'play') toEnd();
