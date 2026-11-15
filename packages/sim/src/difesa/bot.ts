@@ -1,7 +1,8 @@
 // Il pilota automatico della Difesa: gioca come una persona, a tre livelli di bravura, per i test e per lo strumento di bilanciamento
 // (tools/difesa_bilancio.mjs). Ragiona ogni `reazione` secondi: raccoglie le monete, poi fa una mossa alla volta in quest'ordine:
 // bomba sui gruppi o sulle emergenze, esca per il saltatore, produttori finché la difesa regge, tiratori dove il danno non basta,
-// muri davanti ai nemici corazzati, mine per i nemici soli lontani, il gelo dove ci sono già tiratori. Il bravo pianta al posto giusto;
+// muri davanti ai nemici corazzati, la mangiatutto davanti a chi è blindato, il potenziatore dietro i tiratori, il mortaio in fondo, mine
+// per i nemici soli lontani, il gelo dove ci sono già tiratori (il ripetitore al posto del tiratore se può). Il bravo pianta al posto giusto;
 // il medio è più lento e ogni tanto sbaglia casella; il distratto reagisce tardi, si perde monete e mette i difensori un po' a caso.
 // Ha il suo caso (non tocca quello della partita): la partita resta la stessa a parità di seme e di mosse.
 import type { DTipoUnita } from '@marea/content/difesa.ts';
@@ -11,18 +12,18 @@ import { caso, prof, tick, unitaIn, vivo } from './stato.ts';
 
 export type DBravura = 'bravo' | 'medio' | 'distratto';
 export type DBot = { bravura: DBravura; caso: number; prossima: number; viste: Record<number, 1 | 2> };
-type Stile = { reazione: number; raccogli: number; perde: number; produttori: number; bomba: number; mina: boolean; muro: number; gelo: boolean; sbaglia: number; anticipo: boolean };
+type Stile = { reazione: number; raccogli: number; perde: number; produttori: number; bomba: number; mina: boolean; muro: number; gelo: boolean; sbaglia: number; anticipo: boolean; nuove: boolean; mortai: number };
 const STILI: Record<DBravura, Stile> = {
-  bravo: { reazione: 0.25, raccogli: 0.3, perde: 0, produttori: 2, bomba: 1, mina: true, muro: 1, gelo: true, sbaglia: 0, anticipo: true },
-  medio: { reazione: 0.9, raccogli: 1.4, perde: 0.05, produttori: 1.4, bomba: 0.7, mina: true, muro: 0.7, gelo: true, sbaglia: 0.15, anticipo: true },
-  distratto: { reazione: 2.2, raccogli: 3.2, perde: 0.3, produttori: 1, bomba: 0.3, mina: false, muro: 0.3, gelo: false, sbaglia: 0.45, anticipo: false },
+  bravo: { reazione: 0.25, raccogli: 0.3, perde: 0, produttori: 2, bomba: 1, mina: true, muro: 1, gelo: true, sbaglia: 0, anticipo: true, nuove: true, mortai: 2 },
+  medio: { reazione: 0.9, raccogli: 1.4, perde: 0.05, produttori: 1.4, bomba: 0.7, mina: true, muro: 0.7, gelo: true, sbaglia: 0.15, anticipo: true, nuove: true, mortai: 1 },
+  distratto: { reazione: 2.2, raccogli: 3.2, perde: 0.3, produttori: 1, bomba: 0.3, mina: false, muro: 0.3, gelo: false, sbaglia: 0.45, anticipo: false, nuove: false, mortai: 0 },
 };
 
 export function creaBot(bravura: DBravura, seme = 7): DBot {
   return { bravura, caso: (seme >>> 0) || 1, prossima: 0, viste: {} };
 }
 
-const DPS = (s: DState, t: DTipoUnita): number => { const d = prof(s).unita[t]; return d.tipo === 'tiro' ? (d.danno ?? 20) / ((d.cadenza ?? 1.5) - (d.cadenzaCaso ?? 0) / 2) : 0; };
+const DPS = (s: DState, t: DTipoUnita): number => { const d = prof(s).unita[t]; return d.tipo === 'tiro' ? ((d.danno ?? 20) * (d.colpi ?? 1)) / ((d.cadenza ?? 1.5) - (d.cadenzaCaso ?? 0) / 2) : 0; };
 const vitaDi = (e: DNemico): number => e.vita + e.armatura;
 
 /** Le mosse del pilota per questo tick (vuote se non è il momento di ragionare). */
@@ -56,13 +57,16 @@ export function autopilota(s: DState, b: DBot): DComando[] {
     const ns = nem(r);
     if (!ns.length) return 0;
     const front = Math.min(...ns.map((e) => e.x)), tiratori = unitaDi(r).filter((u) => DPS(s, u.tipo) > 0);
-    const muro = unitaDi(r).some((u) => u.tipo === 'muro' && u.col < front) ? 25 : 0;
+    const muro = unitaDi(r).some((u) => P.unita[u.tipo].tipo === 'muro' && u.col < front) ? 25 : 0;
     const tempo = Math.max(3, (front - Math.max(1, ...tiratori.map((u) => u.col + 1))) / 0.16) + muro;
     return ns.reduce((a, e) => a + vitaDi(e), 0) / tempo - dpsCorsia(r);
   };
   const tiratoriIn = (r: number) => unitaDi(r).filter((u) => DPS(s, u.tipo) > 0).length;
   const produttori = s.unita.filter((u) => P.unita[u.tipo].tipo === 'produce').length;
   const carta = (t: DTipoUnita) => s.carte.some((c) => c.tipo === t);
+  /** Il tiratore migliore che si può pagare ora: il ripetitore (se la carta c'è e il pilota sa usarla), altrimenti il tiratore semplice. */
+  const tiratore = (): DTipoUnita | null => (st.nuove && carta('ripetitore') && pronta('ripetitore') ? 'ripetitore' : pronta('sparatore') ? 'sparatore' : null);
+  const conta = (t: DTipoUnita) => s.unita.filter((u) => u.tipo === t).length;
   // 0. tutorial: niente arriva finché non pianti
   if (s.attesa && pronta('sparatore')) { metti('sparatore', corsie[0]!, 2); return out; }
 
@@ -82,14 +86,14 @@ export function autopilota(s: DState, b: DBot): DComando[] {
     if (!sal || caso(b) < st.sbaglia) continue;
     const primo = Math.max(-1, ...unitaDi(r).map((u) => u.col));
     if (primo >= Math.floor(sal.x) - 1 || primo >= 6) continue;
-    const esca: DTipoUnita | null = carta('mina') && pronta('mina') ? 'mina' : carta('muro') && pronta('muro') ? 'muro' : null;
+    const esca: DTipoUnita | null = st.nuove && carta('muroAlto') && pronta('muroAlto') ? 'muroAlto' : carta('mina') && pronta('mina') ? 'mina' : carta('muro') && pronta('muro') ? 'muro' : null;
     if (esca && metti(esca, r, Math.min(C.colonne - 1, Math.max(primo + 2, 6)))) return out;
   }
   // 4. una corsia nei guai: tiratore (o gelo) nella prima casella libera dopo i produttori
   const urgenti = corsie.filter((r) => bisogno(r) > 0).sort((a, z) => bisogno(z) - bisogno(a));
   for (const r of urgenti) {
     const gelo = st.gelo && carta('gelo') && tiratoriIn(r) >= 2 && pronta('gelo');
-    const tipo: DTipoUnita | null = gelo ? 'gelo' : pronta('sparatore') ? 'sparatore' : null;
+    const tipo: DTipoUnita | null = gelo ? 'gelo' : tiratore();
     if (!tipo) break;
     for (let c = 1; c <= 6; c++) if (libera(r, c)) { if (metti(tipo, r, c)) return out; break; }
   }
@@ -104,31 +108,58 @@ export function autopilota(s: DState, b: DBot): DComando[] {
   // 6. un tiratore per corsia prima che arrivino (il distratto aspetta di vederli)
   if (st.anticipo && pronta('sparatore')) {
     const vuota = corsie.find((r) => tiratoriIn(r) === 0 && (!carta('produttore') || produttori >= Math.min(2, voglio) || s.ondata > 0));
-    if (vuota !== undefined) for (let c = 1; c <= 4; c++) if (libera(vuota, c)) { if (metti('sparatore', vuota, c)) return out; break; }
+    const t = tiratore();
+    if (vuota !== undefined && t) for (let c = 1; c <= 4; c++) if (libera(vuota, c)) { if (metti(t, vuota, c)) return out; break; }
   }
   // 7. muro davanti a chi è corazzato o in gruppo
   if (carta('muro') && pronta('muro') && caso(b) < st.muro) {
     for (const r of corsie) {
       const ns = nem(r), tir = unitaDi(r).filter((u) => DPS(s, u.tipo) > 0);
-      if (!tir.length || !ns.length || unitaDi(r).some((u) => u.tipo === 'muro')) continue;
+      if (!tir.length || !ns.length || unitaDi(r).some((u) => P.unita[u.tipo].tipo === 'muro')) continue;
       if (!ns.some((e) => e.armatura > 0) && ns.length < 3) continue;
       const c = Math.min(7, Math.max(...tir.map((u) => u.col)) + 2), front = Math.min(...ns.map((e) => e.x));
       if (front > c + 1.2 && metti('muro', r, c)) return out;
+    }
+  }
+  // 7b. mangiatutto davanti a chi è blindato (inghiotte anche l'armatura), un po' dopo i tiratori
+  if (st.nuove && carta('mangiatutto') && pronta('mangiatutto') && caso(b) < st.muro) {
+    for (const r of corsie) {
+      const ns = nem(r), tir = unitaDi(r).filter((u) => DPS(s, u.tipo) > 0);
+      if (!tir.length || !ns.some((e) => e.armatura >= 250 && !P.nemici[e.tipo].grande) || unitaDi(r).some((u) => P.unita[u.tipo].tipo === 'mangia')) continue;
+      const c = Math.min(6, Math.max(...tir.map((u) => u.col)) + 1), front = Math.min(...ns.map((e) => e.x));
+      if (front > c + 1.8 && metti('mangiatutto', r, c)) return out;
+    }
+  }
+  // 7c. potenziatore subito dopo i tiratori della corsia (i colpi gli passano sopra), quando non ci sono guai
+  if (st.nuove && carta('potenziatore') && pronta('potenziatore') && urgenti.length === 0 && valuta >= 250) {
+    for (const r of corsie) {
+      const tir = unitaDi(r).filter((u) => DPS(s, u.tipo) > 0);
+      if (tir.length < 2 || unitaDi(r).some((u) => P.unita[u.tipo].tipo === 'potenzia')) continue;
+      const c = Math.max(...tir.map((u) => u.col)) + 1;
+      if (c <= 6 && libera(r, c) && metti('potenziatore', r, c)) return out;
+    }
+  }
+  // 7d. mortaio in fondo (colonna 0 o 1): tira su tutte le corsie, ma non su chi gli sta addosso
+  if (st.mortai > 0 && carta('mortaio') && pronta('mortaio') && urgenti.length === 0 && produttori >= Math.min(4, voglio) && conta('mortaio') < st.mortai) {
+    for (const c of [0, 1, 2]) {
+      const r = corsie.filter((x) => libera(x, c)).sort((a, z) => unitaDi(a).length - unitaDi(z).length)[0];
+      if (r !== undefined && metti('mortaio', r, c)) return out;
     }
   }
   // 8. mina per un nemico solo e lontano (si arma prima che arrivi)
   if (st.mina && carta('mina') && pronta('mina')) {
     for (const r of corsie) {
       const ns = nem(r);
-      if (ns.length !== 1 || ns[0]!.corsa > 0) continue;
+      if (ns.length !== 1 || ns[0]!.corsa > 0 || ns[0]!.vola) continue;
       const c = Math.floor(ns[0]!.x - 3.4);
       if (c >= 2 && c < C.colonne && ns[0]!.x < C.visibile + 0.5 && metti('mina', r, c)) return out;
     }
   }
   // 9. soldi avanzati: rinforzo la corsia più carica, poi altri tiratori ovunque
-  if (valuta >= 250 && pronta('sparatore')) {
+  if (valuta >= 250 && (pronta('sparatore') || pronta('ripetitore'))) {
     const r = [...corsie].sort((a, z) => nem(z).reduce((x, e) => x + vitaDi(e), 0) - nem(a).reduce((x, e) => x + vitaDi(e), 0) || tiratoriIn(a) - tiratoriIn(z))[0]!;
-    for (let c = 1; c <= 5; c++) if (libera(r, c)) { metti(st.gelo && carta('gelo') && pronta('gelo') && tiratoriIn(r) >= 2 ? 'gelo' : 'sparatore', r, c); break; }
+    const t = st.gelo && carta('gelo') && pronta('gelo') && tiratoriIn(r) >= 2 ? 'gelo' : tiratore();
+    if (t) for (let c = 1; c <= 5; c++) if (libera(r, c)) { metti(t, r, c); break; }
   }
   return out;
 }

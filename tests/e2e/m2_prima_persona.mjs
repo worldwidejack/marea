@@ -1,5 +1,5 @@
-// Dungeon in prima persona alla Skyrim (docs/PRIMA_PERSONA.md), su wrangler dev locale come m2_dungeon: si entra nella Grotta con ?fp=1 e il
-// client manda da solo l'azione `fruga`; bussola in alto, barre in basso, mirino; l'autopilota combatte finché un cadavere non sta a portata
+// Dungeon in prima persona alla Skyrim (docs/PRIMA_PERSONA.md), su wrangler dev locale come m2_dungeon: si entra nella Grotta e il
+// client manda da solo l'azione `fruga`; minimappa in alto a sinistra (niente bussola), barre in basso, mirino; l'autopilota combatte finché un cadavere non sta a portata
 // (il bottino non si raccoglie più passandoci sopra); lo si guarda, E apre la finestra (la partita si ferma), R prende tutto; un colpo con
 // lo sguardo in basso manda anche l'alzo (log formato 5); poi l'autopilota fino alla scala: il server rigioca input e azioni e l'hash coincide,
 // il bottino frugato arriva nel lotto. Screenshot 1280×720 in tests/out/shots/m2_prima_persona_*.png.
@@ -37,7 +37,7 @@ export default async function (ctx) {
     if (!up) throw new Error('wrangler dev non risponde:\n' + log.split('\n').slice(-20).join('\n'));
     const getLot = async (t) => (await (await fetch(base + '/api/lot', { headers: { 'x-token': t } })).json());
 
-    const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1&fp=1`, { viewport: ctx.B.DESKTOP }); ctx._pages.push(P);
+    const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1`, { viewport: ctx.B.DESKTOP }); ctx._pages.push(P);
     const page = P.page;
     if (WIN) await page.route(/\/(api|chunk|assets)/, (r) => r.continue({ headers: { ...r.request().headers(), connection: 'close' } }));
     await ctx.waitReady(page, 30000);
@@ -46,9 +46,11 @@ export default async function (ctx) {
     const hook = (n, ...a) => page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
     /** Gira lo sguardo verso (x, z), con la pendenza `pitch` (rad). */
     const guarda = async (x, z, pitch) => { const f = (await st()).fp; await hook('dungeonGuarda', Math.atan2(-(x - f.hero.x), -(z - f.hero.z)), pitch); await sleep(200); };
+    /** Gira lo sguardo sul cadavere `c` a terra: il mirino sta al centro del suo corpo come si vede (occhi a 1,4 m). Il bottino sta dove è caduto, il corpo si stende da lì. */
+    const guardaCorpo = async (c) => { const q = await st(), f = q.fp, k = q.fruga.forme?.[c.id] ?? c; await guarda(k.x, k.z, -Math.atan2(1.4, Math.hypot(k.x - f.hero.x, k.z - f.hero.z))); };
     let before = null, preso = null;
 
-    await ctx.test('Grotta in prima persona: si entra frugando a mano; bussola in alto, barre in basso, mirino sempre', async () => {
+    await ctx.test('Grotta in prima persona: si entra frugando a mano; minimappa in alto a sinistra, barre in basso, mirino sempre', async () => {
       before = await getLot('tokA');
       const g = (await st()).ingressi.spots.find((x) => x.id === 'grotta');
       await hook('teleport', g.x, g.z + 3); await sleep(900);
@@ -57,12 +59,13 @@ export default async function (ctx) {
       await sleep(600);
       const s = await st();
       assert(s.dungeon.azioni >= 1, `l'azione fruga non è registrata: ${s.dungeon.azioni}`);
-      assert(s.hudFp && s.hudFp.segni >= 1, 'bussola senza segni: ' + JSON.stringify(s.hudFp));
+      assert(s.mappaFp && s.mappaFp.minimappa && s.mappaFp.viste > 0, 'minimappa senza celle viste: ' + JSON.stringify(s.mappaFp));
       const r = await page.evaluate(() => {
         const box = (sel) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height, vis: getComputedStyle(e).display !== 'none' }; };
-        return { bus: box('.mz-fp-bus'), hud: box('#mzDngHud'), mir: box('.mz-fp-mirino'), H: innerHeight };
+        return { bus: box('.mz-fp-bus'), mini: box('.mz-fp-mini'), hud: box('#mzDngHud'), mir: box('.mz-fp-mirino'), H: innerHeight };
       });
-      assert(r.bus?.vis && r.bus.y < 60, 'bussola: ' + JSON.stringify(r.bus));
+      assert(!r.bus, 'la bussola c’è ancora');
+      assert(r.mini?.vis && r.mini.x < 20 && r.mini.y < 20 && r.mini.w <= 130, 'minimappa: ' + JSON.stringify(r.mini));
       assert(r.hud && r.hud.y > r.H * 0.75, 'le barre non sono in basso: ' + JSON.stringify(r.hud));
       assert(r.mir?.vis, 'mirino non visibile');
       await ctx.shot(page, '1_ingresso_1280');
@@ -79,7 +82,12 @@ export default async function (ctx) {
       await hook('dungeonVai', Math.floor(cad.x / 2), Math.floor(cad.z / 2));
       await ctx.waitState(page, (s, id) => (s.fp.bottini.find((b) => b.id === id)?.d ?? 99) < 1.6, 15000, cad.id);
       await hook('dungeonVai', null, null); await sleep(500);
-      await guarda(cad.x, cad.z, -0.6);
+      await guardaCorpo(cad);
+      await ctx.waitState(page, (s, id) => s.fruga && s.fruga.mira && s.fruga.mira.id === id, 4000, cad.id);
+      // e con lo sguardo dritto all'orizzonte il cadavere non è sotto il mirino
+      await guarda(cad.x, cad.z, 0);
+      await ctx.waitState(page, (s) => s.fruga && !s.fruga.mira, 4000);
+      await guardaCorpo(cad);
       await ctx.waitState(page, (s, id) => s.fruga && s.fruga.mira && s.fruga.mira.id === id, 4000, cad.id);
       await ctx.shot(page, '2_cadavere_1280');
       await page.keyboard.press('KeyE');

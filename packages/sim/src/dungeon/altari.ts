@@ -74,5 +74,6 @@ export function risveglio(s: DungeonState): void {
     e.aggro = false; e.area = false; e.tiro = false;
     if (e.spento !== undefined) { e.spento = false; e.modo = undefined; e.mira = undefined; } // il Mastro Forgiatore si riaccende
     if (e.st !== 'dorme') { e.st = 'veglia'; e.stT = 0; e.stDur = 0; }
+    if (e.q) { e.q.sosp = 0; e.q.cerca = null; e.q.torna = true; } // torna a casa, alla sua ronda
   }
 }

@@ -7,7 +7,7 @@ import type { DungeonDef, EnemyDef, SpellElement, Traits } from '@marea/content/
 import type { EquipSlot, HeroState, RunHero, RunOutcome, RunWeapon } from '../rpg/types.ts';
 import { createRng } from '../rng.ts';
 import type { Rng } from '../rng.ts';
-import type { DungeonEvent, HeroAnim } from './types.ts';
+import type { DungeonEvent, HeroAnim, TipoBottino } from './types.ts';
 import type { SwingStyle } from './swing.ts';
 import { bfs, cellOf, moveCircle, parseDungeon } from './map.ts';
 import type { DMap, Griglia } from './map.ts';
@@ -54,14 +54,14 @@ export type HeroRt = {
    *  verso il colpo letale mentre tieni il colpo, e se il colpo che sta partendo è quello letale. */
   cdScarica: number; raffica: number; raffT: number; massimaP: number; massimo: boolean;
   /** Magia a raggio (Fuoco/Elettricità continua, Cura/Furia a flusso, magie.ts): tick da quando è accesa (0 = spenta), metri liberi davanti all'eroe, elemento. */
-  canale: number; canaleLen: number; canaleEl?: SpellElement; canaleFin?: number;
+  canale: number; canaleLen: number; canaleEl?: SpellElement; canaleFin?: number; canaleM?: string; bussolaId?: number; bussolaT?: number; // id della magia (solo dungeon), Concentra (magie_tratti.ts)
   /** Diga dei Disertori: tick fino a cui i rottami non lo riprendono; Vento in Poppa dell'Albero della «Stella del Mattino» (unici.ts):
    *  cariche di Brezza, metri corsi verso la prossima, e se il colpo in corso è quello che le ha consumate (l'onda d'urto).
    *  Tempio della «Doppia Nera»: tick rimasti «In Fresca», metri corsi verso la carica e se il colpo in corso solleva l'onda di neve.
    *  Santuario del Capo Ardente: cariche di Vampa (Manto del Primo Lucignolo) e se il raggio di fuoco in corso è sovralimentato. */
   rottT: number; brezza: number; brezzaM: number; poppa: boolean; fresca: number; frescaM: number; ondaNeve: boolean; vampa: number; sovralimentata: boolean;
-  /** Baita: scivolamento sul Ghiaccio Vivo [dx, dz] o null, fine dell'assideramento. Prima persona: alzo della mira ([cos, sen], alzo.ts), bottino a mano (fruga.ts). */
-  slideDir?: [number, number] | null; slideP?: [number, number] | null; assiderato?: number; alzo?: readonly [number, number]; fruga?: true;
+  /** Baita: scivolamento sul Ghiaccio Vivo [dx, dz] o null, fine dell'assideramento. Prima persona: alzo della mira ([cos, sen], alzo.ts), bottino a mano (fruga.ts). Arena: portata scelta per la bomba (portata.ts). */
+  slideDir?: [number, number] | null; slideP?: [number, number] | null; assiderato?: number; alzo?: readonly [number, number]; fruga?: true; portata?: number;
 };
 export type EnemyState = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'morto';
 export type Enemy = {
@@ -107,12 +107,12 @@ export type Enemy = {
    *  mischia. Il Custode (custode.ts): fase (0 acqua, 1 vapore, 2 moto) e colpi presi verso la scarica della Barriera. */
   potT?: number; potM?: number; potV?: number; rotto?: number; stordito?: number; comboN?: number; mischia?: boolean; fase?: number; colpiB?: number;
   /** Diga, il Capitano Vaelen (vaelen.ts): il pilone (indice in map.piloni) contro cui finirà la carica in corso, -1 = un muro. Le corsie dei
-   *  colpi dritti (la schiacciata della Guardia, gli affondi e la carica di Vaelen, la linea del Fuciliere) stanno in `mira`. Santuario (ceneri.ts, korok.ts): `rivelato` visibile per sempre (Sciamano colpito alla lanterna), `fuso` scadenza della miccia, `braciere` bersaglio del calcio, `esp` moltiplicatore della finestra di Korok. */
-  pilone?: number; rivelato?: boolean; fuso?: number; braciere?: number; esp?: number;
+   *  colpi dritti (la schiacciata della Guardia, gli affondi e la carica di Vaelen, la linea del Fuciliere) stanno in `mira`. Santuario (ceneri.ts, korok.ts): `rivelato` visibile per sempre (Sciamano colpito alla lanterna), `fumoFino` tick fino a cui lo Sciamano sta nel fumo, `fuso` scadenza della miccia, `braciere` bersaglio del calcio, `esp` moltiplicatore della finestra di Korok. */
+  pilone?: number; rivelato?: boolean; fumoFino?: number; fuso?: number; braciere?: number; esp?: number;
   /** Perk dell'eroe (v9). Taglio Critico: sanguina fino al tick `emorr` (% della vita massima al secondo `emorrPct`), rallentato fino al tick
    *  `lentoT` (`lentoAcc` accumula i tick: va al passo di `lentoMolt` tick su 1). Colpo fatale: paralizzato fino al tick `paralisi`.
    *  Evocazioni: danno × `dannoM`. Fuori dall'hash. */
-  emorr?: number; emorrPct?: number; lentoT?: number; lentoMolt?: number; lentoAcc?: number; paralisi?: number; dannoM?: number;
+  emorr?: number; emorrPct?: number; lentoT?: number; lentoMolt?: number; lentoAcc?: number; paralisi?: number; dannoM?: number; /** Chi non ti ha visto (quiete.ts). */ q?: import('./quiete.ts').Quiete;
 };
 /** Mausoleo: `lama` = lama d'acqua del Fendiflutti (dell'eroe, trapassa), `lama_nemica` = quella della Guardia d'Onore e del Custode. */
 export type ProjKind = 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica' | 'palla_nemica';
@@ -127,7 +127,7 @@ export type Proj = {
   /** Arpione (Drone Idro-Ragno): chi è preso è tirato di `tira` m all'indietro lungo il volo in `tiraT` tick. */
   tira?: number; tiraT?: number; spinge?: number;
   /** Magie: fattore di Grandi Magie (assente = 1). Tirato con l'alzo (alzo.ts): colpisce i nemici alla loro altezza, il soffitto lo ferma. */
-  mole?: number; alzo?: true;
+  mole?: number; alzo?: true; magia?: string; buchi?: number; giro?: true; // dungeon: id della magia, nemici che può ancora attraversare, secondo giro (magie_tratti.ts)
   /** Magie: elemento (Combustione, Catena di fulmini, Cura, Furia). */
   elemento?: SpellElement;
   /** Bomba (magie.ts): dove atterra (x, z); vola sopra muri e nemici e scoppia a terra. Elettriche: rallenta chi colpisce. Supporto: cura o furia. */
@@ -160,7 +160,7 @@ export type Salvato = { altare: number; tick: number; bottino: Bag; monete: numb
 /** Quello che resta in un bottino per un eroe: da solo sono i campi del bottino stesso; insieme ogni eroe ha la sua parte (`altri`). */
 export type LootParte = { items: Bag; monete: number; vuoto: boolean; pieno: boolean };
 /** I campi di LootParte sono la parte dell'eroe 0; insieme `altri[i - 1]` è quella dell'eroe i: ognuno raccoglie il suo, uguale. */
-export type Loot = LootParte & { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; altri?: LootParte[] };
+export type Loot = LootParte & { id: number; x: number; z: number; tipo: TipoBottino; altri?: LootParte[] };
 /** Un eroe della spedizione: i suoi campi in DungeonState sono quelli dell'eroe di turno (`cur`). */
 export type EroeRt = {
   hero: HeroRt; runHero: RunHero;
@@ -222,8 +222,8 @@ export type DungeonState = EroeRt & {
   /** Diga dei Disertori (diga.ts): i piloni dell'arena già fracassati (uguali per tutti, indice in map.piloni). Negli altri dungeon vuoti. Santuario del Capo Ardente (braci.ts): `bracieri` quali sono accesi (indice in map.bracieri). */
   piloni: boolean[]; bracieri: boolean[];
   /** Arena PvP (pvp.ts, docs/ARENA.md): la squadra di ogni eroe; quelli di squadre diverse si colpiscono. `rivela[i]` = fino a che tick l'eroe i
-   *  è scoperto anche nell'erba alta (erba.ts), `velo[i]` col Velo di nebbia (un'ulti). Assente nei dungeon. Fuori dall'hash (ci pensa il duello). */
-  pvp?: { squadre: number[]; rivela: number[]; velo?: number[] };
+   *  è scoperto anche nell'erba alta (erba.ts), `velo[i]` col Velo di nebbia (un'ulti), `ultimo[j]` l'ultimo eroe che ha colpito j, `di[id]` la squadra del nemico id (una cassaforte: i suoi non la colpiscono). Assente nei dungeon. Fuori dall'hash (ci pensa la partita). */
+  pvp?: { squadre: number[]; rivela: number[]; velo?: number[]; ultimo?: number[]; di?: Record<number, number> };
   /** Baita: stanze con ghiaccio sciolto (colonnine attivate); pozzanghere attive; bandierine dello slalom. */
   sciolti: number[];
   pozzanghere: Pozzanghera[];
@@ -372,11 +372,11 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
     const dir = sonno.int(0, 3);
     e.fx = dir === 0 ? 1 : dir === 1 ? -1 : 0; e.fz = dir === 2 ? 1 : dir === 3 ? -1 : 0;
   }
-  map.forzieri.forEach((f, i) => {
-    const r = rollLoot(f.tabella, rng.fork(`forziere:${i}`), { molt: 1, raro: false });
-    s.loot.push(nuovoBottino(s, { id: s.nextId++, x: (f.cx + 0.5) * map.tile, z: (f.cz + 0.5) * map.tile, tipo: 'forziere', items: r.items, monete: r.monete, vuoto: false, pieno: false }));
-  });
-  for (const l of map.libri) s.loot.push(nuovoBottino(s, { id: s.nextId++, x: (l.cx + 0.5) * map.tile, z: (l.cz + 0.5) * map.tile, tipo: 'libro', items: { [l.item]: 1 }, monete: 0, vuoto: false, pieno: false }));
+  const posa = (c: { cx: number; cz: number }, tipo: TipoBottino, r: { items: Bag; monete: number }) => s.loot.push(nuovoBottino(s, { id: s.nextId++, x: (c.cx + 0.5) * map.tile, z: (c.cz + 0.5) * map.tile, tipo, items: r.items, monete: r.monete, vuoto: false, pieno: false }));
+  map.forzieri.forEach((f, i) => posa(f, 'forziere', rollLoot(f.tabella, rng.fork(`forziere:${i}`), { molt: 1, raro: false })));
+  for (const l of map.libri) posa(l, 'libro', { items: { [l.item]: 1 }, monete: 0 });
+  for (const o of map.oggetti) posa(o, 'oggetto', { items: { [o.item]: 1 }, monete: 0 }); // unici sparsi (dopo forzieri e libri: i loro id non cambiano)
+  map.resti.forEach((r, i) => posa(r, 'resti', rollLoot(r.tabella, rng.fork(`resti:${i}`), { molt: 1, raro: false })));
   if (s.eroi.length === 1) {
     s.flowCell = cellOf(map, s.hero.x, s.hero.z);
     bfs(map, s.flowCell, s.flow);

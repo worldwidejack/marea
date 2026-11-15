@@ -22,26 +22,26 @@ const DESCR_STRUMENTO: Record<string, string> = {
 };
 const CSS = `
 #mzBorsa .bz-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-#mzBorsa .bz-tab { flex: 1 0 auto; min-height: 40px; padding: 0 8px; background: ${L.cartaChiara}; border: 2px solid ${L.filo}; color: ${L.inchiostro}; font: 700 13px ${FONT_LIBRO}; cursor: pointer; }
+#mzBorsa .bz-tab { flex: 1 0 auto; min-height: 44px; padding: 0 10px; background: ${L.cartaChiara}; border: 2px solid ${L.filo}; color: ${L.inchiostro}; font: 700 15px ${FONT_LIBRO}; cursor: pointer; }
 #mzBorsa .bz-tab[aria-pressed="true"] { background: ${L.acqua}; color: ${L.cartaChiara}; border-color: ${L.inchiostro}; }
-#mzBorsa .bz-griglia { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-#mzBorsa .bz-pz { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px; min-width: 0; cursor: pointer; background: ${L.cartaChiara}; color: ${L.inchiostro}; border: 2px solid ${L.cartaChiara}; box-shadow: 0 3px 0 ${L.inchiostro}; font: 11px/1.15 ${FONT_LIBRO}; text-align: center; }
+#mzBorsa .bz-griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+#mzBorsa .bz-pz { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px; min-width: 0; cursor: pointer; background: ${L.cartaChiara}; color: ${L.inchiostro}; border: 2px solid ${L.cartaChiara}; box-shadow: 0 3px 0 ${L.inchiostro}; font: 13px/1.2 ${FONT_LIBRO}; text-align: center; }
 #mzBorsa .bz-pz img { width: 100%; aspect-ratio: 1; object-fit: contain; background: ${L.cartaScura}; border-radius: 8px; }
 #mzBorsa .bz-pz.on { border-color: ${L.acqua}; box-shadow: 0 0 0 2px ${L.acqua}, 0 3px 0 ${L.inchiostro}; }
 #mzBorsa .bz-pz .ok { position: absolute; top: 3px; right: 3px; padding: 0 4px; background: ${L.acqua}; color: ${L.inchiostro}; font-weight: 700; font-size: 10px; }
 #mzBorsa .bz-pz .vuoto { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1; background: ${L.cartaScura}; border-radius: 8px; font-size: 26px; color: ${L.filo}; }
 #mzBorsa .bz-riga { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 4px 6px; min-height: 44px; background: ${L.cartaChiara}; border: 2px solid ${L.filo}; color: ${L.inchiostro}; }
 #mzBorsa .bz-riga span { flex: 1; min-width: 0; }
-#mzBorsa .bz-riga small { display: block; color: ${L.inchiostro2}; font-size: 12px; }
+#mzBorsa .bz-riga small { display: block; color: ${L.inchiostro2}; font-size: 13px; }
 #mzBorsa .bz-riga b.n { font-size: 15px; color: ${L.acquaScura}; }
-#mzBorsa .bz-nota { margin: 8px 2px 0; color: ${L.inchiostro2}; font-size: 12px; }
+#mzBorsa .bz-nota { margin: 8px 2px 0; color: ${L.inchiostro2}; font-size: 14px; }
 #mzBorsa .bz-nota.bad { color: ${L.oroScuro}; font-weight: 700; }
 `;
 
 export function createBorsaUi(o: BorsaOpts & { onOpen(): void; onClose(): void }): Borsa {
   injectUiStyle();
   if (!document.getElementById('mz-borsa-style')) { const s = document.createElement('style'); s.id = 'mz-borsa-style'; s.textContent = CSS; document.head.appendChild(s); }
-  const sheet = el('div', 'mz mz-sheet mz-side'); sheet.id = 'mzBorsa'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Borsa');
+  const sheet = el('div', 'mz mz-sheet mz-side mz-grande'); sheet.id = 'mzBorsa'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Borsa');
   for (const ev of ['pointerdown', 'touchstart']) sheet.addEventListener(ev, (x) => x.stopPropagation());
   o.root.appendChild(sheet);
   let open = false, tab: Tab = 'vestiti', busy = false, nota: { t: string; bad: boolean } | null = null;

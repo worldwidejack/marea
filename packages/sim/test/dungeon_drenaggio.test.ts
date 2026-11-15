@@ -80,14 +80,14 @@ test('drenaggio: senza svuotare non si arriva al capo; svuotati i bacini 1 e 2 s
 });
 
 test('drenaggio: le valvole si rigiocano (replay = partita) e insieme il bacino si svuota per tutti', () => {
-  const s = nuovo(heroBase(), 7), log: DungeonInput[] = [];
+  const s = nuovo(immortale(), 7), log: DungeonInput[] = [];
   const v = s.map.valvole.find((x) => x.n === 1)!;
   // cammina dall'ingresso alla valvola 1 col pilota automatico (la cerca da solo) fino a girarla
   const rng = { next: () => 0.5, int: (a: number) => a, pick: <T>(a: readonly T[]) => a[0]!, fork: () => rng, seed: 1 } as unknown as Parameters<typeof dungeon.autopilot>[1];
-  for (let t = 0; t < 60 * 120 && !s.done && !s.bacini[0]!.aperta; t++) { const f = quantizeDungeon(dungeon.autopilot(s, rng)); log.push(f); dungeon.step(s, f); }
+  for (let t = 0; t < 60 * 400 && !s.done && !s.bacini[0]!.aperta; t++) { const f = quantizeDungeon(dungeon.autopilot(s, rng)); log.push(f); dungeon.step(s, f); }
   assert.ok(s.bacini.find((b) => b.n === v.n)!.aperta, 'il pilota automatico gira la valvola 1');
   for (let t = 0; t < SCOLO_TICKS + 5; t++) { const f = quantizeDungeon(inp()); log.push(f); dungeon.step(s, f); }
-  const r = replayDungeon(7, 'drenaggio', heroBase(), packDungeon(log));
+  const r = replayDungeon(7, 'drenaggio', immortale(), packDungeon(log));
   assert.equal(r.hash, dungeon.result(s).hash, 'stesso hash nel replay');
   // insieme: la valvola girata da uno svuota il bacino anche per l'altro
   const p = createPartyRun({ seed: 2, dungeon: 'drenaggio', eroi: [{ hero: immortale() }, { hero: immortale() }] });

@@ -18,8 +18,8 @@ import { arena, heroBase, inp, run } from './dungeon_util.ts';
 
 const GRADO = Math.PI / 180;
 const arco = () => heroBase({
-  arma: { id: 'arco_ferro', kind: 'arco', skill: 'arceria', classe: null, danno: 14, tempo: 0.9, portata: 0, carica: 0.9, caricaMolt: 1, gittata: 28, traits: {} },
-  frecce: { id: 'frecce_ferro', n: 20, danno: 6, gittata: 6, gravita: 7, traits: {} },
+  arma: { id: 'arco_ferro', kind: 'arco', skill: 'arceria', classe: null, danno: 14, tempo: 0.9, portata: 0, carica: 0.9, caricaMolt: 1, traits: {} },
+  frecce: { id: 'frecce_ferro', n: 20, danno: 6, traits: {} },
 });
 function bersaglio(s: DungeonState, dx: number, tipo = 'bandito', dz = 0): Enemy {
   const e = newEnemy(s, tipo, s.hero.x + dx, s.hero.z + dz);
@@ -116,6 +116,22 @@ test('bottino a mano: con `fruga` passarci sopra non raccoglie, `prendi` sceglie
   t.loot.push({ id: t.nextId++, x: t.hero.x + 1, z: t.hero.z, tipo: 'cadavere', items: { zanna_lupo: 1 }, monete: 4, vuoto: false, pieno: false });
   run(t, 40, inp({ mx: 0.4 }));
   assert.equal(t.monete, 4);
+});
+
+test('bottino a mano: un cadavere lungo (il capo) si fruga anche dal lato lontano, uno corto no', () => {
+  const prova = (tipo: string, dx: number): boolean => {
+    const s = arena(heroBase());
+    dungeon.act(s, { t: 'fruga' });
+    const e = newEnemy(s, tipo, s.hero.x + dx, s.hero.z); e.st = 'morto'; e.vita = 0;
+    s.enemies.push(e);
+    const l = { id: s.nextId++, x: e.x, z: e.z, tipo: 'cadavere' as const, items: { zanna_lupo: 1 }, monete: 0, vuoto: false, pieno: false };
+    s.loot.push(l);
+    return aPortata(s, l);
+  };
+  assert.equal(prova('bandito', 1.5), true, 'vicino, come sempre');
+  assert.equal(prova('bandito', 6), false, 'un bandito caduto più in là non si raggiunge');
+  assert.equal(prova('re_ossa', 6), true, 'il capo è disteso per quasi quattro metri: la mano arriva a un suo lato lontano');
+  assert.equal(prova('re_ossa', 12), false, 'ma non da dovunque');
 });
 
 test('bottino a mano: le azioni passano dalla rete e il server rigioca lo stesso esito', () => {

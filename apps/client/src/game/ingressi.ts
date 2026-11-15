@@ -56,6 +56,7 @@ export const INGRESSI = [
   { id: 'baita', nome: 'Il Tempio della «Doppia Nera»', island: 'adrenalina', at: [24, 20], stile: 'baita', difficolta: 7 },
   { id: 'diga', nome: 'La Diga dei Disertori', island: 'tempesta', at: [22, 20], stile: 'diga', difficolta: 9 },
   { id: 'ceneri', nome: 'Il Santuario del Capo Ardente', island: 'vulcano', at: [15, 18], stile: 'ceneri', difficolta: 10 },
+  { id: 'orto', nome: 'La Tana del Maggiolone', island: 'difesa', at: [31, 17], stile: 'orto', difficolta: 2.5 },
 ] as const;
 /** Il dungeon da completare prima di poter entrare (porta sigillata), o null. */
 export const richiesto = (id: string): string | null => { const d = INGRESSI.find((x) => x.id === id); return d && 'richiede' in d ? d.richiede : null; };

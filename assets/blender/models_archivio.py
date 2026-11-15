@@ -1,6 +1,6 @@
 # Archivio Navigazionale (Epopea della Regata, dungeon 2 — Riccardo, 9 ott 2026): ingresso sull'arco est dell'anello della Laguna, kit
 # del dungeon e i nemici del Collettivo Rottamautomi. Scritto sul PC di Riccardo senza Blender, poi eseguito il 11 ott 2026 sul fisso. Si lancia con:
-#   npm run assets prop_ingresso_archivio dng_archivio_pavimento dng_archivio_muro dng_archivio_muro_basso nem_archivista nem_idroragno nem_aerostato nem_astrolabio nem_anello
+#   npm run assets prop_ingresso_archivio dng_archivio_pavimento dng_archivio_muro dng_archivio_muro_basso
 # poi lo sistema se qualcosa non torna e guarda il foglio dei contatti (tests/out/rpg_contact.png).
 # I nomi sono quelli che cerca il codice: prop_ingresso_<stile> (game/ingressi.ts), dng_archivio_pavimento/muro/muro_basso
 # (rpg/dungeon_scene.ts) e il campo `model` di enemies.json. Finché i modelli mancano dal manifest il gioco usa i segnaposto in codice di
@@ -95,95 +95,6 @@ def dng_archivio_muro_basso():
 
 
 # ------------------------------------------------------------------ nemici (statici, il client li anima e alza chi vola)
-def nem_archivista():
-    """Archivista a Molla: bipede alto e magro, torso a cilindro d'ottone, chiave della carica sulla schiena, monocolo, braccia a lama."""
-    m = Mesh('nem_archivista')
-    for sx in (-1, 1):
-        m.cbox(sx * 0.13, 0, 0.1, 0.1, 0, 0.8, 'p_pietra_scura')
-        m.cbox(sx * 0.13, -0.06, 0.18, 0.28, 0, 0.06, 'p_nero_caldo')
-        m.cbox(sx * 0.27, -0.05, 0.06, 0.06, 0.9, 1.35, 'p_pietra_scura')                     # braccio
-        m.cbox(sx * 0.31, -0.42, 0.03, 0.6, 0.86, 0.94, 'p_pietra_chiara')   # lama
-    m.prism(7, 0.16, 0.2, 0.8, 1.4, 'p_arancio', top='p_arancio', bottom='p_arancio')
-    for y in (0.92, 1.27):
-        m.prism(7, 0.21, 0.21, y, y + 0.06, 'p_legno_scuro')
-    m.cbox(0, 0.28, 0.06, 0.25, 1.12, 1.18, 'p_giallo')                                      # chiave della carica
-    m.cbox(0, 0.4, 0.34, 0.04, 1.09, 1.21, 'p_giallo')
-    m.cbox(0, 0, 0.28, 0.26, 1.43, 1.67, 'p_legno_scuro')
-    _disco(m, (0.07, 1.57, -0.15), 0.07, 0.04, 'p_acqua_bassa', n=8)                         # monocolo
-    m.cbox(0, 0, 0.3, 0.3, 1.67, 1.71, 'p_ombra_calda')
-    m.prism(6, 0.12, 0.1, 1.71, 1.85, 'p_ombra_calda', top='p_ombra_calda')                 # cappello
-    return _obj(m)
-
-
-def nem_idroragno():
-    """Drone Idro-Ragno: cupola d'ottone, otto zampe sottili piegate, lanciarpioni sulla schiena, occhi rossi."""
-    m = Mesh('nem_idroragno')
-    m.prism(8, 0.38, 0.32, 0.31, 0.53, 'p_legno_scuro', bottom='p_legno_scuro')
-    m.loft([m.ring(8, 0.32, 0.53), m.ring(8, 0.2, 0.68), m.ring(8, 0.0001, 0.75)], 'p_arancio')
-    for sx in (-1, 1):
-        for z in (-0.25, -0.08, 0.08, 0.25):
-            m.push(Xf(t=(sx * 0.45, 0.55, z), r=(0, 0, sx * -34)))
-            m.box(-0.2, -0.025, -0.025, 0.2, 0.025, 0.025, 'p_pietra_scura')
-            m.pop()
-            m.push(Xf(t=(sx * 0.7, 0.3, z * 1.4), r=(0, 0, sx * 14)))
-            m.box(-0.025, -0.25, -0.025, 0.025, 0.25, 0.025, 'p_pietra_scura')
-            m.pop()
-    m.push(Xf(t=(0, 0.78, -0.15), r=(90, 0, 0)))
-    m.prism(6, 0.07, 0.06, -0.35, 0.35, 'p_roccia', top='p_roccia', bottom='p_roccia')     # lanciarpioni
-    m.pop()
-    m.push(Xf(t=(0, 0.78, -0.5), r=(-90, 0, 0)))
-    m.cone(6, 0.07, 0, 0.18, 'p_pietra_chiara', bottom='p_pietra_chiara')                   # punta dell'arpione
-    m.pop()
-    for sx in (-1, 1):
-        m.cbox(sx * 0.1, -0.36, 0.07, 0.04, 0.45, 0.51, 'p_rosso', mat='mat_emissivo')
-    return _obj(m)
-
-
-def nem_aerostato():
-    """Aerostato-Spia: pallone rattoppato con le fasce d'ottone, gondola con l'occhio-lente, elica dietro e due bombe appese."""
-    m = Mesh('nem_aerostato')
-    m.loft([m.ring(8, 0.3, 0.8), m.ring(8, 0.6, 1.3), m.ring(8, 0.62, 1.8), m.ring(8, 0.3, 2.25), m.ring(8, 0.0001, 2.35)], 'p_sabbia', bottom='p_sabbia')
-    for y in (1.27, 1.77):
-        m.prism(8, 0.63, 0.63, y, y + 0.06, 'p_arancio')
-    m.box(0.16, 1.5, -0.64, 0.34, 1.68, -0.62, 'p_legno_chiaro')                             # toppa
-    for x, z in ((-0.25, -0.25), (0.25, -0.25), (-0.25, 0.25), (0.25, 0.25)):
-        m.cbox(x, z, 0.02, 0.02, 0.4, 0.82, 'p_ombra_calda')                                 # funi
-    m.cbox(0, 0, 0.55, 0.55, 0.11, 0.39, 'p_legno')                                          # gondola
-    _disco(m, (0, 0.27, -0.3), 0.11, 0.06, 'p_acqua_bassa', n=8)                              # occhio-lente
-    m.cbox(0, 0.33, 0.5, 0.06, 0.27, 0.33, 'p_pietra_scura'); m.cbox(0, 0.36, 0.06, 0.04, 0.1, 0.5, 'p_pietra')  # elica
-    for sx in (-1, 1):
-        m.prism(6, 0.1, 0.1, -0.07, 0.11, 'p_nero_caldo', top='p_nero_caldo', bottom='p_nero_caldo', cx=sx * 0.15)  # bombe
-    return _obj(m)
-
-
-def nem_astrolabio():
-    """L'Astrolabio Impazzito, il nucleo (boss): sfera d'ottone sfaccettata a 1,1 m da terra con la lente verso −Z, la punta in cima e una
-    lancetta che pende. I tre anelli che gli girano attorno li mette il client (rpg/archivio.ts, giriAstrolabio)."""
-    m = Mesh('nem_astrolabio')
-    m.loft([m.ring(8, 0.0001, 0.55), m.ring(8, 0.4, 0.7), m.ring(8, 0.55, 1.1), m.ring(8, 0.4, 1.5), m.ring(8, 0.0001, 1.65)], 'p_legno_scuro')
-    m.loft([m.ring(6, 0.0001, 0.75, a0=0.3), m.ring(6, 0.42, 1.1, a0=0.3), m.ring(6, 0.0001, 1.45, a0=0.3)], 'p_arancio')  # guscio interno
-    _disco(m, (0, 1.1, -0.55), 0.2, 0.08, 'p_acqua_bassa', n=10)                               # la lente
-    _disco(m, (0, 1.1, -0.6), 0.1, 0.06, 'p_nero_caldo', n=6)
-    m.cbox(0, 0, 0.05, 0.05, 1.6, 1.85, 'p_giallo')
-    m.cone(4, 0.1, 1.85, 2.05, 'p_giallo', bottom='p_giallo')                                  # la punta
-    m.push(Xf(t=(0.12, 0.65, 0), r=(0, 0, 23)))
-    m.box(-0.02, -0.2, -0.02, 0.02, 0.2, 0.02, 'p_giallo')                                    # lancetta che pende
-    m.pop()
-    return _obj(m)
-
-
-def nem_anello():
-    """Anello dell'Astrolabio: anello d'ottone verticale a 0,5 m da terra con quattro tacche gialle."""
-    m = Mesh('nem_anello')
-    m.push(Xf(t=(0, 0.5, 0), r=(90, 0, 0)))
-    _anello(m, 0.42, 0.06, 'p_arancio')
-    for k in range(4):
-        a = k * math.pi / 2
-        m.box(math.cos(a) * 0.42 - 0.04, -0.04, math.sin(a) * 0.42 - 0.08, math.cos(a) * 0.42 + 0.04, 0.04, math.sin(a) * 0.42 + 0.08, 'p_giallo')
-    m.pop()
-    return _obj(m)
-
-
 MODELS_MAIN = [prop_ingresso_archivio]
-MODELS_RPG = [dng_archivio_pavimento, dng_archivio_muro, dng_archivio_muro_basso, nem_archivista, nem_idroragno, nem_aerostato, nem_astrolabio, nem_anello]
+MODELS_RPG = [dng_archivio_pavimento, dng_archivio_muro, dng_archivio_muro_basso]
 MODELS = {f.__name__: f for f in MODELS_MAIN + MODELS_RPG}

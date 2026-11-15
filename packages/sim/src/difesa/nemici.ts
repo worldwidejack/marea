@@ -1,6 +1,7 @@
 // I nemici della Difesa (docs/DIFESA.md §2.3): camminano verso sinistra, si fermano a mordere il primo difensore che toccano (100 di
 // danno al secondo), l'armatura prende i colpi prima del corpo, sotto un terzo della vita cade la testa (non mordono più e spariscono
-// poco dopo), il gelo dimezza passo e morsi, il saltatore corre e salta il primo difensore. Qui anche il danno e il tosaerba.
+// poco dopo), il gelo dimezza passo e morsi, il saltatore corre e salta il primo difensore (non il muro alto), chi ha la furia dopo
+// l'armatura si ferma un attimo e poi corre, chi vola non si ferma a mordere. Qui anche il danno e il tosaerba.
 import { DIFESA } from '@marea/content/difesa.ts';
 import type { DNemico, DState, DUnita } from './stato.ts';
 import { prof, tick, vivo } from './stato.ts';
@@ -19,13 +20,17 @@ export function ferisci(s: DState, e: DNemico, danno: number, gelo = false): voi
   if (e.armatura > 0) {
     const a = Math.min(e.armatura, d);
     e.armatura -= a; d -= a; armatura = true;
-    if (e.armatura <= 0) s.ev.push({ e: 'armatura', id: e.id, tipo: e.tipo });
+    if (e.armatura <= 0) {
+      s.ev.push({ e: 'armatura', id: e.id, tipo: e.tipo });
+      const furia = P.nemici[e.tipo].furia;
+      if (furia) { e.furia = s.tick + tick(furia.pausa); s.ev.push({ e: 'furia', id: e.id }); }
+    }
   }
   e.colpito = s.tick;
   s.ev.push({ e: 'colpito', id: e.id, corsia: e.corsia, x: e.x, gelo, armatura });
   if (d <= 0) return;
   e.vita -= d;
-  if (e.testa && e.vita < e.vitaMax * P.testa.soglia) {
+  if (e.testa && P.nemici[e.tipo].cadeTesta !== false && e.vita < e.vitaMax * P.testa.soglia) {
     e.testa = false; e.mangia = 0; e.muore = s.tick + tick(P.testa.dopo);
     s.ev.push({ e: 'testa', id: e.id });
   }
@@ -52,12 +57,15 @@ function davanti(s: DState, e: DNemico): DUnita | undefined {
 export function passoNemici(s: DState): void {
   const P = prof(s), C = DIFESA.campo;
   for (const e of [...s.nemici]) {
+    const D = P.nemici[e.tipo];
     if (!e.testa) {
       if (s.tick >= e.muore) { muori(s, e); continue; }
       e.x -= e.passo * (e.gelo > s.tick ? P.gelo.passo : 1);
       continue;
     }
     const lento = e.gelo > s.tick ? P.gelo.passo : 1;
+    // la furia: dopo la pausa corre, prima sta fermo
+    const furia = e.furia === 0 ? 1 : s.tick < e.furia ? 0 : D.furia?.molt ?? 1;
     // il saltatore: corre fino al primo difensore, ci salta sopra e atterra dietro, poi cammina
     if (e.salto === 1) {
       const k = (s.tick - e.saltoT0) / Math.max(1, e.saltoT1 - e.saltoT0);
@@ -65,7 +73,8 @@ export function passoNemici(s: DState): void {
       if (s.tick >= e.saltoT1) e.salto = 2;
       continue;
     }
-    const u = davanti(s, e);
+    const u = e.vola ? undefined : davanti(s, e);
+    if (e.corsa > 0 && e.salto === 0 && u && P.unita[u.tipo].alto) e.corsa = 0; // il muro alto non si salta: resta a camminare e a mordere
     if (e.corsa > 0 && e.salto === 0 && u) {
       e.salto = 1; e.saltoDa = e.x; e.saltoA = u.col - 0.05; e.saltoT0 = s.tick; e.saltoT1 = s.tick + tick(P.nemici[e.tipo].salto ?? 1);
       s.ev.push({ e: 'salta', id: e.id });
@@ -73,7 +82,7 @@ export function passoNemici(s: DState): void {
     }
     if (u && !(u.tipo === 'mina' && u.armata)) {
       e.mangia = u.id;
-      u.vita -= (P.morso / tick(1)) * (e.gelo > s.tick ? P.gelo.morso : 1);
+      u.vita -= ((D.morso ?? P.morso) / tick(1)) * (e.gelo > s.tick ? P.gelo.morso : 1);
       if (s.tick - u.morsa >= tick(0.45)) { u.morsa = s.tick; s.ev.push({ e: 'morso', id: e.id, unita: u.id }); }
       if (u.vita <= 0) {
         s.unita.splice(s.unita.indexOf(u), 1);
@@ -84,7 +93,7 @@ export function passoNemici(s: DState): void {
       continue;
     }
     e.mangia = 0;
-    e.x -= (e.corsa > 0 && e.salto === 0 ? e.corsa : e.passo) * lento;
+    e.x -= (e.corsa > 0 && e.salto === 0 ? e.corsa : e.passo) * lento * furia;
     // in fondo alla corsia: parte il tosaerba; se è già andato, la base è persa
     const t = s.tosa[e.corsia]!;
     if (t.stato === 0 && e.x - BOCCA <= C.tosaerba + 0.35) {

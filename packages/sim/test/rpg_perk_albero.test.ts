@@ -28,8 +28,8 @@ function caricato(s: DungeonState): DungeonState['eventi'] {
   return [...run(s, n, inp({ a: true })), ...run(s, 70)];
 }
 const arcoHero = (perk?: RunPerk): RunHero => heroBase({
-  arma: { id: 'arco_ferro', kind: 'arco', skill: 'arceria', classe: null, danno: 14, tempo: 0.9, portata: 0, carica: 0.9, caricaMolt: 1, gittata: 28, traits: {} },
-  frecce: { id: 'frecce_ferro', n: 40, danno: 6, gittata: 6, gravita: 7, traits: {} },
+  arma: { id: 'arco_ferro', kind: 'arco', skill: 'arceria', classe: null, danno: 14, tempo: 0.9, portata: 0, carica: 0.9, caricaMolt: 1, traits: {} },
+  frecce: { id: 'frecce_ferro', n: 40, danno: 6, traits: {} },
   ...(perk ? { perk } : {}),
 });
 const con = (h: HeroState, id: string, slot: 'corpo' | 'arma' | 'frecce'): HeroState => ({ ...h, inv: { ...h.inv, [id]: (h.inv[id] ?? 0) + 1 }, equip: { ...h.equip, [slot]: id } });
@@ -140,7 +140,8 @@ test('Combustione: una magia di fuoco lascia una chiazza che brucia i nemici (no
   const n = arena(heroBase({ magie: [fiammata] }));
   dummy(n, 'bandito', 6, 1000);
   run(n, 1, inp({ c: true, a: true })); run(n, 40);
-  assert.equal(n.fuochi.length, 0);
+  assert.equal(n.fuochi.length, 1, 'senza il perk solo la fiammella del Proiettile infuocato (tratto del dungeon)');
+  assert.ok(n.fuochi[0]!.r <= 0.8, 'piccola');
 });
 
 test('Catena di fulmini: l\'elettricità salta al nemico più vicino entro 5 m con metà del danno', () => {

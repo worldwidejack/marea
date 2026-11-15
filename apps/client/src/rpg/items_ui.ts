@@ -10,7 +10,7 @@ import { INSETTI, RETINO } from '@marea/content/insetti.ts';
 import { insettoCanvas } from '../ui/insetti_sprite.ts';
 import { CANNA, PESCI } from '@marea/content/pesci.ts';
 import { pesceCanvas } from '../ui/pesci_sprite.ts';
-import { ICONA, spriteArma, spriteMagia } from './icone.ts';
+import { ICONA, spriteArma, spriteCorredo, spriteMagia, spriteMagiaUnica } from './icone.ts';
 import type { Sprite } from './icone.ts';
 
 export const SKILL_NOME: Record<SkillId, string> = {
@@ -34,6 +34,8 @@ export const GROUPS: readonly { id: string; nome: string; kinds: readonly ItemKi
 export type UiState = {
   tab: 'pg' | 'abilita' | 'zaino';
   skill: SkillId | null; item: string | null;
+  /** Categoria aperta nello zaino (id di GROUPS, o 'magie'). */
+  cat: string | null;
   chest: { side: 'zaino' | 'forziere'; id: string } | null;
   /** Dopo il prossimo ridisegno: porta in vista l'elemento con questo data-k. */
   focus: string | null;
@@ -114,6 +116,9 @@ export const iconOf = (it: ItemDef, px = 24): HTMLCanvasElement => {
   // armi, archi e frecce col disegno del loro tipo, o il loro se sono unici
   const arma = it.kind === 'arma' || it.kind === 'arco' || it.kind === 'frecce' ? spriteArma(it, palColor(it.colore)) : null;
   if (arma) return spriteCanvas(arma, px);
+  // armature, vesti e anelli unici col loro disegno; i libri delle magie uniche col disegno della magia
+  const unico = it.kind === 'armatura' || it.kind === 'veste' || it.kind === 'anello' ? spriteCorredo(it.id) : it.kind === 'libro' && it.insegna ? spriteMagiaUnica(it.insegna) : null;
+  if (unico) return spriteCanvas(unico, px);
   // gli insetti (#445) col loro disegno 16×16, il retino col suo
   const ins = it.kind === 'insetto' ? INSETTI.find((d) => d.id === it.id) : undefined;
   if (ins) { const c = insettoCanvas(ins, px / 16); c.classList.add('mz-rp-ico'); return c; }
@@ -181,8 +186,8 @@ export function row(k: string, icon: Node | null, name: string, sub: string, on:
 export function statLines(it: ItemDef): string[] {
   const out: string[] = [];
   if (it.kind === 'arma') out.push(`Danno ${num(it.danno ?? 0)} · velocità ${num(it.velocita ?? 0, 2)} · portata ${num(it.portata ?? 0)} m`);
-  if (it.kind === 'arco') out.push(`Danno ${num(it.danno ?? 0)} · tendere ${num(it.tensione ?? 0, 2)} s · gittata ${num(it.gittata ?? 0)}`);
-  if (it.kind === 'frecce') out.push(`Danno ${num(it.danno ?? 0)} · gittata ${num(it.gittata ?? 0)}`);
+  if (it.kind === 'arco') out.push(`Danno ${num(it.danno ?? 0)} · tendere ${num(it.tensione ?? 0, 2)} s`);
+  if (it.kind === 'frecce') out.push(`Danno ${num(it.danno ?? 0)}`);
   if (it.kind === 'armatura') out.push(`Difesa ${num(it.difesa ?? 0)}`);
   if (it.traits?.fragile) out.push(`Si rompe dopo ${it.traits.fragile} colpi`);
   const cura = Object.entries(it.cura ?? {}).filter(([, v]) => v).map(([a, v]) => `+${v} ${ATTR_NOME[a as AttrId] ?? a}`);

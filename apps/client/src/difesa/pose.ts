@@ -2,6 +2,7 @@
 // fotogrammi seguono l'orologio della sim (si fermano in pausa e vanno al doppio col veloce); le molle da codice (spuntata, respiro,
 // lampo bianco) restano in disegna.ts e usano il tempo di resa.
 import type { DState, DNemico, DUnita } from '@marea/sim/difesa/stato.ts';
+import { vivo } from '@marea/sim/difesa/stato.ts';
 import { haBersaglio } from '@marea/sim/difesa/unita.ts';
 import { TICK_HZ } from '@marea/sim/constants.ts';
 import type { ChiaveSprite, NomeClip, Pelle, Posa } from './skin.ts';
@@ -45,11 +46,25 @@ export function posaUnita(s: DState, p: Pelle, u: DUnita, a: Anim): Posa {
   const k: ChiaveSprite = u.tipo;
   const fermo = (): Posa => ({ k, clip: battito(s, a) && quanti(p, k, 'chiusi') ? 'chiusi' : 'fermo', i: 0 });
   switch (u.tipo) {
-    case 'sparatore': case 'gelo': {
+    case 'sparatore': case 'gelo': case 'ripetitore': case 'mortaio': {
       const dopo = s.tick - a.kSparo;
       if (dopo >= 0 && dopo < tk(0.16) && quanti(p, k, 'spara')) return { k, clip: 'spara', i: Math.floor((dopo / TICK_HZ) * fps(p, k, 'spara', 12)) };
-      if (u.t - s.tick <= tk(0.22) && quanti(p, k, 'carica') && haBersaglio(s, u)) return { k, clip: 'carica', i: 0 };
+      // il mortaio carica se c'è qualcuno da colpire in qualsiasi corsia, gli altri solo nella propria
+      const bersaglio = u.tipo === 'mortaio' ? s.nemici.some((e) => vivo(e) && !e.vola) : haBersaglio(s, u);
+      if (u.t - s.tick <= tk(u.tipo === 'mortaio' ? 0.3 : 0.22) && quanti(p, k, 'carica') && bersaglio) return { k, clip: 'carica', i: 0 };
       return fermo();
+    }
+    case 'mangiatutto': {
+      // la sim sposta `u.t` in avanti quando inghiotte: lì parte lo scatto, poi mastica finché digerisce
+      if (!Number.isNaN(a.tPrima) && u.t > a.tPrima && s.tick > u.nata + 2) a.kSeme = s.tick;
+      a.tPrima = u.t;
+      if (s.tick - a.kSeme < tk(0.4) && quanti(p, k, 'inghiotte')) return { k, clip: 'inghiotte', i: 0 };
+      if (u.t > s.tick && quanti(p, k, 'mastica')) return { k, clip: 'mastica', i: Math.floor(a.orologio * fps(p, k, 'mastica', 4)) };
+      return fermo();
+    }
+    case 'potenziatore': {
+      const fiamma = ((s.tick / TICK_HZ + a.fase) % 0.5) < 0.2 && quanti(p, k, 'lampo');
+      return fiamma ? { k, clip: 'lampo', i: 0 } : fermo();
     }
     case 'produttore': {
       // la sim riprogramma `u.t` quando il seme esce: lì parte la posa del seme
@@ -63,7 +78,7 @@ export function posaUnita(s: DState, p: Pelle, u: DUnita, a: Anim): Posa {
       const q = (s.tick - u.nata) / Math.max(1, u.t - u.nata);
       return { k, clip: q < 0.35 ? 'fermo' : q < 0.7 ? prima(p, k, 'gonfia') : prima(p, k, 'rovente', 'gonfia'), i: 0 };
     }
-    case 'muro': {
+    case 'muro': case 'muroAlto': {
       const f = u.vita / u.vitaMax;
       if (f > 2 / 3) return fermo();
       return { k, clip: f > 1 / 3 ? prima(p, k, 'rosicchiato') : prima(p, k, 'mezzo', 'rosicchiato'), i: 0 };
@@ -78,9 +93,9 @@ export function posaUnita(s: DState, p: Pelle, u: DUnita, a: Anim): Posa {
   return fermo();
 }
 
-/** La chiave da disegnare per un nemico: senza armatura il corpo nudo (lo scarabeo resta scarabeo). */
+/** La chiave da disegnare per un nemico: senza armatura il corpo nudo (lo scarabeo resta scarabeo, il bruco diventa furioso). */
 export function chiaveNemico(p: Pelle, e: DNemico): ChiaveSprite {
-  return (e.tipo === 'cono' || e.tipo === 'secchio') && e.armatura <= 0 ? spoglio(p, e.tipo) : e.tipo;
+  return (e.tipo === 'cono' || e.tipo === 'secchio' || e.tipo === 'scudo') && e.armatura <= 0 ? spoglio(p, e.tipo) : e.tipo;
 }
 
 export function posaNemico(s: DState, p: Pelle, e: DNemico, a: Anim): Posa {
@@ -91,7 +106,9 @@ export function posaNemico(s: DState, p: Pelle, e: DNemico, a: Anim): Posa {
     return { k, clip: 'salta', i: Math.min(n - 1, Math.floor(q * n)) };
   }
   if (e.mangia > 0 && quanti(p, k, 'mangia')) return { k, clip: 'mangia', i: Math.floor(a.orologio * fps(p, k, 'mangia', 7)) };
-  const clip = e.corsa > 0 && e.salto === 0 ? prima(p, k, 'corre', 'cammina') : prima(p, k, 'cammina');
+  if (e.furia > 0 && s.tick < e.furia) return { k, clip: 'fermo', i: 0 }; // la pausa della furia
+  const corre = (e.corsa > 0 && e.salto === 0) || (e.furia > 0 && s.tick >= e.furia);
+  const clip = corre ? prima(p, k, 'corre', 'cammina') : prima(p, k, 'cammina');
   const c = clipDi(p, k, clip)?.c;
   if (!c) return { k, clip: 'fermo', i: 0 };
   if (c.giro > 0) return { k, clip, i: Math.floor((a.strada / c.giro) * c.f.length) };

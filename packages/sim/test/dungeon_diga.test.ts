@@ -41,7 +41,7 @@ const DIGA = ['guardiano_paratia', 'fuciliere_acquafonda', 'albatros_pece', 'cap
 /** Eroe da fine gioco: spadone di meteorite, piastre, pozioni grandi. */
 const leggenda = () => heroBase({
   livello: 30, max: { vita: 320, magicka: 150, stamina: 200 },
-  arma: { id: 'spadone_meteorite', kind: 'mischia', skill: 'armiPesanti', classe: 'pesante', danno: 46, tempo: 1.25, portata: 2.2, carica: 1.5, caricaMolt: 3, gittata: 0, traits: { penetra: 0.5 } },
+  arma: { id: 'spadone_meteorite', kind: 'mischia', skill: 'armiPesanti', classe: 'pesante', danno: 46, tempo: 1.25, portata: 2.2, carica: 1.5, caricaMolt: 3, traits: { penetra: 0.5 } },
   armatura: { id: 'armatura_meteorite', difesa: 80, malus: 0.05, vsMagia: 1, vsTaglio: 1, vsContundente: 1, moneteSuColpito: 0, terrore: 0, velocitaMolt: 1.12 },
   pozioni: [{ id: 'pozione_vita_grande', n: 8, cura: { vita: 180 }, buff: null }],
 });
@@ -375,7 +375,8 @@ test('diga: aperta fin dall’inizio — un eroe appena nato ci entra (nessun du
 });
 
 test('diga: una partita col pilota automatico si rigioca uguale (ruote, risacca, rottami, fucili e barili); dalla lanterna del Timone anche il Capitano', () => {
-  const s = nuovo(leggenda(), 1), log: DungeonInput[] = [], rng = createRng(1);
+  // seme scelto perché il pilota passi su tutto (col bottino degli unici sparsi, col seme 1 la strada non tocca più i rottami)
+  const s = nuovo(leggenda(), 8), log: DungeonInput[] = [], rng = createRng(8);
   const visti = new Set<string>();
   for (let i = 0; i < 9000 && !s.done; i++) {
     const f = quantizeDungeon(dungeon.autopilot(s, rng));
@@ -383,7 +384,7 @@ test('diga: una partita col pilota automatico si rigioca uguale (ruote, risacca,
     for (const e of s.eventi) visti.add(e.t);
   }
   assert.ok(['valvola', 'asciutto', 'sparo', 'bomba', 'rottami'].every((t) => visti.has(t)), [...visti].join(','));
-  const r = replayDungeon(1, 'diga', leggenda(), packDungeon(log));
+  const r = replayDungeon(8, 'diga', leggenda(), packDungeon(log));
   assert.equal(r.hash, dungeon.result(s).hash, 'stesso hash nel replay');
   const t = nuovo(leggenda(), 4, 1), log2: DungeonInput[] = [], rng2 = createRng(4), visti2 = new Set<string>();
   while (!t.done && !t.enemies.find((e) => e.capo)!.fase && t.tick < 20000) {

@@ -1,15 +1,24 @@
-// Comandi: rimappa dei tasti e controller, accesi una volta all'avvio. La schermata per cambiarli sta nelle Impostazioni (ui/comandi_ui.ts).
-import { azioneDi } from '../comandi/azioni.ts';
-import { avviaRimappa, impostaPad, impostaTasto, padDi, tastoDi } from '../comandi/mappa.ts';
+import { azioneDi, PROFILI } from '../comandi/azioni.ts';
+import type { Profilo } from '../comandi/azioni.ts';
+import { avviaRimappa, impostaPad, impostaTasto, padDi, profiloAttivo, tastoDi } from '../comandi/mappa.ts';
+import { cercaMenu } from '../comandi/pannelli.ts';
 import { avviaPad, padCollegato, padMira, padMovimento } from '../comandi/pad.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
 export function avviaComandi(): void {
-  avviaRimappa(); avviaPad();
+  avviaRimappa(() => !!cercaMenu()); avviaPad();
   registerStateProvider('comandi', () => ({
-    pad: padCollegato(), mov: padMovimento(), mira: padMira(),
-    azione: { tasti: [tastoDi('azione', 0), tastoDi('azione', 1)], pad: padDi('azione') }, pozione: { tasti: [tastoDi('pozione', 0)], pad: padDi('pozione') },
+    pad: padCollegato(), mov: padMovimento(), mira: padMira(), profilo: profiloAttivo(),
+    azione: { tasti: [tastoDi('borgo', 'azione', 0), tastoDi('borgo', 'azione', 1)], pad: padDi('borgo', 'azione') },
+    pozione: { tasti: [tastoDi('dungeon', 'pozione', 0)], pad: padDi('dungeon', 'pozione') },
   }));
-  registerTestHook('comandi_tasto', (p) => { const a = p as { id: string; slot: number; code: string | null }; return azioneDi(a.id) ? impostaTasto(a.id, a.slot, a.code) : null; });
-  registerTestHook('comandi_pad', (p) => { const a = p as { id: string; b: number | null }; return azioneDi(a.id) ? impostaPad(a.id, a.b) : null; });
+  const profilo = (p?: Profilo): Profilo => p && Object.hasOwn(PROFILI, p) ? p : 'borgo';
+  registerTestHook('comandi_tasto', (p) => {
+    const a = p as { profilo?: Profilo; id: string; slot: number; code: string | null };
+    const m = profilo(a.profilo); return azioneDi(m, a.id) ? impostaTasto(m, a.id, a.slot, a.code) : null;
+  });
+  registerTestHook('comandi_pad', (p) => {
+    const a = p as { profilo?: Profilo; id: string; b: number | null };
+    const m = profilo(a.profilo); return azioneDi(m, a.id) ? impostaPad(m, a.id, a.b) : null;
+  });
 }

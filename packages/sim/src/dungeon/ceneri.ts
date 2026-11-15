@@ -1,7 +1,7 @@
 // Il Santuario del Capo Ardente, i nemici comuni (docs/SANTUARIO.md). Il Lanciatore di Lava tiene la distanza e carica col lanternino che brilla:
 // sul pavimento compaiono i cerchi dei globi di lava; un colpo di mischia mentre carica lo stordisce e i globi si dissolvono. Il Guerriero Colossale
 // abbatte la clava su una corsia davanti a sé e poi la clava resta incastrata: alle spalle lo stordisci; tra un colpo e l'altro va a calciare via i
-// bracieri accesi. Lo Sciamano del Fumo è invisibile e intoccabile lontano dai bracieri accesi, evoca fuochi fatui che ti inseguono e, colpito alla
+// bracieri accesi. Lo Sciamano del Fumo evoca fuochi fatui che ti inseguono e per qualche secondo si dissolve nel fumo (invisibile e intoccabile, salvo vicino a un braciere acceso) e, colpito alla
 // lanterna in mischia, resta visibile per sempre. I fuochi fatui e i Mite di lava sono «micce»: inseguono e scoppiano a contatto.
 // Niente funzioni trascendenti: le direzioni sono versori.
 import type { HitSrc } from './combat.ts';
@@ -160,7 +160,7 @@ function stepSciamano(s: DungeonState, e: Enemy): void {
         const lato = k % 2 === 0 ? 1 : -1, f = newEnemy(s, S.fatuo, e.x - e.fz * lato * 1.0 + e.fx * 0.8, e.z + e.fx * lato * 1.0 + e.fz * 0.8);
         f.aggro = true; f.st = 'insegue';
       }
-      e.modo = undefined; e.mira = undefined; e.cdTiro = secToTicks(S.ogni);
+      e.modo = undefined; e.mira = undefined; e.cdTiro = secToTicks(S.ogni); e.fumoFino = s.tick + secToTicks(S.fumo); // dopo l'evocazione sparisce nel fumo per qualche secondo
       setState(e, 'recupera', secToTicks(0.8));
       return;
     }

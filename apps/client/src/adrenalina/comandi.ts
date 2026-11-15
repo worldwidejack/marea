@@ -2,6 +2,7 @@
 // - Telefono: pulsante ◀ a sinistra e ▶ a destra per sterzare; tenendo premuto fuori si carica il salto, rilasciando si salta;
 //   in aria swipe nelle 4 direzioni (su, giù, destra, sinistra) per le acrobazie, tocco fermo per la presa.
 // - PC: A/D per sterzare, Spazio per caricare e saltare (in aria = presa), frecce per le acrobazie; tasto P per invertire WASD e frecce.
+import { eDelPad, padMovimento } from '../comandi/pad.ts';
 import type { InputFrame } from '@marea/sim';
 import type { TouchBottoni } from './hud.ts';
 
@@ -172,9 +173,10 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti
       inverti();
       return;
     }
+    if (eDelPad(e) && (e.code === 'KeyA' || e.code === 'KeyD')) return;
     tasti.add(e.code);
     if (eraAria) {
-      if (!invertito) {
+      if (!invertito || eDelPad(e)) {
         if (e.code === 'ArrowUp') impulso = { mx: 0, my: 1, n: IMPULSO };
         else if (e.code === 'ArrowDown') impulso = { mx: 0, my: -1, n: IMPULSO };
         else if (e.code === 'ArrowLeft') impulso = { mx: -1, my: 0, n: IMPULSO };
@@ -231,6 +233,7 @@ export function creaComandi(zona: HTMLElement, bottoni?: TouchBottoni, onInverti
         if (tasti.has('ArrowLeft')) k -= CURVA_TASTI;
         if (tasti.has('ArrowRight')) k += CURVA_TASTI;
       }
+      k += padMovimento().x;
       if (bottoni && bottoni.curva !== 0) k += bottoni.curva * CURVA_TASTI;
       const mxOut = k !== 0 ? Math.max(-1, Math.min(1, k)) : (toccoGiu ? mxDrag : 0);
       return { mx: mxOut, my: 0, a: toccoGiu || spazio, b: false };

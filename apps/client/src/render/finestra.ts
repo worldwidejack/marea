@@ -18,6 +18,8 @@ export type FinestraOpz = {
   coperchio: string;
   /** Luce e nebbia a celle (solo dungeon): texture, celle (w × h), lato della cella, texel di luce per cella, colore del buio. */
   griglia?: { luce: THREE.DataTexture; nebbia: THREE.DataTexture; w: number; h: number; tile: number; res: number; buio: string };
+  /** Prima persona: foschia di lontananza dalla camera, a gradini (m da cui comincia, m in cui è piena, colore, quanto copre al massimo). */
+  foschia?: { da: number; a: number; colore: string; max: number };
 };
 /** taglia = finestra sull'eroe; griglia = luce e nebbia a celle (solo Lambert); minimo: `acceso` = una volta visto resta pieno (fiamme),
  *  `sempre` = mai sotto il «già visto», anche prima di vederlo (scala d'uscita, altari: i punti sicuri si vedono da subito). */
@@ -76,6 +78,8 @@ uniform float uMzPassoL;
 uniform float uMzPassoN;
 uniform float uMzFiamma;
 uniform vec3 uMzBuio;
+uniform vec3 uMzFoschia;
+uniform vec3 uMzFoschiaC;
 #endif
 // retino spento (#282, Jack 13 ott: niente griglia a pois): sempre a metà, quindi gradini e bordo del taglio netti
 float mzRetino() { return 0.5; }
@@ -122,6 +126,15 @@ const LUCE_F = /* glsl */ `
 		mzA = max( mzA, 0.3 );
 		#endif
 		outgoingLight = mix( uMzBuio, outgoingLight, mzGradini( mzA, mzR, 4.0, 1.0 ) );
+		// foschia di lontananza (prima persona): 6 gradini netti, le fiamme ne prendono la metà (restano punti di riferimento)
+		if ( uMzFoschia.z > 0.0 ) {
+			float mzF = clamp( ( distance( vMzW, uMzCam ) - uMzFoschia.x ) / ( uMzFoschia.y - uMzFoschia.x ), 0.0, 1.0 );
+			mzF = floor( mzF * 6.0 + 0.5 ) / 6.0 * uMzFoschia.z;
+			#ifdef MZ_ACCESO
+			mzF *= 0.5;
+			#endif
+			outgoingLight = mix( outgoingLight, uMzFoschiaC, mzF );
+		}
 	}
 	#else
 	if ( mzCop ) outgoingLight = uMzCoperchio;
@@ -139,6 +152,8 @@ export function createFinestra(o: FinestraOpz): Finestra {
     // le pareti leggono il texel di pavimento subito davanti alla faccia (mezzo texel di luce, mezza cella di nebbia)
     uMzPassoL: { value: g ? g.tile / g.res / 2 : 0 }, uMzPassoN: { value: g ? g.tile / 2 : 0 },
     uMzFiamma: { value: 1 }, uMzBuio: { value: new THREE.Color(g?.buio ?? '#000000') },
+    uMzFoschia: { value: new THREE.Vector3(o.foschia?.da ?? 0, Math.max((o.foschia?.da ?? 0) + 1, o.foschia?.a ?? 1), o.foschia?.max ?? 0) },
+    uMzFoschiaC: { value: new THREE.Color(o.foschia?.colore ?? '#000000') },
   };
   const copie = new Map<THREE.Material, Map<string, THREE.Material>>();
   const tutte: THREE.Material[] = [];

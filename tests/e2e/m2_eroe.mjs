@@ -14,6 +14,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export default async function (ctx) {
   const { assert } = ctx;
+  /** Il foglio è grande e centrato: ≥ 90 % dell'altezza e della larghezza (tetto 1100 px). */
+  const coperto = async (page, sel, nome) => {
+    const r = await page.evaluate((q) => { const b = document.querySelector(q).getBoundingClientRect(); return { l: b.left, w: b.width, h: b.height, W: innerWidth, H: innerHeight }; }, sel);
+    assert(r.h >= r.H * 0.9 && r.w >= Math.min(1090, r.W * 0.9) && Math.abs(r.l - (r.W - r.w) / 2) <= 2, `${nome}: ${sel} non è a tutto schermo e centrato: ${JSON.stringify(r)}`);
+  };
   const SERVER = path.join(ctx.ROOT, 'apps/server');
   const persist = path.join(ctx.OUT, `m2eroe-${process.pid}`);
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
@@ -50,7 +55,7 @@ export default async function (ctx) {
     };
     const st = async (pg) => (await ctx.getState(pg.page)).eroe;
     const waitEroe = (pg, fn, arg = null, ms = 8000) => ctx.waitState(pg.page, `(s, a) => !!s.eroe && (${fn})(s.eroe, a)`, ms, arg);
-    const click = async (pg, sel) => { const l = pg.page.locator(sel).first(); await l.waitFor({ state: 'visible', timeout: 5000 }); await l.scrollIntoViewIfNeeded(); await l.click(); };
+    const click = async (pg, sel) => { const l = pg.page.locator(sel).first(); await l.waitFor({ state: 'visible', timeout: 5000 }); await l.click(); }; // click scorre e riprova da solo se la scheda si ridisegna
     /** Il Personaggio si apre dal menù AVATAR (#417): il bottone dello scudo c'è ma è nascosto. */
     const apriEroe = async (pg) => { await click(pg, '#mzAvatarBtn'); await click(pg, '#mzAvatarMenu [data-voce="personaggio"]'); };
     const idle = (pg) => waitEroe(pg, '(e) => !e.busy');
@@ -78,6 +83,7 @@ export default async function (ctx) {
       const e0 = await st(D);
       assert(e0.livello === 1 && e0.carico > 0 && e0.caricoMax > e0.carico, 'numeri della scheda: ' + JSON.stringify(e0));
       assert(await D.page.locator('#mzEroe.on.mz-sheet.mz-side').isVisible(), '#mzEroe non visibile');
+      await coperto(D.page, '#mzEroe', 'desktop');
       await ctx.shot(D.page, 'desktop_personaggio');
       await D.page.keyboard.press('Escape');
       await waitEroe(D, '(e) => !e.open');
@@ -98,16 +104,22 @@ export default async function (ctx) {
 
     await ctx.test('Zaino: equipaggia l’arco e torna alla katana (salvato sul server); magia preparata accesa', async () => {
       assert((await st(D)).equip.arma === 'katana_legno', 'arma di partenza');
+      assert((await D.page.locator('#mzEroe [data-slot="arma"].full').count()) === 1, 'lo slot Arma sulla sagoma non è pieno');
+      assert((await D.page.locator('#mzEroe .zn-bambola').count()) === 1, 'manca la sagoma del personaggio');
+      await click(D, '#mzEroe [data-cat="archi"]');
+      assert(!(await D.page.locator('#mzEroe [data-item="katana_legno"]').count()), 'con «Archi e frecce» aperta si vedono ancora le armi');
       await click(D, '#mzEroe [data-item="arco_legno"]');
       await click(D, '#mzEroe [data-det="arco_legno"] [data-act="equipaggia"]');
       await waitEroe(D, '(e) => e.equip.arma === "arco_legno" && !e.busy');
       assert((await lot()).hero.equip.arma === 'arco_legno', 'arco non salvato sul server');
       await ctx.shot(D.page, 'desktop_zaino_arco');
+      await click(D, '#mzEroe [data-cat="armi"]');
       await click(D, '#mzEroe [data-item="katana_legno"]');
       await click(D, '#mzEroe [data-det="katana_legno"] [data-act="equipaggia"]');
       await waitEroe(D, '(e) => e.equip.arma === "katana_legno" && !e.busy');
       assert((await lot()).hero.equip.arma === 'katana_legno', 'katana non salvata sul server');
       // la magia si sceglie come un'arma (v6): finché non la impugni l'arma resta in mano; di nuovo sulla magia in mano → torna l'arma
+      await click(D, '#mzEroe [data-cat="magie"]');
       assert(!(await D.page.locator('#mzEroe [data-magia="fiammata"].on').count()), 'Fiammata già in mano');
       await click(D, '#mzEroe [data-magia="fiammata"]');
       await waitEroe(D, '(e) => e.equip.mano === "magia" && !e.busy');
@@ -126,6 +138,7 @@ export default async function (ctx) {
       await waitEroe(D, '(e) => e.open && e.view === "eroe"');
       await click(D, '#mzEroe [data-tab="zaino"]');
       const n0 = (await lot()).hero.inv.frecce_legno;
+      await click(D, '#mzEroe [data-cat="archi"]');
       await click(D, '#mzEroe [data-item="frecce_legno"]');
       await click(D, '#mzEroe [data-det="frecce_legno"] [data-act="butta"]');
       assert((await lot()).hero.inv.frecce_legno === n0, 'buttata al primo tocco, senza conferma');
@@ -161,10 +174,11 @@ export default async function (ctx) {
           const s = document.getElementById('mzEroe'), out = [];
           const r0 = s.getBoundingClientRect();
           if (r0.right > innerWidth + 1 || r0.left < -1) out.push('foglio fuori schermo');
+          if (r0.width < innerWidth * 0.9 || r0.height < innerHeight * 0.9) out.push(`foglio non a tutto schermo ${Math.round(r0.width)}×${Math.round(r0.height)}`);
           for (const b of s.querySelectorAll('button')) {
             const r = b.getBoundingClientRect();
             if (r.height && r.height < 43.5) out.push(`${b.dataset.k || b.textContent.trim().slice(0, 20)} alto ${r.height}`);
-            if (r.width && r.right > r0.right + 1) out.push(`${b.dataset.k} esce a destra`);
+            if (r.width && r.right > r0.right + 1 && !b.closest('.zn-cats')) out.push(`${b.dataset.k} esce a destra`);
           }
           for (const t of s.querySelectorAll('span, div, p, b')) {
             if (!t.childNodes.length || ![...t.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
@@ -180,7 +194,7 @@ export default async function (ctx) {
       await waitEroe(T, '(e) => e.open && e.view === "eroe"', null, 15000);
       await check('personaggio');
       await click(T, '#mzEroe [data-tab="abilita"]'); await click(T, '#mzEroe [data-skill="forgiatura"]'); await check('abilita');
-      await click(T, '#mzEroe [data-tab="zaino"]'); await click(T, '#mzEroe [data-item="katana_legno"]'); await check('zaino');
+      await click(T, '#mzEroe [data-tab="zaino"]'); await click(T, '#mzEroe [data-cat="armi"]'); await click(T, '#mzEroe [data-item="katana_legno"]'); await check('zaino');
       await click(T, '#mzEroe [data-act="chiudi"]'); await waitEroe(T, '(e) => !e.open');
       await apriBaule(T);
       await click(T, '#mzEroe [data-col="zaino"] [data-item="pozione_vita_minore"]');

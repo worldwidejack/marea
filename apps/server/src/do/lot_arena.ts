@@ -1,9 +1,9 @@
-// Arena PvP nel DO del lotto (docs/ARENA.md, CONTRACTS «Arena»): solo dal DO Arena, mai dal Worker. Le build del duello si salvano con
+// Arena PvP nel DO del lotto (docs/ARENA.md, CONTRACTS «Arena»): solo dal DO Arena, mai dal Worker. Le build dell'Arena si salvano con
 // POST /api/rpg {t:'arena'} come le altre azioni del personaggio.
-// POST /arena_start {run, idx} → il duello `run` è aperto nel lotto (questo giocatore è l'eroe idx) → {eroe} = la fotografia della
+// POST /arena_start {run, idx} → la partita `run` è aperta nel lotto (questo giocatore è l'eroe idx) → {eroe} = la fotografia della
 // build scelta (buildArenaEroe) · /arena_fine {run, ruolo, senzaPremio?} → premio
-// entro il tetto del giorno (finishArena; senzaPremio: c'erano gladiatori automatici tra gli avversari) → {premio, pieno, tetto, lot}.
-import { ARENA_SQUADRA_MAX } from '@marea/content/arena.ts';
+// entro il tetto del giorno (finishArena; senzaPremio: tra gli avversari non c'era nessuna persona) → {premio, pieno, tetto, lot}.
+import { ARENA_EROI_MAX } from '@marea/content/arena.ts';
 import type { LotState } from '@marea/sim/economy/types.ts';
 import { finishArena, startArena } from '@marea/sim/arena/premio.ts';
 import type { ArenaRuolo } from '@marea/sim/arena/premio.ts';
@@ -16,10 +16,10 @@ const RUOLI = new Set<ArenaRuolo>(['vinta', 'persa', 'pari', 'arreso']);
 
 export function arenaRoute(lot: LotState, act: string, body: Record<string, unknown>, now: number, save: (l: LotState) => void): Response {
   const run = body['run'];
-  if (typeof run !== 'string' || !run || run.length > 64) return json({ error: 'Duello non valido' }, 400);
+  if (typeof run !== 'string' || !run || run.length > 64) return json({ error: 'Partita non valida' }, 400);
   if (act === 'arena_start') {
     const idx = body['idx'];
-    if (typeof idx !== 'number' || !Number.isInteger(idx) || idx < 0 || idx >= 2 * ARENA_SQUADRA_MAX) return json({ error: 'Duello non valido' }, 400);
+    if (typeof idx !== 'number' || !Number.isInteger(idx) || idx < 0 || idx >= ARENA_EROI_MAX) return json({ error: 'Partita non valida' }, 400);
     const eroe = buildArenaEroe(buildScelta(heroOf(lot)));
     const next = startArena(lot, run, idx, now);
     save(next);

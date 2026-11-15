@@ -3,7 +3,8 @@
 // pollice destro trascinato sulla parte destra gira la visuale, anche partendo dal bottone A (si colpisce e si mira insieme).
 // Col controller (comandi/pad.ts) lo stick destro gira la visuale: più lo spingi, più va veloce.
 import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
-import { padMira } from '../comandi/pad.ts';
+import { padInUso, padMira } from '../comandi/pad.ts';
+import { alTuttiSu } from '../ui/tocchi_su.ts';
 
 export type Sguardo = {
   /** Rad: yaw 0 = guarda verso −Z, + verso sinistra; pitch + in su. `scala`: quanto gira per un movimento (lo zoom dell'arco la abbassa). */
@@ -65,6 +66,7 @@ export function creaSguardo(o: { canvas: HTMLCanvasElement; root: HTMLElement; y
     d.x = e.clientX; d.y = e.clientY;
   };
   const lascia = (e: PointerEvent) => { dita.delete(e.pointerId); };
+  const togliSu = alTuttiSu(() => dita.clear()); // nessun dito sullo schermo: quelli rimasti sono pointerup persi
   const bottoneA = document.getElementById('btnA');
   addEventListener('mousemove', onMove); document.addEventListener('pointerlockchange', onLock);
   o.canvas.addEventListener('pointerdown', suCanvas, { capture: true }); bottoneA?.addEventListener('pointerdown', prendi);
@@ -91,13 +93,13 @@ export function creaSguardo(o: { canvas: HTMLCanvasElement; root: HTMLElement; y
       const preso = document.pointerLockElement === o.canvas;
       if (!attivo && preso) { daNoi = true; document.exitPointerLock(); }
       else if (attivo && !preso && daNoi) { daNoi = false; cattura(); }
-      invito.style.display = attivo && !preso ? 'block' : 'none';
+      invito.style.display = attivo && !preso && !padInUso() ? 'block' : 'none';
     },
     riprendi: cattura,
     dispose() {
       removeEventListener('mousemove', onMove); document.removeEventListener('pointerlockchange', onLock);
       o.canvas.removeEventListener('pointerdown', suCanvas, { capture: true }); bottoneA?.removeEventListener('pointerdown', prendi);
-      removeEventListener('pointermove', onDito); removeEventListener('pointerup', lascia); removeEventListener('pointercancel', lascia);
+      removeEventListener('pointermove', onDito); removeEventListener('pointerup', lascia); removeEventListener('pointercancel', lascia); togliSu();
       daNoi = true; if (document.pointerLockElement === o.canvas) document.exitPointerLock();
       o.root.classList.remove('mz-fp-pc'); invito.remove(); avviso.remove();
     },

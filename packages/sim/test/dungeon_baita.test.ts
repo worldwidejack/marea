@@ -39,7 +39,7 @@ function terrazza(hero = immortale()): DungeonState { const s = nuovo(hero); via
 const vistaDi = (s: DungeonState, e: Enemy) => dungeon.view(s).nemici.find((n) => n.id === e.id)!;
 const sciatore = () => heroBase({
   livello: 24, max: { vita: 280, magicka: 130, stamina: 180 },
-  arma: { id: 'spadone_meteorite', kind: 'mischia', skill: 'armiPesanti', classe: 'pesante', danno: 42, tempo: 1.25, portata: 2.2, carica: 1.5, caricaMolt: 3, gittata: 0, traits: { penetra: 0.5 } },
+  arma: { id: 'spadone_meteorite', kind: 'mischia', skill: 'armiPesanti', classe: 'pesante', danno: 42, tempo: 1.25, portata: 2.2, carica: 1.5, caricaMolt: 3, traits: { penetra: 0.5 } },
   armatura: { id: 'armatura_meteorite', difesa: 70, malus: 0.05, vsMagia: 1, vsTaglio: 1, vsContundente: 1, moneteSuColpito: 0, terrore: 0, velocitaMolt: 1.1 },
   pozioni: [{ id: 'pozione_vita_grande', n: 8, cura: { vita: 180 }, buff: null }],
 });
@@ -51,7 +51,7 @@ test('baita: difficoltà 7 tra Mausoleo e Vuoto, nemici e capo più forti del Ma
   assert.equal(baita.stile, 'baita');
   assert.equal(baita.difficolta, 7);
   assert.ok(dungeonDef('mausoleo').difficolta < 7 && 7 < dungeonDef('vuoto').difficolta);
-  assert.equal(DUNGEONS.length, 10);
+  assert.equal(DUNGEONS.length, 11);
   assert.equal(m.w, 45); assert.equal(m.h, 30);
   // i numeri stanno nei JSON e sono all'altezza del dungeon (il Mausoleo ha il Custode a 1300 e le Guardie a 95)
   const capo = enemyDef('jean_claude'), custode = enemyDef('custode_egida'), vuoto = enemyDef('custode');
@@ -59,7 +59,7 @@ test('baita: difficoltà 7 tra Mausoleo e Vuoto, nemici e capo più forti del Ma
   for (const id of ['acrobata_fuoripista', 'alchimista_bombardino', 'sparaneve_automatico']) assert.ok(enemyDef(id).vita >= enemyDef('guardia_onore').vita, id);
   assert.deepEqual(m.valvole.map((v) => v.n).sort(), [1, 2, 3, 4]);
   assert.deepEqual(m.bacini.map((b) => b.n), [1, 2, 3, 4]);
-  assert.equal(m.altari.length, 2); assert.equal(m.forzieri.length, 5);
+  assert.equal(m.altari.length, 2); assert.equal(m.forzieri.filter((f) => !f.tabella.startsWith('scrigno_')).length, 5); // più lo scrigno degli unici (docs/UNICI.md)
   assert.deepEqual(m.altari[1]!.asciutti, [1, 2, 3, 4], 'la lanterna davanti al capo riparte coi tornelli aperti');
   const s = nuovo(), tipi = (t: string) => s.enemies.filter((e) => e.tipo === t).length;
   assert.deepEqual(s.enemies.filter((e) => e.capo).map((e) => e.tipo), ['jean_claude']);

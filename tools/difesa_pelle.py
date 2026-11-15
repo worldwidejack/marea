@@ -15,6 +15,10 @@ Poi impacca tutto su pagine WebP ≤ 2048², cuce il fondale (sinistra + centro 
 
 Uso: /usr/local/bin/python3 tools/difesa_pelle.py assets/concept/difesa/orto/manifest.json [--solo base,cono] [--senza-controllo]
 (serve il Python con PIL e WebP: /usr/local/bin/python3 sul Mac di Jack)
+
+--aggiungi: il manifest ha solo personaggi NUOVI (e una riga `"aggiunta": "<nome>"`): vanno su una pagina nuova dell'atlas e nel
+pelle.json già pubblicato, che per il resto (pagine vecchie, fondale, UI, suoni) resta com'è. Serve quando le cartelle dei personaggi
+vecchi non ci sono (stanno solo sul computer di chi le ha fatte). Si può rilanciare: la pagina di quel nome si rifà da zero.
 """
 import hashlib
 import io
@@ -411,6 +415,77 @@ def cuci_fondale(fd, cart):
     return out, x0
 
 
+def pagine_e_sprite(fatte, M, out, da_pagina):
+    """Impacca i fotogrammi di `fatte` (quelli uguali una volta sola) in pagine WebP dentro `out`, numerate da `da_pagina`.
+    Ritorna i nomi dei file, le righe di sprite per pelle.json (con l'indice di pagina già giusto), i byte scritti e i pezzi."""
+    pezzi, id_di, uguali = {}, {}, {}
+    for k, c in fatte.items():
+        for f, (im, off) in c['fotogrammi'].items():
+            if im is None:
+                continue
+            h = hashlib.md5(im.tobytes()).hexdigest()
+            if h in uguali:
+                id_di[(k, f)] = uguali[h]
+                continue
+            pid = f'{k}/{f}'
+            pezzi[pid] = im
+            uguali[h] = pid
+            id_di[(k, f)] = pid
+    pagine, pos = impacca(pezzi, M.get('pagina', 2048))
+    nomi, peso = [], 0
+    for i, p in enumerate(pagine):
+        b = webp(p, M.get('qualita', 85))
+        n = f'atlas{da_pagina + i}-{hashlib.md5(b).hexdigest()[:8]}.webp'
+        open(os.path.join(out, n), 'wb').write(b)
+        nomi.append(n)
+        peso += len(b)
+        print(f'pagina {da_pagina + i}: {p.width}×{p.height}, {len(b) // 1024} KB')
+    sprite = {}
+    for k, c in fatte.items():
+        clip = {}
+        for nome, cd in c['clips'].items():
+            righe = []
+            for f in cd['f']:
+                im, off = c['fotogrammi'][f]
+                pg, x, y = pos[id_di[(k, f)]]
+                righe.append([da_pagina + pg, x, y, im.width, im.height, off[0], off[1]])
+            clip[nome] = {'fps': cd['fps'], 'giro': cd['giro'], 'f': righe}
+        sprite[k] = {'alto': c['alto'], 'altoPx': round(c['altoPx'], 2), 'px': round(c['piedi'][0], 2), 'py': round(c['piedi'][1], 2), 'clip': clip}
+        if c['come']:
+            sprite[k]['come'] = c['come']
+    return nomi, sprite, peso, pezzi
+
+
+def aggiungi(M, fatte):
+    """--aggiungi: i personaggi di `fatte` su una pagina nuova e nel pelle.json che c'è già (vedi l'inizio del file)."""
+    out = os.path.join(ROOT, M['uscita'])
+    pj = json.load(open(os.path.join(out, 'pelle.json')))
+    tag = M['aggiunta']
+    vecchia = pj.get('aggiunte', {}).pop(tag, None)
+    if vecchia:
+        for n in vecchia['pagine']:
+            if pj['pagine'][-len(vecchia['pagine']):] != vecchia['pagine']:
+                raise SystemExit('la pagina di questo giro non è l\'ultima di pelle.json: non so toglierla senza rompere gli indici')
+            pj['pagine'].remove(n)
+            if os.path.exists(os.path.join(out, n)):
+                os.remove(os.path.join(out, n))
+        for k in vecchia['sprite']:
+            pj['sprite'].pop(k, None)
+    nomi_pagine, sprite, _, pezzi = pagine_e_sprite(fatte, M, out, len(pj['pagine']))
+    pj['pagine'] += nomi_pagine
+    pj['sprite'].update(sprite)
+    pj.setdefault('nomi', {}).update(M.get('nomi', {}))
+    pj.setdefault('consigli', {}).update(M.get('consigli', {}))
+    if M.get('suoni'):
+        pj.setdefault('suoni', {}).update(M['suoni'])
+    pj.setdefault('aggiunte', {})[tag] = {'pagine': nomi_pagine, 'sprite': list(fatte)}
+    json.dump(pj, open(os.path.join(out, 'pelle.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
+    peso = sum(os.path.getsize(os.path.join(out, f)) for f in os.listdir(out) if os.path.isfile(os.path.join(out, f)))
+    print(f'aggiunti {len(fatte)} personaggi, {len(pezzi)} fotogrammi su {len(nomi_pagine)} pagine; la pelle pesa {peso / 1048576:.2f} MB (senza i suoni)')
+    if peso / 1048576 > TETTO_MB:
+        raise SystemExit(f'troppo pesante: {peso / 1048576:.2f} MB > {TETTO_MB} MB (abbassa cella o qualita)')
+
+
 def main(argv):
     if not argv:
         raise SystemExit(__doc__)
@@ -435,46 +510,14 @@ def main(argv):
         fatte[k] = prepara_chiave(k, d, cart, cella, fatte)
     if solo:
         print('(--solo: niente pagine né pelle.json)')
+    elif '--aggiungi' in argv:
+        aggiungi(M, fatte)
     else:
-        # pagine dell'atlas, coi fotogrammi uguali messi una volta sola
-        pezzi, id_di, uguali = {}, {}, {}
-        for k, c in fatte.items():
-            for f, (im, off) in c['fotogrammi'].items():
-                if im is None:
-                    continue
-                h = hashlib.md5(im.tobytes()).hexdigest()
-                if h in uguali:
-                    id_di[(k, f)] = uguali[h]
-                    continue
-                pid = f'{k}/{f}'
-                pezzi[pid] = im
-                uguali[h] = pid
-                id_di[(k, f)] = pid
-        pagine, pos = impacca(pezzi, lato)
         for vecchio in os.listdir(out):
             if vecchio.startswith(('atlas', 'fondale', 'ui-')) and vecchio.endswith(('.webp', '.png', '.jpg')):
                 os.remove(os.path.join(out, vecchio))
-        nomi_pagine, peso = [], 0
-        for i, p in enumerate(pagine):
-            b = webp(p, M.get('qualita', 85))
-            n = f'atlas{i}-{hashlib.md5(b).hexdigest()[:8]}.webp'
-            open(os.path.join(out, n), 'wb').write(b)
-            nomi_pagine.append(n)
-            peso += len(b)
-            print(f'pagina {i}: {p.width}×{p.height}, {len(b) // 1024} KB')
-        sprite = {}
-        for k, c in fatte.items():
-            clip = {}
-            for nome, cd in c['clips'].items():
-                righe = []
-                for f in cd['f']:
-                    im, off = c['fotogrammi'][f]
-                    pg, x, y = pos[id_di[(k, f)]]
-                    righe.append([pg, x, y, im.width, im.height, off[0], off[1]])
-                clip[nome] = {'fps': cd['fps'], 'giro': cd['giro'], 'f': righe}
-            sprite[k] = {'alto': c['alto'], 'altoPx': round(c['altoPx'], 2), 'px': round(c['piedi'][0], 2), 'py': round(c['piedi'][1], 2), 'clip': clip}
-            if c['come']:
-                sprite[k]['come'] = c['come']
+        nomi_pagine, sprite, peso, pezzi = pagine_e_sprite(fatte, M, out, 0)
+        pagine = nomi_pagine
         for k, a in alias.items():
             if a in sprite:
                 sprite[k] = sprite[a]

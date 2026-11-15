@@ -69,3 +69,10 @@ export function sweepTo(st: SwingStyle, fx: number, fz: number, dx: number, dz: 
   const ini = COLPI[st].inizio, lead = mod2pi(ini - (phi + w)), trail = mod2pi(ini - (phi - w));
   return trail < lead ? 0 : lead;
 }
+
+/** Il bersaglio a (dx, dz) dall'eroe che guarda (fx, fz), di raggio `r`, sta nel colpo che l'arma darebbe adesso (stile `st`): entro la portata e
+ *  dentro l'arco che la lama spazza. Lo stesso conto di sweepSwing (hero.ts): il client ci fa brillare i nemici che puoi colpire. */
+export function inPortata(st: SwingStyle, portata: number, fx: number, fz: number, dx: number, dz: number, r: number, raggioEroe: number): boolean {
+  const d = Math.sqrt(dx * dx + dz * dz);
+  return d <= portata + r && sweepTo(st, fx, fz, dx, dz, r, d <= r + raggioEroe) <= COLPI[st].arco;
+}

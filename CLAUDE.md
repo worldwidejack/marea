@@ -8,7 +8,7 @@ Online: https://marea.stanza-idee.workers.dev · repo **pubblico** `worldwidejac
 **Chi decide.** Chi fa una cosa la decide (gusto compreso) con la sua persona; ciò che tocca tutti (look comune, dove va il gioco) il gruppo, a 2 su 3 se serve. Fra i documenti vince `docs/VISIONE.md` (dove va il gioco), poi `docs/GDD.md` (com'è), poi quello della modalità (`CORSE.md`…). Un'idea che cambia il gioco sta in `docs/BACKLOG.md` finché il gruppo non dice sì.
 
 ## Flusso
-0. **Prima di ogni lavoro: `git switch main && git pull`**. Hai un ramo in corso? `git fetch origin && git rebase origin/main`. Nella cartella ci sono modifiche non tue (un'altra sessione)? Non toccarle: lavora in una cartella a parte, `git worktree add -b <nome>/<cosa> ../marea-<cosa> origin/main`.
+0. **Prima di ogni lavoro: `git switch main && git pull`**. Hai un ramo in corso? `git fetch origin && git rebase origin/main`. Nella cartella ci sono modifiche non tue? Non toccarle: lavora in una cartella a parte, `git worktree add -b <nome>/<cosa> ../marea-<cosa> origin/main`.
 1. Un lavoro = una **issue** assegnata a te. Non c'è? Creala prima, così gli altri sanno che ci sei sopra.
 2. Un **ramo** per lavoro (`nome/cosa-fai`). Mai commit o push su `main`.
 3. **PR piccola**: una PR = una cosa.
@@ -16,7 +16,7 @@ Online: https://marea.stanza-idee.workers.dev · repo **pubblico** `worldwidejac
 5. Il **deploy lo fa solo GitHub**, ~5 min dopo il merge. Mai `npm run deploy` né `wrangler` verso Cloudflare a mano.
 
 **La storia sta in git e nelle PR, i documenti dicono com'è adesso.** Le decisioni e il loro perché si scrivono nella PR («Decisioni prese»). Un documento si tocca solo se la tua PR cambia quello che descrive.
-Se la tua PR litiga su un documento archiviato (`docs/archivio/`), togli le tue righe da lì e scrivi la nota nella PR.
+Se la tua PR litiga su un documento archiviato (`docs/archivio/`), togli le tue righe e scrivi la nota nella PR.
 
 ## Regole di codice
 1. **Mai lasciare `main` rotto.** Controlli rossi = niente merge: si sistema.
@@ -36,13 +36,14 @@ Se la tua PR litiga su un documento archiviato (`docs/archivio/`), togli le tue 
 
 ## Dove sta cosa
 Cartelle e chi ci lavora: `docs/MAPPA.md`. Architettura e regole tecniche: `docs/TECH.md`. Messaggi tra gioco e server: `docs/PROTOCOL.md`. Lavoro in gruppo e primi passi: `docs/CONTRIBUIRE.md`. Lavori da fare: le issue su GitHub. **Tocchi un'isola o il suo minigioco? Leggi `docs/TUTORIAL.md`.**
-`docs/archivio/` non si legge per lavorare: i rimandi a `CONTRACTS` e `ROADMAP` nel codice e nei documenti delle modalità puntano lì.
+`docs/archivio/` non si legge per lavorare: i rimandi a `CONTRACTS` e `ROADMAP` puntano lì.
+**Sprite**: il protagonista ufficiale è `personaggi/protagonista-pixellab/` (Atelier), non l'avatar 3D. Gli altri: «Storico idee».
 
 ## Repo pubblico
 Chiunque può leggere tutto. Mai segreti, token, codici d'invito, link personali (`?t=…`) o dati personali nei file, nelle issue e nelle PR. `_STATO.md`, `_MEMORIA.md` (il diario di Jack) e `CLAUDE.local.md` (le sue istruzioni) vivono solo sul suo Mac: mai nel repo.
 
-**Inviti e link** (far giocare qualcuno, ritrovare un link): li fa ogni admin col suo link (`docs/CONTRIBUIRE.md` §7).
+**Inviti e link**: li fa ogni admin col suo link (`docs/CONTRIBUIRE.md` §7).
 
 ## Come si parla alle persone
-Italiano, corto, operativo. Niente «ottima domanda», niente entusiasmo finto, niente muri di testo. Scelte A/B con screenshot.
+Italiano, corto, operativo. Niente «ottima domanda», niente entusiasmo finto, niente muri di testo.
 Mai «PR #350» o «issue #417» da soli: prima si dice in parole cos'è («la PR dei mobili di Riccardo»), il numero compare solo come link. A fine lavoro: 3 righe su cosa è fatto, cosa resta, e il link al gioco.

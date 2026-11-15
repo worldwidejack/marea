@@ -10,7 +10,7 @@ import { NO_DUNGEON_INPUT } from '../src/dungeon/types.ts';
 import { createRng } from '../src/rng.ts';
 
 export const katana = (o: Partial<RunWeapon> = {}): RunWeapon => ({
-  id: 'katana_bronzo', kind: 'mischia', skill: 'armiLeggere', classe: 'leggera', danno: 10, tempo: 0.65, portata: 1.8, carica: 0.9, caricaMolt: 2.5, gittata: 0, traits: {}, ...o,
+  id: 'katana_bronzo', kind: 'mischia', skill: 'armiLeggere', classe: 'leggera', danno: 10, tempo: 0.65, portata: 1.8, carica: 0.9, caricaMolt: 2.5, traits: {}, ...o,
 });
 
 /** Eroe di partenza ragionevole: katana di bronzo, corazza di bronzo, 3 pozioni minori, Fiammata. */
@@ -38,7 +38,7 @@ export function heroBase(o: Partial<RunHero> = {}): RunHero {
 export function heroForte(): RunHero {
   return heroBase({
     livello: 8, max: { vita: 180, magicka: 100, stamina: 140 },
-    arma: { id: 'spadone_argento', kind: 'mischia', skill: 'armiPesanti', classe: 'pesante', danno: 26, tempo: 1.25, portata: 2.2, carica: 1.5, caricaMolt: 3, gittata: 0, traits: { bonusVs: { nonmorto: 2, mostro: 2 } } },
+    arma: { id: 'spadone_argento', kind: 'mischia', skill: 'armiPesanti', classe: 'pesante', danno: 26, tempo: 1.25, portata: 2.2, carica: 1.5, caricaMolt: 3, traits: { bonusVs: { nonmorto: 2, mostro: 2 } } },
     armatura: { id: 'armatura_ferro', difesa: 50, malus: 0.12, vsMagia: 1, vsTaglio: 1, vsContundente: 1, moneteSuColpito: 0, terrore: 0, velocitaMolt: 1 },
     pozioni: [{ id: 'pozione_vita', n: 5, cura: { vita: 80 }, buff: null }],
   });

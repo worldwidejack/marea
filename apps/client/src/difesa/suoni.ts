@@ -9,6 +9,7 @@ export type SuoniDifesa = {
   pianta(): void; spara(gelo: boolean): void; colpito(armatura: boolean): void; armatura(): void; morso(): void; mangiato(): void;
   moneta(): void; raccolta(): void; botto(grosso: boolean): void; tosaerba(): void; salto(): void; ondata(): void; enorme(): void;
   vinta(): void; persa(): void; no(): void; muto(on: boolean): void;
+  lancia(): void; potenzia(): void; inghiotte(): void; furia(): void;
   /** I file della pelle (se ne ha): si decodificano subito se l'audio è già partito, sennò al primo tocco. */
   pelle(p: Pelle): void;
   /** Quanti effetti da file sono pronti (per i test). */
@@ -94,6 +95,10 @@ export function creaSuoni(): SuoniDifesa {
     vinta() { if (!file('vinta', 0.8, 0)) [523, 659, 784, 1046].forEach((f, i) => tono('triangle', f, f, 0.22, 0.25, i * 0.13)); },
     persa() { if (!file('persa', 0.6, 0)) [392, 330, 262, 196].forEach((f, i) => tono('triangle', f, f * 0.97, 0.35, 0.25, i * 0.25)); },
     no() { if (!file('no', 0.5, 0)) tono('square', 200, 150, 0.1, 0.12); },
+    lancia() { if (!file('lancia', 0.6, 0.05)) { tono('triangle', 170, 60, 0.18, 0.3); soffio(500, 0.15, 0.3); } },
+    potenzia() { if (!file('potenzia', 0.5, 0.05)) { soffio(2200, 0.25, 0.2); tono('sine', 500, 1000, 0.2, 0.12); } },
+    inghiotte() { if (!file('inghiotte', 0.8, 0.05)) { tono('sine', 420, 90, 0.28, 0.3); soffio(600, 0.2, 0.3); } },
+    furia() { if (!file('furia', 0.6, 0.05)) { tono('sawtooth', 90, 150, 0.4, 0.14); tono('square', 70, 110, 0.4, 0.06); } },
     muto(on) { zitto = on; if (master) master.gain.value = on ? 0 : 0.5; },
     pelle(p) { mappa = p.suoni; dir = p.dir; if (ac) void decodifica(); else buf.clear(); },
     pronti: () => buf.size,

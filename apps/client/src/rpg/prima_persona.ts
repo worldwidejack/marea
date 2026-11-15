@@ -1,10 +1,12 @@
 // Dungeon in prima persona: la camera sta negli occhi dell'eroe e la sim riceve come direzione di mira quella dello sguardo, in piano (mira.ts)
 // e in alto e in basso (alzo.ts). Qui stanno la camera (passi, schivata, scosse, caduta, lo zoom dell'Occhio d'aquila), l'input che ne deriva,
 // le mani e i filtri dell'HUD. Comandi in fp_comandi.ts, corpo in fp_corpo.ts, sprite davanti agli occhi in fp_mani.ts e fp_pose.ts, avvisi
-// in fp_avvisi.ts; alla Skyrim: bottino da frugare in fp_fruga.ts, bussola e barre in fp_hud.ts, pericoli in piedi in fp_pericoli.ts.
+// in fp_avvisi.ts; alla Skyrim: bottino da frugare in fp_fruga.ts, barre e bersaglio in fp_hud.ts, mappa con la nebbia in fp_mappa.ts, pericoli in
+// piedi in fp_pericoli.ts.
 import * as THREE from 'three';
 import type { InputFrame } from '@marea/sim';
 import { aimIndex } from '@marea/sim/dungeon/mira.ts';
+import { swingStyle } from '@marea/sim/dungeon/swing.ts';
 import { OCCHI_Y, alzoIndex, quotaNemico } from '@marea/sim/dungeon/alzo.ts';
 import { lineOfSight } from '@marea/sim/dungeon/map.ts';
 import type { DMap } from '@marea/sim/dungeon/map.ts';
@@ -18,16 +20,20 @@ import type { Avatar } from '../game/avatar.ts';
 import { dungeonLink } from '../game/ingressi.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { coloreMagia, palColor } from './items_ui.ts';
+import { stile } from './magie_stile.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
+import type { Mischia } from './dungeon_actors.ts';
 import { creaSguardo } from './fp_comandi.ts';
 import { creaCorpo } from './fp_corpo.ts';
-import { creaMani } from './fp_mani.ts';
+import { creaMani, haPezzo } from './fp_mani.ts';
 import type { Colore } from './fp_mani.ts';
 import { posa, puntaRaggio } from './fp_pose.ts';
 import type { Arnese } from './fp_pose.ts';
 import { creaAvvisi } from './fp_avvisi.ts';
 import { creaFruga } from './fp_fruga.ts';
+import type { Corpo } from './corpi_a_terra.ts';
 import { creaHudFp } from './fp_hud.ts';
+import { creaMappaFp } from './fp_mappa.ts';
 import { creaPericoli } from './fp_pericoli.ts';
 
 type EroeVista = DungeonView['hero'];
@@ -40,6 +46,8 @@ export type PrimaPersona = {
   punta(): THREE.Vector3;
   /** La direzione dello sguardo in mondo (versore): il tuo raggio va di lì. */
   sguardo(): THREE.Vector3;
+  /** Il colpo di mischia che l'eroe darebbe adesso (i nemici che ci stanno dentro brillano): null con arco o magia in mano, o a terra. */
+  mischia(v: DungeonView): Mischia | null;
   /** Ogni frame, in fondo all'update della spedizione: gira e arretra il corpo (chi lo segue ha già letto la posizione vera). */
   fine(): void;
   /** Mira da mandare alla sim adesso (angolo e alzo): solo mentre serve, così il log resta corto; null = niente. */
@@ -87,15 +95,18 @@ export function createPrimaPersona(o: {
   root: HTMLElement; canvas: HTMLCanvasElement; loader: Loader; diorama: DioramaCamera; sc: DungeonScene; avatar: Avatar; hero0: EroeVista; attivo(): boolean; onPerso(): void;
   /** La partita (bottino e perk) e le azioni dal menu (`fruga`, `prendi`): come lo zaino. */
   stato(): DungeonState; act(a: DungeonAzione): string | null; avviso(t: string): void;
+  /** Dove giace il nemico caduto `id` (dungeon_actors.ts): il bottino si fruga dove si vede il corpo. */
+  corpo(id: number): Corpo | null;
 }): PrimaPersona {
   const camera = o.diorama.camera, far0 = camera.far, map = o.sc.map;
   const sg = creaSguardo({ canvas: o.canvas, root: o.root, yaw: verso(map, o.hero0.x, o.hero0.z, o.hero0), onPerso: o.onPerso });
   const corpo = creaCorpo(o.avatar), mani = creaMani({ camera, canvas: o.canvas, loader: o.loader }), avvisi = creaAvvisi(o.root);
-  const fruga = creaFruga({ root: o.root, tocco: sg.tocco, stato: o.stato, act: o.act, avviso: o.avviso }), hud = creaHudFp({ root: o.root, map });
+  const fruga = creaFruga({ root: o.root, tocco: sg.tocco, stato: o.stato, act: o.act, avviso: o.avviso, occhi: camera.position, floorY: o.sc.floorY, corpo: o.corpo }), hud = creaHudFp({ root: o.root, map });
+  const mappa = creaMappaFp({ root: o.root, map, tocco: sg.tocco, attivo: o.attivo });
   const pericoli = creaPericoli({ scene: o.sc.scene, floorY: o.sc.floorY, root: o.root });
   o.diorama.pilota!(true); camera.far = FAR; camera.rotation.order = 'YXZ'; o.sc.scene.add(camera);
   let px = o.hero0.x, pz = o.hero0.z, vel = 0, lat = 0, fase = 0, scossa = 0, caduta = 0, fov = 0, zoom = 1, clock = 0, swY = 0, swP = 0, cambio = 0, chiave = '', animPrima = '', nColpo = 0, frugaMandata = false;
-  let arnese: Arnese = 'pugni', lama: Colore = BIANCO, magia: Colore = BIANCO, forma: string | undefined, tinta: [number, number, number] = [1, 1, 1];
+  let arnese: Arnese = 'pugni', sprite = '', lama: Colore = BIANCO, magia: Colore = BIANCO, forma: string | undefined, tinta: [number, number, number] = [1, 1, 1];
   const qui = new THREE.Vector3(), tip = new THREE.Vector3(), dir = new THREE.Vector3();
   let bobX = 0, bobY = 0, magiaId = '', ultima: DungeonView | null = null;
   /** Per i test: i nemici più vicini (posizione, stato) e i bottini attorno. */
@@ -116,12 +127,13 @@ export function createPrimaPersona(o: {
     chiave = k;
     if (h.magia) {
       arnese = 'bacchetta';
-      try { const sp = spellDef(h.magia); magia = colore(coloreMagia(h.magia, sp.scuola)); forma = sp.forma; } catch { magia = BIANCO; forma = undefined; }
+      try { const sp = spellDef(h.magia); magia = colore(stile(h.magia)?.mano ?? coloreMagia(h.magia, sp.scuola)); forma = sp.forma; } catch { magia = BIANCO; forma = undefined; }
       return;
     }
     const def = h.arma && hasItem(h.arma) ? itemDef(h.arma) : null;
     arnese = !def ? 'pugni' : def.kind === 'arco' ? 'arco' : def.tipo && TIPI.has(def.tipo) ? def.tipo as Arnese : 'katana';
     lama = def?.colore ? coloreLama(palColor(def.colore)) : BIANCO;
+    sprite = def?.unico && haPezzo(`u_${def.id}`) ? `u_${def.id}` : '';
   };
 
   return {
@@ -169,17 +181,18 @@ export function createPrimaPersona(o: {
       }
       bobX = Math.cos(fase) * MANI_PASSO.x * bob; bobY = -Math.abs(Math.sin(fase)) * MANI_PASSO.y * bob - scossa * 0.03; magiaId = h.magia ?? '';
       const pezzi = posa({
-        h, arnese, lama, magia, magiaId: h.magia ?? '', forma, punta, clock, nColpo, u: mani.u,
+        h, arnese, sprite, lama, magia, magiaId: h.magia ?? '', forma, punta, clock, nColpo, u: mani.u, portata: o.stato().hero.arma.portata,
         bobX, bobY,
         swayX: Math.max(-0.05, Math.min(0.05, swY * 0.3)), swayY: Math.max(-0.04, Math.min(0.04, -swP * 0.25)),
         giu: Math.max(Math.sin(Math.PI * cambio), sch * 0.8, cad, fruga.aperta ? 0.7 : 0),
       });
       mani.disegna(pezzi, tinta);
-      // ---- alla Skyrim: bersaglio, bussola, pericoli, bottino ----
+      // ---- alla Skyrim: bersaglio, mappa, pericoli, bottino ----
       for (const e of v.eventi) if (e.t === 'colpo' && e.su === 'nemico' && e.id !== undefined && (e.eroe === undefined || e.eroe === v.io)) hud.colpito(e.id);
       hud.update(v, t, yaw, camera.position);
+      mappa.update(v, yaw);
       pericoli.update(v, t, yaw);
-      fruga.update(v, yaw);
+      fruga.update(v, yaw, sg.pitch);
       avvisi.update(dt, v, yaw, map, { croce: !!h.magia || arnese === 'arco', rosso: hud.mirato >= 0 });
     },
     punta() {
@@ -188,6 +201,11 @@ export function createPrimaPersona(o: {
       return tip.set(p.x * a, (p.y - 0.5) * a, -d).applyMatrix4(camera.matrixWorld);
     },
     sguardo() { return camera.getWorldDirection(dir); },
+    mischia(v) {
+      const s = o.stato(), h = v.hero, a = s.hero.arma;
+      if (h.anim === 'morto' || h.magia || a.kind === 'arco' || a.portata <= 0) return null;
+      return { st: swingStyle(a, h.anim === 'carica' && h.carica >= 1), portata: a.portata, fx: -Math.sin(sg.yaw), fz: -Math.cos(sg.yaw), r: s.runHero.raggio, forte: h.anim === 'carica' };
+    },
     fine() { corpo.update(sg.yaw, caduta > 0); },
     mira(v, preme, h) {
       if (!preme && !ATTIVE.has(h.act) && !(h.raffica > 0)) return null;
@@ -218,7 +236,7 @@ export function createPrimaPersona(o: {
     clic: () => sg.clic(),
     riprendi: () => sg.riprendi(),
     dispose() {
-      togliState(); sg.dispose(); mani.dispose(); avvisi.dispose(); fruga.dispose(); hud.dispose(); pericoli.dispose();
+      togliState(); sg.dispose(); mani.dispose(); avvisi.dispose(); fruga.dispose(); hud.dispose(); mappa.dispose(); pericoli.dispose();
       o.sc.scene.remove(camera); camera.far = far0; camera.position.set(0, 0, 0); camera.rotation.set(0, 0, 0); o.diorama.pilota!(false);
     },
   };

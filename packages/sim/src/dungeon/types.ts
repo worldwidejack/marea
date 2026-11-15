@@ -12,7 +12,10 @@ import type { SwingStyle } from './swing.ts';
  * b = corri, c = alterna arma e magia in mano (v6; fino al v5 lanciava la magia preparata), d = pozione. m = mira col mouse (mira.ts, v6):
  * indice d'angolo 1..AIM_N della direzione in cui tirare l'arco o lanciare la magia; assente = mira assistita. Il client registra un frame
  * per tick e lo quantizza con quantizeDungeon (mx, my a 1/8). A sulla scala d'uscita = esci. e = la Scarica dell'arco (perk Scarica, v9), assente = no.
- * p = alzo della mira (prima persona, alzo.ts): indice 1..ALZO_N della pendenza dello sguardo, insieme a `m`; assente = mira piatta. */
+ * p = alzo della mira (prima persona, alzo.ts): indice 1..ALZO_N della pendenza dello sguardo, insieme a `m`; assente = mira piatta.
+ * In Arena (terza persona) `p` è invece la portata della bomba (portata.ts): dove atterra, da PORTATA_MIN m alla gittata; assente = mira assistita. */
+/** Bottini: cadaveri dei nemici, forzieri, libri e (unici sparsi) oggetti a terra e resti di avventurieri. */
+export type TipoBottino = 'cadavere' | 'forziere' | 'libro' | 'oggetto' | 'resti';
 export type DungeonInput = { mx: number; my: number; a: boolean; b: boolean; c: boolean; d: boolean; m?: number; e?: boolean; roll?: boolean; p?: number };
 export const NO_DUNGEON_INPUT: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
 /** RLE: [[ticks, mx×8, my×8, bit a|b<<1|c<<2|d<<3|e<<4|roll<<5, mira?, alzo?], ...]; la mira (1..AIM_N) e l'alzo (1..ALZO_N) solo nelle righe che ce
@@ -124,7 +127,7 @@ export type DungeonEvent = (
   | { t: 'terremoto'; x: number; z: number }
   | { t: 'catena'; da: [number, number]; a: [number, number] }
   /** Una bomba è atterrata e scoppia (raggio in m, elemento). */
-  | { t: 'scoppio'; x: number; z: number; r: number; el?: SpellElement }
+  | { t: 'scoppio'; x: number; z: number; r: number; el?: SpellElement; m?: string; giro?: true }
   | { t: 'caricaMassima' }
   /** Diga dei Disertori: i rottami acuminati ti tagliano · un pilone fracassato dalla carica del Capitano · il Fuciliere spara · una
    *  cannonata della salva cade · la lancia del Capitano resta incastrata nelle assi. Vento in Poppa: una carica di Brezza in più (`n`
@@ -190,8 +193,8 @@ export type DungeonView = {
     /** Rallentato dal Tubo-strisciante (Drenaggio). Mano ferma (perk): il mondo va al rallentatore mentre tendi l'arco. */
     rallentato?: boolean; rallenty?: boolean;
     /** Magia a raggio accesa: lunghezza in m davanti all'eroe (già accorciata dal primo muro; con l'alzo lungo il raggio, che sale o scende col seno `n`),
-     *  elemento e, se ha preso un nemico, a che distanza lungo il raggio (`fin`: lì il raggio si vede finire). */
-    canale?: { len: number; el?: SpellElement; fin?: number; n?: number };
+     *  elemento e, se ha preso un nemico, a che distanza lungo il raggio (`fin`: lì il raggio si vede finire); solo dungeon: `m` = id della magia, `k` = s di Concentra. */
+    canale?: { len: number; el?: SpellElement; fin?: number; n?: number; m?: string; k?: number };
     /** Archivio: nel vento che soffia (e ti sposta), al riparo dietro uno scaffale, spinto da fuori (arpione, raffica, bomba). */
     vento?: boolean; riparo?: boolean; spinto?: boolean;
     /** Tempio della «Doppia Nera»: scivola sul Ghiaccio Vivo, nella direzione (asse) [dx, dz]; da qui non comandi i piedi finché non ti fermi. */
@@ -204,8 +207,8 @@ export type DungeonView = {
     carico?: { tipo: 'pressione' | 'ritmo' | 'molla' | 'brezza' | 'fresca' | 'vampa' | 'elicottero'; n: number; max: number; tic?: number };
   };
   nemici: { id: number; tipo: string; model: string; x: number; z: number; fx: number; fz: number; anim: EnemyAnim; t: number; vita: number; max: number; alleato: boolean; sanguina: boolean; boss: boolean;
-    /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. */
-    capo?: boolean;
+    /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. Non ti ha visto ma ti cerca (quiete.ts): il «?». */
+    capo?: boolean; cerca?: boolean;
     /** Perk: paralizzato (Colpo fatale; per il client è come stordito) o rallentato dal sanguinamento del Taglio Critico. */
     paralizzato?: boolean; lento?: boolean;
     /** Raggio in m del colpo ad area dei boss, solo mentre lo prepara (il client disegna il cerchio a terra). */
@@ -242,8 +245,9 @@ export type DungeonView = {
     /** Grandi Magie: la magia è più grande di questo fattore (assente = 1). */
     mole?: number;
     /** Magie: elemento; bomba: dove atterra (x, z) e raggio dello scoppio in m (il client disegna il cerchio a terra). */
-    el?: SpellElement; bomba?: [number, number]; r?: number }[];
-  bottini: { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; vuoto: boolean }[];
+    el?: SpellElement; bomba?: [number, number]; r?: number; m?: string }[];
+  /** `item`: per gli oggetti a terra, cosa sono (il client ne disegna l'icona). */
+  bottini: { id: number; x: number; z: number; tipo: TipoBottino; vuoto: boolean; item?: string }[];
   uscita: { x: number; z: number };
   vicinoUscita: boolean;
   /** Altari di salvataggio; `attivo` = l'ultimo toccato (lì ti risvegli). */
@@ -302,7 +306,7 @@ export type DungeonView = {
 /** Un compagno visto da me: posa per l'avatar, vita per la barra, finito (uscito, caduto, andato via) = non si disegna più. */
 export type CompagnoView = {
   i: number; x: number; z: number; fx: number; fz: number; anim: HeroAnim; t: number; carica: number; stile?: SwingStyle;
-  vita: number; max: number; arma: string | null; magia?: string; canale?: { len: number; el?: SpellElement; fin?: number; n?: number }; protetto: boolean; done: boolean; outcome: RunOutcome | null;
+  vita: number; max: number; arma: string | null; magia?: string; canale?: { len: number; el?: SpellElement; fin?: number; n?: number; m?: string; k?: number }; protetto: boolean; done: boolean; outcome: RunOutcome | null;
 };
 
 /** Il modulo della spedizione da solo. Insieme (#118): createParty / stepParty / actParty di dungeon.ts; act, result, view e autopilot

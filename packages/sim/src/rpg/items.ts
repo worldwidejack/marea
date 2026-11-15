@@ -32,12 +32,12 @@ function generated(): ItemDef[] {
     }
     out.push({
       id: `arco_${m.id}`, nome: `Arco ${diMateriale(m)}`, kind: 'arco', peso: m.arco.peso, descr: m.arco.descr, colore: m.colore, materiale: m.id,
-      danno: m.arco.danno, tensione: m.arco.tensione, gittata: m.arco.gittata, traits: traitsOf(m.arco.traits), model: 'arm_arco',
+      danno: m.arco.danno, tensione: m.arco.tensione, traits: traitsOf(m.arco.traits), model: 'arm_arco',
       forgia: { costo: { [m.costo]: m.arco.quanti }, banco: m.banco },
     });
     out.push({
       id: `frecce_${m.id}`, nome: `Frecce ${diMateriale(m)}`, kind: 'frecce', peso: m.id === 'bronzo' || m.id === 'ossa' ? 0.1 : 0.05, descr: m.frecce.descr,
-      colore: m.colore, materiale: m.id, danno: m.frecce.danno, gittata: m.frecce.gittata, gravita: m.frecce.gravita, traits: traitsOf(m.frecce.traits),
+      colore: m.colore, materiale: m.id, danno: m.frecce.danno, traits: traitsOf(m.frecce.traits),
       model: 'arm_freccia', forgia: { costo: { [m.costo]: m.frecce.quanti }, banco: m.banco, n: m.frecce.n },
     });
     out.push({

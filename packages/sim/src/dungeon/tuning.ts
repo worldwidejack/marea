@@ -58,8 +58,6 @@ export const RAGGIO_ATTIVO = 30;
 export const FLOW_OGNI = 15;
 /** Svegli quelli vicini a chi entra in aggro. */
 export const RAGGIO_ALLARME = 6;
-/** Chi dorme vede a questa frazione della vista. */
-export const VISTA_DORMENDO = 0.5;
 /** Probabilità che un nemico parta addormentato. */
 export const P_DORME = 0.4;
 /** Boss: ogni N attacchi uno ad area (raggio × portata, danno ×, preparazione ×). */

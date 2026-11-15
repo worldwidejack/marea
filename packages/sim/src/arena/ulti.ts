@@ -1,18 +1,20 @@
-// Ulti e Vigore dell'Arena (docs/ARENA.md §7): sopra la sim del round, senza toccare quella dei dungeon.
-// Ulti: ogni eroe ne ha una (ArenaEroe.ulti, numeri in arena.json → ulti). Si carica giocando (al secondo, col danno dato e preso), resta da un
-// round all'altro, si lancia piena con l'azione `ulti`. Furia e Scatto sono buff (furiaDanno, passo e corsaGratis); Aura cura chi le sta vicino;
+// Ulti e Vigore dell'Arena (docs/ARENA.md §7): sopra la sim della partita, senza toccare quella dei dungeon.
+// Ulti: ogni eroe ne ha una (ArenaEroe.ulti, numeri in arena.json → ulti). Si carica giocando (al secondo, col danno dato e preso), resta anche
+// quando si cade e si rinasce, si lancia piena con l'azione `ulti`. Furia e Scatto sono buff (furiaDanno, passo e corsaGratis); Aura cura chi le sta vicino;
 // Raggio della Marea: fermo, carica e poi un raggio dritto che si gira piano; Arpione: un gancio dritto, chi prende viene tirato fino a te e
 // resta stordito; Velo: per un po' gli avversari non ti vedono, come nell'erba alta (dungeon/erba.ts). Chi carica, spara, lancia o è tirato sta
 // fermo: il suo input non conta.
-// Vigore: i colpi di mischia e le frecce costano Stamina (RunWeapon.fatica); senza il Vigore che costa il colpo non si attacca finché non torna.
+// Vigore: serve a correre e a schivare, non a colpire; la schivata in Arena costa ARENA.build.staminaSchivata (più che nei dungeon).
 // Pura e deterministica: solo + − × ÷ e Math.sqrt.
 import { ARENA, arenaUlti } from '@marea/content/arena.ts';
+import { RPG } from '@marea/content/rpg.ts';
 import { DT } from '../constants.ts';
 import type { DungeonInput } from '../dungeon/types.ts';
 import { NO_DUNGEON_INPUT } from '../dungeon/types.ts';
 import { conEroe, secToTicks } from '../dungeon/state.ts';
 import type { DungeonState } from '../dungeon/state.ts';
 import { isOpaque, moveCircle } from '../dungeon/map.ts';
+import { aimDir } from '../dungeon/mira.ts';
 import { colpisciEroe, eroiNemici } from '../dungeon/pvp.ts';
 import { scopri } from '../dungeon/erba.ts';
 import type { ArenaEroe } from '../rpg/arena.ts';
@@ -20,21 +22,21 @@ import type { ArenaEroe } from '../rpg/arena.ts';
 /** Ulti di un eroe: la carica (0..max) e, se è in corso, la fase e quanti tick restano. Arpione: dove sta il gancio, quanta strada ha fatto,
  *  chi ha preso (-1 nessuno). Raggio: quanto è lungo adesso (fino al primo muro). `stordito`: tick in cui l'eroe resta fermo (preso
  *  dall'arpione di un altro). Vigore: l'azione dell'eroe al tick prima. `fatti`/`presi`:
- *  il danno del round già contato per la carica. */
+ *  il danno già contato per la carica. */
 export type UltiRt = {
   id: string; carica: number;
   fase: 'no' | 'su' | 'carica' | 'fuoco' | 'volo' | 'tiro'; resto: number;
   x: number; z: number; fx: number; fz: number; strada: number; preso: number; lungo: number;
   stordito: number; act: string; fatti: number; presi: number;
 };
-/** Il pezzo di DuelloState che serve qui. */
+/** Il pezzo di PartitaState che serve qui. */
 type D = { s: DungeonState; eroi: readonly ArenaEroe[]; ul: UltiRt[]; fase: string; squadre: number[] };
 
 const C = ARENA.ulti.carica, OGNI = Math.round(secToTicks(1) / 6); // effetti a impulsi: 6 al secondo
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 export const nuovaUlti = (e: ArenaEroe): UltiRt => ({ id: arenaUlti(e.ulti).id, carica: 0, fase: 'no', resto: 0, x: 0, z: 0, fx: 0, fz: 1, strada: 0, preso: -1, lungo: 0, stordito: 0, act: 'idle', fatti: 0, presi: 0 });
-/** Round nuovo: niente ulti in corso, danno contato da zero; la carica resta. */
-export function roundUlti(d: D): void { for (const u of d.ul) { u.fase = 'no'; u.resto = 0; u.preso = -1; u.stordito = 0; u.act = 'idle'; u.fatti = 0; u.presi = 0; } }
+/** L'eroe rinasce: niente ulti in corso; la carica e il danno già contato restano. */
+export function rinasceUlti(u: UltiRt): void { u.fase = 'no'; u.resto = 0; u.preso = -1; u.stordito = 0; u.act = 'idle'; }
 /** Chi sta fermo per un'ulti: chi carica o spara il raggio, chi lancia l'arpione, chi ne è stato preso. */
 export const fermo = (d: D, i: number): boolean => {
   const u = d.ul[i]!;
@@ -59,18 +61,20 @@ export function attivaUlti(d: D, i: number): boolean {
   return true;
 }
 
-/** Gli input del tick: fermi quelli presi da un'ulti; chi non ha il Vigore che costa un colpo non lo comincia. Chi carica o spara il raggio della Marea
- *  si gira piano verso dove spinge il joystick. */
+/** Gli input del tick: fermi quelli presi da un'ulti; chi non ha il Vigore che costa una schivata non la comincia. Chi carica o spara il raggio della Marea
+ *  si gira verso dove punta la mira (stick destro o mouse), o dove spinge il joystick, di al massimo `giro` al secondo. */
 export function inputUlti(d: D, inputs: readonly DungeonInput[]): DungeonInput[] {
   return inputs.map((inp, i) => {
     const r = d.s.eroi[i], u = d.ul[i];
     if (!r || !u || r.done) return inp;
     if (fermo(d, i)) {
-      if ((u.fase === 'carica' || u.fase === 'fuoco') && (inp.mx || inp.my)) gira(u, inp.mx, inp.my, arenaUlti(u.id).giro ?? 1);
+      if (u.fase === 'carica' || u.fase === 'fuoco') {
+        const a = aimDir(inp.m), giro = arenaUlti(u.id).giro ?? 1; // la mira (stick destro, mouse) vince sul joystick di movimento
+        if (a) gira(u, a[0], a[1], giro); else if (inp.mx || inp.my) gira(u, inp.mx, inp.my, giro);
+      }
       return { ...NO_DUNGEON_INPUT };
     }
-    const h = r.hero, f = r.runHero.arma.fatica ?? 0;
-    return f > 0 && !h.incanta && h.act === 'idle' && h.stamina < f && inp.a ? { ...inp, a: false } : inp;
+    return inp.roll && r.hero.stamina < ARENA.build.staminaSchivata ? { ...inp, roll: false } : inp;
   });
 }
 /** Il raggio si gira verso (mx, my) di al massimo `giro` al secondo (in radianti, circa): niente trigonometria, una media normalizzata. */
@@ -80,15 +84,14 @@ function gira(u: UltiRt, mx: number, my: number, giro: number): void {
   if (n > 1e-6) { u.fx = x / n; u.fz = z / n; }
 }
 
-/** Dopo il passo della sim: il Vigore dei colpi appena partiti, gli effetti delle ulti in corso, la carica. */
+/** Dopo il passo della sim: il di più del Vigore delle schivate appena partite, gli effetti delle ulti in corso, la carica. */
 export function dopoUlti(d: D): void {
   const s = d.s;
   for (let i = 0; i < d.ul.length; i++) {
     const u = d.ul[i]!, r = s.eroi[i]!, h = r.hero;
     if (u.stordito > 0) u.stordito--;
-    // Vigore: un colpo di mischia (il caricato di più) o una freccia appena partiti
-    const f = r.runHero.arma.fatica ?? 0;
-    if (f > 0 && h.act !== u.act && (h.act === 'swing' || (h.act === 'tira' && r.runHero.arma.kind === 'arco'))) h.stamina = Math.max(0, h.stamina - f * (h.act === 'swing' && h.caricato ? ARENA.build.staminaCaricato : 1));
+    // Vigore: la schivata appena partita costa più che nei dungeon (la sim ne ha tolto RPG.schivata.stamina)
+    if (h.act === 'schiva' && u.act !== 'schiva') h.stamina = Math.max(0, h.stamina - (ARENA.build.staminaSchivata - RPG.schivata.stamina));
     u.act = h.act;
     if (r.done) { if (u.fase !== 'no') { u.fase = 'no'; u.preso = -1; } continue; }
     if (u.fase !== 'no') effetto(d, i, u);

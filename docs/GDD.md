@@ -35,7 +35,7 @@ Riferimenti: ogni format prende da un gioco di grande successo (Mario Kart e Did
 | **Templari** (birbasan): chiesa in rovina, borgo abbandonato, cimitero | sud | libera | ondate di crociati zombie, fino a 4 insieme (§13, `TEMPLARI.md`) |
 | **Corse** (Jack): prato, anello d'asfalto, tribune | nord-est | libera | il **Gran Premio**, a piedi dalle porte delle zone (`CORSE.md`) |
 | **Adrenalina** (birbasan): una montagna con la funivia | nord-ovest | la funivia ti fa salire dopo la **liberatoria** e col **Casco** in testa | discese contro i fantasmi degli amici (§14, `ADRENALINA.md`) |
-| **Arena** (Riccardo, da confermare con Jack): un colosseo | sud-est | libera | duello 1v1, 2v2 e 3v3 alla Brawl Stars, con erba alta, build uguali per tutti e ulti (`ARENA.md`) |
+| **Arena** (Riccardo, da confermare con Jack): un colosseo | sud-est | libera | quattro modalità alla Brawl Stars (Sopravvivenza, Caccia alle stelle, Controllo, Rapinatori), build uguali per tutti e ulti (`ARENA.md`) |
 | **Difesa**: L'orto, col casale e il mulino | ovest | libera | difesa a corsie alla Plants vs Zombies, 6 livelli + Sopravvivenza (`DIFESA.md`) |
 
 Sotto le isole c'è il **Mondo Sotterraneo**, coi dungeon (§12, `RPG.md`); sull'anello della **Laguna** quelli dell'Epopea della Regata. Il **Distretto Neon** e l'**Isola Selvaggia** sono facciate, da vedere dalla barca.
@@ -53,7 +53,7 @@ Sotto le isole c'è il **Mondo Sotterraneo**, coi dungeon (§12, `RPG.md`); sull
 - **Tolti** (il codice sta nei tag `archivio/spenti-*`): il giardino dietro la casa con gli edifici che producevano Legno e Pietra, le sfide con posta (§7), il Faro comune, i traguardi e i titoli.
 
 ## 4. Chi sei: l'avatar
-Il **protagonista** (Riccardo, 3 nov 2026, `avatar.json` `protagonista`): il ragazzo con fascia rossa, cicatrice a X e borsa a tracolla; disegno di Riccardo, 3D di Meshy (`chr_eroe`, 3.000 triangoli, 1,62 m). **Una texture sola**, niente tinte: ci si veste con le **skin**, altre texture con le stesse UV (`tools/meshy/`), voci di `avatar.json` `abiti` col campo `skin`, vendute dal Mercante. `chr_base` (27 vestiti `abt_<id>`) resta per Gente del Porto e bottegai. I **cappelli** sono modelli (`cap_<id>`): 27, 3 gratis (nessuno, paglia, berretto), gli altri uno per uno dal Mercante; si indossano dalla **Borsa**. Il **Casco** (105 monete) serve per la funivia dell'Adrenalina, la **Lanterna in testa** per il Vulcano. 8 emote al posto della chat (§8). Animazioni: respiro e sguardi da fermo, camminata, corsa, seduto e remata. **Schiva (V)**: roll gratuito nel mondo; nei dungeon costa stamina (`RPG.md` §4).
+L'**avatar** (`protagonista` in `avatar.json`, Riccardo, 3 nov 2026; non è il protagonista a sprite dell'Atelier): il ragazzo con fascia rossa, cicatrice a X e borsa a tracolla; disegno di Riccardo, 3D di Meshy (`chr_eroe`, 3.000 triangoli, 1,62 m). **Una texture sola**, niente tinte: ci si veste con le **skin**, altre texture con le stesse UV (`tools/meshy/`), voci di `avatar.json` `abiti` col campo `skin`, vendute dal Mercante. `chr_base` (27 vestiti `abt_<id>`) resta per Gente del Porto e bottegai. I **cappelli** sono modelli (`cap_<id>`): 27, 3 gratis (nessuno, paglia, berretto), gli altri uno per uno dal Mercante; si indossano dalla **Borsa**. Il **Casco** (105 monete) serve per la funivia dell'Adrenalina, la **Lanterna in testa** per il Vulcano. 8 emote al posto della chat (§8). Animazioni: respiro e sguardi da fermo, camminata, corsa, seduto e remata. **Schiva (V)**: roll gratuito nel mondo; nei dungeon costa stamina (`RPG.md` §4).
 
 ## 5. Economia
 **Una valuta sola: le monete** (Jack e gli amici, 18 ott 2026, #414, VISIONE §2). Si vincono nei minigiochi e nei format, si trovano nei dungeon, si spendono nelle botteghe e dai negozi del Borgo e del Porto. Legno, Pietra e Perle non ci sono più: i salvataggi di prima si convertono (sotto). Nell'HUD un contatore solo. Numeri in `balance.json` (`monete`, `solo`), nei json dei format e nei cataloghi; la taratura si verifica con `economy_30days.test.ts` (tre archetipi, sotto).
@@ -61,7 +61,7 @@ Il **protagonista** (Riccardo, 3 nov 2026, `avatar.json` `protagonista`): il rag
 Da dove arrivano (numeri e tetti nei JSON):
 - **minigiochi da soli**: premio a medaglie, più un extra all'oro per alcuni; premiate solo le prime partite del giorno (`balance.json` `solo`, `premioExtra` nel json del minigioco);
 - **Bacheca del Porto**: 3 missioni al giorno (`missioni.json`);
-- **Templari** e **Arena**: per ondata superata e per duello, con un tetto al giorno (`templari.json`, `arena.json` `premio`);
+- **Templari** e **Arena**: per ondata superata e per partita, con un tetto al giorno (`templari.json`, `arena.json` `premio`);
 - **dungeon**: dai nemici e dai forzieri (`rpg/loot.json`); il **Contrabbandiere** compra lo zaino, gli insetti e i pesci;
 - chi comincia ne ha `monete.partenza`.
 
@@ -142,7 +142,7 @@ Ogni minigioco: cartello regole di 3 s in italiano, si gioca con un pollice, anc
 
 **Discese dell'Adrenalina** (Isola dell'Adrenalina, §3): tre minigiochi nel formato comune (snowboard, bici downhill, lancio col paracadute), 60-120 s, su **piste fisse** disegnate a mano (verde → blu → rossa → nera) invece che generate dal seed, così record e fantasmi valgono. Si giocano in una **scena a parte** (la montagna da vicino) invece che in una schermata sopra il mondo. Niente bot: si corre contro il **fantasma** del record di un amico. Tutto in **`docs/ADRENALINA.md`**.
 
-**Duello dell'Arena** (Isola dell'Arena, §3): PvP 1v1, 2v2 o 3v3 al meglio di 3 round (3 s di conto alla rovescia, 90 s di gioco; a tempo scaduto vince chi ha più Vita), tutti uguali, niente colpi da un colpo solo. Conta solo la **build** (se ne salvano 3): una dote (+20% Vita, +50% Vigore o Magicka), 2 tra armi e magie (Cura e Furia solo a squadre) e un'**ulti** a carica. Coda veloce, sala con codice per gli amici (i posti vuoti li prendono i gladiatori automatici), allenamento. Nell'**erba alta** delle mappe gli avversari non ti vedono (i compagni sì). Premio: 30 monete a vittoria, 10 a sconfitta, tetto 150 al giorno. Tutto in **`docs/ARENA.md`** (`arena/arena.json`).
+**Arena** (Isola dell'Arena, §3): Quattro modalità: **Sopravvivenza** (tutti contro tutti o cinque squadre con uno o due eroi, casse con le monete rosse, nube tossica che stringe), **Caccia alle stelle** (3v3, taglie di stelle), **Controllo** (3v3, zone da conquistare), **Rapinatori** (2v2 o 3v3, casseforti). Conta la **build** (se ne salvano 3): una dote, 2 tra armi e magie e un'**ulti** a carica. Lobby con codice e squadre scelte dall’host. Si può giocare da soli, con bot sui posti vuoti. Nell'**erba alta** non ti vedono. Premio: 30 monete a vittoria, 10 a sconfitta, tetto 150 al giorno. Tutto in **`docs/ARENA.md`** (`arena/arena.json`).
 
 ## 7. Sfide con posta
 Spente dal 30 set 2026 e tolte dal codice il 20 ott: si gioca da soli e si viene premiati dai minigiochi (§5, §6). Il codice di prima (Tavolo, posta, rotte del server) sta nel tag `archivio/spenti-sfide`. Al Tavolo del Porto c'è lo **Scacco in 3**: ti siedi e si apre la scacchiera, senza premio.

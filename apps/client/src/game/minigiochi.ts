@@ -32,6 +32,8 @@ import { temaAperta } from './temi.ts'; // Ghiacci e Giardino
 import { FLAGS } from '../flags.ts';
 import { FONT_LIBRO, LIBRO as L } from '../ui/libro_colori.ts';
 
+const PROFILI_GIOCO = ['corse', 'consegne', 'ingorgo', 'pinguini', 'koi', 'arrembaggio', 'lava', 'perle'] as const;
+
 /** `opzioni` = parametri della partita per il server (es. il mare della pesca); `posto` = molo dove si gioca ('porto', 'lotto:N':
  *  lo riceve il gioco); `aPiedi` = parte solo a piedi (in barca A accelera); `vista` = il cartello si vede solo entro tanti metri;
  *  `mete: false` = non va nella bussola; `model` = modello del manifest sul posto; `aperta` = il posto c'è solo quando è vera (minigiochi
@@ -47,6 +49,7 @@ export type Minigiochi = {
   update(t: number, alpha?: number): void;
   /** Scheda dell'esito aperta o partita che sta partendo: il mondo sta fermo. */
   isBusy(): boolean;
+  profilo(): 'scacchi' | (typeof PROFILI_GIOCO)[number] | undefined;
   /** Partite finite in questa sessione (per la guida). */
   played(): number;
 };
@@ -328,6 +331,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   return {
     spots: spots.filter((s) => s.mete !== false), // nella bussola: dei giochi universali solo il posto del Porto
     isBusy: () => busy || open || schermoAperto(),
+    profilo: () => scacchi?.isOpen() ? 'scacchi' : PROFILI_GIOCO.find((id) => schermi.get(id)?.isOpen()),
     played: () => playedN,
     tick(a, input) {
       const pressA = a && !aWas; aWas = a;

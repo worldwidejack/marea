@@ -1,9 +1,12 @@
 // Icone a pixel 16×16 delle armi, degli archi, delle frecce e delle magie: ognuna ha il suo disegno, scritto come righe di lettere
-// (icone_armi.ts, icone_magie.ts) e trasformato qui in una griglia di colori della palette. Puro: niente DOM, lo disegna items_ui.ts.
+// (icone_armi.ts, icone_unici.ts, icone_magie.ts) e trasformato qui in una griglia di colori della palette. Puro: niente DOM, lo disegna items_ui.ts.
 // Armi: m/w/s sono il colore del materiale (medio, chiaro, scuro), il resto è fisso. Il contorno nero caldo lo aggiunge questo file.
 import { PALETTE as P } from '../render/palette.ts';
 import { ARMI } from './icone_armi.ts';
 import { MAGIE } from './icone_magie.ts';
+import { CORREDO } from './icone_corredo.ts';
+import { MAGIE_UNICHE } from './icone_magie_uniche.ts';
+import { UNICI } from './icone_unici.ts';
 
 export const ICONA = 16;
 /** Colori per riga e colonna; null = trasparente. */
@@ -37,11 +40,21 @@ function griglia(righe: readonly string[], materiale: string = P.pietraScura): S
 
 /** Il disegno di un'arma, di un arco o di frecce (anche gli unici); null se non ne ha uno suo. `materiale` = colore base del materiale. */
 export function spriteArma(it: { id: string; kind: string; tipo?: string }, materiale: string): Sprite | null {
-  const righe = ARMI[it.id] ?? (it.kind === 'arco' ? ARMI['arco'] : it.kind === 'frecce' ? ARMI['frecce'] : it.tipo ? ARMI[it.tipo] : undefined);
+  const righe = UNICI[it.id] ?? ARMI[it.id] ?? (it.kind === 'arco' ? ARMI['arco'] : it.kind === 'frecce' ? ARMI['frecce'] : it.tipo ? ARMI[it.tipo] : undefined);
   return righe ? griglia(righe, materiale) : null;
 }
 /** Il disegno di una magia; null se non ne ha uno suo. */
 export function spriteMagia(id: string): Sprite | null {
-  const righe = MAGIE[id];
+  const righe = MAGIE[id] ?? MAGIE_UNICHE[id];
+  return righe ? griglia(righe) : null;
+}
+/** Il disegno di un'armatura, una veste o un anello unico (icone_corredo.ts); null per gli altri (restano 8×8). */
+export function spriteCorredo(id: string): Sprite | null {
+  const righe = CORREDO[id];
+  return righe ? griglia(righe) : null;
+}
+/** Il disegno di una magia unica dei dungeon (per il suo libro); null per le altre (il libro resta il libro 8×8). */
+export function spriteMagiaUnica(id: string): Sprite | null {
+  const righe = MAGIE_UNICHE[id];
   return righe ? griglia(righe) : null;
 }

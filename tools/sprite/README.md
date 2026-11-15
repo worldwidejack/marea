@@ -13,7 +13,7 @@ Gli script della ricetta in `.claude/skills/sprite-marea/SKILL.md`: leggi quella
 | `foglio.py <cartella> [--apri]` | il foglio da guardare: per mossa le 9 viste × 4 disegni, sulla linea di terra, e il giro delle 16 direzioni |
 | `in_fenaki.py <cartella>` | gli sprite nel banco di Fenaki: ogni mossa in ogni vista e il giro delle viste, da guardare e far votare |
 
-La cartella di un personaggio sta nell'**Atelier di MAREA** (repo `worldwidejack/marea-atelier`, clonato accanto a `marea`): `<atelier>/personaggi/<id>/`, esempio vero `personaggi/f3-prova/`. Tutto si committa lì, tranne `controllo/`:
+La cartella di un personaggio sta nell'**Atelier di MAREA** (repo `worldwidejack/marea-atelier`, clonato accanto a `marea`): `<atelier>/personaggi/<id>/`, esempio vero `personaggi/f3-prova/`. Il protagonista ufficiale è `personaggi/protagonista-pixellab/`; gli altri personaggi dell'Atelier sono «Storico idee», non canone. Tutto si committa lì, tranne `controllo/`:
 
 ```
 scheda.json         chi è e cosa fa: descrizione in inglese, immagini approvate, altezza, mosse (si committa)

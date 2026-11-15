@@ -1,0 +1,40 @@
+> Isola dei Templari, §4-§5: come va la partita (ondate, punti, vita), gli eroi del menù d'ingresso e i controlli. Armi e nemici: [§6-§8](6-8-armi-mercante-nemici.md); cos'è la modalità: [§0](0-2-storia-e-ingressi.md); il resto nell'[indice](../TEMPLARI.md).
+
+## 4. La partita
+- Si parte con la **spada arrugginita** e **500 punti**, all'altare.
+- **Ondate infinite**: in ogni ondata compare un numero fisso di zombie, mai più di **10** insieme alla prima, uno in più a ogni ondata fino a **24** dalla 15ª (§12b; prima 18 fissi); ucciso l'ultimo, **10 secondi** di respiro (jingle, «Ondata 4») e poi la prossima. Gli zombie diventano più resistenti a ogni ondata (sotto) e più veloci: alle prime camminano, dalla 4ª qualcuno corre, dalla 8ª molti scattano.
+- **Vita** 100, si rigenera dopo 4 s senza colpi. Un fante toglie 45: tre colpi di fila e sei a terra.
+- **Morte** = fine (da solo; insieme si resta a terra fino all'ondata dopo, §10b): «SEI CADUTO ALL'ONDATA N», la scheda col premio (lo conferma il server) e sei di nuovo davanti alla chiesa. Riprovi o vai via.
+- **Alba**: dopo **60 minuti** la partita finisce da sola («È L'ALBA»): sei sopravvissuto, vale l'ondata a cui sei arrivato.
+- **Punti**: +10 a colpo a segno, +60 a uccisione, +100 se l'uccisione è in mischia; +10 ad asse rimessa su una finestra (fino a 200 per ondata). Si azzerano a ogni partita: le risorse di MAREA non c'entrano, arrivano solo col premio finale.
+
+**Vita degli zombie** (come COD): 150 all'ondata 1, +100 a ondata fino alla 9 (950), poi ×1,1 a ondata (ondata 10 ≈ 1050, 15 ≈ 1680, 20 ≈ 2700, 30 ≈ 7000).
+
+| Ondata | Zombie | Ogni quanto ne entra uno |
+|---|---|---|
+| 1 · 2 · 3 · 4 · 5 | 6 · 9 · 11 · 14 · 17 | 2,0 s, poi −0,08 s a ondata (minimo 0,5) |
+| n | 6 + 2,6·(n−1) + 0,06·(n−1)², al massimo 80 | |
+| insieme (§10b) | × (1 + 0,5 · (giocatori − 1)): in 2 una volta e mezza, in 4 due volte e mezza | |
+| in campo insieme (§12b) | 10 all'ondata 1, +1 a ondata, al massimo 24 (dalla 15ª); in squadra × come sopra: in 4 fino a 60 | |
+
+## 4b. Gli eroi: il menù d'ingresso (14 ott 2026, scelte di birbasan)
+Jack l'ha provata: «bella ma non c'è niente da fare». Primo passo della risposta: prima di entrare si **sceglie l'eroe**, come in Destiny la classe e come il veicolo nel menù delle Corse. Sono **3 eroi, pochi ma diversi**: è sempre il **tuo avatar di MAREA** (pelle, capelli, faccia) con il **vestito dell'eroe** e la sua arma in mano. Ognuno ha **4 barre** (vita, forza, velocità, mira: solo da vedere), un'**arma di partenza** e un **super** alla Destiny che si carica uccidendo. In squadra ognuno sceglie chi vuole (anche quattro uguali).
+
+| Eroe | Vestito | Parte con | Vita | Velocità | Più forte con | Super (18 uccisioni) |
+|---|---|---|---|---|---|---|
+| **Il Crociato** | elmo chiuso, tunica bianca con la croce rossa, maglia | spada + **scudo templare sulle spalle** | **150** | ×0,94 | mischia: danno ×1,25 | **Giudizio**: pianta la spada, chi sta entro 4 m prende 1,5 × la vita dell'ondata (lo scudo dello scudato non para) e vola via di 2,5 m; 1,2 s intoccabile |
+| **La Bucaniera** | tricorno, giacca rossa coi bottoni d'oro, stivali | pistola a pietra focaia + spada | 100 | ×1,12 | armi da fuoco: danno ×1,25, ricarica ×0,65 | **Bordata**: tre cannonate dalla nave in fila lungo la mira (2,2 m l'una dall'altra, la prima dopo 0,6 s, poi ogni 0,3 s), raggio 2,6, 1,2 × la vita dell'ondata |
+| **L'Arciere** | cappuccio e tunica verdi, giubba e faretra di cuoio | arco + spada | 100 | ×1,04 | archi: danno ×1,3, si tende in ×0,7 | **Pioggia di frecce**: per 4 s un cerchio di 3,2 m dove miri, 0,9 × la vita dell'ondata al secondo a chi ci sta sotto |
+
+- **Il super**: ogni uccisione dell'eroe (colpi suoi, frecce e palle sue) riempie 1/18 dell'anello; le fiamme, le trappole, i power-up e il super stesso no. Pieno brilla e si usa col bottone **SUPER** (telefono, a sinistra sopra il joystick) o **R** (PC: va dove punta il mouse). Bersaglio senza mira: lo zombie in vista più vicino davanti, sennò davanti a te. Il danno segue la vita dell'ondata, così il super serve a ogni ondata; i boss ne perdono una fetta.
+- **Vita e pozioni**: la Zuppa di pietra dà +100 sulla vita dell'eroe (Crociato 250); cadendo si torna alla vita dell'eroe.
+- **Il menù** (`apps/client/src/templari/scelta.ts`): una cripta a lume di candela con gli stendardi, la pedana di pietra con l'anello bianco e nero e la croce rossa, l'eroe che gira piano; a sinistra le tre carte, a destra il pannello (nome, frase, barre, super, armi di partenza), sotto il bottone giallo **DEUS VULT** (insieme: **IN SALA**). Frecce, A D o W S, joystick = cambia; Invio/Spazio = parte; Esc o ✕ = di nuovo fuori. L'ultimo eroe resta (localStorage `mz-templari-eroe`). Al telefono in verticale l'eroe sta in alto, sotto carte, pannello e bottone.
+- **Server**: l'eroe va con `POST /api/templari/start {subito, classe}` e resta nel lotto (`pending.classe`); a fine partita il server rigioca con lui. Insieme si sceglie prima di entrare in sala (`/ws/templari?classe=`), la sala lo dice accanto al nome e il log della squadra lo porta (`classi`).
+- **Stanza di prova**: niente menù, l'ultimo eroe scelto; nel banco «Eroe (si ricomincia)» e «Super: carica pieno».
+- **Prossimi passi** (scelte del 14 ott): ~~accendere l'isola, costruire la campana coi pezzi~~ (fatto: §9b), ~~segreti (stanza dietro il muro con l'arma da guadagnare uccidendo 5 zombie lì dentro, campane in ordine, canzone dei 3 teschi)~~ (fatto: §9c), la forgia della spada di de Molay (§12b, scelta il 18 ott), missioni durante le ondate, la missione finale e la fuga in nave; tra le partite vestiti nuovi e trofei sul lotto. Il **secondo giro** (18 ott: bilanciamento, spiaggia, catacombe, indizi, nemici nuovi, forgia) è nel §12b.
+
+## 5. Controlli
+- **Mira** (passo 9): niente attacco automatico, colpisci solo quando premi. Il joystick (o WASD) appena sfiorato ti gira sul posto senza muoverti; da PC, se non cammini, l'eroe guarda il puntatore del mouse e il clic attacca lì. La spada colpisce davanti a te; archi e armi da fuoco senza mira vera aiutano solo dentro un cono stretto (~35°) davanti: fuori dal cono il colpo va dritto dove guardi. **Mira vera** (12 ott 2026, #244, la stessa del dungeon: arco e magie): con arco, pistole, moschetto, trombone o fuoco greco in mano **il colpo va esattamente dove punta il cursore** (anche mentre cammini, anche fuori dal cono, anche se c'è uno zombie più vicino); il cursore diventa un mirino e davanti all'eroe c'è la linea di mira. L'arco teso segue il cursore e la freccia parte dove punta al rilascio. Il vaso del fuoco greco cade sul primo zombie lungo la mira, sennò a 3/5 della gittata. Senza mouse né joystick di mira vale la mira assistita di prima. **Arco**: tieni premuto per tendere (più tendi, più fa male), lascia per tirare. **Pistole e moschetto**: un tocco = un colpo, a caricatore vuoto ricaricano da sole (le munizioni si comprano sul muro). **Fuoco greco**: un tocco lancia il vaso dove guardi.
+- **Telefono**: joystick (spinto fino in fondo = corsa, 5 s di fiato), bottone grande **A** (attacca; con un'arma a distanza in mano al suo posto c'è il **joystick di mira**: arco = tieni per tendere, trascina per puntare, lascia per tirare; pistole, moschetto, trombone e fuoco greco partono **al rilascio**; un tocco veloce senza trascinare spara come prima, assistito), **AZIONE** (compra, apri, prendi, ripara, accendi: il bottone dice cosa e quanto costa), **SCAMBIA** (le due armi), **SCUDO** (se ce l'hai).
+- **PC**: WASD/frecce, Spazio, E o clic = attacca (tenuto = giro caricato), **F** = azione (tenuto per riparare), **Q** = scambia (lo scudo in mano è la terza «arma»), **R** = super (§4b), Shift = corsa, Esc = pausa. Un clic più corto di un fotogramma vale lo stesso (almeno un tick premuto).
+- **Mira automatica di serie**: ogni colpo si gira verso lo zombie più vicino davanti a te, e con **AUTO** acceso (di serie) l'eroe attacca da solo quando ne ha uno a tiro: basta il joystick. **A MANO** (dalla pausa): attacchi solo quando premi, così non sprechi frecce e colpi.

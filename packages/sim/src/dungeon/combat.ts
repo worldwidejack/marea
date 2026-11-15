@@ -142,6 +142,9 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
   }
   if (src.traits.sanguina) { e.bleed = Math.max(e.bleed, src.traits.sanguina); e.bleedT = SANGUINA_TICKS; }
   if (src.rallenta) rallentaNemico(s, e, src.rallenta);
+  // unici: la mischia ruba vita (Falce del Becchino) o gela (Arpione del Palombaro, Bastoncini da Sci Gemelli)
+  if (src.mischia && !src.daAlleato && src.traits.rubaVita && !s.done) s.hero.vita = Math.min(s.runHero.max.vita, s.hero.vita + utile * src.traits.rubaVita);
+  if (src.mischia && src.traits.gelo) rallentaNemico(s, e, src.traits.gelo);
   e.dropRaro = !!src.traits.dropRaro;
   e.dropMolt = src.traits.dropMolt ?? 1;
   // sbilancia o attacco caricato: interrompe la preparazione dei non-boss e spinge

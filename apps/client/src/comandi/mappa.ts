@@ -1,123 +1,162 @@
-// La mappa dei comandi: quali tasti e quale pulsante del controller fanno cosa, salvata su questo dispositivo (localStorage).
-// Il gioco legge i codici di serie (KeyE, Space…) in una cinquantina di posti: invece di toccarli tutti, un ascoltatore in capture
-// (`avviaRimappa`, il primo della finestra) traduce i tasti veri nel codice di serie dell'azione e rilancia un tasto sintetico.
-// Un tasto di serie che hai cambiato non fa più niente (se nessun'altra azione lo usa). Con Ctrl/Alt/Cmd, in un campo di testo o mentre
-// la schermata Comandi aspetta un tasto, i tasti passano com'erano.
-import { AZIONI, SLOT, chiaveDi } from './azioni.ts';
-import type { Azione } from './azioni.ts';
+import { PROFILI, SLOT, PULSANTI_ASSEGNABILI, azioni, chiaveDi } from './azioni.ts';
+import type { Profilo } from './azioni.ts';
 
-const KEY = 'marea:comandi:1';
-type Salvato = { k?: Record<string, (string | null)[]>; p?: Record<string, number | null> };
+const KEY = 'marea:comandi:2', VECCHIA = 'marea:comandi:1';
+type Salvato = { k?: Record<string, (string | null)[]>; p?: Record<string, number | null>; s?: true };
+const profili = Object.keys(PROFILI) as Profilo[];
+const stickScambiati = new Set<Profilo>();
+const mappe = new Map<Profilo, {
+  tasti: Map<string, (string | null)[]>; pad: Map<string, number | null>;
+  traduci: Map<string, string>; originali: Set<string>;
+}>();
+const serie = (a: { tasti: readonly (string | undefined)[] }, i: number): string | null => a.tasti[i] ?? null;
+const valido = (b: unknown): b is number => typeof b === 'number' && Number.isInteger(b) && b >= 0 && b < PULSANTI_ASSEGNABILI;
+const leggi = <T>(chiave: string): T | null => {
+  try { return JSON.parse(localStorage.getItem(chiave) ?? 'null') as T | null; } catch { return null; }
+};
 
-const serie = (a: Azione, i: number): string | null => a.tasti[i] ?? null;
-let tasti = new Map<string, (string | null)[]>(); // id → codice per slot (null = nessuno)
-let pulsanti = new Map<string, number | null>(); // id → pulsante del controller
-let emetti = new Map<string, string>(); // codice premuto → codice di serie da rilanciare
-let morti = new Set<string>(); // codici di serie che nessuno usa più
-let cattura = false;
-const sintetici = new WeakSet<Event>();
-
-function ricostruisci(): void {
-  emetti = new Map(); morti = new Set();
-  const usati = new Set<string>();
-  for (const a of AZIONI) for (let i = 0; i < SLOT; i++) { const c = tasti.get(a.id)?.[i]; if (c) usati.add(c); }
-  for (const a of AZIONI) for (let i = 0; i < SLOT; i++) {
-    const c = tasti.get(a.id)?.[i] ?? null, s = serie(a, i);
-    if (c === s) continue;
-    if (c) emetti.set(c, s ?? a.tasti[0]);
-    if (s && !usati.has(s)) morti.add(s);
+function ricostruisci(p: Profilo): void {
+  const m = mappe.get(p)!;
+  m.traduci.clear(); m.originali.clear();
+  for (const a of azioni(p)) for (let i = 0; i < SLOT; i++) {
+    const s = serie(a, i), c = m.tasti.get(a.id)?.[i];
+    if (s) m.originali.add(s);
+    const code = s ?? a.tasti[0];
+    if (c && code) m.traduci.set(c, code);
   }
 }
 
 function carica(): void {
-  tasti = new Map(); pulsanti = new Map();
-  let raw: Salvato = {};
-  try { raw = (JSON.parse(localStorage.getItem(KEY) ?? 'null') as Salvato | null) ?? {}; } catch { /* storage non leggibile: valgono i tasti di serie */ }
-  for (const a of AZIONI) {
-    const k = raw.k?.[a.id], p = raw.p?.[a.id];
-    tasti.set(a.id, Array.from({ length: SLOT }, (_, i) => {
-      const v = k?.[i];
-      return v === undefined ? serie(a, i) : typeof v === 'string' || v === null ? v : serie(a, i);
-    }));
-    pulsanti.set(a.id, a.senzaPad ? null : p === undefined ? a.pad : typeof p === 'number' || p === null ? p : a.pad);
+  const dati = leggi<Partial<Record<Profilo, Salvato>>>(KEY);
+  const vecchi = dati ? null : leggi<Salvato>(VECCHIA);
+  for (const p of profili) {
+    const tasti = new Map<string, (string | null)[]>(), pad = new Map<string, number | null>();
+    const usati = new Set<number>();
+    const def = azioni(p), raw = dati?.[p] ?? (p !== 'menu' ? vecchi : null);
+    if (raw?.s === true) stickScambiati.add(p);
+    // Le assegnazioni esplicite hanno precedenza sui nuovi default durante la migrazione.
+    for (const a of def) {
+      const v = raw?.p?.[a.id];
+      if (v === null || (valido(v) && !usati.has(v))) { pad.set(a.id, v); if (v !== null) usati.add(v); }
+    }
+    for (const a of def) {
+      const k = raw?.k?.[a.id];
+      tasti.set(a.id, Array.from({ length: SLOT }, (_, i) => {
+        const v = Array.isArray(k) ? k[i] : undefined;
+        return typeof v === 'string' || v === null ? v : serie(a, i);
+      }));
+      if (!pad.has(a.id)) {
+        const b = a.pad !== null && !usati.has(a.pad) ? a.pad : null;
+        pad.set(a.id, b); if (b !== null) usati.add(b);
+      }
+    }
+    mappe.set(p, { tasti, pad, traduci: new Map(), originali: new Set() });
+    ricostruisci(p);
   }
-  ricostruisci();
 }
 
-function salva(): void {
-  const k: Record<string, (string | null)[]> = {}, p: Record<string, number | null> = {};
-  for (const a of AZIONI) {
-    const t = tasti.get(a.id)!;
+function differenze(p: Profilo): Salvato {
+  const k: NonNullable<Salvato['k']> = {}, pad: NonNullable<Salvato['p']> = {};
+  const m = mappe.get(p)!;
+  for (const a of azioni(p)) {
+    const t = m.tasti.get(a.id)!;
     if (t.some((c, i) => c !== serie(a, i))) k[a.id] = t;
-    if (!a.senzaPad && pulsanti.get(a.id) !== a.pad) p[a.id] = pulsanti.get(a.id) ?? null;
+    const b = m.pad.get(a.id) ?? null;
+    if (b !== a.pad) pad[a.id] = b;
   }
-  try { localStorage.setItem(KEY, JSON.stringify({ k, p })); } catch { /* navigazione privata: vale fino a fine sessione */ }
-  ricostruisci();
+  return stickScambiati.has(p) ? { k, p: pad, s: true } : { k, p: pad };
+}
+
+function salva(p: Profilo): void {
+  ricostruisci(p);
+  try { localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(profili.map((id) => [id, differenze(id)])))); } catch { /* vale fino a fine sessione */ }
 }
 
 carica();
 
-export const tastoDi = (id: string, slot: number): string | null => tasti.get(id)?.[slot] ?? null;
-export const padDi = (id: string): number | null => pulsanti.get(id) ?? null;
-export const azioneDelPad = (b: number): string | null => { for (const [id, v] of pulsanti) if (v === b) return id; return null; };
+export const tastoDi = (p: Profilo, id: string, slot: number): string | null => mappe.get(p)?.tasti.get(id)?.[slot] ?? null;
+export const padDi = (p: Profilo, id: string): number | null => mappe.get(p)?.pad.get(id) ?? null;
+export function azioneDelPad(p: Profilo, b: number): string | undefined {
+  for (const [id, v] of mappe.get(p)!.pad) if (v === b) return id;
+  return undefined;
+}
 
-/** Dà un tasto a un'azione; se un'altra azione lo aveva, lo perde (un tasto, un'azione). Restituisce il nome di chi l'ha perso. */
-export function impostaTasto(id: string, slot: number, code: string | null): string | null {
-  const a = AZIONI.find((x) => x.id === id);
-  if (!a || slot < 0 || slot >= SLOT) return null;
+export function impostaTasto(p: Profilo, id: string, slot: number, code: string | null): string | null {
+  const m = mappe.get(p), t = m?.tasti.get(id);
+  if (!m || !t || !Number.isInteger(slot) || slot < 0 || slot >= SLOT) return null;
   let perso: string | null = null;
-  if (code) for (const b of AZIONI) for (let i = 0; i < SLOT; i++) {
-    if ((b.id === id && i === slot) || tasti.get(b.id)?.[i] !== code) continue;
-    tasti.get(b.id)![i] = null; perso ??= b.nome;
+  if (code) for (const a of azioni(p)) for (let i = 0; i < SLOT; i++) {
+    if ((a.id === id && i === slot) || m.tasti.get(a.id)?.[i] !== code) continue;
+    m.tasti.get(a.id)![i] = null; perso ??= a.nome;
   }
-  tasti.get(id)![slot] = code; salva();
+  t[slot] = code; salva(p);
   return perso;
 }
 
-export function impostaPad(id: string, b: number | null): string | null {
-  const a = AZIONI.find((x) => x.id === id);
-  if (!a || a.senzaPad) return null;
-  let perso: string | null = null;
-  if (b !== null) for (const [altro, v] of pulsanti) if (altro !== id && v === b) { pulsanti.set(altro, null); perso ??= AZIONI.find((x) => x.id === altro)?.nome ?? null; }
-  pulsanti.set(id, b); salva();
-  return perso;
+export function impostaPad(p: Profilo, id: string, b: number | null): string | null {
+  const m = mappe.get(p)?.pad;
+  if (!m?.has(id) || (b !== null && !valido(b))) return null;
+  // Scambia i due pulsanti se possibile: conferma e indietro restano raggiungibili mentre si rimappano.
+  const altro = b === null ? undefined : azioneDelPad(p, b);
+  const necessario = (azione?: string) => azione === 'conferma' || azione === 'indietro' || azione === 'chiudi';
+  if ((p === 'menu' || p === 'scacchi') && ((b === null && necessario(id)) || (m.get(id) === null && necessario(altro)))) return null;
+  if (altro && altro !== id) m.set(altro, m.get(id) ?? null);
+  m.set(id, b); salva(p);
+  return altro && altro !== id ? azioni(p).find((a) => a.id === altro)?.nome ?? null : null;
 }
 
-export function azzeraComandi(): void { try { localStorage.removeItem(KEY); } catch { /* niente */ } carica(); }
-export const personalizzati = (): boolean => emetti.size > 0 || morti.size > 0 || AZIONI.some((a) => pulsanti.get(a.id) !== (a.senzaPad ? null : a.pad));
+export function azzeraComandi(p: Profilo): void {
+  const m = mappe.get(p)!;
+  stickScambiati.delete(p);
+  for (const a of azioni(p)) { m.tasti.set(a.id, [serie(a, 0), serie(a, 1)]); m.pad.set(a.id, a.pad); }
+  salva(p);
+}
 
-/** La schermata Comandi sta aspettando un tasto: la rimappa e il tasto Esc delle Impostazioni si fanno da parte. */
+export function personalizzati(p: Profilo): boolean {
+  const d = differenze(p);
+  return !!(d.s || Object.keys(d.k ?? {}).length || Object.keys(d.p ?? {}).length);
+}
+
+export const stickInvertiti = (p: Profilo): boolean => stickScambiati.has(p);
+export function impostaStick(p: Profilo, scambia: boolean): void {
+  if (scambia) stickScambiati.add(p); else stickScambiati.delete(p);
+  salva(p);
+}
+
+let cattura = false;
 export const setCattura = (on: boolean): void => { cattura = on; };
 export const inCattura = (): boolean => cattura;
+let contesto: () => Profilo = () => 'borgo';
+export const collegaProfilo = (f: () => Profilo): void => { contesto = f; };
+export const profiloAttivo = (): Profilo => contesto();
 
-/** Un tasto sintetico (rimappa e controller): lo vede tutto il gioco come un tasto vero. Non entra in campi di testo. */
-export function inviaTasto(tipo: 'keydown' | 'keyup', code: string, ripetuto = false, marca?: WeakSet<Event>): void {
+const sintetici = new WeakSet<Event>();
+export function inviaTasto(tipo: 'keydown' | 'keyup', code: string, ripetuto = false, marca?: WeakSet<Event>, doc = document): void {
   const ev = new KeyboardEvent(tipo, { code, key: chiaveDi(code), repeat: ripetuto, bubbles: true, cancelable: true });
-  sintetici.add(ev); marca?.add(ev); // marcato prima di partire: chi lo riceve deve già poter dire da dove viene
-  (document.body ?? document.documentElement).dispatchEvent(ev);
+  sintetici.add(ev); marca?.add(ev);
+  (doc.body ?? doc.documentElement).dispatchEvent(ev);
 }
 
-const scrive = (e: KeyboardEvent) => e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement || (e.target instanceof HTMLElement && e.target.isContentEditable);
-
-let avviata = false;
-/** Da chiamare una volta, per primi: gli ascoltatori della finestra vengono dopo. */
-export function avviaRimappa(): void {
-  if (avviata || typeof addEventListener === 'undefined') return;
-  avviata = true;
-  const premuti = new Map<string, string>(); // tasto vero → codice rilanciato, finché è giù
+const scrive = (e: KeyboardEvent) => !!(e.target as Element | null)?.closest?.('input, textarea, select, [contenteditable="true"]');
+const finestre = new WeakSet<Window>();
+export function avviaRimappa(menuAperto: () => boolean, win: Window = window): void {
+  if (finestre.has(win)) return;
+  finestre.add(win);
+  const doc = win.document;
+  const premuti = new Map<string, string | null>();
   const giu = (e: KeyboardEvent) => {
     if (sintetici.has(e) || cattura || e.ctrlKey || e.altKey || e.metaKey || scrive(e)) return;
-    const a = emetti.get(e.code);
-    if (a === undefined && !morti.has(e.code)) return;
-    e.stopImmediatePropagation(); e.preventDefault();
-    if (a !== undefined) { premuti.set(e.code, a); inviaTasto('keydown', a, e.repeat); }
+    const m = mappe.get(profiloAttivo())!;
+    const a = premuti.has(e.code) ? premuti.get(e.code) : menuAperto() && profiloAttivo() !== 'scacchi' ? undefined : m.traduci.get(e.code) ?? (m.originali.has(e.code) ? null : undefined);
+    if (a === undefined || a === e.code) return;
+    e.stopImmediatePropagation(); e.preventDefault(); premuti.set(e.code, a);
+    if (a !== null) inviaTasto('keydown', a, e.repeat, undefined, doc);
   };
   const su = (e: KeyboardEvent) => {
-    if (sintetici.has(e)) return;
-    const a = premuti.get(e.code);
-    if (a === undefined) { if (morti.has(e.code) && !cattura) { e.stopImmediatePropagation(); } return; }
-    e.stopImmediatePropagation(); premuti.delete(e.code); inviaTasto('keyup', a);
+    if (sintetici.has(e) || !premuti.has(e.code)) return;
+    const a = premuti.get(e.code); premuti.delete(e.code); e.stopImmediatePropagation();
+    if (a) inviaTasto('keyup', a, false, undefined, doc);
   };
-  const lascia = () => { for (const a of premuti.values()) inviaTasto('keyup', a); premuti.clear(); };
-  addEventListener('keydown', giu, true); addEventListener('keyup', su, true); addEventListener('blur', lascia);
+  const lascia = () => { for (const a of premuti.values()) if (a) inviaTasto('keyup', a, false, undefined, doc); premuti.clear(); };
+  win.addEventListener('keydown', giu, true); win.addEventListener('keyup', su, true); win.addEventListener('blur', lascia);
 }

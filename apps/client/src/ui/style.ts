@@ -62,6 +62,9 @@ const CSS = `
 /* WP0 F3: pannello laterale (editor avatar, feed). Sul telefono è un foglio basso che lascia libero il centro; da 700 px sta a destra. */
 .mz-sheet.mz-side { max-height: 46%; box-sizing: border-box; }
 @media (min-width: 700px) { .mz-sheet.mz-side { left: auto; right: 8px; top: 60px; bottom: 8px; width: 340px; max-height: none; } }
+/* Foglio grande (Aspetto, Borsa, Personaggio, Diario): quasi tutto lo schermo, centrato, con un velo scuro dietro; si legge bene anche da telefono. */
+.mz-sheet.mz-grande.on { left: 8px; right: 8px; top: calc(env(safe-area-inset-top, 0px) + 8px); bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); width: auto; max-width: 1100px; max-height: none; margin: 0 auto;
+  box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px ${L.carta}, inset 0 0 0 2.5px ${L.oroScuro}, 0 0 0 100vmax rgba(35,32,31,.55); }
 /* Editor dell'avatar: campioni quadrati 44 px, Annulla/Salva sempre in vista in fondo. */
 .mz-sheet.mz-ed { box-sizing: border-box; }
 .mz-ed .mz-head { gap: 10px; }

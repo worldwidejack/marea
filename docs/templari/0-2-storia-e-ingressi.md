@@ -1,0 +1,23 @@
+> Isola dei Templari, §0-§2: in tre righe cos'è la modalità, la storia e come si apre (dove sta l'isola, la reliquia, il biglietto di fra' Guillaume). Il resto nell'[indice](../TEMPLARI.md).
+
+## 0. In tre righe
+Un'isola maledetta a sud dell'arcipelago: chiesa templare in rovina al centro, borgo abbandonato attorno, cimitero, accampamento pirata sulla spiaggia. Porti la **reliquia** all'altare e i Templari morti si svegliano: **ondate infinite** di crociati zombie alla Call of Duty Zombies, con punti per comprare armi, aprire porte e accendere trappole. Muori → esci; più ondate superi, più Legno, Pietra e Perle porti a casa.
+
+**Eccezione al GDD §1** (pilastro 2, «30-120 secondi»): una partita dura quanto sopravvivi (10-40 minuti). È voluta: è l'isola di chi vuole una sfida lunga. Resta facoltativa (come i dungeon), si gioca con un pollice e anche chi muore all'ondata 2 porta a casa qualcosa.
+
+## 1. La storia
+**Vera** (la si racconta nel biglietto e nei cartelli):
+- 13 ottobre **1307**: Filippo IV il Bello fa arrestare tutti i Templari di Francia in una notte. Nel **1312** papa Clemente V scioglie l'ordine.
+- 18 marzo **1314**: il Gran Maestro **Jacques de Molay** è bruciato sull'isola della Senna davanti a Notre-Dame. Dal rogo, dice la tradizione, cita re e papa davanti a Dio entro l'anno: Clemente muore ad aprile, Filippo a novembre.
+- La **flotta templare** di La Rochelle sparisce nel 1307 e non se ne sa più niente. Il tesoro dell'ordine non fu mai trovato.
+- Dal **1795** cercatori di tesori scavano il «Money Pit» di Oak Island; molte teorie lo legano ai Templari.
+
+**Nel gioco**: gli ultimi Templari fuggono per mare col tesoro dell'ordine. Una nave si sfascia sugli scogli della Tempesta (il relitto sotto il faro); le altre approdano su un'isola a sud, costruiscono una chiesa e aspettano. La maledizione del rogo li fa risorgere: chi tocca l'isola diventa uno di loro. Secoli dopo arrivano pirati e cacciatori di tesori per il tesoro dei Templari: zombificati anche loro, o morti lasciando le armi (ecco perché sull'isola ci sono pistole e moschetti). Nella chiesa aspetta **de Molay** in fiamme. Gli zombie gridano «**Deus vult!**».
+
+## 2. Dove sta e come si apre
+- **Posizione**: a sud del Porto, tra il Giardino e il Vulcano (cella `[156, 240]` dell'arcipelago, ~48×44 celle). Lontana dal giro iniziale, come le altre isole a tema.
+- **Aperta a tutti** (dal 10 ott 2026, scelta di birbasan: «il calice è troppo sbatti»): niente nebbia, niente lucchetto, come le Corse. Si arriva, si entra in chiesa e le ondate partono subito.
+- **Il calice** (fino al 10 ott era lo sblocco, ora resta come storia da trovare): il **calice dei Templari** (scelto da birbasan: d'oro coi rubini, forse il Graal). Sta sull'**Isola della Tempesta**, sotto il faro, accanto al **relitto della nave templare** (lo scafo spaccato sugli scogli, la vela bianca con la croce rossa, una cassa che luccica): lo tiene in grembo lo **scheletro di fra' Guillaume**, sergente del Tempio, col mantello stracciato e il **biglietto** che racconta la fuga da La Rochelle e indica la rotta (libeccio, tra la montagna di fuoco e il giardino). Il calice luccica e un fascio di luce lo segnala da lontano; in bussola c'è il «Relitto» finché non è tuo. **A** vicino (o PRENDI IL CALICE) lo prende e apre il biglietto, che poi si rilegge. Il server lo mette nel lotto (`POST /api/templari/reliquia`, `LotState.reliquie`), ma non apre più niente.
+- **Avvio**: entri nella chiesa (porta sul lato ovest, ENTRA) e le ondate partono subito (partita `subito`, il calice è già sull'altare). Ogni volta che rientri si ricomincia dall'ondata 1. La fase «posa il calice sull'altare» resta nella sim solo per i test.
+- **Stanza di prova** (`?net=0&templari=banco`, 13 ott 2026): appena si apre il gioco si è nella chiesa, senza server, e a destra c'è il **banco di prova**: scegliere l'ondata, far uscire uno zombie davanti (fante, pirata, scudato, cannoniere, cavaliere, de Molay), prendere un'arma, +5000 punti, via gli zombie, immortale, ondate ferme, zombie fermi, rallentatore ×¼, camera vicina, e «Vai da» Mercante, Strega, la porta della taverna o il cancello del cimitero dalla parte dell'accampamento (porte aperte). Solo per guardare: la partita non va mai al server.
+- **Per le prove** (`?templari=1` nell'indirizzo): l'isola è aperta, l'altare funziona senza reliquia e nella barra in alto ci sono due bottoni: **⚔** porta subito nella chiesa con le ondate già partite, **⛪** a piedi sull'isola davanti alla porta della chiesa (con la barca ormeggiata al molo). Il premio resta quello vero (stesso tetto giornaliero).

@@ -21,8 +21,8 @@ import { arena, heroBase, inp, playAuto, run } from './dungeon_util.ts';
 
 const T0 = 1_800_000_000_000;
 const b64 = (bytes: number[]): string => Buffer.from(bytes).toString('base64');
-const ARCO = { id: 'arco_ferro', kind: 'arco', skill: 'arceria', classe: null, danno: 14, tempo: 0.9, portata: 0, carica: 0.9, caricaMolt: 1, gittata: 28, traits: {} } as const;
-const FRECCE = { id: 'frecce_ferro', n: 5, danno: 6, gittata: 6, gravita: 7, traits: {} } as const;
+const ARCO = { id: 'arco_ferro', kind: 'arco', skill: 'arceria', classe: null, danno: 14, tempo: 0.9, portata: 0, carica: 0.9, caricaMolt: 1, traits: {} } as const;
+const FRECCE = { id: 'frecce_ferro', n: 5, danno: 6, traits: {} } as const;
 const arcoHero = () => heroBase({ arma: { ...ARCO }, frecce: { ...FRECCE } });
 /** Bersaglio fermo e addormentato a (dx, dz) dall'eroe. */
 function dummy(s: DungeonState, dx: number, dz: number, vita = 1000) {

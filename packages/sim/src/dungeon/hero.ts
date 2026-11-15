@@ -1,19 +1,17 @@
 // Eroe nel dungeon: movimento (camminata, corsa a stamina), mischia normale/caricata con mira assistita, arco, magie, pozioni, uscita.
 import { RPG } from '@marea/content/rpg.ts';
 import type { SkillId, Traits } from '@marea/content/rpg.ts';
-import type { RunPotion, RunWeapon } from '../rpg/types.ts';
+import type { RunPotion, RunSpell, RunWeapon } from '../rpg/types.ts';
 import { DT } from '../constants.ts';
 import type { DungeonEvent, DungeonInput } from './types.ts';
 import type { DungeonState, Enemy } from './state.ts';
 import { add, ev, evocaAlleato, secToTicks } from './state.ts';
 import { buff, hitEnemy, rallentaNemico } from './combat.ts';
 import { lineOfSight, moveCircle } from './map.ts';
-import {
-  SPAZIO_FP, BEVE_TICKS, COLPI, COS_BOMBA, COS_CONO_ARCO, COS_RAGGIO, COS_SEMICERCHIO, FRECCIA_Y, GIRO_TEMPO, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y, HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS,
-} from './tuning.ts';
+import { SPAZIO_FP, BEVE_TICKS, COLPI, COS_BOMBA, COS_CONO_ARCO, COS_RAGGIO, COS_SEMICERCHIO, FRECCIA_Y, GIRO_TEMPO, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y, HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS } from './tuning.ts';
 import { stepSchivata, velocitaSchivata } from './schivata.ts';
 import { faseSwing, sweepTo, swept, swingStyle } from './swing.ts';
-import { aimDir } from './mira.ts'; import { alza, alzoDir } from './alzo.ts'; import { consuma, rebuild } from './zaino.ts';
+import { aimDir } from './mira.ts'; import { alza } from './alzo.ts'; import { leggiP } from './portata.ts'; import { consuma, rebuild } from './zaino.ts';
 import { apriValvola, valvolaVicina } from './acque.ts'; import { giraTimone, timoneVicino } from './vento.ts';
 import { alto } from './muove.ts'; import { accendi, braciereVicino } from './braci.ts'; import { aimAlleato, canale, fermaCanale, isSupporto, lanciaBomba } from './magie.ts';
 import { caricaBarriera, caricaBrezza, caricaVampa, consumaVampa, eco, fineColpo, inizioColpo, inizioPoppa, molla, moltCaricaPoppa, moltRitmo, spintaPoppa, stepUnici, stordisci } from './unici.ts';
@@ -24,7 +22,7 @@ import { colpisciBandierine } from './jean_claude.ts';
 /** Pugni quando l'arma si rompe: da RPG.pugni (balance.json), ripiego in tuning. */
 export function pugni(): RunWeapon {
   const P = RPG.pugni, p = P ? { danno: P.danno, tempo: 1 / P.velocita, portata: P.portata, carica: P.carica, caricaMolt: P.caricaMolt } : PUGNI;
-  return { id: null, kind: 'pugni', skill: 'armiLeggere', classe: null, danno: p.danno, tempo: p.tempo, portata: p.portata, carica: p.carica, caricaMolt: p.caricaMolt, gittata: 0, traits: {} };
+  return { id: null, kind: 'pugni', skill: 'armiLeggere', classe: null, danno: p.danno, tempo: p.tempo, portata: p.portata, carica: p.carica, caricaMolt: p.caricaMolt, traits: {} };
 }
 
 /** I bersagli dell'eroe di turno: i nemici vivi e, in Arena, le evocazioni avversarie (gli eroi avversari a parte: pvp.ts). */
@@ -55,6 +53,10 @@ export function aim(s: DungeonState, range: number, cosMin: number, fallback: nu
     if (p.near && p.near.d < nd) return p.near;
   }
   return best ?? near;
+}
+export function aimBomba(s: DungeonState, sp: RunSpell): { x: number; z: number } | null {
+  const g = sp.gittata ?? MAGIA_GITTATA;
+  return isSupporto(sp) ? aimAlleato(s, g, COS_BOMBA, g * 0.5, !s.pvp) : aim(s, g, COS_BOMBA, 0, !s.pvp);
 }
 function faceTo(s: DungeonState, e: { x: number; z: number } | null): void {
   if (!e) return;
@@ -173,14 +175,14 @@ function shoot(s: DungeonState, dir: Mira): void {
   const t = Math.max(TENSIONE_MIN, h.carica);
   h.act = 'tira'; h.actT = 0; h.actDur = LANCIA_TICKS; h.carica = 0;
   if (!fr || h.frecce <= 0) return;
-  const v = (a.gittata + fr.gittata) * t;
+  const v = RPG.arco.velocita * t;
   if (dir) faceDir(s, dir); else faceTo(s, aim(s, MAGIA_GITTATA * 2, COS_CONO_ARCO, 0, true));
   const traits = mergeTraits(a.traits, fr.traits);
   // Faretra infinita: a volte la freccia non si consuma
   if (!(s.runHero.perk?.risparmio && s.rng.next() < s.runHero.perk.risparmio)) { h.frecce--; consuma(s, fr.id, s.usati); }
   s.proj.push({
     id: s.nextId++, tipo: 'freccia', x: h.x + h.fx * 0.4, y: FRECCIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v,
-    g: traits.noGravita ? 0 : fr.gravita * (a.traits.carillon?.gravita ?? 1), danno: (a.danno + fr.danno) * t * (1 + buff(s, 'dannoArco')), life: VOLO_MAX_TICKS,
+    g: traits.noGravita ? 0 : RPG.arco.gravita * (a.traits.carillon?.gravita ?? 1), danno: (a.danno + fr.danno) * t * (1 + buff(s, 'dannoArco')), life: VOLO_MAX_TICKS,
     traits, raggio: 0, colpiti: [], dalNemico: false, contundente: !!traits.sbilancia, magico: false, arrowId: fr.id, da: s.cur,
   });
   alza(s, s.proj[s.proj.length - 1]!); // prima persona: dagli occhi, dove punta il mirino
@@ -207,9 +209,8 @@ function cast(s: DungeonState, dir: Mira): void {
     add(s.xp, 'evocazione', sp.costo * RPG.xp.evocazioneLancio);
     return;
   }
-  if (sp.forma === 'bomba') { // lenta, in alto: atterra sul nemico (o alleato, se di supporto) che hai davanti e scoppia (magie.ts)
-    const g = sp.gittata ?? MAGIA_GITTATA;
-    if (!dir) faceTo(s, isSupporto(sp) ? aimAlleato(s, g, COS_BOMBA, g * 0.5) : aim(s, g, COS_BOMBA, 0, true));
+  if (sp.forma === 'bomba') { // lenta, in alto: scoppia dove atterra (magie.ts): dove hai scelto in Arena, se no sul nemico (o alleato, se di supporto) davanti
+    if (!dir && !h.portata) faceTo(s, aimBomba(s, sp));
     lanciaBomba(s, sp);
     return;
   }
@@ -219,7 +220,7 @@ function cast(s: DungeonState, dir: Mira): void {
     id: s.nextId++, tipo: 'magia', x: h.x + h.fx * 0.4, y: MAGIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v, g: 0,
     danno: sp.danno * (1 + buff(s, 'dannoDistruzione')) * (vampa ? 1 + vampa.danno : 1), life: Math.max(1, Math.round((MAGIA_GITTATA / Math.max(1, v)) * HZ)),
     traits: sp.sanguina ? { sanguina: sp.sanguina } : {}, raggio: sp.raggio * (vampa ? vampa.raggioMolt : 1), colpiti: [], dalNemico: false, contundente: false, magico: true, arrowId: null, da: s.cur,
-    ...(mole > 1 ? { mole } : {}), ...(sp.elemento ? { elemento: sp.elemento } : {}), ...(sp.rallenta ? { rallenta: sp.rallenta } : {}), ...(vampa ? { vampa: true as const } : {}),
+    ...(mole > 1 ? { mole } : {}), ...(sp.elemento ? { elemento: sp.elemento } : {}), ...(sp.rallenta ? { rallenta: sp.rallenta } : {}), ...(vampa ? { vampa: true as const } : {}), ...(s.pvp ? {} : { magia: sp.id }),
   });
   alza(s, s.proj[s.proj.length - 1]!);
 }
@@ -281,7 +282,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   h.prevA = inp.a; h.prevC = inp.c; h.prevD = inp.d; h.prevE = !!inp.e;
   stepSchivata(h, inp);
   if (h.act === 'schiva') aDown = false;
-  const dir = aimDir(inp.m); h.alzo = alzoDir(inp.p) ?? undefined; // l'alzo vale solo col mirino (dir)
+  const dir = aimDir(inp.m); leggiP(s, dir, inp.p); // l'alzo (prima persona) o la portata della bomba (Arena) valgono solo col mirino (dir)
   // uscita: A sulla scala vince su tutto
   if (aDown && vicinoUscita(s)) { s.done = true; s.outcome = 'uscito'; ev(s, { t: 'uscita' }); return; }
   // Drenaggio: A accanto a una valvola chiusa la gira (e non attacca)

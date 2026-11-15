@@ -8,10 +8,10 @@ import type { DTipoNemico, DTipoUnita } from '@marea/content/difesa.ts';
 export type Punto = [number, number];
 export type NomeClip =
   | 'fermo' | 'chiusi' | 'carica' | 'spara' | 'manovella' | 'seme' | 'gonfia' | 'rovente' | 'rosicchiato' | 'mezzo'
-  | 'sotto' | 'spunta' | 'lampo' | 'corre' | 'cammina' | 'mangia' | 'salta' | 'ko' | 'scoppia';
+  | 'sotto' | 'spunta' | 'lampo' | 'corre' | 'cammina' | 'mangia' | 'salta' | 'ko' | 'scoppia' | 'inghiotte' | 'mastica';
 export type ChiaveSprite =
-  | DTipoUnita | DTipoNemico | 'secchioNudo' | 'colpo' | 'colpoGelo' | 'moneta' | 'tosaerba'
-  | 'armaturaCono' | 'armaturaSecchio' | 'minaSotto' | 'botto' | 'pala';
+  | DTipoUnita | DTipoNemico | 'secchioNudo' | 'scudoNudo' | 'colpo' | 'colpoGelo' | 'colpoFuoco' | 'palla' | 'moneta' | 'tosaerba'
+  | 'armaturaCono' | 'armaturaSecchio' | 'armaturaFoglia' | 'minaSotto' | 'botto' | 'pala';
 /** Un fotogramma: rettangolo sulla pagina dell'atlas e angolo in alto a sinistra (ox, oy) nello spazio dello sprite, dove stanno i piedi. */
 export type Fotogramma = { img: CanvasImageSource; x: number; y: number; w: number; h: number; ox: number; oy: number; bianco?: HTMLCanvasElement; azzurro?: HTMLCanvasElement };
 /** Una clip: i fotogrammi, quanti al secondo (`fps`) o quante caselle di strada per un giro intero (`giro`, per chi cammina). */
@@ -54,10 +54,13 @@ export function clipDi(p: Pelle, k: ChiaveSprite, nome: NomeClip): { c: Clip; sp
   if (sp.come) { const s2 = p.sprite[sp.come]; const c2 = s2?.clip[nome]; if (s2 && c2) return { c: c2, sp: s2 }; }
   return null;
 }
-/** Il corpo senza armatura: lo scarabeo senza vasetto se la pelle ce l'ha, altrimenti il nemico base. */
+/** Il pezzo che salta via quando cade l'armatura di un nemico. */
+export const PEZZO_ARMATURA: Partial<Record<DTipoNemico, ChiaveSprite>> = { cono: 'armaturaCono', secchio: 'armaturaSecchio', scudo: 'armaturaFoglia' };
+/** Il corpo senza armatura: lo scarabeo senza vasetto o il bruco furioso se la pelle li ha, altrimenti il nemico base. */
 export function spoglio(p: Pelle, tipo: DTipoNemico): ChiaveSprite {
   if (tipo === 'secchio' && p.sprite.secchioNudo) return 'secchioNudo';
-  return tipo === 'cono' || tipo === 'secchio' ? 'base' : tipo;
+  if (tipo === 'scudo' && p.sprite.scudoNudo) return 'scudoNudo';
+  return tipo === 'cono' || tipo === 'secchio' || tipo === 'scudo' ? 'base' : tipo;
 }
 /** Il primo fotogramma di `fermo` (icone delle carte, menù, fantasma della casella). */
 export function primo(p: Pelle, k: ChiaveSprite): Fotogramma | null { return p.sprite[k]?.clip.fermo.f[0] ?? null; }
@@ -101,7 +104,7 @@ const uno = (img: CanvasImageSource, x: number, y: number, w: number, h: number,
 
 // ---------- la pelle segnaposto: forme semplici disegnate da codice ----------
 function segnaposto(): Pelle {
-  const T = 128, A = tela(T * 8, T * 2), g = A.getContext('2d')!;
+  const T = 128, A = tela(T * 8, T * 4), g = A.getContext('2d')!;
   const sprite: Partial<Record<ChiaveSprite, SpriteDef>> = {};
   let i = 0;
   const cella = (k: ChiaveSprite, alto: number, disegna: (g: CanvasRenderingContext2D) => void, py = 120) => {
@@ -128,6 +131,19 @@ function segnaposto(): Pelle {
   cella('cono', 1.15, (g) => { nemico(g, '#9b7fc8'); g.beginPath(); g.moveTo(44, 40); g.lineTo(84, 40); g.lineTo(64, 4); g.closePath(); g.fillStyle = '#ff8a2a'; g.fill(); g.lineWidth = 5; g.strokeStyle = '#1b1b1b'; g.stroke(); });
   cella('secchio', 1.15, (g) => { nemico(g, '#9b7fc8'); g.fillStyle = '#a8b0b8'; g.fillRect(40, 14, 48, 30); g.lineWidth = 5; g.strokeStyle = '#1b1b1b'; g.strokeRect(40, 14, 48, 30); });
   cella('saltatore', 1.2, (g) => { nemico(g, '#c86f6f'); g.strokeStyle = '#5a3a1e'; g.lineWidth = 6; g.beginPath(); g.moveTo(20, 30); g.lineTo(108, 104); g.stroke(); });
+  cella('mangiatutto', 0.9, (g) => { base(g, '#6b4a2a'); tondo(g, 56, 70, 30, '#3f9a2b'); g.fillStyle = '#c9262a'; g.beginPath(); g.moveTo(70, 62); g.lineTo(118, 50); g.lineTo(118, 90); g.closePath(); g.fill(); g.stroke(); occhi(g, 52, 56, 0.9); });
+  cella('ripetitore', 0.62, (g) => { base(g, '#6b4a2a'); g.fillStyle = '#2d7a2d'; g.fillRect(24, 56, 80, 22); g.fillRect(24, 80, 80, 22); g.strokeStyle = '#1b1b1b'; g.lineWidth = 5; g.strokeRect(24, 56, 80, 22); g.strokeRect(24, 80, 80, 22); occhi(g, 52, 70, 0.8); });
+  cella('muroAlto', 1.25, (g) => { base(g, '#6b4a2a'); g.beginPath(); g.ellipse(64, 60, 40, 54, 0, 0, Math.PI * 2); g.fillStyle = '#e8741f'; g.fill(); g.lineWidth = 5; g.strokeStyle = '#1b1b1b'; g.stroke(); occhi(g, 64, 48); });
+  cella('potenziatore', 1.0, (g) => { base(g, '#6b4a2a'); g.beginPath(); g.ellipse(64, 78, 24, 38, 0, 0, Math.PI * 2); g.fillStyle = '#ffd23f'; g.fill(); g.lineWidth = 5; g.strokeStyle = '#1b1b1b'; g.stroke(); g.fillStyle = '#ff8a2a'; g.beginPath(); g.moveTo(44, 44); g.lineTo(64, 4); g.lineTo(84, 44); g.closePath(); g.fill(); g.stroke(); occhi(g, 64, 70, 0.8); });
+  cella('mortaio', 0.9, (g) => { base(g, '#6b4a2a'); tondo(g, 56, 84, 32, '#2f8a3a'); g.strokeStyle = '#333'; g.lineWidth = 16; g.beginPath(); g.moveTo(70, 62); g.lineTo(104, 22); g.stroke(); occhi(g, 52, 80, 0.8); });
+  // nemici nuovi (guardano a sinistra)
+  cella('scudo', 0.7, (g) => { nemico(g, '#e8741f'); g.beginPath(); g.ellipse(44, 74, 16, 36, 0, 0, Math.PI * 2); g.fillStyle = '#3f9a2b'; g.fill(); g.lineWidth = 5; g.strokeStyle = '#1b1b1b'; g.stroke(); });
+  cella('scudoNudo', 0.7, (g) => nemico(g, '#e8741f'));
+  cella('volante', 0.6, (g) => { g.beginPath(); g.ellipse(64, 74, 30, 18, 0, 0, Math.PI * 2); g.fillStyle = '#ffd23f'; g.fill(); g.lineWidth = 5; g.strokeStyle = '#1b1b1b'; g.stroke(); g.fillStyle = '#9fd8ff'; g.fillRect(52, 36, 34, 26); occhi(g, 46, 70, -0.8); });
+  cella('gigante', 1.8, (g) => { nemico(g, '#8a2a30'); g.fillStyle = '#d9a63a'; g.fillRect(34, 14, 12, 40); g.fillRect(70, 14, 12, 40); });
+  cella('armaturaFoglia', 0.3, (g) => { g.beginPath(); g.ellipse(64, 64, 14, 30, 0.5, 0, Math.PI * 2); g.fillStyle = '#3f9a2b'; g.fill(); g.lineWidth = 5; g.strokeStyle = '#1b1b1b'; g.stroke(); }, 86);
+  cella('colpoFuoco', 0.26, (g) => { tondo(g, 64, 64, 24, '#ff8a2a'); tondo(g, 64, 64, 12, '#ffd23f', '#ffd23f'); }, 86);
+  cella('palla', 0.3, (g) => tondo(g, 64, 64, 24, '#2f8a3a'), 86);
   cella('colpo', 0.22, (g) => tondo(g, 64, 64, 22, '#8ee05a'), 86);
   cella('colpoGelo', 0.22, (g) => tondo(g, 64, 64, 22, '#9fe8ff'), 86);
   cella('moneta', 0.5, (g) => { tondo(g, 64, 64, 34, '#ffd23f', '#a06a00'); g.fillStyle = '#fff6b0'; g.beginPath(); g.arc(54, 54, 9, 0, Math.PI * 2); g.fill(); }, 98);
@@ -144,7 +160,7 @@ function segnaposto(): Pelle {
     id: 'segnaposto', nome: 'Segnaposto', pixel: false, fondale: f, fondaleW: FW, fondaleH: FH,
     campo: { tl, tr: [br[0], tl[1]], bl: [tl[0], br[1]], br },
     sprite, volo: 0.31, dir: '', suoni: {}, ui: {}, consigli: {},
-    nomi: { sparatore: 'Sparatore', produttore: 'Produttore', bomba: 'Bomba', muro: 'Muro', mina: 'Mina', gelo: 'Gelo', base: 'Nemico', bandiera: 'Capobanda', cono: 'Col cono', secchio: 'Col secchio', saltatore: 'Saltatore', valuta: 'monete' },
+    nomi: { sparatore: 'Sparatore', produttore: 'Produttore', bomba: 'Bomba', muro: 'Muro', mina: 'Mina', gelo: 'Gelo', mangiatutto: 'Mangiatutto', ripetitore: 'Ripetitore', muroAlto: 'Muro alto', potenziatore: 'Potenziatore', mortaio: 'Mortaio', base: 'Nemico', bandiera: 'Capobanda', cono: 'Col cono', secchio: 'Col secchio', saltatore: 'Saltatore', scudo: 'Con lo scudo', volante: 'Volante', gigante: 'Gigante', valuta: 'monete' },
     tema: { pannello: 'rgba(40,30,22,0.88)', bordo: '#c99a5b', testo: '#fff6e0', ombra: '#1b120c', accento: '#ffd23f', carta: '#f3e3c0', cartaBordo: '#8a5a2b', barra: '#3b2a1c', barraPiena: '#7fd35a', sfondo: '#2e4a24' },
   };
 }

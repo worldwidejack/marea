@@ -27,6 +27,10 @@ const R = (ATLANTE as { w: number; h: number; pezzi: Record<string, Riquadro> })
 const AW = ATLANTE.w, AH = ATLANTE.h;
 /** Quanti pixel dello sprite ci sono dal punto di presa alla cima e al fondo del pezzo (per le punte di armi e bacchette, e per le corde). */
 export const sopraPresa = (id: string): number => R[id]?.ay ?? 0;
+/** L'atlante ha il pezzo `id`? (le armi uniche hanno il loro disegno, `u_<id>`) */
+export const haPezzo = (id: string): boolean => id in R;
+/** Pixel dello sprite dal punto di presa al bordo destro (dove sta la corda degli archi). */
+export const destraPresa = (id: string): number => (R[id] ? R[id]!.w - R[id]!.ax : 0);
 export const sottoPresa = (id: string): number => (R[id] ? R[id]!.h - R[id]!.ay : 0);
 /** La mano vera e propria (pugno e avambraccio fino al bordo) prende circa metà altezza dello schermo. */
 const QUOTA_MANO = 0.5, ALTO_PUGNO = 45;

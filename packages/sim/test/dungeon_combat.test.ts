@@ -81,9 +81,9 @@ test('dungeon: armi d’argento fanno danni doppi ai non-morti (e il ferro no)',
 });
 
 /** Tira una freccia a tensione piena verso +x e misura dove si ferma. */
-function gittata(frecce: { id: string; gittata: number; gravita: number }): number {
+function gittata(frecce: { id: string }): number {
   const s = arena(heroBase({
-    arma: { id: 'arco_ferro', kind: 'arco', skill: 'arceria', classe: null, danno: 14, tempo: 0.9, portata: 0, carica: 0.9, caricaMolt: 1, gittata: 28, traits: {} },
+    arma: { id: 'arco_ferro', kind: 'arco', skill: 'arceria', classe: null, danno: 14, tempo: 0.9, portata: 0, carica: 0.9, caricaMolt: 1, traits: {} },
     frecce: { ...frecce, n: 5, danno: 6, traits: {} },
   }));
   s.hero.x = 3; s.hero.z = 14;
@@ -98,12 +98,12 @@ function gittata(frecce: { id: string; gittata: number; gravita: number }): numb
   assert.equal(s.usati[frecce.id], 1);
   return x - 3;
 }
-test('dungeon: le frecce di legno cadono prima di quelle di ferro (gravità della freccia)', () => {
-  const legno = gittata({ id: 'frecce_legno', gittata: 0, gravita: 20 });
-  const ferro = gittata({ id: 'frecce_ferro', gittata: 6, gravita: 7 });
-  assert.ok(legno > 5 && legno < ferro * 0.7, `legno ${legno.toFixed(1)} m, ferro ${ferro.toFixed(1)} m`);
+test('dungeon: tutte le frecce volano alla stessa distanza (balance.json `arco`): ~24 m a tensione piena, di legno o di ferro', () => {
+  const legno = gittata({ id: 'frecce_legno' });
+  const ferro = gittata({ id: 'frecce_ferro' });
+  assert.ok(Math.abs(legno - ferro) < 0.01 && legno > 22 && legno < 27, `legno ${legno.toFixed(1)} m, ferro ${ferro.toFixed(1)} m`);
   // senza frecce: evento e niente tiro
-  const s = arena(heroBase({ arma: { id: 'arco_legno', kind: 'arco', skill: 'arceria', classe: null, danno: 6, tempo: 0.6, portata: 0, carica: 0.6, caricaMolt: 1, gittata: 14, traits: {} }, frecce: null }));
+  const s = arena(heroBase({ arma: { id: 'arco_legno', kind: 'arco', skill: 'arceria', classe: null, danno: 6, tempo: 0.6, portata: 0, carica: 0.6, caricaMolt: 1, traits: {} }, frecce: null }));
   assert.ok(run(s, 1, inp({ a: true })).some((x) => x.t === 'senzaFrecce'));
 });
 
@@ -234,7 +234,8 @@ test('dungeon: xp = danno utile (mai oltre la vita del nemico) × moltiplicatore
   assert.ok(Math.abs((dungeon.result(s).xp.armiPesanti ?? 0) - 10 * RPG.xpDanno!.armiPesanti!) < 1e-9);
   // la fiammata: xp di distruzione solo se colpisce, × RPG.xpDanno.distruzione
   const m = arena(heroBase()), e = dummy(m, 'bandito', 6, 1000);
-  const ev = [...run(m, 1, inp({ c: true, a: true })), ...run(m, 90)];
+  const ev = run(m, 1, inp({ c: true, a: true }));
+  for (let i = 0; i < 90 && !colpiSu(ev, e.id).length; i++) ev.push(...run(m, 1)); // fino al colpo: poi la fiammella a terra (tratto del dungeon) dà altra xp
   const d = colpiSu(ev, e.id)[0]!;
   assert.ok(d > 0);
   assert.ok(Math.abs((dungeon.result(m).xp.distruzione ?? 0) - d * RPG.xpDanno!.distruzione!) < 1, `distruzione ${dungeon.result(m).xp.distruzione} vs colpo ${d}`);

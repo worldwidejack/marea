@@ -115,6 +115,7 @@ test('fucina: la Scintilla-Vapore dà fuoco a chi colpisce, e sotto una cascata 
   via(f);
   const g = f.map.getti.find((x) => x.cz > 15)!;
   const sc = sveglio(f, 'scintilla_vapore', g.x, g.z);
+  sc.st = 'dorme'; // ferma sotto la cascata: conta solo che l'acqua la spenga (inseguendo ne esce o no a seconda degli id della partita)
   f.hero.x = g.x + 30; f.hero.z = g.z;
   const ev2 = run(f, 90);
   assert.equal(sc.st, 'morto');

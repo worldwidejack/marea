@@ -6,7 +6,7 @@ import { FLAGS } from '../flags.ts';
 
 export type AvvisoRuota = { visibile(): boolean; chiudi(): void; /** Acceso solo mentre si gioca (nel gioco, schermo delle Corse aperto); sul banco di prova sempre. */ attiva(on: boolean): void };
 
-export function avvisoRuota(root: HTMLElement, attivoDaSubito = true): AvvisoRuota {
+export function avvisoRuota(root: HTMLElement, attivoDaSubito = true, testo = 'Le corse si giocano in orizzontale: così vedi la pista e hai i comandi sotto i pollici.'): AvvisoRuota {
   const verticale = matchMedia('(orientation: portrait)'), dito = matchMedia('(pointer: coarse)');
   let scappato = false, attivo = attivoDaSubito;
   const css = document.createElement('style');
@@ -22,7 +22,8 @@ export function avvisoRuota(root: HTMLElement, attivoDaSubito = true): AvvisoRuo
 `;
   document.head.appendChild(css);
   const el = document.createElement('div'); el.className = 'pp-ruota';
-  el.innerHTML = '<div class="tel"></div><div>Ruota il telefono</div><small>Le corse si giocano in orizzontale: così vedi la pista e hai i comandi sotto i pollici.</small><button type="button">gioca in verticale lo stesso</button>';
+  el.innerHTML = '<div class="tel"></div><div>Ruota il telefono</div><small></small><button type="button">gioca in verticale lo stesso</button>';
+  el.querySelector('small')!.textContent = testo;
   el.querySelector('button')!.addEventListener('click', () => { scappato = true; agg(); });
   for (const t of ['pointerdown', 'touchstart', 'touchmove']) el.addEventListener(t, (e) => e.stopPropagation(), { passive: true });
   root.appendChild(el);

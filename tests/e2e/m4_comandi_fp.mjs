@@ -34,7 +34,7 @@ export default async function (ctx) {
     if (!up) throw new Error('wrangler dev non risponde:\n' + log.split('\n').slice(-20).join('\n'));
     const getLot = async (t) => (await (await fetch(base + '/api/lot', { headers: { 'x-token': t } })).json());
 
-    const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1&fp=1`, { viewport: ctx.B.DESKTOP }); ctx._pages.push(P);
+    const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1`, { viewport: ctx.B.DESKTOP }); ctx._pages.push(P);
     const page = P.page;
     if (WIN) await page.route(/\/(api|chunk|assets)/, (r) => r.continue({ headers: { ...r.request().headers(), connection: 'close' } }));
     await ctx.waitReady(page, 30000);
@@ -77,7 +77,7 @@ export default async function (ctx) {
       await hook('dungeonVai', Math.floor(cad.x / 2), Math.floor(cad.z / 2));
       await ctx.waitState(page, (s, id) => (s.fp.bottini.find((b) => b.id === id)?.d ?? 99) < 1.6, 15000, cad.id);
       await hook('dungeonVai', null, null); await sleep(500);
-      await guarda(cad.x, cad.z, -0.6);
+      { const q = await st(), f = q.fp, k = q.fruga.forme?.[cad.id] ?? cad; await guarda(k.x, k.z, -Math.atan2(1.4, Math.hypot(k.x - f.hero.x, k.z - f.hero.z))); } // il mirino sul corpo a terra (il bottino sta dove è caduto, il corpo si stende da lì)
       await ctx.waitState(page, (s, id) => s.fruga && s.fruga.mira && s.fruga.mira.id === id, 4000, cad.id);
       await premi(2); // X = E
       await ctx.waitState(page, (s, id) => s.fruga.aperto === id && s.dungeon.pannello, 6000, cad.id);

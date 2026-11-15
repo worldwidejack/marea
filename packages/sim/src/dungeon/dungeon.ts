@@ -91,7 +91,16 @@ export const dungeon: DungeonModule<DungeonState> = {
   // v11: schivata a stamina e preparazione delle armi separata dallo swing rapido.
   // v12: prima persona (docs/PRIMA_PERSONA.md): alzo della mira (DungeonInput.p, log formato 5) con nemici alti quanto il loro modello, bottino a mano
   // (azioni `fruga` e `prendi`), attacco furtivo, Mano ferma e Occhio d'aquila al posto dell'Automira. In terza persona non cambia niente.
-  id: 'dungeon', version: 12, maxTicks: MAX_TICKS,
+  // v14: unici sparsi (docs/UNICI.md): oggetti a terra e resti di avventurieri nelle mappe, scrigni coi loro unici, tratti `rubaVita` e `gelo`
+  // v15: i nemici che non ti hanno visto (quiete.ts) vedono in un cono, sentono passi, colpi e lotte, si insospettiscono e vanno a cercare;
+  // prima fanno la ronda o si guardano intorno; chi dorme non vede.
+  // v16: archi alla pari (tutte le frecce volano allo stesso modo, balance.json `arco`) e lo Sciamano del Fumo sparisce nel fumo solo per qualche secondo
+  // v17: i nemici ti notano prima: cono più largo di lato e dietro, sospetto più veloce (balance.json `dungeon.quiete`)
+  // v18: le frecce e le pozioni raccolte sono subito pronte (prima restavano a zero finché un cambio dal menu non rifaceva i conteggi) e un
+  // cadavere lungo, il capo, si fruga anche dal suo lato lontano (fruga.ts)
+  // v20: chi corre (o cammina) ti nota ancora prima: il passo non accorcia più la vista, cono frontale a ±90°, di lato vista piena, dietro 0.7,
+  // sospetto più rapido (balance.json `dungeon.furtivo.vista` e `dungeon.quiete`)
+  id: 'dungeon', version: 20, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
   act(s, a) {

@@ -15,6 +15,7 @@ import { SOFFITTO_Y, haSoffitto, inAltezza } from './alzo.ts';
 import { scoppio } from './magie.ts';
 import { caricaVampa, chiazzaVampa } from './unici.ts';
 import { tiroSuAlleato } from './contro_alleati.ts';
+import { impattoMagia } from './magie_tratti.ts';
 import { colpisciEroe as colpoPvp, eroeToccato, eroiNelCerchio, ostile } from './pvp.ts';
 
 const MARGINE = 0.15;
@@ -22,7 +23,7 @@ const MARGINE = 0.15;
 function explode(s: DungeonState, p: Proj): void {
   const src = { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione' as const, caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p), ...(p.rallenta ? { rallenta: p.rallenta } : {}) };
   for (const e of s.enemies) {
-    if (!ostile(s, e)) continue;
+    if (!ostile(s, e) || p.colpiti.includes(e.id)) continue; // chi un fulmine ha già attraversato (magie_tratti.ts) non lo riprende
     const dx = e.x - p.x, dz = e.z - p.z, r = p.raggio + e.def.raggio;
     if (dx * dx + dz * dz <= r * r) hitEnemy(s, e, src);
   }
@@ -52,7 +53,7 @@ function hitFoes(s: DungeonState, p: Proj): boolean {
     if (p.vampa) chiazzaVampa(s, p.x, p.z);
     else if (p.elemento === 'fuoco') caricaVampa(s);
     if (p.elemento) effettiMagia(s, p, first); // Combustione, Catena di fulmini
-    return true;
+    return !impattoMagia(s, p, first); // dungeon: incendia, rinculo, abbaglia; il fulmine trapassa e prosegue
   }
   const v = Math.sqrt(p.vx * p.vx + p.vz * p.vz) || 1;
   // Mausoleo: la lama d'acqua del Fendiflutti dà l'esperienza dell'arma (come la mischia), le frecce quella dell'arco
@@ -116,6 +117,7 @@ function muovi(s: DungeonState, soloEroe: boolean): void {
         // a terra la freccia si pianta; contro un muro (e, mirate in alto o in basso, contro soffitto e pavimento) le magie scoppiano
         if (p.magico && !p.dalNemico && p.raggio > 0 && (p.y > 0 || p.alzo)) explode(s, p);
         if (p.magico && !p.dalNemico && p.vampa && (p.y > 0 || p.alzo)) chiazzaVampa(s, p.x, p.z);
+        if (p.magico && !p.dalNemico && (p.y > 0 || p.alzo)) impattoMagia(s, p, null); // dungeon: la fiammella del Proiettile infuocato anche sul muro
         p.y = Math.max(0, p.y); fine = true; break;
       }
       if (!p.alzo && p.y > ALTEZZA_BERSAGLIO) continue;

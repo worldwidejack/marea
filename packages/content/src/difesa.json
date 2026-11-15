@@ -9,6 +9,10 @@
     "tosaerba": -0.3,
     "casa": -0.75
   },
+  "carte": {
+    "max": 8,
+    "priorita": ["sparatore", "produttore", "ripetitore", "bomba", "muro", "mina", "mangiatutto", "gelo", "muroAlto", "potenziatore", "mortaio"]
+  },
   "profili": {
     "pvz": {
       "economia": {
@@ -23,14 +27,22 @@
         "bomba": { "costo": 150, "ricarica": 50, "ricaricaInizio": 35, "vita": 300, "tipo": "bomba", "miccia": 1.0, "danno": 1800, "corsie": 1, "caselle": 1.5 },
         "muro": { "costo": 50, "ricarica": 30, "ricaricaInizio": 20, "vita": 4000, "tipo": "muro" },
         "mina": { "costo": 25, "ricarica": 30, "ricaricaInizio": 20, "vita": 300, "tipo": "mina", "arma": 15, "danno": 1800, "caselle": 0.9 },
-        "gelo": { "costo": 175, "ricarica": 7.5, "vita": 300, "tipo": "tiro", "danno": 20, "cadenza": 1.5, "cadenzaCaso": 0.15, "colpoVel": 4.16, "gelo": true }
+        "gelo": { "costo": 175, "ricarica": 7.5, "vita": 300, "tipo": "tiro", "danno": 20, "cadenza": 1.5, "cadenzaCaso": 0.15, "colpoVel": 4.16, "gelo": true },
+        "mangiatutto": { "costo": 150, "ricarica": 7.5, "vita": 300, "tipo": "mangia", "portata": 0.9, "digestione": 42 },
+        "ripetitore": { "costo": 200, "ricarica": 7.5, "vita": 300, "tipo": "tiro", "danno": 20, "cadenza": 1.5, "cadenzaCaso": 0.15, "colpoVel": 4.16, "gelo": false, "colpi": 2, "stacco": 0.4 },
+        "muroAlto": { "costo": 125, "ricarica": 30, "ricaricaInizio": 20, "vita": 8000, "tipo": "muro", "alto": true },
+        "potenziatore": { "costo": 175, "ricarica": 7.5, "vita": 300, "tipo": "potenzia", "molt": 2, "scioglie": true },
+        "mortaio": { "costo": 175, "ricarica": 12, "ricaricaInizio": 8, "vita": 300, "tipo": "lancia", "danno": 60, "splash": 0.5, "centro": 0.5, "raggio": 1.0, "cadenza": 3.2, "cadenzaCaso": 0.3, "minimo": 2.2, "voloBase": 0.8, "voloCasella": 0.1 }
       },
       "nemici": {
         "base": { "vita": 270, "armatura": 0, "passo": [0.135, 0.188], "punti": 1, "peso": 4000, "dallOndata": 1 },
         "bandiera": { "vita": 270, "armatura": 0, "passo": [0.264, 0.264], "punti": 1, "peso": 0, "dallOndata": 1 },
         "cono": { "vita": 270, "armatura": 370, "passo": [0.135, 0.188], "punti": 2, "peso": 4000, "dallOndata": 1 },
         "saltatore": { "vita": 500, "armatura": 0, "passo": [0.135, 0.188], "corsa": [0.388, 0.4], "salto": 1.0, "punti": 2, "peso": 2000, "dallOndata": 5 },
-        "secchio": { "vita": 270, "armatura": 1100, "passo": [0.135, 0.188], "punti": 4, "peso": 3000, "dallOndata": 1 }
+        "secchio": { "vita": 270, "armatura": 1100, "passo": [0.135, 0.188], "punti": 4, "peso": 3000, "dallOndata": 1 },
+        "scudo": { "vita": 270, "armatura": 250, "passo": [0.135, 0.188], "punti": 3, "peso": 3000, "dallOndata": 3, "furia": { "molt": 2.5, "pausa": 0.6 } },
+        "volante": { "vita": 200, "armatura": 0, "passo": [0.16, 0.21], "punti": 3, "peso": 2500, "dallOndata": 4, "vola": true },
+        "gigante": { "vita": 3000, "armatura": 0, "passo": [0.09, 0.115], "punti": 10, "peso": 1500, "dallOndata": 8, "morso": 900, "grande": true, "cadeTesta": false }
       },
       "morso": 100,
       "testa": { "soglia": 0.3333, "dopo": 1.0 },
@@ -54,13 +66,19 @@
     { "id": 3, "nome": "Il botto", "corsie": [1, 2, 3], "carte": ["sparatore", "produttore", "bomba"], "nuova": "bomba", "ondate": 8, "nemici": ["base", "cono"], "intro": "cono", "tutorial": false, "primaOndata": 18 },
     { "id": 4, "nome": "Tutto il campo", "corsie": [0, 1, 2, 3, 4], "carte": ["sparatore", "produttore", "bomba", "muro"], "nuova": "muro", "ondate": 10, "nemici": ["base", "cono"], "intro": null, "tutorial": false, "primaOndata": 18 },
     { "id": 5, "nome": "Chi salta", "corsie": [0, 1, 2, 3, 4], "carte": ["sparatore", "produttore", "bomba", "muro", "mina"], "nuova": "mina", "ondate": 10, "nemici": ["base", "cono", "saltatore"], "intro": "saltatore", "tutorial": false, "primaOndata": 18 },
-    { "id": 6, "nome": "La grande ondata", "corsie": [0, 1, 2, 3, 4], "carte": ["sparatore", "produttore", "bomba", "muro", "mina", "gelo"], "nuova": "gelo", "ondate": 20, "nemici": ["base", "cono", "saltatore", "secchio"], "intro": "secchio", "tutorial": false, "primaOndata": 18 }
+    { "id": 6, "nome": "La grande ondata", "corsie": [0, 1, 2, 3, 4], "carte": ["sparatore", "produttore", "bomba", "muro", "mina", "gelo"], "nuova": "gelo", "ondate": 20, "nemici": ["base", "cono", "saltatore", "secchio"], "intro": "secchio", "tutorial": false, "primaOndata": 18 },
+    { "id": 7, "nome": "Il boccone", "corsie": [0, 1, 2, 3, 4], "carte": ["sparatore", "produttore", "bomba", "muro", "mina", "gelo", "mangiatutto"], "nuova": "mangiatutto", "ondate": 12, "nemici": ["base", "cono", "saltatore", "secchio", "scudo"], "intro": "scudo", "tutorial": false, "primaOndata": 18 },
+    { "id": 8, "nome": "Doppio colpo", "corsie": [0, 1, 2, 3, 4], "carte": ["sparatore", "produttore", "bomba", "muro", "mina", "gelo", "mangiatutto", "ripetitore"], "nuova": "ripetitore", "ondate": 14, "nemici": ["base", "cono", "saltatore", "secchio", "scudo", "volante"], "intro": "volante", "tutorial": false, "primaOndata": 18 },
+    { "id": 9, "nome": "L'alto muro", "corsie": [0, 1, 2, 3, 4], "carte": ["sparatore", "produttore", "bomba", "muro", "mina", "gelo", "mangiatutto", "ripetitore", "muroAlto"], "nuova": "muroAlto", "ondate": 16, "nemici": ["base", "cono", "saltatore", "secchio", "scudo", "volante"], "intro": null, "tutorial": false, "primaOndata": 18, "pesi": { "saltatore": 3 } },
+    { "id": 10, "nome": "Pannocchie accese", "corsie": [0, 1, 2, 3, 4], "carte": ["sparatore", "produttore", "bomba", "muro", "mina", "gelo", "mangiatutto", "ripetitore", "muroAlto", "potenziatore"], "nuova": "potenziatore", "ondate": 16, "nemici": ["base", "cono", "saltatore", "secchio", "scudo", "volante"], "intro": null, "tutorial": false, "primaOndata": 18 },
+    { "id": 11, "nome": "Pioggia di meloni", "corsie": [0, 1, 2, 3, 4], "carte": ["sparatore", "produttore", "bomba", "muro", "mina", "gelo", "mangiatutto", "ripetitore", "muroAlto", "potenziatore", "mortaio"], "nuova": "mortaio", "ondate": 20, "nemici": ["base", "cono", "saltatore", "secchio", "scudo", "volante"], "intro": null, "tutorial": false, "primaOndata": 18 },
+    { "id": 12, "nome": "Il maggiolino", "corsie": [0, 1, 2, 3, 4], "carte": ["sparatore", "produttore", "bomba", "muro", "mina", "gelo", "mangiatutto", "ripetitore", "muroAlto", "potenziatore", "mortaio"], "nuova": null, "ondate": 20, "nemici": ["base", "cono", "saltatore", "secchio", "scudo", "volante", "gigante"], "intro": "gigante", "tutorial": false, "primaOndata": 18 }
   ],
   "sopravvivenza": {
     "nome": "Sopravvivenza",
     "corsie": [0, 1, 2, 3, 4],
-    "carte": ["sparatore", "produttore", "bomba", "muro", "mina", "gelo"],
-    "nemici": ["base", "cono", "saltatore", "secchio"],
+    "carte": ["sparatore", "produttore", "bomba", "muro", "mina", "gelo", "mangiatutto", "ripetitore", "muroAlto", "potenziatore", "mortaio"],
+    "nemici": ["base", "cono", "saltatore", "secchio", "scudo", "volante", "gigante"],
     "primaOndata": 18,
     "iniziale": 150
   }

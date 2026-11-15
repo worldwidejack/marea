@@ -1,0 +1,206 @@
+// Le quattro modalità dell'Arena (docs/ARENA.md) senza server (net=0), al telefono 390×844. Il pannello del colosseo ha le quattro modalità
+// (con le grandezze di squadra di Sopravvivenza e Rapinatori) e la mappa di ciascuna; l'ALLENAMENTO di ognuna parte coi gladiatori su tutti i
+// posti: Sopravvivenza a 10 (tabellone con IN PIEDI, nube che si stringe e il cartello NELLA NUBE), Caccia alle stelle 3v3 (le stelle sopra le
+// teste, l'erba alta nasconde gli avversari e non i compagni), Controllo 3v3 (la zona sale per chi ci sta), Rapinatori 2v2 (le casseforti al
+// 100%). Gladiatori dell'allenamento: casuali di default, la build gliela si può scegliere a mano; con una bomba in mano, mentre si mira, a
+// terra c'è l'ombra di dove atterra. Screenshot in tests/out/shots/m4_arena_modi_*.png.
+import * as THREE from 'three';
+import { creaVisibilitaArena } from '../../apps/client/src/rpg/arena_visibilita.ts';
+
+export const timeout = 300000;
+
+export default async function (ctx) {
+  const { assert } = ctx;
+  const ar = (st) => st.arenaPartita ?? null;
+  /** Dal portone al pannello del colosseo. */
+  const pannello = async (page) => {
+    await ctx.waitReady(page, 20000);
+    await ctx.waitState(page, (st) => !!st.arena?.spot, 30000);
+    assert(await page.evaluate(() => window.__game.test.arenaVai()), 'isola dell’Arena non trovata');
+    await ctx.waitState(page, (st) => st.arena.near === true, 10000);
+    await page.waitForSelector('#mzArenaEntra.on', { timeout: 10000 });
+    await page.tap('#mzArenaEntra');
+    await page.waitForSelector('#mzColosseo.on', { timeout: 40000 });
+  };
+  /** Sceglie modalità e grandezza e parte con ALLENAMENTO; aspetta il conto alla rovescia. */
+  const allena = async (page, modo, f) => {
+    if (!(await page.locator('#mzColosseo .modi').isVisible())) await page.tap('#mzColosseo [data-act=partita]');
+    await page.tap(`#mzColosseo .modi button[data-modo="${modo}"]`);
+    if (f) await page.tap(`#mzColosseo .formati button[data-f="${f}"]`);
+    await ctx.shot(page, `pannello_${modo}`);
+    await page.tap('#mzColosseo [data-act=avvia]');
+    await page.tap('#mzColosseo [data-act=allenamento]');
+    await ctx.waitState(page, (st) => st.arenaPartita?.phase === 'play' && st.arenaPartita.fase === 'conta', 60000);
+  };
+  /** Fuori dalla partita (dal menu, come una resa) e di nuovo nel pannello. */
+  const esci = async (page) => {
+    await page.evaluate(() => window.__game.test.arenaAuto(false));
+    await page.tap('#mzArenaMenuBtn');
+    await page.tap('#mzArenaMenu [data-act=resa]');
+    await page.tap('#mzArenaResa [data-act=si]');
+    await ctx.waitState(page, (st) => !!st.arenaPartita?.finale || st.colosseo?.aperto === true, 20000);
+    if ((await ctx.getState(page)).arenaPartita?.finale) await page.tap('#mzArenaFine [data-act=esci]');
+    await ctx.waitState(page, (st) => st.colosseo?.aperto === true && !st.arenaPartita, 15000);
+  };
+
+  await ctx.test('erba alta: ricomparsa graduale dalla posizione aggiornata', () => {
+    const gruppo = new THREE.Scene(), mat = new THREE.MeshLambertMaterial();
+    gruppo.add(new THREE.Mesh(undefined, mat));
+    const vis = creaVisibilitaArena();
+    let riparte;
+    const attore = { avatar: { teleport: (x, z) => { riparte = [x, z]; } }, tick() {}, update() {} };
+    vis.tick(gruppo, attore, null);
+    assert(!gruppo.visible);
+    vis.tick(gruppo, attore, { x: 17, z: 11, fx: 1, fz: 0 });
+    assert(gruppo.visible && riparte?.[0] === 17 && riparte?.[1] === 11);
+    vis.update(gruppo, attore, 0, 0.1, false);
+    assert(mat.alphaHash && mat.opacity > 0 && mat.opacity < 1);
+    vis.update(gruppo, attore, 0, 0.1, false);
+    assert(!mat.alphaHash && mat.opacity === 1);
+  });
+
+  const p = await ctx.open('?test=1&net=0&ruota=0');
+  const page = p.page;
+  await ctx.test('telefono: il pannello ha le quattro modalità, le grandezze di squadra e la mappa di ciascuna', async () => {
+    await pannello(page);
+    await page.tap('#mzColosseo [data-act=partita]');
+    const modi = await page.locator('#mzColosseo .modi button[data-modo]').evaluateAll((bs) => bs.map((b) => b.dataset.modo));
+    assert(modi.join() === 'sopravvivenza,stelle,controllo,rapina', 'modalità: ' + modi);
+    const per = () => page.locator('#mzColosseo .formati button[data-f]').evaluateAll((bs) => bs.map((b) => b.dataset.f).join());
+    await page.tap('#mzColosseo .modi button[data-modo=sopravvivenza]');
+    assert((await per()) === '1,2', 'Sopravvivenza da solo o in coppia: ' + (await per()));
+    assert((await page.textContent('#mzColosseo')).includes('NAUFRAGIO'), 'la mappa della Sopravvivenza');
+    await page.tap('#mzColosseo .modi button[data-modo=rapina]');
+    assert((await per()) === '2,3', 'Rapinatori 2 o 3 contro 3: ' + (await per()));
+    await page.tap('#mzColosseo .modi button[data-modo=controllo]');
+    assert((await per()) === '', 'il Controllo è solo 3 contro 3');
+    assert(await page.isEnabled('#mzColosseo [data-act=avvia]'), 'si può avviare da soli');
+    await ctx.shot(page, 'pannello');
+  });
+
+  await ctx.test('telefono: Sopravvivenza a 10, io e nove gladiatori; IN PIEDI; la nube si stringe e il cartello avvisa', async () => {
+    await allena(page, 'sopravvivenza', 1);
+    const s0 = ar(await ctx.getState(page));
+    assert(s0.modo === 'sopravvivenza' && s0.mappa === 'naufragio' && s0.vita.length === 10 && s0.squadre.join() === '0,1,2,3,4,5,6,7,8,9', 'stato: ' + JSON.stringify(s0));
+    assert((await page.textContent('#mzArenaTop')).includes('IN PIEDI'), 'il tabellone dice quanti sono in piedi');
+    await ctx.waitState(page, (st) => st.arenaPartita?.fase === 'gioca', 15000);
+    const r0 = ar(await ctx.getState(page)).nube.r;
+    assert(await page.evaluate(() => window.__game.test.arenaTempo(100)), 'avanti nel tempo');
+    await page.evaluate(() => window.__game.test.arenaPosa(0, 4, 13));
+    await ctx.waitState(page, (st, r0) => st.arenaPartita?.nube?.r < r0 - 10, 5000, r0);
+    await page.waitForSelector('#mzArenaBadge.on', { timeout: 5000 });
+    assert((await page.textContent('#mzArenaBadge')).includes('NUBE'), 'cartello: ' + (await page.textContent('#mzArenaBadge')));
+    await ctx.shot(page, 'sopravvivenza_nube');
+    await esci(page);
+  });
+
+  await ctx.test('telefono: Caccia alle stelle 3v3: le stelle sopra le teste; l’erba alta nasconde gli avversari, non i compagni', async () => {
+    await allena(page, 'stelle');
+    const s0 = ar(await ctx.getState(page));
+    assert(s0.squadre.join() === '0,0,0,1,1,1' && s0.mappa === 'osservatorio' && s0.segno === 2, 'stato: ' + JSON.stringify(s0));
+    assert((await page.locator('#mzArenaTop .mz-ar-lato.io .eroe').count()) === 1 && (await page.locator('#mzArenaTop .mz-ar-lato.lui').count()) === 0, 'solo la mia vita nel tabellone');
+    // nel conto alla rovescia nessuno si muove: si posano gli eroi e si legge la vista (il prato in alto a sinistra è erba alta)
+    const r = await page.evaluate(async () => {
+      const T = window.__game.test, S = () => window.__game.state().arenaPartita, frame = () => new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+      const out = {};
+      T.arenaPosa(3, 8, 3); await frame(); out.avversario = S();   // avversario 3 nel prato, io alla partenza
+      T.arenaPosa(1, 7, 2); await frame(); out.compagno = S();     // il mio compagno nel prato: si vede lo stesso
+      T.arenaPosa(3, 9, 5);
+      T.arenaPosa(0, 13, 1);
+      return out;
+    });
+    assert(r.avversario.nascosti.includes(3) && r.avversario.visibili[3] === false, 'avversario nell’erba: ' + JSON.stringify(r.avversario.nascosti));
+    assert(!r.compagno.nascosti.includes(1) && r.compagno.visibili[1] === true, 'il compagno nell’erba si vede');
+    await ctx.waitState(page, (st) => st.arenaPartita?.nascosto && st.arenaPartita.opacita[0] === 0.55 && st.arenaPartita.visibili[3] && st.arenaPartita.opacita[3] === 1);
+    await page.waitForSelector('.mz-ar-segno', { state: 'visible', timeout: 5000 });
+    await ctx.shot(page, 'stelle');
+    await esci(page);
+  });
+
+  await ctx.test('telefono: Controllo 3v3: chi sta nella zona la fa salire; Rapinatori 2v2: due casseforti al 100%', async () => {
+    await allena(page, 'controllo');
+    await ctx.waitState(page, (st) => st.arenaPartita?.fase === 'gioca', 15000);
+    await page.evaluate(() => window.__game.test.arenaPosa(0, 14, 4));
+    await ctx.waitState(page, (st) => (st.arenaPartita?.zone?.[0]?.prog[0] ?? 0) > 2, 10000);
+    await page.waitForSelector('.mz-ar-zona', { state: 'visible', timeout: 5000 });
+    await ctx.shot(page, 'controllo');
+    await esci(page);
+    await allena(page, 'rapina', 2);
+    const s = ar(await ctx.getState(page));
+    assert(s.casseforti.length === 2 && s.punti.join() === '100,100' && s.vita.length === 4, 'casseforti: ' + JSON.stringify(s.casseforti));
+    await page.waitForFunction(() => (document.querySelector('#mzArenaTop')?.textContent ?? '').includes('100%'), null, { timeout: 10000 }); // il tabellone mostra la cassaforte
+    await ctx.shot(page, 'rapina');
+    await esci(page);
+  });
+
+  const w = await ctx.open('?test=1&net=0&ruota=0');
+  const pw = w.page;
+  await ctx.test('telefono: gladiatori dell’allenamento casuali di default, a mano gli si sceglie la build; bomba in mano: ombra di mira', async () => {
+    await pannello(pw);
+    await pw.tap('#mzColosseo [data-act=partita]');
+    await pw.tap('#mzColosseo .modi button[data-modo=rapina]');
+    await pw.tap('#mzColosseo .formati button[data-f="2"]');
+    await pw.tap('#mzColosseo [data-act=build]');
+    const nomi = () => pw.locator('#mzColosseo [data-bot]').evaluateAll((bs) => bs.map((b) => b.textContent));
+    const n0 = await nomi();
+    assert(n0.length === 3 && n0.every((x) => x.includes('casuale')), 'tre gladiatori, tutti casuali: ' + n0);
+    assert(n0[0].includes('compagno') && n0[1].includes('avversario') && n0[2].includes('avversario'), 'compagno e avversari: ' + n0);
+    await pw.tap('#mzColosseo [data-bot="2"]');
+    const colo = async () => (await ctx.getState(pw)).colosseo;
+    assert((await colo()).bot === 2 && (await colo()).bots[2], 'il gladiatore 2 è aperto, con una build di partenza');
+    const mia = JSON.stringify((await colo()).builds);
+    await pw.tap('#mzColosseo .cella[data-ulti]');
+    await pw.tap('#mzColosseo .lista.on button[data-id=velo]');
+    await ctx.shot(pw, 'gladiatore_build');
+    assert((await colo()).bots[2].ulti === 'velo', 'l’ulti è andata al gladiatore: ' + JSON.stringify((await colo()).bots[2]));
+    assert(JSON.stringify((await colo()).builds) === mia, 'le mie build non sono cambiate');
+    await pw.tap('#mzColosseo [data-act=casuale]');
+    assert((await colo()).bot === null && (await colo()).bots[2] === null, 'BUILD CASUALE rimette il caso');
+    // la mia bomba in mano
+    await pw.evaluate(() => window.__game.test.arenaSet({ dote: 'magia', slot: [{ magia: 'bomba_fuoco' }, null], ulti: 'furia' }));
+    await pw.tap('#mzColosseo [data-act=avvia]');
+    await pw.tap('#mzColosseo [data-act=allenamento]');
+    await ctx.waitState(pw, (st) => st.arenaPartita?.fase === 'gioca', 60000);
+    assert((await ctx.getState(pw)).arenaPartita.ombra === null, 'senza mirare niente ombra');
+    await pw.keyboard.down('Space');
+    await ctx.waitState(pw, (st) => !!st.arenaPartita?.ombra, 10000);
+    const o = (await ctx.getState(pw)).arenaPartita.ombra;
+    assert(o.r > 1.5 && o.r < 3.5, 'l’ombra ha il raggio dello scoppio: ' + JSON.stringify(o));
+    await ctx.shot(pw, 'ombra_bomba');
+    await pw.keyboard.up('Space');
+    await ctx.waitState(pw, (st) => st.arenaPartita?.ombra === null, 10000);
+    // il joystick di mira: l'anello è grande e la distanza dell'ombra è quanto spingi, senza agganciarsi a nessuno (in qualche direzione c'è un muro: se ne prova più d'una)
+    const anello = await pw.evaluate(() => { const e = document.querySelector('#mzArenaMira'), r = e.getBoundingClientRect(); return { cx: r.x + r.width / 2, cy: r.y + r.height / 2, w: r.width, grande: e.classList.contains('grande') }; });
+    assert(anello.grande && anello.w > 140, 'con la bomba in mano l’anello di mira è grande: ' + JSON.stringify(anello));
+    // il dito scende, spinge `f` della corsa verso `ang` (gradi sullo schermo) e aspetta che l'ombra si fermi; poi lascia (la bomba parte). Una A premuta
+    // mentre l'eroe sta ancora lanciando non conta: si riprova dopo la pausa.
+    const metri = async (ang, f) => {
+      const rad = (ang * Math.PI) / 180, R = 56;
+      for (let prova = 0; prova < 3; prova++) {
+        await pw.mouse.move(anello.cx, anello.cy); await pw.mouse.down();
+        for (const s of [0.5, 1]) await pw.mouse.move(anello.cx + Math.cos(rad) * R * f * s, anello.cy + Math.sin(rad) * R * f * s);
+        let prima = -2, d = -2;
+        for (let i = 0; i < 24 && (d < 0 || Math.abs(d - prima) > 0.01); i++) {
+          await pw.waitForTimeout(250); prima = d;
+          const a = (await ctx.getState(pw)).arenaPartita;
+          d = a.ombra ? Math.hypot(a.ombra.x - a.pos[0][0], a.ombra.z - a.pos[0][1]) : -1;
+        }
+        await pw.mouse.up();
+        await pw.waitForTimeout(2000);
+        if (d >= 0) return d;
+      }
+      return -1;
+    };
+    const prove = [];
+    for (const ang of [90, 270, 0, 180]) {
+      const poca = await metri(ang, 0.45), tanta = await metri(ang, 0.95);
+      prove.push({ ang, poca: Math.round(poca * 10) / 10, tanta: Math.round(tanta * 10) / 10 });
+      if (poca > 2.5 && poca < 5.5 && tanta > poca + 3) break;
+    }
+    assert(prove.some((x) => x.poca > 2.5 && x.poca < 5.5 && x.tanta > x.poca + 3), 'l’ombra segue quanto spingi il joystick di mira: ' + JSON.stringify(prove));
+  });
+
+  await ctx.test('nessun errore in pagina', async () => {
+    for (const x of [p, w]) assert(!x.errors.length, 'errori: ' + x.errors.slice(0, 3).join('\n'));
+  });
+}

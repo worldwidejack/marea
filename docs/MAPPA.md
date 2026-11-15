@@ -10,7 +10,7 @@
 | `avvio/` | i pezzi dell'avvio: registro delle modalità, bussola, tasti, grafica, rientro, scritta sotto A, gancio della storia | tutti |
 | `flags.ts` | interruttori dall'URL (`?test=1`, `?fps=1`, `?net=0`…) | tutti |
 | `game/` | il mondo: avatar, barca, input; Borgo, casa, arredi, negozio, botteghe, pala, insetti, pesca; Porto; posti dei minigiochi; ingressi di dungeon e isole; animali | tutti, R sul Borgo |
-| `comandi/` | tasti rimappabili e controller (la schermata è `ui/comandi_ui.ts`) | tutti |
+| `comandi/` | profili in `azioni.ts`, rimappatura, controller e menu | tutti |
 | `render/` | grafica 3D: scena a metà risoluzione, camera, acqua, luce, meteo e nuvole, isole (un file per isola a tema), mobili | J, R |
 | `ui/` | interfaccia: HUD «Allegro», minimappa, bussola, impostazioni, editor dell'avatar, diario, minigiochi a pixel, pannelli del Porto | J |
 | `net/` | `api.ts` (HTTP `/api/*`), `client.ts` (WebSocket della zona) | tutti |
@@ -18,12 +18,12 @@
 | `corse/` | Isola delle Corse: menù di scelta, gara, veicoli, risultati; banchi `prova/` (piste, garage, scena) e `discesa/` (bici) | J |
 | `adrenalina/` | snowboard dell'Adrenalina (chunk dalla funivia) | B |
 | `templari/` | partita a ondate dei Templari (chunk entrando in chiesa) | B |
-| `rpg/` | dungeon, eroe, forgia, alchimia, contrabbando; duello dell'Arena | R |
+| `rpg/` | dungeon, eroe, forgia, alchimia, contrabbando; partite dell'Arena | R |
 | `storia/` | storia delle prime ore (chunk): naufragio, Nonna Pina, tutorial, barca, missioni, viaggio rapido | R |
 | `difesa/` | Difesa alla Plants vs Zombies: `difesa.html`, che si apre anche dal cancello dell'isola | J |
 | `sparo/` | banco dello sparatutto a missioni (`provasparo.html`) | J |
 | `prova3d/`, `provapixel/` | banchi delle prove di stile | J |
-| `provafiniture/` | banco di pavimenti e carte da parati disegnati interi (`game/finiture_*.ts`): la stanza vera a ogni livello, o tutte in un foglio | R |
+| `provafiniture/`, `provanemici/` | banchi: pavimenti e carte da parati di casa (`game/finiture_*.ts`); nemici dei dungeon snodati | R |
 | `test/` | `window.__game` per i test (hook solo con `?test=1`) | tutti |
 
 ## packages/sim/src · la simulazione pura (gira nel browser e sul server, che rigioca le partite)
@@ -39,7 +39,7 @@
 | `templari/` | partita a ondate | B |
 | `dungeon/` | partita nei dungeon: combattimento, nemici, magie, bottino | R |
 | `rpg/` | personaggio: zaino, oggetti, botteghe del GDR, contrabbando | R |
-| `arena/` | duello 1v1, 2v2, 3v3 e gladiatori automatici | R |
+| `arena/` | partite dell'Arena (le 4 modalità) e gladiatori automatici | R |
 | `difesa/`, `sparo/` | Difesa a corsie, sparatutto | J |
 
 Test della sim: `packages/sim/test/*.test.ts` (node:test), fixture d'oro in `test/fixtures/`.
@@ -56,7 +56,7 @@ Test della sim: `packages/sim/test/*.test.ts` (node:test), fixture d'oro in `tes
 | `corse/`, `corse*.ts` | piste, motore, discesa | J |
 | `adrenalina/`, `adrenalina*.ts` | piste e barra dell'Adrenalina | B |
 | `templari/`, `templari*.ts` | mappa e numeri dei Templari | B |
-| `rpg/`, `rpg*.ts`, `arena/`, `arena.ts` | GDR (armi, materiali, nemici, magie, dungeon) e duello | R |
+| `rpg/`, `rpg*.ts`, `arena/`, `arena.ts` | GDR (armi, materiali, nemici, magie, dungeon) e Arena | R |
 | `difesa.*`, `sparo.*` | Difesa e sparatutto | J |
 
 ## packages/protocol/src · tipi dei messaggi WebSocket
