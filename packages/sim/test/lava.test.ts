@@ -191,6 +191,10 @@ test('lava: un pilota con riflessi umani (tocchi in ritardo) a volte muore ma gi
     assert.equal(fermo.s.fine, 'bruciato');
     assert.ok(fermo.r.medal === null && fermo.s.tick < 45 * 60, `fermo seed ${seed}: ${fermo.r.medal} in ${fermo.s.tick} tick`);
   }
+  for (let seed = 1; seed <= 300; seed++) { // su qualche seed chi sta fermo arriva lontano e fa punti, ma senza un salto la medaglia non c'è
+    const fermo = gioca(seed * 2654435761 >>> 1, 2, () => NO);
+    assert.equal(fermo.r.medal, null, `fermo seed ${seed}: ${fermo.r.medal} con ${fermo.r.score} punti`);
+  }
   const sempre = gioca(5, 2, () => ({ ...NO, a: true }));
   assert.ok(sempre.r.done && Number.isFinite(sempre.s.c.y) && sempre.s.c.y <= 0);
   const caso = createRng(3);

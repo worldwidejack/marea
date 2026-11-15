@@ -48,10 +48,16 @@ export default async function (ctx) {
       if (!im) return null;
       const m = new im.matrix.constructor(), prima = [];
       for (let i = 0; i < im.count; i++) { im.getMatrixAt(i, m); prima.push(m.elements[0]); }
-      for (let k = 0; k < 6; k++) { window.__provapiste.avanti(120); await new Promise((r) => setTimeout(r, 300)); await new Promise((r) => requestAnimationFrame(r)); }
-      let cambiate = 0;
-      for (let i = 0; i < im.count; i++) { im.getMatrixAt(i, m); if (Math.abs(m.elements[0] - prima[i]) > 1e-3) cambiate++; }
-      return { teste: im.count, cambiate };
+      // una testa conta se si è girata in un momento qualsiasi del passaggio: alla fine il kart può essere lontano da tutti i manichini
+      // (le teste tornano dritte) e la prima foto può essere già girata, se il gioco ha disegnato prima di lei
+      const girate = new Set(), campioni = [];
+      for (let k = 0; k < 6; k++) {
+        const st = window.__provapiste.avanti(120); await new Promise((r) => setTimeout(r, 300)); await new Promise((r) => requestAnimationFrame(r));
+        let c = 0;
+        for (let i = 0; i < im.count; i++) { im.getMatrixAt(i, m); if (Math.abs(m.elements[0] - prima[i]) > 1e-3) { girate.add(i); c++; } prima[i] = m.elements[0]; }
+        campioni.push([st.s, c]);
+      }
+      return { teste: im.count, cambiate: girate.size, campioni };
     });
     assert(giri && giri.teste > 20, `teste: ${JSON.stringify(giri)}`);
     assert(giri.cambiate > 0, `nessuna testa si è girata: ${JSON.stringify(giri)}`);

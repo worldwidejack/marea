@@ -89,10 +89,11 @@ export const lava: MinigameModule<LavaState> = {
     s.punti = punteggio(s);
     if (s.c.margine <= 0) { s.fine = 'bruciato'; s.done = true; } else if (s.tick >= MAX_TICKS) { s.fine = 'traguardo'; s.done = true; }
   },
-  /** score = punti; medaglia dai punti (soglie in content). */
+  /** score = punti; medaglia dai punti (soglie in content), solo a chi ha saltato almeno una volta: su un seed su 15 chi non tocca mai
+   *  corre da solo per 200 m tra le gemme prima del primo muro alto e passava il bronzo (fino a 634 punti su 5.000 seed). */
   result(s): MinigameResult {
     return {
-      done: s.done, score: s.punti, medal: medalOf(s.punti),
+      done: s.done, score: s.punti, medal: s.salti > 0 ? medalOf(s.punti) : null,
       detail: {
         punti: s.punti, metri: metriDi(s.c.x), gemme: s.prese.ossidiana + s.prese.scintilla + s.prese.rubino,
         ossidiana: s.prese.ossidiana, scintille: s.prese.scintilla, rubini: s.prese.rubino, nemici: s.nemici, belli: s.belli, colpi: s.colpi, bagni: s.bagni, salti: s.salti,
