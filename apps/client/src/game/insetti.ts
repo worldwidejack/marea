@@ -134,7 +134,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   let turno = -1, mostra: Attore[] = [];
   const syncLiberi = (now: number) => {
     const t = turnoAt(now);
-    if (t === turno) return;
+    if (t <= turno) return; // solo avanti: l'ora del server oscilla e, tornando indietro sul cambio, gli insetti nuovi finirebbero in `andati`
     turno = t;
     for (const a of attori.values()) if (a.k.startsWith('p:') && Number(a.k.split(':')[1]) !== t && a.stato !== 'preso') { a.stato = 'via'; a.t = 0; }
     const presi = new Set(insettiOf(o.getLot(), now).presi);

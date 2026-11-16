@@ -19,13 +19,20 @@ export default async function (ctx) {
     for (let i = 0; i < 10 && !(await hook(p, 'delfini')); i++) await p.page.waitForTimeout(500);
     await ctx.waitState(p.page, (st) => st.animali.delfiniFuori >= 1, 20000).catch(() => {});
   };
-  /** Draw call e triangoli con gli animali accesi e spenti (stesso punto, stessa camera). */
+  /** Aspetta `n` fotogrammi disegnati: perf() dà i numeri dell'ultimo, e su GitHub (2-4 fps) 400 ms possono non bastare per uno nuovo. */
+  const fotogrammi = (p, n = 3) => p.page.evaluate((k) => new Promise((r) => { let i = 0; const f = () => (++i > k ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
+  /** Draw call e triangoli con gli animali accesi e spenti (stesso punto, stessa camera). Paesani e barche intanto si muovono e possono
+   *  entrare o uscire dalla vista tra le due misure: si ripete la coppia fino a tre volte e conta la differenza più piccola (quello che
+   *  costano davvero gli animali c'è in tutte). */
   const confronto = async (p, nome) => {
-    await p.page.waitForTimeout(400);
-    const con = await ctx.getPerf(p.page);
-    await hook(p, 'animali', false); await p.page.waitForTimeout(400);
-    const senza = await ctx.getPerf(p.page);
-    await hook(p, 'animali', true); await p.page.waitForTimeout(300);
+    const misura = async (on) => { await hook(p, 'animali', on); await fotogrammi(p); return ctx.getPerf(p.page); };
+    let con = null, senza = null;
+    for (let i = 0; i < 3; i++) {
+      const c = await misura(true), s = await misura(false);
+      if (!con || c.drawCalls - s.drawCalls < con.drawCalls - senza.drawCalls) { con = c; senza = s; }
+      if (con.drawCalls - senza.drawCalls <= 3) break;
+    }
+    await hook(p, 'animali', true); await fotogrammi(p);
     ctx.log(`${nome}: draw call ${senza.drawCalls} → ${con.drawCalls} · triangoli ${senza.triangles} → ${con.triangles}`);
     // con le impostazioni di serie (camera 22°, si vede lontano) certe viste del PC sono già oltre 100 senza animali: lì conta solo la differenza
     if (senza.drawCalls <= 98) assert(con.drawCalls <= 100, `draw call ${con.drawCalls} > 100`);

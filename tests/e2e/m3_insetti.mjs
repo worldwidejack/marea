@@ -181,11 +181,19 @@ export default async function (ctx) {
       const inGiro = async () => (await st()).insetti.attori.filter((x) => x.k.startsWith('p:') && x.prendibile && tranquillo(x.id)).map((x) => ({ ...x, riva: riva(x.x, x.z) })).sort((p, q) => q.riva - p.riva);
       assert((await inGiro()).length, 'nessun insetto in giro: ' + JSON.stringify((await st()).insetti.attori));
       // 3a. A tenuto: il retino si carica, si cammina al passo ridotto; al rilascio il personaggio sta fermo fino alla risalita
-      // a 2 m da un insetto lontano dalla barca (col retino in mano è lui a prendere A, non un albero vicino né l'imbarco)
-      const s00 = await st(), t0 = (await inGiro()).find((x) => Math.hypot(x.x - s00.barche.mia.x, x.z - s00.barche.mia.z) > 8);
-      assert(t0, 'nessun insetto lontano dalla barca');
-      await hook('teleport', t0.x, t0.z + 2);
-      await ctx.waitState(page, (s) => s.insetti.ctx === 'retino', 3000);
+      // a 2 m da un insetto lontano dalla barca (col retino in mano è lui a prendere A, non un albero vicino né l'imbarco). Nel Borgo la gente
+      // passeggia: se accanto c'è qualcuno (o un altro bottone acceso) A parlerebbe con lui, allora si va dall'insetto dopo
+      const altri = () => page.evaluate(() => [...document.querySelectorAll('.mz-play.on, #mzPortoBtn.on, #mzAmiciBtn.on, #mzLibroBtn.on, #mzBottegaBtn.on, #mzPortaBtn.on')].map((e) => e.id + ' «' + e.textContent.trim() + '»'));
+      const s00 = await st(), visti = [];
+      let t0 = null;
+      for (const x of (await inGiro()).filter((y) => Math.hypot(y.x - s00.barche.mia.x, y.z - s00.barche.mia.z) > 8)) {
+        await hook('teleport', x.x, x.z + 2);
+        try { await ctx.waitState(page, (s) => s.insetti.ctx === 'retino' && !s.porto?.near, 3000); } catch { visti.push(x.id + ': parla con ' + (await st()).porto?.near); continue; }
+        const a = await altri();
+        if (a.length) { visti.push(x.id + ': ' + a.join(', ')); continue; }
+        t0 = x; break;
+      }
+      assert(t0, 'nessun insetto lontano dalla barca e da chi passeggia: ' + JSON.stringify(visti));
       await page.keyboard.down('KeyE');
       await ctx.waitState(page, (s) => s.insetti.rete.fase === 'carica' && s.insetti.rete.carica >= 1 && s.insetti.bottone && /rilascia/i.test(s.insetti.bottone), 8000);
       let freccia = null; // una direzione libera (un muro o un solido vicino ferma il passo)
@@ -223,8 +231,10 @@ export default async function (ctx) {
       assert(!(await get('/api/lot')).body.insetti.presi.includes(v.k), 'un colpo a vuoto non prende niente');
       // 3c. la rete atterra sull'insetto: preso (si riprova se nel frattempo si è spostato)
       let a = null;
-      for (let prova = 0; prova < 6 && !a; prova++) {
-        const lista = await inGiro(), t = lista[prova % Math.max(1, lista.length)];
+      // prima chi sta fermo o gira tranquillo: chi è scappato dal colpo a vuoto intanto corre, e durante il colpo esce dalla rete
+      for (let prova = 0; prova < 10 && !a; prova++) {
+        const tutti = await inGiro(), calmi = tutti.filter((x) => x.stato === 'giro' || x.stato === 'fermo'), lista = calmi.length ? calmi : tutti;
+        const t = lista[prova % Math.max(1, lista.length)];
         if (!t) { await page.waitForTimeout(1000); continue; }
         await hook('teleport', t.x - ox, t.z - oz);
         await hook('insettiRetino');
@@ -232,7 +242,7 @@ export default async function (ctx) {
         await page.waitForTimeout(500);
         if ((await st()).insetti.cartello) a = t; // «Hai preso…» resta 2,6 s: si guarda prima di chiamare il server (a volte lento)
       }
-      assert(a, 'nessuna cattura in 6 colpi con la rete sull’insetto');
+      assert(a, 'nessuna cattura in 10 colpi con la rete sull’insetto: ' + JSON.stringify((await inGiro()).map((x) => x.id + ':' + x.stato)));
       await ctx.waitState(page, (s, k) => !s.insetti.attori.some((x) => x.k === k), 5000, a.k);
       const l = (await get('/api/lot')).body;
       assert(l.insetti.presi.includes(a.k) && l.hero.inv[a.id] >= 1, 'preso dal server: ' + JSON.stringify(l.insetti));

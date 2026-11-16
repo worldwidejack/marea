@@ -120,7 +120,7 @@ export function createPescaBorgo(o: {
   const nuova = (k: string, def: PesceDef, x: number, z: number, seme: number): Ombra => ({ k, def, x, z, h: seme * 6.28, hx: x, hz: z, seme, t: seme * 10, stato: 'nuota', alfa: 0, ignora: false });
   const syncRiva = (now: number) => {
     const t = turnoPesciAt(now);
-    if (t === turno) return;
+    if (t <= turno) return; // solo avanti: l'ora del server oscilla e, tornando indietro sul cambio, le ombre nuove finirebbero in `andati`
     turno = t;
     for (const a of ombre.values()) if (Number(a.k.split(':')[1]) !== t && a !== preda) { a.stato = 'via'; a.t = 0; }
     const presi = new Set(pesciOf(o.getLot(), now).presi);
