@@ -1,16 +1,16 @@
 // I dialoghi della storia davanti ai personaggi (avvio/prima.ts): Fulvio regala la canna o il retino, Bepi dice quanto costa la barca e poi
-// te la vende (o apre la bottega di sempre), il Furetto ha la sua battuta, Gigi consiglia la Grotta; con la barca Capitan Remo dà le isole
-// della missione e, provata l'isola, paga e la mette nel viaggio rapido (missioni.ts). Parlano nella scheda del Porto (game/porto.ts
+// te la vende (o apre la bottega di sempre), il Furetto ha la sua battuta, Gigi consiglia la Grotta; con la barca Capitan Remo ti chiede di
+// provare qualche isola a tua scelta (le paga il server quando provi il gioco, missioni.ts) e ti dice quante ne mancano. Parlano nella scheda del Porto (game/porto.ts
 // `dialogo`), con le scelte sull'ultima pagina. Fuori dal passo giusto non fanno niente: la scheda di sempre.
 import { STORIA } from '@marea/content/storia.ts';
-import { isolaCorrente, isolaProvata, passoCorrente } from '@marea/sim/economy/storia.ts';
+import { missioneIsole, passoCorrente } from '@marea/sim/economy/storia.ts';
 import { moneteOf } from '@marea/sim/economy/monete.ts';
 import type { LotState } from '@marea/sim';
 import { ApiError } from '../net/api.ts';
 import type { Api } from '../net/api.ts';
 import type { Porto } from '../game/porto.ts';
 import type { Pagina, Scheda } from '../ui/paesani_dlg.ts';
-import { nomeIsola, paroleIsola } from './missioni.ts';
+import { paroleIsole } from './missioni.ts';
 
 /** Le righe dei dialoghi di storia.json: {nome}, {prezzo}, {manca} al loro posto; senza «Nome:» davanti è narrazione, col nome è una
  *  battuta (senza il nome). */
@@ -25,7 +25,7 @@ export function righe(chiave: string, v: Record<string, string | number>): { nar
 export function creaDialoghi(o: {
   porto: Porto; api: Api; nome: string; getLot(): LotState | null; setLot(l: LotState): void;
   segna(id: string): Promise<LotState>; toast(t: string, ms?: number): void;
-  /** Remo ti ha già dato la prima isola (`senti` lo segna). */
+  /** Remo ti ha già dato la missione (`senti` lo segna). */
   remo: { sentito(): boolean; senti(): void };
 }): (chi: string, poi: (frase?: string) => void) => boolean {
   let parla = false;
@@ -58,27 +58,16 @@ export function creaDialoghi(o: {
     }, bottega]);
   };
 
-  /** Remo: l'isola da fare (la prima volta te la racconta, poi ti chiede se ci sei stato), o provata → RISCUOTI e la prossima. */
+  /** Remo: la prima volta racconta la missione, poi dice quante isole mancano; a missione finita, il saluto. */
   const remo = (lot: LotState, poi: () => void): boolean => {
-    const i = isolaCorrente(lot);
-    if (!i) return false;
+    const m = missioneIsole(lot);
+    if (!m) return false;
     const altro = (s: Scheda): NonNullable<Pagina['scelte']> => [{ label: 'Ciao', act: 'ciao', fai: () => s.chiudi() }, { label: 'Chiacchiera', act: 'chiacchiera', fai: () => { s.chiudi(); poi(); } }];
-    if (!isolaProvata(lot)) {
-      const prima = !o.remo.sentito();
-      o.remo.senti();
-      return via('remo', 'Capitan Remo', (s) => conScelte(dice(prima ? 'remoMissione' : 'remoAttesa', paroleIsola(i)), altro(s)));
-    }
-    return via('remo', 'Capitan Remo', (s) => conScelte(dice('remoFatto', paroleIsola(i)), [{
-      label: `Riscuoti · ${i.premio}`, act: 'riscuoti', principale: true,
-      fai: async () => {
-        try {
-          const r = await o.api.storiaIsola(), dopo = isolaCorrente(r.lot);
-          o.setLot(r.lot);
-          o.toast(`+${r.premio} monete · ${nomeIsola(r.isola)} è nel viaggio rapido`, 3500);
-          s.poi(dopo ? dice('remoMissione', paroleIsola(dopo)) : dice('remoFine'));
-        } catch (e) { s.nota(errore(e)); }
-      },
-    }]));
+    const prima = !o.remo.sentito();
+    if (m.finita && !prima) return false; // detto tutto: la scheda di sempre
+    o.remo.senti();
+    const chiave = m.finita ? 'remoFine' : prima && !m.provate.length ? 'remoMissione' : 'remoAttesa';
+    return via('remo', 'Capitan Remo', (s) => conScelte(dice(chiave, paroleIsole(lot)), altro(s)));
   };
 
   return (chi, poi) => {

@@ -1,5 +1,5 @@
 {
-  "_nota": "La storia delle prime ore (GDD §9): naufragio, Nonna Pina, tutorial guidato fino a Fulvio, la barca da Bepi, poi le missioni «Scopri le isole» (Capitan Remo) e «Dungeon». `attiva`: il client la fa partire solo se true. Passi: `tipo` client = lo segna il client (parlare, entrare in casa); arreda/attrezzo/cattura/guadagna = li vede il server dal lotto. Isole: `gioco` dice cosa conta come «provato» (una partita in più da quando la missione è partita). Testi: pagine da 4 righe al massimo; {nome} = il nome di chi gioca, {prezzo} = il prezzo della barca, {manca} = le monete che mancano; nelle missioni {isola}, {cosa}, {dungeon}, {premio}. `barca.consigli`: come fare monete, a giro sulla scheda finché la barca non è tua. `missioni`: la scheda dopo la barca (Remo, un'isola alla volta, poi i dungeon).",
+  "_nota": "La storia delle prime ore (GDD §9): naufragio, Nonna Pina, tutorial guidato fino a Fulvio, la barca da Bepi, poi le missioni «Scopri le isole» (Capitan Remo: `isoleDaProvare` isole a scelta) e «Dungeon». `attiva`: il client la fa partire solo se true. Passi: `tipo` client = lo segna il client (parlare, entrare in casa); arreda/attrezzo/cattura/guadagna = li vede il server dal lotto. Isole: `gioco` dice cosa conta come «provato» (una partita in più da quando la missione è partita); ogni isola provata paga il suo `premio`, e ne bastano `isoleDaProvare` a scelta, poi il viaggio rapido le apre tutte. Testi: pagine da 4 righe al massimo; {nome} = il nome di chi gioca, {prezzo} = il prezzo della barca, {manca} = le monete che mancano; nelle missioni {fatte}, {servono}, {manca}, {dungeon}, {premio}. `barca.consigli`: come fare monete, a giro sulla scheda finché la barca non è tua. `missioni`: la scheda dopo la barca (Remo, le isole a scelta, poi i dungeon).",
   "attiva": true,
   "regaloPina": "lume_a_olio_mezzo_vuoto",
   "barca": {
@@ -22,6 +22,7 @@
     { "id": "bepi", "tipo": "client", "chi": "bepi", "titolo": "Una barca, ti serve", "come": "Vai da Bepi al Cantiere navale, in riva a est del molo." },
     { "id": "gigi", "tipo": "client", "chi": "gigi", "titolo": "Un consiglio da marinaio", "come": "Gigi il Mozzo sa come si fanno le monete in fretta: parlagli." }
   ],
+  "isoleDaProvare": 3,
   "isole": [
     { "isola": "laguna", "gioco": { "tipo": "minigioco", "id": "regata" }, "premio": 50, "cosa": "la Regata" },
     { "isola": "corse", "gioco": { "tipo": "minigioco", "id": "corse" }, "premio": 60, "cosa": "il Gran Premio" },
@@ -37,8 +38,7 @@
   "dungeon": { "premio": 50 },
   "missioni": {
     "remo": { "titolo": "Capitan Remo ti cerca", "come": "È al Porto. Dice che le isole qui intorno non si scoprono da sole." },
-    "isola": { "titolo": "{isola}", "come": "Vai sull'isola e prova {cosa}. Anche una partita persa vale." },
-    "torna": { "titolo": "Torna da Capitan Remo", "come": "Hai provato {cosa}: raccontalo a Remo, al Porto." },
+    "isola": { "titolo": "Scopri le isole · {fatte}/{servono}", "come": "Prova il gioco di {servono} isole a tua scelta. Ognuna paga, anche con una partita persa." },
     "dungeon": { "titolo": "Dungeon: {dungeon}", "come": "Finiscilo e la missione paga {premio} monete. Uno alla volta, dal più facile." },
     "fine": ["Missioni finite", "Isole scoperte e dungeon sconfitti. Il viaggio rapido (in alto) ti porta dove vuoi."]
   },
@@ -89,9 +89,11 @@
       "Gigi: Banditi, forzieri, un capo con un brutto carattere. Se torni su intero, torni su ricco.",
       "Gigi: Prima passa dal Fabbro, Brando, accanto alla Grotta. Un bastone in mano non ha mai fatto male a nessuno. Cioè, sì, ma agli altri."
     ],
-    "remoMissione": "Remo: Senti, Navigante: c'è un'isola che ti aspetta. Prossima tappa: {isola}. Prova {cosa}, poi torna qui e raccontami.",
-    "remoAttesa": "Remo: Ancora qui? {isola}, {cosa}. Il mare è lì, non morde. Quasi mai.",
-    "remoFatto": "Remo: Hai provato {cosa}? Bravo. Ora che la conosci, {isola} è nel tuo viaggio rapido: ci torni quando vuoi. Tieni, per il disturbo.",
-    "remoFine": "Remo: Le hai viste tutte. Il Navigante della leggenda non avrebbe saputo fare di meglio. Forse proprio perché eri tu."
+    "remoMissione": [
+      "Remo: Senti, Navigante: qui intorno ci sono isole che non si scoprono da sole, ognuna col suo gioco.",
+      "Remo: Provane {servono}, quelle che vuoi. Ogni isola che provi te la pago, e da lì ci torni col viaggio rapido."
+    ],
+    "remoAttesa": "Remo: Ancora qui? Te ne mancano {manca}, scegli tu quali. Il mare è lì, non morde. Quasi mai.",
+    "remoFine": "Remo: Ne hai viste abbastanza da sapere dove tornare. Il viaggio rapido ti porta su tutte le isole: il resto lo scopri da solo."
   }
 }

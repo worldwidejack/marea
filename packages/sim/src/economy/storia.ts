@@ -2,6 +2,8 @@
 // comprare da Bepi, poi le missioni «Scopri le isole» (Capitan Remo) e «Dungeon». `LotState.storia` assente = storia non iniziata: il gioco
 // va come prima (la barca c'è, il viaggio rapido porta ovunque). La fa partire il client (`iniziaStoria`); da lì vale per tutti, veterani
 // compresi, che tengono quello che hanno (un regalo che hanno già non dà niente) ma ricomprano la barca.
+// «Scopri le isole»: con la barca parte la missione; ogni isola di cui provi il gioco (una partita in più da allora, anche persa) paga il
+// suo premio ed entra nel viaggio rapido, nell'ordine in cui le provi. Ne bastano `STORIA.isoleDaProvare`, a scelta: allora si aprono tutte.
 // I passi che il server vede dal lotto (posare un mobile, prendere un pesce, guadagnare monete) si segnano con una «base»: il contatore di
 // quando il passo è diventato quello da fare; fatto quando il contatore la supera (così chi aveva già pescato deve pescare di nuovo). Lo
 // stesso per il gioco dell'isola della missione. `avanzaStoria` la chiama il server a ogni lettura del lotto. Pura.
@@ -29,9 +31,11 @@ export type StoriaState = {
   attrezzo?: Attrezzo;
   /** La barca comprata da Bepi. Assente = a piedi. */
   barca?: boolean;
-  /** Isole della missione già fatte, in ordine: ci si va col viaggio rapido. */
+  /** Isole della missione già provate (e pagate), in ordine: ci si va col viaggio rapido. */
   isole?: string[];
-  /** Il contatore del gioco dell'isola da fare quando la missione è partita. Assente = non ancora partita. */
+  /** Il contatore del gioco di ogni isola non ancora provata quando la missione è partita. Assente = non ancora partita. */
+  isoleBase?: Record<string, number>;
+  /** Prima di «3 a scelta» (salvataggi vecchi): il contatore dell'unica isola da fare, letto una volta per non perdere la partita. */
   isolaBase?: number;
   /** Dungeon già contati dalla missione (premiati, o finiti prima che partisse). Assente = missione non ancora aperta. */
   dungeon?: string[];
@@ -59,20 +63,30 @@ export function faseStoria(lot: LotState | null | undefined): StoriaFase | null 
   if (!s) return null;
   if (passoCorrente(lot)) return 'tutorial';
   if (!s.barca) return 'barca';
-  return isolaCorrente(lot) ? 'isole' : 'libero';
+  return missioneIsole(lot)?.finita ? 'libero' : 'isole';
 }
 /** Hai la barca: senza storia sì (come prima), con la storia solo dopo averla comprata. */
 export const haBarca = (lot: LotState | null | undefined): boolean => !lot?.storia || lot.storia.barca === true;
-/** L'isola della missione da fare (null = finite, o niente barca ancora). */
-export function isolaCorrente(lot: LotState | null | undefined): StoriaIsola | null {
+/** Quante isole provate chiudono la missione (non più di quante ce ne sono). */
+export const ISOLE_DA_PROVARE = Math.min(STORIA.isoleDaProvare, STORIA.isole.length);
+/** La missione delle isole a che punto è: null = niente barca ancora (o storia non iniziata). */
+export function missioneIsole(lot: LotState | null | undefined): { provate: string[]; servono: number; finita: boolean } | null {
   const s = lot?.storia;
-  return s?.barca ? STORIA.isole[(s.isole ?? []).length] ?? null : null;
+  if (!s?.barca) return null;
+  const provate = s.isole ?? [];
+  return { provate, servono: ISOLE_DA_PROVARE, finita: provate.length >= ISOLE_DA_PROVARE };
 }
-/** Dove porta il viaggio rapido: null = ovunque (storia non iniziata); il Porto e le isole fatte, solo con la barca. */
+/** Le isole della missione ancora da provare (vuoto = finita, o niente barca). */
+export function isoleDaProvare(lot: LotState | null | undefined): StoriaIsola[] {
+  const m = missioneIsole(lot);
+  return m && !m.finita ? STORIA.isole.filter((i) => !m.provate.includes(i.isola)) : [];
+}
+/** Dove porta il viaggio rapido: null = ovunque (storia non iniziata); il Porto e le isole provate, solo con la barca; tutte a missione finita. */
 export function viaggiDisponibili(lot: LotState | null | undefined): string[] | null {
-  const s = lot?.storia;
+  const s = lot?.storia, m = missioneIsole(lot);
   if (!s) return null;
-  return s.barca ? ['porto', ...(s.isole ?? [])] : [];
+  if (!m) return [];
+  return ['porto', ...m.provate, ...(m.finita ? STORIA.isole.map((i) => i.isola).filter((i) => !m.provate.includes(i)) : [])];
 }
 
 function contatorePasso(lot: LotState, p: StoriaPasso): number {
@@ -88,14 +102,9 @@ function contatoreGioco(lot: LotState, g: StoriaGioco): number {
   return lot.storia?.difesa ?? 0;
 }
 
-/** Hai provato il gioco dell'isola della missione: si torna da Remo a riscuotere. */
-export function isolaProvata(lot: LotState | null | undefined): boolean {
-  const i = isolaCorrente(lot), b = lot?.storia?.isolaBase;
-  return !!lot && !!i && b !== undefined && contatoreGioco(lot, i.gioco) > b;
-}
-
 /**
- * Porta avanti quello che il server vede dal lotto: i passi del tutorial (con la loro base), la partenza della missione dell'isola, la
+ * Porta avanti quello che il server vede dal lotto: i passi del tutorial (con la loro base), la missione delle isole (alla barca i
+ * contatori di partenza; poi ogni isola provata paga `premio` ed entra in `isole`, finché non ne bastano `ISOLE_DA_PROVARE`), la
  * missione dei dungeon (aperta dopo Gigi: quelli già finiti contano senza premio, ogni dungeon finito dopo dà `STORIA.dungeon.premio`).
  * Senza storia, o se non cambia niente, restituisce lo stesso lotto.
  */
@@ -117,8 +126,7 @@ export function avanzaStoria(lot0: LotState): LotState {
   }
   const s = lot.storia;
   if (s) {
-    const i = isolaCorrente(lot);
-    if (i && s.isolaBase === undefined) lot = { ...lot, storia: { ...s, isolaBase: contatoreGioco(lot, i.gioco) } };
+    lot = avanzaIsole(lot);
     const s2 = lot.storia!, completati = heroOf(lot).completati ?? [];
     if (s2.fatti.includes('gigi')) {
       if (!s2.dungeon) lot = { ...lot, storia: { ...s2, dungeon: [...completati] } };
@@ -129,6 +137,30 @@ export function avanzaStoria(lot0: LotState): LotState {
     }
   }
   return lot === lot0 ? lot0 : { ...lot, version: lot0.version + 1 };
+}
+
+/** La missione delle isole: parte con la barca (i contatori di adesso: quello che hai giocato prima non conta), poi paga le isole provate. */
+function avanzaIsole(lot0: LotState): LotState {
+  const da = isoleDaProvare(lot0), s0 = lot0.storia;
+  if (!s0 || !da.length) return lot0;
+  if (!s0.isoleBase) {
+    // un salvataggio di prima: l'isola che Remo ti aveva dato tiene il contatore di quando te l'aveva data
+    const { isolaBase: vecchia, ...resto } = s0, base: Record<string, number> = {};
+    const prima = vecchia !== undefined ? STORIA.isole[(s0.isole ?? []).length] : undefined;
+    for (const i of da) base[i.isola] = i === prima ? vecchia! : contatoreGioco(lot0, i.gioco);
+    return { ...lot0, storia: { ...resto, isoleBase: base } };
+  }
+  let lot = lot0;
+  for (const i of da) {
+    const s = lot.storia!;
+    if ((s.isole ?? []).length >= ISOLE_DA_PROVARE) break;
+    const b = s.isoleBase?.[i.isola];
+    if (b === undefined || contatoreGioco(lot, i.gioco) <= b) continue;
+    lot = { ...guadagna(lot, i.premio), storia: { ...s, isole: [...(s.isole ?? []), i.isola] } };
+  }
+  const s = lot.storia!;
+  if ((s.isole ?? []).length >= ISOLE_DA_PROVARE) { const { isoleBase: _via, ...resto } = s; lot = { ...lot, storia: resto }; }
+  return lot;
 }
 
 /** La storia comincia (dal naufragio). Già cominciata: niente. */
@@ -168,16 +200,6 @@ export function compraBarca(lot0: LotState, nowMs: number): LotState {
   if (!s || s.barca) throw new EconomyError('unico', 'La barca ce l’hai già');
   if (!s.fatti.includes('bepi')) throw new EconomyError('requisito', 'Prima parla con Bepi');
   return avanzaStoria(con(spendi(lot, STORIA.barca.prezzo), { ...s, barca: true }));
-}
-
-/** Da Capitan Remo: l'isola della missione è provata → premio, viaggio rapido su quell'isola, e parte la missione dopo. */
-export function riscuotiIsola(lot0: LotState, nowMs: number): { lot: LotState; isola: string; premio: number } {
-  const lot = advance(lot0, nowMs), i = isolaCorrente(lot), s = lot.storia;
-  if (!s || !i) throw new EconomyError('requisito', 'Nessuna isola da raccontare');
-  if (!isolaProvata(lot)) throw new EconomyError('requisito', 'Prima prova il gioco dell’isola');
-  const { isolaBase: _via, ...resto } = s;
-  const next = con(guadagna(lot, i.premio), { ...resto, isole: [...(s.isole ?? []), i.isola] });
-  return { lot: avanzaStoria(next), isola: i.isola, premio: i.premio };
 }
 
 /** Una partita alla Difesa (dal client: la Difesa non passa dal server). Senza storia: niente. */

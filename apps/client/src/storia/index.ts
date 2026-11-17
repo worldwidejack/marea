@@ -1,11 +1,11 @@
 // La storia delle prime ore nel client (GDD §9, stato in @marea/sim/economy/storia.ts): chunk caricato da main.ts dopo l'avvio. Parte da
 // sola se storia.json `attiva` (coi test solo con ?storia=1, che la fa partire anche spenta): segna l'inizio sul server, poi il naufragio
 // (scena a parte), il risveglio con Nonna Pina, e da lì il tutorial guidato sulla scheda obbligatoria (passi.ts: casa, ARREDA, il regalo
-// di Fulvio, il primo bottino, il Furetto, Bepi, Gigi) fino alla barca da comprare; poi le missioni (missioni.ts: le isole di Capitan Remo e
-// i dungeon) finché non sono finite. I personaggi parlano coi dialoghi della storia (dialoghi.ts, agganciati con avvio/prima.ts). Ogni passo
+// di Fulvio, il primo bottino, il Furetto, Bepi, Gigi) fino alla barca da comprare; poi le missioni (missioni.ts: le isole a scelta di Capitan
+// Remo e i dungeon) finché non sono finite. I personaggi parlano coi dialoghi della storia (dialoghi.ts, agganciati con avvio/prima.ts). Ogni passo
 // fatto lo segna il server: ricaricando la pagina si riparte dal passo dove eri.
 import { STORIA } from '@marea/content/storia.ts';
-import { isolaCorrente, passoCorrente } from '@marea/sim/economy/storia.ts';
+import { missioneIsole, passoCorrente } from '@marea/sim/economy/storia.ts';
 import type { LotState } from '@marea/sim';
 import type { BarcaLook, Look } from '@marea/protocol';
 import { FLAGS } from '../flags.ts';
@@ -22,7 +22,7 @@ import type { Guida } from '../ui/guida.ts';
 import { setPrimaLaStoria } from '../avvio/prima.ts';
 import { registerStateProvider } from '../test/testapi.ts';
 import { creaDialoghi } from './dialoghi.ts';
-import { passiMissioni } from './missioni.ts';
+import { nomeIsola, passiMissioni } from './missioni.ts';
 import type { Meta } from './missioni.ts';
 import { creaNaufragio, NAUFRAGIO_NERO } from './naufragio.ts';
 import type { Naufragio } from './naufragio.ts';
@@ -65,9 +65,9 @@ export function createStoria(o: StoriaOpts): Storia {
   const aspetta = (ms: number) => new Promise<void>((r) => setTimeout(r, ms / veloce));
   const finche = (fatto: () => boolean) => new Promise<void>((r) => { const k = setInterval(() => { if (fatto()) { clearInterval(k); r(); } }, 200); });
   let scena: Naufragio | null = null, nero: Nero | null = null, fase = 'attesa';
-  registerStateProvider('storia', () => ({ fase, passo: passoCorrente(o.getLot())?.id ?? null, barca: !!o.getLot()?.storia?.barca, isola: isolaCorrente(o.getLot())?.isola ?? null, t: scena?.t ?? null }));
+  registerStateProvider('storia', () => ({ fase, passo: passoCorrente(o.getLot())?.id ?? null, barca: !!o.getLot()?.storia?.barca, isole: missioneIsole(o.getLot())?.provate ?? null, t: scena?.t ?? null }));
   const segna = async (id: string) => { const l = await o.api.storia('passo', { id }); o.setLot(l); return l; };
-  // la prima isola te la dà Remo: sentito una volta, su questo dispositivo (se si perde, Remo la ripete)
+  // la missione delle isole te la dà Remo: sentito una volta, su questo dispositivo (se si perde, Remo la ripete)
   const chiaveRemo = `marea:storia:remo:${o.nome}`;
   let sentito = (() => { try { return localStorage.getItem(chiaveRemo) === '1'; } catch { return false; } })();
   const remo = { sentito: () => sentito, senti: () => { sentito = true; try { localStorage.setItem(chiaveRemo, '1'); } catch { /* storage bloccato */ } } };
@@ -109,16 +109,23 @@ export function createStoria(o: StoriaOpts): Storia {
     }
   }
 
-  /** Le missioni: la scheda finché le isole e i dungeon non sono finiti; un toast quando il server paga un dungeon. */
+  /** Le missioni: la scheda finché le isole e i dungeon non sono finiti; un toast quando il server paga un'isola o un dungeon. */
   async function missioni(): Promise<void> {
     fase = 'missioni';
     const m = passiMissioni({ world: o.world, porto: o.porto, getLot: o.getLot, mete: o.mete, dungeon: o.dungeon, sentito: remo.sentito });
     const g = createGuida({ ...comune, steps: m.steps, nota: m.nota, onFocus: (id) => o.focus(m.meta(id)), nome: 'Missioni', id: 'mzMissioni', stato: 'missioniGuida', fine: STORIA.missioni.fine });
-    let pagati = o.getLot()?.storia?.dungeon?.length ?? 0;
+    let pagati = o.getLot()?.storia?.dungeon?.length ?? 0, provate = missioneIsole(o.getLot())?.provate.length ?? 0;
     await scheda(g, () => g.current() === null, () => {
       const n = o.getLot()?.storia?.dungeon?.length ?? 0;
       if (n > pagati) o.hud.toast(`Missione Dungeon: +${(n - pagati) * STORIA.dungeon.premio} monete`, 3500);
       pagati = n;
+      const mi = missioneIsole(o.getLot()), k = mi?.provate.length ?? 0;
+      if (mi && k > provate) {
+        const nuove = mi.provate.slice(provate).map((id) => STORIA.isole.find((i) => i.isola === id)).filter((i) => !!i);
+        const soldi = nuove.reduce((t, i) => t + i.premio, 0), nomi = nuove.map((i) => nomeIsola(i.isola)).join(', ');
+        o.hud.toast(mi.finita ? `+${soldi} monete · ${nomi}. Ora il viaggio rapido ti porta su tutte le isole` : `+${soldi} monete · ${nomi} è nel viaggio rapido (${k}/${mi.servono})`, 4000);
+      }
+      provate = k;
     });
     o.focus(null);
     fase = 'fatta';
@@ -129,7 +136,7 @@ export function createStoria(o: StoriaOpts): Storia {
     await finche(() => !o.occupato());
     let lot = o.getLot();
     if (!lot) return;
-    if (lot.storia?.barca && !isolaCorrente(lot) && !o.dungeon()) { fase = 'fatta'; return; } // tutto fatto: niente da fare
+    if (missioneIsole(lot)?.finita && !o.dungeon()) { fase = 'fatta'; return; } // tutto fatto: niente da fare
     if (!lot.storia) { lot = await o.api.storia('inizia'); o.setLot(lot); }
     nero = creaNero(o.root, veloce);
     if (passoCorrente(lot)?.id === 'naufragio') {

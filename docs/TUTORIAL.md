@@ -11,24 +11,24 @@ Ogni volta che la tua PR **aggiunge, rimuove, rinomina, sposta o cambia il minig
 ## Dove sta il tutorial
 | Cosa | File |
 |---|---|
-| Testi, numeri, **elenco delle isole e del gioco che le rappresenta** (`isole[]`: `isola`, `gioco`, `premio`, `cosa`), passi, consigli, dialoghi | `packages/content/src/storia.json` |
-| Stato e regole (passo corrente, isola «provata», viaggio rapido sbloccato) | `packages/sim/src/economy/storia.ts` |
+| Testi, numeri, **elenco delle isole e del gioco che le rappresenta** (`isole[]`: `isola`, `gioco`, `premio`, `cosa`), quante provarne a scelta (`isoleDaProvare`), passi, consigli, dialoghi | `packages/content/src/storia.json` |
+| Stato e regole (passo corrente, isole «provate», viaggio rapido sbloccato) | `packages/sim/src/economy/storia.ts` |
 | Flusso del client, dialoghi, missioni di Remo, frecce e bussola | `apps/client/src/storia/` (`passi.ts`, `missioni.ts`, `dialoghi.ts`, `viaggio.ts`, `index.ts`) |
 | La scheda a schermo | `apps/client/src/ui/guida.ts` |
 | Test | `packages/sim/test/storia.test.ts` |
 | Descrizione a parole | `docs/GDD.md` §9 e `docs/VISIONE.md` §1 (riga «Storia e tutorial») |
 
 ## Cosa fare, caso per caso
-1. **Nuova isola** → aggiungi la riga in `storia.json` → `isole[]` nella posizione giusta (l'ordine è quello in cui Remo le dà). `gioco.tipo`/`id` devono essere quelli che il server registra come «partita giocata» (`diario.giocati`, `minigioco`/`templari`/`difesa`/`arena`): controlla in `economy/storia.ts` come viene riconosciuto. Poi: `premio`, `cosa` (testo: «una partita a…»). Se l'isola ha un molo/mercante nuovo, controlla che la freccia e la bussola di `missioni.ts` la trovino.
-2. **Isola rimossa o rinominata** → togli/aggiorna la riga in `isole[]`, e cerca il vecchio nome in `storia.json` (consigli, dialoghi di Remo e Bepi), in `dialoghi.ts` e in `GDD.md` §9 (l'elenco «Laguna, Corse, Templari…»). Chi ha già finito quella missione deve restare coerente: guarda come `economy/storia.ts` legge `diario.isole` e **non rompere i salvataggi esistenti**.
+1. **Nuova isola** → aggiungi la riga in `storia.json` → `isole[]` (Remo ne chiede `isoleDaProvare` a scelta: l'ordine conta solo a parità di distanza per la freccia). `gioco.tipo`/`id` devono essere quelli che il server registra come «partita giocata» (`diario.giocati`, `minigioco`/`templari`/`difesa`/`arena`): controlla in `economy/storia.ts` come viene riconosciuto. Poi: `premio`, `cosa` (testo: «una partita a…»). Se l'isola ha un molo/mercante nuovo, controlla che la freccia e la bussola di `missioni.ts` la trovino.
+2. **Isola rimossa o rinominata** → togli/aggiorna la riga in `isole[]`, e cerca il vecchio nome in `storia.json` (consigli, dialoghi di Remo e Bepi), in `dialoghi.ts` e in `GDD.md` §9 (l'elenco «Laguna, Corse, Templari…»). Chi l'ha già provata deve restare coerente: guarda come `economy/storia.ts` legge `storia.isole` e **non rompere i salvataggi esistenti**.
 3. **Minigioco cambiato o sostituito su un'isola** → aggiorna `gioco` e `cosa` della sua riga. `gioco` decide cosa conta come «provato»: se resta il vecchio id, la missione non si chiude mai.
 4. **Minigioco rimosso senza sostituto** → l'isola non può restare in `isole[]` con un gioco che non esiste: o ne scegli un altro, o la togli (caso 2).
-5. **Ordine/difficoltà cambiati** → Remo le dà in ordine di `isole[]` (premi crescenti 50→150): rimetti l'ordine e i premi in modo sensato.
+5. **Difficoltà cambiate** → ogni isola provata paga il suo `premio` (50→150, più alto dove ci vuole di più ad arrivarci): rimetti i premi in modo sensato.
 6. **Cambia un luogo o un personaggio del tutorial** (Cantiere, Furetto, Grotta, Fabbro…) → aggiorna `come` dei passi, `barca.consigli` e i `dialoghi` in `storia.json`: dicono dove andare in parole («in riva a est del molo», «sotto la piazza»).
 
 ## Prima di dire «fatto»
 - `node tests/run.mjs static types sim` verdi (`storia.test.ts` scorre tutte le isole di `STORIA.isole`: se si rompe, il tutorial è fuori sync).
-- Prova il tutorial a mano con `?storia=1` (coi test `?test=1` la storia parte solo così), a 390×844: le frecce portano davvero al posto, la scheda mostra il testo giusto, il viaggio rapido apre l'isola.
+- Prova il tutorial a mano con `?storia=1` (coi test `?test=1` la storia parte solo così), a 390×844: le frecce portano davvero al posto, la scheda mostra il testo giusto, il viaggio rapido apre l'isola provata.
 - `docs/GDD.md` §9 e, se cambia la regola, `docs/VISIONE.md` dicono la stessa cosa del codice.
 - Nella PR scrivi sotto «Decisioni prese» cosa hai cambiato nel tutorial e perché; se non l'hai toccato, una riga: «tutorial: non toccato perché …».
 

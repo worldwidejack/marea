@@ -1,5 +1,5 @@
-// @marea/content/storia.ts: la storia delle prime ore (GDD §9): passi del tutorial guidato, prezzo della barca, ordine delle isole della
-// missione «Scopri le isole», premio dei dungeon e i dialoghi. Entry separata da index.ts (come botteghe.ts): la usano il chunk della storia,
+// @marea/content/storia.ts: la storia delle prime ore (GDD §9): passi del tutorial guidato, prezzo della barca, le isole della missione
+// «Scopri le isole» (quante provarne, a scelta, e il gioco e il premio di ognuna), premio dei dungeon e i dialoghi. Entry separata da index.ts (come botteghe.ts): la usano il chunk della storia,
 // la sim e il server. Solo dati: le regole stanno in @marea/sim/economy/storia.ts. La validazione la chiama il test della sim.
 import storia from './storia.json' with { type: 'json' };
 import archipelago from './archipelago.json' with { type: 'json' };
@@ -13,7 +13,7 @@ export type StoriaPassoTipo = 'client' | 'arreda' | 'attrezzo' | 'cattura' | 'gu
 export type StoriaPasso = { id: string; tipo: StoriaPassoTipo; chi?: string; titolo: string; come: string };
 /** Cosa conta come «provato» il gioco di un'isola: una partita in più da quando la missione è partita. */
 export type StoriaGioco = { tipo: 'minigioco'; id: string } | { tipo: 'templari' } | { tipo: 'arena' } | { tipo: 'difesa' };
-export type StoriaIsola = { isola: string; gioco: StoriaGioco; premio: number; /** Il gioco in parole («la Regata»), nei dialoghi di Remo. */ cosa: string };
+export type StoriaIsola = { isola: string; gioco: StoriaGioco; /** Lo paga la missione quando provi il gioco. */ premio: number; /** Il gioco in parole («la Regata»). */ cosa: string };
 /** Una riga della scheda delle missioni. */
 export type StoriaRiga = { titolo: string; come: string };
 export type StoriaDef = {
@@ -23,10 +23,12 @@ export type StoriaDef = {
   /** `consigli`: come fare le monete, a giro sulla scheda della storia finché la barca non è tua. */
   barca: { prezzo: number; consigli: string[] };
   passi: StoriaPasso[];
+  /** Quante isole provare, a scelta, per chiudere «Scopri le isole». */
+  isoleDaProvare: number;
   isole: StoriaIsola[];
   dungeon: { premio: number };
-  /** La scheda dopo la barca: Remo ti cerca, l'isola da provare, torna da Remo, il dungeon; `fine` = titolo e testo a missioni finite. */
-  missioni: { remo: StoriaRiga; isola: StoriaRiga; torna: StoriaRiga; dungeon: StoriaRiga; fine: [string, string] };
+  /** La scheda dopo la barca: Remo ti cerca, le isole da provare, il dungeon; `fine` = titolo e testo a missioni finite. */
+  missioni: { remo: StoriaRiga; isola: StoriaRiga; dungeon: StoriaRiga; fine: [string, string] };
   dialoghi: Record<string, string | string[]>;
 };
 
@@ -60,10 +62,11 @@ export function validateStoria(): string[] {
     if (i.gioco.tipo === 'minigioco' && !minigiochi.has(i.gioco.id)) errs.push(`storia ${i.isola}: minigioco «${i.gioco.id}» non è nel Diario`);
     if (!(i.premio >= 0) || !i.cosa) errs.push(`storia ${i.isola}: premio o cosa sbagliati`);
   }
+  if (!Number.isInteger(STORIA.isoleDaProvare) || STORIA.isoleDaProvare < 1 || STORIA.isoleDaProvare > STORIA.isole.length) errs.push(`storia: isoleDaProvare dev'essere tra 1 e ${STORIA.isole.length}`);
   for (const id of isole) if (!viste.has(id)) errs.push(`storia: l'isola «${id}» non ha una riga in isole (Remo non la dà): vedi docs/TUTORIAL.md`);
   if (!(STORIA.dungeon.premio >= 0)) errs.push('storia: premio dei dungeon sbagliato');
   const m = STORIA.missioni;
-  for (const [k, r] of Object.entries({ remo: m.remo, isola: m.isola, torna: m.torna, dungeon: m.dungeon, fine: { titolo: m.fine[0], come: m.fine[1] } })) {
+  for (const [k, r] of Object.entries({ remo: m.remo, isola: m.isola, dungeon: m.dungeon, fine: { titolo: m.fine[0], come: m.fine[1] } })) {
     if (!r.titolo || !r.come || r.come.length > 120) errs.push(`storia: la riga «${k}» delle missioni manca o è più lunga di 120 caratteri`);
   }
   for (const [k, v] of Object.entries(STORIA.dialoghi)) {
