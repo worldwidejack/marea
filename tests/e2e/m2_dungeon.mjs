@@ -302,7 +302,8 @@ export default async function (ctx) {
       await page.keyboard.press('KeyF'); // SALVA · F (prima persona: il mouse è catturato)
       await ctx.waitState(page, (s) => !!s.dungeon.salvato && s.dungeon.salvatoQui && s.ingressi.salvataggi >= 1, 15000);
       assert(/SALVATO/.test(await page.locator('#mzDngBig').innerText()), 'manca la scritta SALVATO');
-      assert(/SALVATO/.test(await page.locator('#mzDngLanterna [data-act="salva"]').innerText()), 'il bottone non dice SALVATO');
+      // lo stato cambia subito, il bottone al fotogramma dopo: a pochi fps arriva più tardi
+      await page.locator('#mzDngLanterna [data-act="salva"]', { hasText: 'SALVATO' }).waitFor({ timeout: 15000 }).catch(() => { throw new Error('il bottone non dice SALVATO'); });
       const s0 = await st();
       assert(s0.dungeon.altari.filter((a) => a.attivo).length === 1 && s0.dungeon.scene.altareAcceso === n, 'altare acceso: ' + JSON.stringify(s0.dungeon.altari));
       const lot = await getLot('tokA');
