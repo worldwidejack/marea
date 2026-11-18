@@ -1,5 +1,5 @@
 // Viaggio rapido (GDD §9, al posto del teletrasporto di prova #264): il bottone col vortice in alto, un elenco di posti, un tocco e ci sei.
-// Ci sono il Borgo e le isole che hai scoperto con Capitan Remo (`viaggiDisponibili` della sim); chi non ha ancora la storia (e coi test, o
+// Ci sono il Borgo e le isole di cui hai provato il gioco nella missione di Capitan Remo, poi tutte (`viaggiDisponibili` della sim); chi non ha ancora la storia (e coi test, o
 // per chi sviluppa MAREA) li vede tutti. Senza barca main.ts non lo apre nemmeno. Chunk caricato al primo tocco del bottone.
 import { viaggiDisponibili } from '@marea/sim/economy/storia.ts';
 import type { LotState } from '@marea/sim';
@@ -46,7 +46,7 @@ export function createViaggio(ctx: ViaggioCtx) {
       g.appendChild(b);
     }
     box.appendChild(g);
-    if (mancano) box.appendChild(el('p', undefined, 'Le altre isole: prima scoprile con Capitan Remo, al Porto.'));
+    if (mancano) box.appendChild(el('p', undefined, 'Le altre isole: provane il gioco e compaiono qui.'));
     const x = el('button', 'x', 'Chiudi'); x.type = 'button'; x.addEventListener('click', () => { x.blur(); close(); });
     box.appendChild(x);
   };

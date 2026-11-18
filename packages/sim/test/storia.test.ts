@@ -1,6 +1,7 @@
 // La storia delle prime ore (GDD §9, economy/storia.ts): contenuti validi; senza storia il gioco va come prima; il tutorial in ordine, coi
 // passi visti dal lotto che valgono solo da quando sono diventati quelli da fare; il regalo di Fulvio (doppio = niente); la barca da Bepi;
-// la missione delle isole (provata → Remo → viaggio rapido) e quella dei dungeon (quelli finiti prima non pagano).
+// la missione delle isole (3 a scelta: ognuna provata paga ed entra nel viaggio rapido, poi si aprono tutte; i salvataggi di prima tengono
+// quello che avevano) e quella dei dungeon (quelli finiti prima non pagano).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CANNA } from '@marea/content/pesci.ts';
@@ -9,9 +10,10 @@ import { STORIA, validateStoria } from '@marea/content/storia.ts';
 import { newLot } from '../src/economy/actions.ts';
 import { checkMonete, moneteOf } from '../src/economy/monete.ts';
 import {
-  avanzaStoria, compraBarca, faseStoria, fattoPasso, haBarca, iniziaStoria, isolaCorrente, isolaProvata, passoCorrente, regaloAttrezzo,
-  riscuotiIsola, segnaArena, segnaDifesa, viaggiDisponibili,
+  ISOLE_DA_PROVARE, avanzaStoria, compraBarca, faseStoria, fattoPasso, haBarca, iniziaStoria, isoleDaProvare, missioneIsole, passoCorrente,
+  regaloAttrezzo, segnaArena, segnaDifesa, viaggiDisponibili,
 } from '../src/economy/storia.ts';
+import type { StoriaIsola } from '@marea/content/storia.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { heroOf } from '../src/rpg/hero.ts';
 import { conMonete, senzaMonete } from './monete_util.ts';
@@ -25,6 +27,16 @@ const conPesce = (l: LotState): LotState => leggi({ ...l, pesci: { visti: { ...(
 const conArredo = (l: LotState): LotState => leggi({ ...l, casa: { ...l.casa, arredi: [...(l.casa?.arredi ?? []), { id: `x-${l.version}`, mobile: STORIA.regaloPina, cell: [1, 1] }] } });
 const conMoneteGuadagnate = (l: LotState, n: number): LotState => leggi(conMonete(l, n));
 const giocato = (l: LotState, mg: string): LotState => leggi({ ...l, diario: { ...(l.diario ?? { pesci: {}, perle: {}, medaglie: {}, giocati: {}, animali: [], isole: [], dungeon: 0 }), giocati: { ...(l.diario?.giocati ?? {}), [mg]: (l.diario?.giocati[mg] ?? 0) + 1 } } } as LotState);
+
+/** Una partita al gioco dell'isola: Difesa e Arena dal client, Templari dal loro contatore. */
+function prova(l: LotState, i: StoriaIsola): LotState {
+  const g = i.gioco;
+  if (g.tipo === 'minigioco') return giocato(l, g.id);
+  if (g.tipo === 'difesa') return segnaDifesa(l);
+  if (g.tipo === 'arena') return segnaArena(l);
+  return leggi({ ...l, templari: { pending: null, giorno: 0, preso: 0, record: 1, partite: (l.templari?.partite ?? 0) + 1 } });
+}
+const isola = (id: string): StoriaIsola => STORIA.isole.find((i) => i.isola === id)!;
 
 /** Il tutorial fatto fino a Bepi e Gigi compresi. */
 function tutorial(l0: LotState, attrezzo: 'canna' | 'retino' = 'canna'): LotState {
@@ -121,65 +133,59 @@ test('storia: la barca da Bepi, dopo avergli parlato, coi soldi giusti, una volt
   assert.equal(checkMonete([l]), null);
 });
 
-test('storia: «Scopri le isole» un\'isola alla volta, Remo paga e apre il viaggio rapido', () => {
+test('storia: «Scopri le isole» tre a scelta, in qualsiasi ordine: ognuna paga e va nel viaggio rapido, poi si aprono tutte', () => {
+  assert.equal(ISOLE_DA_PROVARE, 3);
   let l = compraBarca(tutorial(lotto(STORIA.barca.prezzo + 20)), T0);
-  l = giocato(l, 'regata'); // la Regata giocata prima che la missione partisse non conterebbe: qui la missione era già partita alla barca
-  const prima = STORIA.isole[0]!;
-  assert.equal(isolaCorrente(l)?.isola, prima.isola);
-  assert.equal(isolaProvata(l), true);
-  const m = moneteOf(l), out = riscuotiIsola(l, T0);
-  assert.equal(out.isola, prima.isola);
-  assert.equal(moneteOf(out.lot), m + prima.premio);
-  l = out.lot;
-  assert.deepEqual(viaggiDisponibili(l), ['porto', prima.isola]);
-  assert.equal(isolaCorrente(l)?.isola, STORIA.isole[1]!.isola);
-  assert.throws(() => riscuotiIsola(l, T0), isErr('requisito'), 'la seconda non è ancora provata');
-  // tutte, in ordine: Difesa dal client, Templari e Arena dai loro contatori
-  for (const i of STORIA.isole.slice(1)) {
-    const g = i.gioco;
-    if (g.tipo === 'minigioco') l = giocato(l, g.id);
-    else if (g.tipo === 'difesa') l = segnaDifesa(l);
-    else if (g.tipo === 'templari') l = leggi({ ...l, templari: { pending: null, giorno: 0, preso: 0, record: 1, partite: (l.templari?.partite ?? 0) + 1 } });
-    else l = leggi({ ...l, arena: { pending: null, giorno: 0, preso: 0, vinte: 0, perse: 1, pari: 0 } });
-    l = riscuotiIsola(l, T0).lot;
+  assert.equal(isoleDaProvare(l).length, STORIA.isole.length, 'tutte da scegliere');
+  // dalla fine della lista, non nell'ordine di storia.json
+  const scelte = [isola('tempesta'), isola('difesa'), isola('arena')];
+  let m = moneteOf(l);
+  for (const [k, i] of scelte.entries()) {
+    l = prova(l, i);
+    assert.equal(moneteOf(l), m + i.premio, `${i.isola} paga`);
+    m = moneteOf(l);
+    assert.deepEqual(missioneIsole(l)?.provate, scelte.slice(0, k + 1).map((x) => x.isola));
+    if (k < 2) {
+      assert.equal(faseStoria(l), 'isole');
+      assert.deepEqual(viaggiDisponibili(l), ['porto', ...scelte.slice(0, k + 1).map((x) => x.isola)]);
+      l = prova(l, i); // rigiocarla non paga di nuovo
+      assert.equal(moneteOf(l), m, 'una volta sola');
+    }
   }
+  assert.equal(missioneIsole(l)?.finita, true);
   assert.equal(faseStoria(l), 'libero');
-  assert.deepEqual(viaggiDisponibili(l), ['porto', ...STORIA.isole.map((i) => i.isola)]);
+  assert.deepEqual([...viaggiDisponibili(l)!].sort(), ['porto', ...STORIA.isole.map((i) => i.isola)].sort(), 'il viaggio rapido le apre tutte');
+  assert.deepEqual(isoleDaProvare(l), []);
+  l = prova(l, isola('laguna'));
+  assert.equal(moneteOf(l), m, 'a missione finita le altre isole non pagano');
   assert.equal(checkMonete([l]), null);
 });
 
 test('storia: un gioco giocato prima della missione non conta', () => {
   const l = compraBarca(tutorial(giocato(lotto(STORIA.barca.prezzo), 'regata')), T0);
-  assert.equal(isolaProvata(l), false);
-  assert.throws(() => riscuotiIsola(l, T0), isErr('requisito'));
+  assert.deepEqual(missioneIsole(l)?.provate, []);
+  assert.equal(leggi(l), l);
 });
 
 test('storia: l’Arena vale sia con l’allenamento coi bot che con una partita online', () => {
-  // Arriviamo alla missione dell'Arena
-  const l0 = compraBarca(tutorial(lotto(STORIA.barca.prezzo + 500)), T0);
-  let l = l0;
-  for (const i of STORIA.isole) {
-    if (i.isola === 'arena') break;
-    const g = i.gioco;
-    if (g.tipo === 'minigioco') l = giocato(l, g.id);
-    else if (g.tipo === 'difesa') l = segnaDifesa(l);
-    else if (g.tipo === 'templari') l = leggi({ ...l, templari: { pending: null, giorno: 0, preso: 0, record: 1, partite: (l.templari?.partite ?? 0) + 1 } });
-    l = riscuotiIsola(l, T0).lot;
-  }
-  assert.equal(isolaCorrente(l)?.isola, 'arena');
-  assert.equal(isolaProvata(l), false);
+  const l = compraBarca(tutorial(lotto(STORIA.barca.prezzo)), T0);
+  assert.deepEqual(missioneIsole(segnaArena(l))?.provate, ['arena']);
+  assert.deepEqual(missioneIsole(leggi({ ...l, arena: { pending: null, giorno: 0, preso: 0, vinte: 1, perse: 0, pari: 0 } }))?.provate, ['arena']);
+});
 
-  // 1) Caso allenamento coi bot (segnaArena)
-  const lAllenamento = segnaArena(l);
-  assert.equal(isolaProvata(lAllenamento), true);
-  const out = riscuotiIsola(lAllenamento, T0);
-  assert.equal(out.isola, 'arena');
-
-  // 2) Caso partita online (lot.arena aggiornato dal DO)
-  const lOnline = leggi({ ...l, arena: { pending: null, giorno: 0, preso: 0, vinte: 1, perse: 0, pari: 0 } });
-  assert.equal(isolaProvata(lOnline), true);
-  const out2 = riscuotiIsola(lOnline, T0);
-  assert.equal(out2.isola, 'arena');
+test('storia: i salvataggi di «un’isola alla volta» tengono le isole pagate e la partita all’isola in corso', () => {
+  const l0 = compraBarca(tutorial(lotto(STORIA.barca.prezzo)), T0), s = l0.storia!;
+  // Remo aveva pagato la Laguna e dato le Corse, giocate una volta dopo che te le aveva date
+  const { isoleBase: _via, ...vecchia } = s;
+  let l: LotState = { ...l0, storia: { ...vecchia, isole: ['laguna'], isolaBase: 0 } };
+  l = leggi(giocato(l, 'corse'));
+  l = leggi(l);
+  assert.deepEqual(missioneIsole(l)?.provate, ['laguna', 'corse'], 'le Corse valgono, la Laguna non ripaga');
+  assert.equal(l.storia?.isolaBase, undefined);
+  // chi ne aveva già fatte tre o più ha finito
+  const tre: LotState = { ...l0, storia: { ...vecchia, isole: ['laguna', 'corse', 'templari', 'difesa'] } };
+  assert.equal(faseStoria(tre), 'libero');
+  assert.equal(viaggiDisponibili(tre)!.length, STORIA.isole.length + 1);
 });
 
 test('storia: la missione dei dungeon apre con Gigi; i dungeon finiti prima non pagano', () => {

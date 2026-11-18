@@ -74,10 +74,8 @@ export type Api = {
   paesani(op: 'parla' | 'accetta' | 'rifiuta' | 'dona', body: { id: string; slot?: number }): Promise<{ lot: LotState; evento?: string; premio?: { monete: number } | { mobile: string } | null }>;
   /** Botteghe del Borgo (#414): migliora il Fabbro o la barca al Cantiere di un livello; `da` = il livello che vedi (409 se è già cambiato). */
   bottega(azione: 'migliora', body: { bottega: 'fabbro' | 'cantiere'; da: number }): Promise<LotState>;
-  /** La storia delle prime ore (sim/economy/storia.ts): inizia, passo {id} (quelli che il server non vede), attrezzo {scelta}, barca, difesa, arena.
-   *  `storiaIsola`: da Remo, l'isola provata → premio e viaggio rapido. */
+  /** La storia delle prime ore (sim/economy/storia.ts): inizia, passo {id} (quelli che il server non vede), attrezzo {scelta}, barca, difesa, arena. */
   storia(azione: 'inizia' | 'passo' | 'attrezzo' | 'barca' | 'difesa' | 'arena', body?: { id?: string; scelta?: 'canna' | 'retino' }): Promise<LotState>;
-  storiaIsola(): Promise<{ lot: LotState; isola: string; premio: number }>;
   /** Minigiochi da solo (senza posta): apre una partita col seed del server; `opzioni` = parametri della partita (es. il mare della pesca). */
   soloStart(minigame: string, opzioni?: Record<string, string>): Promise<SoloStart>;
   /** Consegna gli input della partita da solo: il server la rigioca e premia la medaglia. */
@@ -235,7 +233,6 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     paesani: (op, body) => call('POST', '/api/lot/paesani/' + op, body).then((d) => { const o = d as Record<string, unknown>; return { evento: typeof o['evento'] === 'string' ? o['evento'] : undefined, premio: isObj(o['premio']) ? o['premio'] as { monete: number } | { mobile: string } : null, lot: asLot(o['lot']) }; }),
     bottega: (azione, body) => post('/api/lot/bottega/' + azione, body),
     storia: (azione, body) => post('/api/lot/storia/' + azione, body ?? {}),
-    storiaIsola: () => call('POST', '/api/lot/storia/isola', {}).then((d) => { const o = d as Record<string, unknown>; return { lot: asLot(o['lot']), isola: String(o['isola'] ?? ''), premio: Number(o['premio'] ?? 0) }; }),
     async soloStart(minigame, opzioni) {
       const d = await call('POST', '/api/solo/start', opzioni ? { minigame, opzioni } : { minigame });
       if (!isObj(d) || typeof d['seed'] !== 'number') throw new ApiError(500, 'Risposta del server non valida');

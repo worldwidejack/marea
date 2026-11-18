@@ -1,13 +1,12 @@
 // La storia delle prime ore nel DO del lotto (@marea/sim/economy/storia.ts, GDD §9). Dal Worker, POST /api/lot/storia/<azione>:
 // /storia_inizia {} (la fa partire il client) · /storia_passo {id} (un passo che il server non vede: parlare, entrare in casa) ·
-// /storia_attrezzo {scelta} (il regalo di Fulvio: canna o retino) · /storia_barca {} (la barca da Bepi) · /storia_isola {} (da Remo:
-// premio e viaggio rapido sull'isola provata → {lot, isola, premio}) · /storia_difesa {} · /storia_arena {} (allenamento). Tutte rispondono col
-// lotto. I passi che il server vede (mobile posato, pesce preso, monete) li porta avanti `avanzaStoria` a ogni lettura del lotto.
-import { compraBarca, fattoPasso, iniziaStoria, regaloAttrezzo, riscuotiIsola, segnaArena, segnaDifesa } from '@marea/sim/economy/storia.ts';
+// /storia_attrezzo {scelta} (il regalo di Fulvio: canna o retino) · /storia_barca {} (la barca da Bepi) · /storia_difesa {} · /storia_arena {} (allenamento). Tutte rispondono col
+// lotto. I passi che il server vede (mobile posato, pesce preso, monete) e le isole provate della missione li porta avanti `avanzaStoria` a ogni lettura del lotto.
+import { compraBarca, fattoPasso, iniziaStoria, regaloAttrezzo, segnaArena, segnaDifesa } from '@marea/sim/economy/storia.ts';
 import type { LotState } from '@marea/sim/economy/types.ts';
 import { json } from '../http.ts';
 
-export const STORIA_ACTS = new Set(['storia_inizia', 'storia_passo', 'storia_attrezzo', 'storia_barca', 'storia_isola', 'storia_difesa', 'storia_arena']);
+export const STORIA_ACTS = new Set(['storia_inizia', 'storia_passo', 'storia_attrezzo', 'storia_barca', 'storia_difesa', 'storia_arena']);
 
 export function storiaRoute(lot: LotState, act: string, body: Record<string, unknown>, now: number, save: (l: LotState) => void): Response {
   const salva = (next: LotState): Response => { if (next !== lot) save(next); return json(next); };
@@ -22,11 +21,6 @@ export function storiaRoute(lot: LotState, act: string, body: Record<string, unk
       return s === 'canna' || s === 'retino' ? salva(regaloAttrezzo(lot, s, now)) : json({ error: 'Canna o retino?' }, 400);
     }
     case 'storia_barca': return salva(compraBarca(lot, now));
-    case 'storia_isola': {
-      const out = riscuotiIsola(lot, now);
-      save(out.lot);
-      return json(out);
-    }
     case 'storia_arena': return salva(segnaArena(lot));
     default: return salva(segnaDifesa(lot));
   }

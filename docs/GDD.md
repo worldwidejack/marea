@@ -158,7 +158,7 @@ Mondo alla GTA: né coop né guerra. Nessuno attacca o modifica le case altrui. 
 2. **Nonna Pina** ti trova sulla spiaggia: sei il Navigante della leggenda, tornato dal mare. Ti regala un lume e ti manda a casa. Chi non ha casa (oltre il 30°) salta la storia e tiene la barca.
 3. **Tutorial** su una scheda con la freccia gialla, senza SALTA né ×: entra in casa → posa il lume con ARREDA → Fulvio ti regala **la canna o il retino** (se ce l'hai già, niente) → prendi un pesce o un insetto → vendilo al Furetto → Bepi al Cantiere: la barca costa **400 monete** → Gigi consiglia la Grotta.
 4. **La barca**: senza, al molo non c'è e il viaggio rapido è spento. La scheda conta le monete con un consiglio a giro (favori dei paesani, Furetto, Ingorgo, Grotta); con 400 monete Bepi te la vende, coi colori e il nome di prima.
-5. **Missioni**: **Scopri le isole**: Capitan Remo, al Porto, ti dà un'isola alla volta (Laguna, Corse, Templari, Difesa, Arena, Adrenalina, Vulcano, Giardino, Ghiacci, Tempesta: le barriere diventano tappe); provi il suo gioco (una partita, anche persa) e torni da lui → monete e l'isola entra nel **viaggio rapido** (il bottone col vortice: il Borgo e le isole scoperte). **Dungeon**: una riga sotto, il più facile non ancora sconfitto; ognuno finito vale 50 monete.
+5. **Missioni**: **Scopri le isole**: Capitan Remo, al Porto, ti chiede di provare il gioco di **3 isole a scelta** (una partita, anche persa): ognuna paga subito ed entra nel **viaggio rapido** (il bottone col vortice); alla terza le apre tutte. La freccia indica l'isola aperta più vicina. **Dungeon**: una riga sotto, il più facile non ancora sconfitto; ognuno finito vale 50 monete.
 
 Testi corti e ironici. Coi test (`?test=1`) la storia parte solo con `?storia=1`.
 

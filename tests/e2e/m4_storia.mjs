@@ -1,8 +1,8 @@
 // La storia delle prime ore (GDD §9, storia/): server locale pulito, Luca entra la prima volta col telefono (390×844) e `?storia=1`.
 // Naufragio → risveglio con Nonna Pina → scheda obbligatoria (niente SALTA né ×) → casa → ARREDA (il lume, posato via API) → il regalo di
 // Fulvio (il retino) → un insetto (via API) → venduto al Furetto (via API) → Bepi → Gigi → la barca: senza, il viaggio rapido non si apre
-// e la barca al molo non c'è; Bepi dice quanto manca, con le monete di prova la vende. Poi le missioni: Remo dà la Laguna, una Regata
-// (autopilot), Remo paga e la Laguna entra nel viaggio rapido; la riga del dungeon sotto. La scheda sta nello schermo e non copre A né joystick.
+// e la barca al molo non c'è; Bepi dice quanto manca, con le monete di prova la vende. Poi le missioni: Remo chiede 3 isole a scelta, una
+// Regata (autopilot) paga la Laguna e la mette nel viaggio rapido; la riga del dungeon sotto. La scheda sta nello schermo e non copre A né joystick.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -163,13 +163,16 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.storia?.barca === true, 10000);
     });
 
-    await ctx.test('missioni: Remo dà la Laguna, una Regata, Remo paga e la Laguna è nel viaggio rapido; il dungeon nella riga sotto', async () => {
+    await ctx.test('missioni: Remo chiede 3 isole a scelta, una Regata paga la Laguna e la mette nel viaggio rapido; il dungeon nella riga sotto', async () => {
       await ctx.waitState(page, (s) => s.missioniGuida?.current === 'remo', 30000);
       await scheda('#mzMissioni', '8_missioni_remo');
       await parla(() => hook('portoApri', 'remo'));
-      assert(/Laguna/.test(await page.locator('#mzDialogo.on').innerText()), 'Remo non dà la Laguna');
+      const t1 = await page.locator('#mzDialogo.on').innerText();
+      await page.click('#mzDialogo.on button[data-act="avanti"]'); await sleep(350);
+      const t2 = await page.locator('#mzDialogo.on').innerText();
+      assert(/Provane 3/.test(t1 + t2), 'Remo non chiede 3 isole: ' + t1 + ' / ' + t2);
       await sfoglia();
-      await ctx.waitState(page, (s) => s.missioniGuida?.current === 'isola:laguna' && s.missioniGuida.pointer, 10000);
+      await ctx.waitState(page, (s) => s.missioniGuida?.current === 'isole' && s.missioniGuida.pointer, 10000);
       // la riga del dungeon (dopo il «Fatto!» del passo di Remo)
       await ctx.waitState(page, (s) => /Dungeon: /.test(s.missioniGuida?.nota ?? ''), 5000).catch(async () => assert(false, 'manca la riga del dungeon: ' + JSON.stringify((await st()).missioniGuida)));
       await scheda('#mzMissioni', '8b_missioni_laguna');
@@ -183,13 +186,10 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.minigiochi.open === true, 90000);
       await page.locator('#mzEsito [data-act="ok"]').click();
       await hook('lotRefresh');
+      await ctx.waitState(page, (s) => s.storia?.isole?.join() === 'laguna', 10000);
+      const dopo = (await api('/api/lot')).body;
+      assert(dopo.storia.isole.join() === 'laguna' && (await st()).missioniGuida?.current === 'isole', `isole: ${JSON.stringify(dopo.storia)}`);
       await hook('goto', 'porto'); await sleep(500);
-      const prima = (await api('/api/lot')).body;
-      await parla(() => hook('portoApri', 'remo'));
-      await sfoglia('riscuoti');
-      await ctx.waitState(page, (s) => s.missioniGuida?.current === 'isola:corse', 10000);
-      const dopo = (await api('/api/lot')).body, premio = storia.isole[0].premio;
-      assert(dopo.storia.isole.join() === 'laguna' && dopo.ledger.monete.generated === prima.ledger.monete.generated + premio, `Remo: ${JSON.stringify(dopo.storia)}`);
       await page.click('#mzTeleBtn');
       await page.waitForSelector('#mzTele.on', { timeout: 5000 });
       const isole = await page.$$eval('#mzTele.on button[data-isola]', (bs) => bs.map((b) => b.dataset.isola));
