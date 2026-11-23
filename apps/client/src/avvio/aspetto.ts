@@ -7,15 +7,23 @@ import { leggera, tuttoSpento } from '../render/viste.ts';
 import type { Impostazioni } from '../render/viste.ts';
 import { setOmbre } from '../render/light.ts';
 import type { Aspetto } from '../render/aspetto.ts';
+import type { PersonaggiSprite } from '../sprite/index.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
 export function aspettoGrafico(o: { renderer: Renderer; world: GameWorld; hud: Hud }): { get(): Aspetto | null; applica(s: Impostazioni): void } {
   const { renderer, world, hud } = o;
   let aspetto: Aspetto | null = null, aspettoLoad: Promise<void> | null = null, voglio: Impostazioni | null = null;
+  // personaggi 2.5D: chunk a parte, spenti si torna al modello 3D
+  let sprite: Promise<PersonaggiSprite | null> | null = null;
+  const accendiSprite = (on: boolean) => {
+    if (!on) { void sprite?.then((p) => p?.dispose()); sprite = null; return; }
+    const mia: Promise<PersonaggiSprite | null> = (sprite = import('../sprite/index.ts').then((m) => (sprite === mia ? m.creaPersonaggi({ renderer, scena: world.scene }) : null)).catch(() => null));
+  };
   const applica = (scelte: Impostazioni) => {
     // grafica bassa: risoluzione e ombre non vogliono il chunk dell'aspetto; meteo, contorni e stampa arrivano all'aspetto già spenti
     renderer.setBassa(!scelte.graficaAlta); setOmbre(scelte.graficaAlta);
     const s = leggera(scelte);
+    if (s.sprite !== !!sprite) accendiSprite(s.sprite);
     voglio = s;
     if (aspetto) { aspetto.set(s); return; }
     if (tuttoSpento(s)) return;

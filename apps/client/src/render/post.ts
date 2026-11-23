@@ -22,12 +22,16 @@ export type PostLook = {
 export type PostToggles = { contorni: boolean; foschia: boolean; cielo: boolean };
 export type Post = {
   /** `world` = false (dungeon, scene a parte): niente cielo né foschia, resta il fondo della scena. */
-  render(gl: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera, t: number, world?: boolean): void;
+  /** `out`: dove scrivere invece che sulla tela (lo strato degli sprite). */
+  render(gl: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera, t: number, world?: boolean, out?: THREE.WebGLRenderTarget): void;
   setSize(w: number, h: number): void;
   setStyle(s: PostLook): void;
   toggles: PostToggles;
   /** Draw call della scena (senza la passata finale) dell'ultimo frame. */
   sceneCalls(): number; sceneTris(): number;
+  /** Profondità della scena e ritocco di colore di adesso: li usa lo strato degli sprite. */
+  readonly profondita: THREE.DepthTexture;
+  readonly ritocco: { uExp: { value: number }; uSat: { value: number }; uCon: { value: number }; uTint: { value: THREE.Color } };
 };
 
 const MAXPAL = 32;
@@ -181,7 +185,7 @@ export function createPost(): Post {
   const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   let calls = 0, tris = 0, wind = 0, lastT = -1;
   return {
-    toggles,
+    toggles, profondita: depth, ritocco: U,
     setSize: (w, h) => { rt.setSize(w, h); U.uRes.value.set(w, h); },
     setStyle: (s) => {
       U.uInkCol.value.set(s.ink.col); U.uInkMix.value = s.ink.mix; U.uCrease.value = s.ink.crease;
@@ -197,7 +201,7 @@ export function createPost(): Post {
       U.uPalN.value = pal.length;
     },
     sceneCalls: () => calls, sceneTris: () => tris,
-    render: (gl, scene, camera, t, world = true) => {
+    render: (gl, scene, camera, t, world = true, out) => {
       gl.setRenderTarget(rt); gl.render(scene, camera);
       calls = gl.info.render.calls; tris = gl.info.render.triangles;
       U.uNear.value = camera.near; U.uFar.value = camera.far; U.uTime.value = t % 3600;
@@ -205,7 +209,7 @@ export function createPost(): Post {
       lastT = t;
       U.uInvProj.value.copy(camera.projectionMatrixInverse); U.uCamWorld.value.copy(camera.matrixWorld);
       U.uOutline.value = toggles.contorni ? 1 : 0; U.uFog.value = toggles.foschia && world ? 1 : 0; U.uSky.value = toggles.cielo && world ? 1 : 0; U.uOmbre.value = world ? 1 : 0;
-      gl.setRenderTarget(null); gl.render(quad, ortho);
+      gl.setRenderTarget(out ?? null); gl.render(quad, ortho);
     },
   };
 }

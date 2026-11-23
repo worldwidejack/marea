@@ -11,6 +11,7 @@ Gli script della ricetta in `.claude/skills/sprite-marea/SKILL.md`: leggi quella
 | `genera.py <cartella>` | manda i prompt a Codex, 4 alla volta, e salva i fogli in `fogli/` |
 | `pixel.py <cartella>` | dai fogli agli sprite: taglio per sagome, scala, tavolozza comune, contorno di 1 pixel, piedi sulla riga |
 | `foglio.py <cartella> [--apri]` | il foglio da guardare: per mossa le 9 viste × 4 disegni, sulla linea di terra, e il giro delle 16 direzioni |
+| `atlante.py <cartella>` | il protagonista dell'Atelier negli atlanti del gioco (`apps/client/public/assets/sprite/`): Borgo, attrezzi, Arena |
 | `in_fenaki.py <cartella>` | gli sprite nel banco di Fenaki: ogni mossa in ogni vista e il giro delle viste, da guardare e far votare |
 
 La cartella di un personaggio sta nell'**Atelier di MAREA** (repo `worldwidejack/marea-atelier`, clonato accanto a `marea`): `<atelier>/personaggi/<id>/`, esempio vero `personaggi/f3-prova/`. Il protagonista ufficiale è `personaggi/protagonista-pixellab/`; gli altri personaggi dell'Atelier sono «Storico idee», non canone. Tutto si committa lì, tranne `controllo/`:

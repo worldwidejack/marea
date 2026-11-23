@@ -10,7 +10,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLIENT = path.join(ROOT, 'apps/client');
-export const BUDGET = { jsKB: 1324, jsGzipKB: 406, lazyChunkKB: 600, lazyChunkGzipKB: 180, lazyJsKB: 3000, lazyJsGzipKB: 900, initialMB: 3, rpgAssetsMB: 1.5, corseAssetsMB: 2.5, mobiliAssetsMB: 3, genteAssetsMB: 3, abitiAssetsMB: 5, difesaAssetsMB: 4, textureMB: 16 };
+export const BUDGET = { jsKB: 1326, jsGzipKB: 407, lazyChunkKB: 600, lazyChunkGzipKB: 180, lazyJsKB: 3000, lazyJsGzipKB: 900, initialMB: 3, rpgAssetsMB: 1.5, corseAssetsMB: 2.5, mobiliAssetsMB: 3, genteAssetsMB: 3, abitiAssetsMB: 5, difesaAssetsMB: 4, spriteAssetsMB: 1.5, textureMB: 16 };
 const REPORT = path.join(ROOT, 'tests/out/build.json');
 
 const kb = (n) => +(n / 1024).toFixed(1);
@@ -126,6 +126,8 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
   // --- texture in VRAM (stima: w×h×4, senza mipmap) ---
   // le pelli della Difesa (#358) le carica solo difesa.html, una alla volta: budget a parte (difesaAssetsMB)
   const difesaAssetsBytes = files.filter((f) => f.startsWith('assets/difesa/')).reduce((a, f) => a + size(f), 0);
+  // gli atlanti dei personaggi 2.5D (assets/sprite/): il Borgo subito dopo l'avvio, quelli dell'Arena solo le armi in gioco (WebP: fuori dalla stima delle texture)
+  const spriteAssetsBytes = files.filter((f) => f.startsWith('assets/sprite/')).reduce((a, f) => a + size(f), 0);
   // le skin del protagonista (assets/skin/<id>.png, game/avatar_skin.ts) si scaricano una alla volta, solo quella che indossi: in VRAM ne vale una (512×512)
   const pngs = files.filter((f) => f.endsWith('.png') && !f.startsWith('assets/difesa/') && !f.startsWith('assets/abiti/') && !f.startsWith('assets/skin/'));
   const textures = pngs.map((f) => { const s = pngSize(path.join(outDir, f)); return s ? { file: f, w: s.w, h: s.h, bytes: s.w * s.h * 4 } : null; }).filter(Boolean);
@@ -133,7 +135,7 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
 
   const version = JSON.parse(fs.readFileSync(path.join(outDir, 'version.json'), 'utf8'));
   const report = {
-    build: version.build, jsKB: kb(jsBytes), jsGzipKB: kb(gz), lazyJsKB: kb(lazyBytes), lazyJsGzipKB: kb(lazyGz), proveJsKB: kb(prove.reduce((a, f) => a + size(f), 0)), rpgAssetsMB: mb(rpgAssetsBytes), corseAssetsMB: mb(corseAssetsBytes), mobiliAssetsMB: mb(mobiliAssetsBytes), genteAssetsMB: mb(genteAssetsBytes), abitiAssetsMB: mb(abitiAssetsBytes), difesaAssetsMB: mb(difesaAssetsBytes), initialMB: mb(initialBytes), textureMB: mb(texBytes),
+    build: version.build, jsKB: kb(jsBytes), jsGzipKB: kb(gz), lazyJsKB: kb(lazyBytes), lazyJsGzipKB: kb(lazyGz), proveJsKB: kb(prove.reduce((a, f) => a + size(f), 0)), rpgAssetsMB: mb(rpgAssetsBytes), corseAssetsMB: mb(corseAssetsBytes), mobiliAssetsMB: mb(mobiliAssetsBytes), genteAssetsMB: mb(genteAssetsBytes), abitiAssetsMB: mb(abitiAssetsBytes), difesaAssetsMB: mb(difesaAssetsBytes), spriteAssetsMB: mb(spriteAssetsBytes), initialMB: mb(initialBytes), textureMB: mb(texBytes),
     files: files.length, assetsMB: mb(assetsBytes), atlas: manifest?.atlas || null, models: Object.keys(manifest?.models || {}).length, modelTris: tris,
     biggestJs: biggest, lazyChunks, textures, budget: BUDGET, outDir,
   };
@@ -150,6 +152,7 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
   if (report.genteAssetsMB > BUDGET.genteAssetsMB) errs.push(`personaggi del Borgo ${report.genteAssetsMB} MB oltre il limite di ${BUDGET.genteAssetsMB} MB`);
   if (report.mobiliAssetsMB > BUDGET.mobiliAssetsMB) errs.push(`mobili ${report.mobiliAssetsMB} MB oltre il limite di ${BUDGET.mobiliAssetsMB} MB`);
   if (report.difesaAssetsMB > BUDGET.difesaAssetsMB) errs.push(`pelli della Difesa ${report.difesaAssetsMB} MB oltre il limite di ${BUDGET.difesaAssetsMB} MB`);
+  if (report.spriteAssetsMB > BUDGET.spriteAssetsMB) errs.push(`atlanti dei personaggi 2.5D ${report.spriteAssetsMB} MB oltre il limite di ${BUDGET.spriteAssetsMB} MB`);
   if (report.corseAssetsMB > BUDGET.corseAssetsMB) errs.push(`kit delle Corse ${report.corseAssetsMB} MB oltre il limite di ${BUDGET.corseAssetsMB} MB`);
   if (report.initialMB > BUDGET.initialMB) errs.push(`caricamento iniziale ${report.initialMB} MB oltre il limite di ${BUDGET.initialMB} MB (JS ${report.jsKB} KB + asset del manifest ${mb(assetFiles.reduce((a, f) => a + size(f), 0))} MB)`);
   if (report.textureMB > BUDGET.textureMB) errs.push(`texture stimate ${report.textureMB} MB oltre il limite di ${BUDGET.textureMB} MB (${textures.map((t) => `${t.file} ${t.w}×${t.h}`).join(', ')})`);

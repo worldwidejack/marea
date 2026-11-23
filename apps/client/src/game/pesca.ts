@@ -234,7 +234,7 @@ export function createPescaBorgo(o: {
     f.yaw = y; w.avatar.prev.yaw = y;
   };
   const punta = (): THREE.Vector3 => {
-    const m = mano(), p = pitchCanna();
+    const m = mano(), p = pitchCanna(), s = w.mode === 'walk' ? w.avatar.sprite?.punta : null; if (s) return new THREE.Vector3(s.x, s.y, s.z);
     return new THREE.Vector3(m.x + Math.sin(m.h) * -Math.sin(p) * CANNA_L, m.y + Math.cos(p) * CANNA_L, m.z - Math.cos(m.h) * -Math.sin(p) * CANNA_L);
   };
   const lancia = () => {
@@ -320,7 +320,7 @@ export function createPescaBorgo(o: {
       const col = scuro.clone().lerp(new THREE.Color(PAL.abisso), 1 - a.alfa);
       ombreM.put(OMBRA_PESCE, a.x, 0.05, a.z, a.h + guizzo, 0, 0, s * (a.stato === 'via' ? Math.max(0.4, a.alfa) : 1), col);
     }
-    if (conCanna()) { const m = mano(); corpi.put(CANNA, m.x, m.y - 0.25, m.z, m.h, pitchCanna(), 0, 1); }
+    if (w.avatar.inMano?.attrezzo === 'canna') w.avatar.inMano.k = fase === 'volo' ? Math.min(1, faseT / C.lancio.secondi) * 0.98 : fase === 'attesa' || fase === 'morso' ? 0.99 : null; if (conCanna() && !(w.avatar.sprite && w.avatar.visible)) { const m = mano(); corpi.put(CANNA, m.x, m.y - 0.25, m.z, m.h, pitchCanna(), 0, 1); }
     const sott = fase === 'morso' ? -0.12 + Math.sin(tempo * 25) * 0.04 : -esca.dip * 0.07;
     if (fase === 'attesa' || fase === 'morso' || fase === 'volo') corpi.put(GALLEGGIANTE, esca.x, esca.y + (fase === 'volo' ? 0 : sott), esca.z, 0, 0, 0, 1.6);
     if (fase === 'mira') {

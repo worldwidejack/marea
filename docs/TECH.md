@@ -53,6 +53,7 @@ La stessa `sim` gira nel browser (per giocare) e nel Durable Object (per **verif
 - Sim a **60 Hz** con accumulatore (`DT = 1/60`), massimo 5 passi per frame; render a rAF con interpolazione `alpha` tra tick precedente e corrente.
 - L'avatar e la barca locali sono **client-authoritative** per la posizione (inviata a 10 Hz); tutto il resto (economia, partite, premi) è server-authoritative.
 - Look pixel: si renderizza su un canvas a **metà risoluzione** (pixel ratio ≤ 1,5 × 0,5) e lo si ingrandisce con `image-rendering: pixelated`.
+- **Personaggi 2.5D** (`sprite/`, chunk): con almeno uno sprite in scena la tela è a risoluzione piena (≤ 3,7 Mpixel; con la grafica bassa resta piccola). `sprite/strato.ts` disegna il mondo in un'immagine a metà risoluzione, la ingrandisce «nearest» e ci mette sopra gli sprite, nascosti dalla profondità della scena. Il modello 3D resta sotto, spento: le ossa servono al retino e alla lenza. Gli atlanti (`assets/sprite/`) li fa `tools/sprite/atlante.py` dall'Atelier: `borgo` dopo l'avvio, quelli dell'Arena solo per le armi in gioco.
 
 ## 5. Budget (la build fallisce se superati, `tools/build.mjs`)
 I numeri veri del JS e dei MB stanno in `BUDGET` di `tools/build.mjs`; draw call e triangoli in `tests/e2e/m3_prestazioni.mjs`. Non sono un dictat (Jack, 11 ott 2026): prima si prova a spostare codice in chunk `import()`; se non basta si alza il limite lì, col perché nella PR. All'avvio sul telefono non si rallenta mai.
@@ -62,7 +63,7 @@ I numeri veri del JS e dei MB stanno in `BUDGET` di `tools/build.mjs`; draw call
 | JS iniziale | ~1,3 MB minificato, ~394 KB gzip |
 | Ogni chunk caricato dopo con `import()` (GDR, minimappa, isole, giochi a schermo, audio) | ≤ 600 KB minificato, ≤ 180 KB gzip; tutti insieme ≤ 3000 KB, ≤ 900 KB gzip |
 | Caricamento iniziale (html + js + atlas + modelli della prima isola) | ≤ 3 MB |
-| Manifest secondari: modelli dei dungeon · kit delle Corse · mobili · personaggi del Borgo · pelli della Difesa | ≤ 1,5 · 2,5 · 3 · 3 · 4 MB |
+| Manifest secondari: modelli dei dungeon · kit delle Corse · mobili · personaggi del Borgo · pelli della Difesa · atlanti dei personaggi 2.5D | ≤ 1,5 · 2,5 · 3 · 3 · 4 · 1,5 MB |
 | Draw call per frame | ≤ 100 (sul PC, solo a zoom massimo sopra il Borgo: ≤ 110; dal 19 ott oscillava fra 101 e 105 con insetti, pesci e botteghe: da riportare sotto 100 unendo cappelli e ingressi in pezzi unici) |
 | Triangoli a schermo | ≤ 200.000 (sul PC, solo a zoom massimo sopra il Borgo: ≤ 205.000, come in `m3_prestazioni`; i personaggi del Borgo da lontano usano la versione leggera, ART_BIBLE §5) |
 | Texture in VRAM | ≤ 16 MB (eccezione: le ombre cotte delle ondate dei Templari, ~36 MB al PC e ~9 al telefono, `TEMPLARI.md` §3b) |

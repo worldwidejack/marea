@@ -12,13 +12,14 @@
 | `game/` | il mondo: avatar, barca, input; Borgo, casa, arredi, negozio, botteghe, pala, insetti, pesca; Porto; posti dei minigiochi; ingressi di dungeon e isole; animali | tutti, R sul Borgo |
 | `comandi/` | profili in `azioni.ts`, rimappatura, controller e menu | tutti |
 | `render/` | grafica 3D: scena a metà risoluzione, camera, acqua, luce, meteo e nuvole, isole (un file per isola a tema), mobili | J, R |
-| `ui/` | interfaccia: HUD «Allegro», minimappa, bussola, impostazioni, editor dell'avatar, diario, minigiochi a pixel, pannelli del Porto | J |
+| `sprite/` | giocatori 2.5D: mondo, Arena | R |
+| `ui/` | interfaccia: HUD «Allegro», minimappa, bussola, impostazioni, editor dell'avatar, diario, minigiochi, pannelli del Porto | J |
 | `net/` | `api.ts` (HTTP `/api/*`), `client.ts` (WebSocket della zona) | tutti |
 | `audio/` | suoni e musica: `ponte.ts` nel JS iniziale, il motore in un chunk | tutti |
 | `corse/` | Isola delle Corse: menù di scelta, gara, veicoli, risultati; banchi `prova/` (piste, garage, scena) e `discesa/` (bici) | J |
 | `adrenalina/` | snowboard dell'Adrenalina (chunk dalla funivia) | B |
 | `templari/` | partita a ondate dei Templari (chunk entrando in chiesa) | B |
-| `rpg/` | dungeon, eroe, forgia, alchimia, contrabbando; partite dell'Arena | R |
+| `rpg/` | dungeon, eroe, forgia, alchimia, contrabbando, Arena | R |
 | `storia/` | storia delle prime ore (chunk): naufragio, Nonna Pina, tutorial, barca, missioni, viaggio rapido | R |
 | `difesa/` | Difesa alla Plants vs Zombies: `difesa.html`, che si apre anche dal cancello dell'isola | J |
 | `sparo/` | banco dello sparatutto a missioni (`provasparo.html`) | J |

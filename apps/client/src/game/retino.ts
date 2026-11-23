@@ -22,6 +22,13 @@ const CENTRO = 0.1, NELLA_SACCA = 0.45;
 /** A che distanza da A non arriva più niente prima di lasciar perdere la carica (un altro bottone ha preso A). */
 const SENZA_A_MS = 500;
 
+/** A che punto è la mossa, 0..1 (per i disegni 2.5D): indietro mentre carica, giù nel fendente, a terra fino alla risalita. */
+function avanzamento(s: Pick<AzioneRetino, 'fase' | 'carica' | 'colpo'>): number | null {
+  const c = s.colpo, t = c ? Math.min(1, c.t / Math.max(0.001, c.durata)) : 0;
+  if (!c) return s.fase === 'carica' ? 0.38 * s.carica : null;
+  return c.fase === 'avvio' ? 0.38 * (c.da + (1 - c.da) * t) : c.fase === 'fendente' ? 0.4 + 0.39 * t : c.fase === 'risalita' && t > 0.5 ? null : 0.95;
+}
+
 export type Retino = {
   /** Carica o colpo in corso: A è del retino. */
   occupato(): boolean;
@@ -86,6 +93,7 @@ export function creaRetino(o: { w: GameWorld; attori: Map<string, Attore>; preso
       const ev = forzata ? [] : az.passo(dt), s = (ora = forzata ?? az);
       w.avatar.passo = s.fase === 'carica' ? uso.passoCarico : 1;
       anim.aggiorna(posaRetino(s));
+      if (w.avatar.inMano?.attrezzo === 'retino') w.avatar.inMano.k = avanzamento(s);
       // la presa: dal fendente al ritardo d'atterraggio, ogni punto toccato dalla rete da un frame all'altro
       const c = s.colpo;
       if (c && (c.fase === 'fendente' || c.fase === 'impatto' || c.fase === 'lag') && anim.attivo()) {
@@ -108,7 +116,7 @@ export function creaRetino(o: { w: GameWorld; attori: Map<string, Attore>; preso
     disegna(put) {
       if (!anim.attivo()) return;
       const p = anim.posa();
-      put(RETINO, p.x, p.y, p.z, p.h, p.pitch, p.roll, 1);
+      if (!w.avatar.sprite) put(RETINO, p.x, p.y, p.z, p.h, p.pitch, p.roll, 1); // in 2.5D il retino è nel disegno
       if (ora.fase === 'carica' && ora.carica > 0.5) mirino(put);
     },
     stato: () => ({ fase: az.fase, carica: az.carica, colpo: az.colpo, passo: w.avatar.passo, posa: anim.attivo() ? anim.posa() : null, dentro: dentro.size, mira: mira({ x: 0, y: 0, z: 0 }) }),
