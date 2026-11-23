@@ -110,6 +110,7 @@ In Arena le magie **elettriche non rallentano** (nei dungeon sì): fanno un po' 
   replay vale per il premio. Se il server si riavvia a metà (un deploy) la partita si perde, senza premio.
 
 ### Esito e premio
+- **Eroi 2.5D** (`sprite/arena.ts`, Impostazioni → «Personaggi 2.5D»): il protagonista con l'arma o la magia in mano, un atlante per arma; tutti uguali, sotto i piedi l'anello della squadra (acqua la mia, rosso le altre). Ulti e pugni non hanno ancora disegni loro.
 - Scheda finale: VITTORIA / SCONFITTA / PAREGGIO e il perché (ultimo in piedi o il posto, le stelle, la conquista, la cassaforte, la resa), e il premio.
 - **Premio** **[proposta]**: monete del personaggio, **30** per una vittoria, **10** per una sconfitta, niente per pareggio e resa; **tetto di
   150 monete al giorno** (giorno UTC). Nella Sopravvivenza vince solo il primo posto. Il lotto tiene vinte, perse e pari (`LotState.arena`).

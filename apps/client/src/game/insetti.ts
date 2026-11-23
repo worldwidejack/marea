@@ -259,7 +259,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   const bone = (n: string) => w.avatar.object.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(n)) ?? w.avatar.object.getObjectByName(n) ?? null;
   const V = new THREE.Vector3();
   const disegnaMano = (mano: Attrezzo) => {
-    if (mano === 'nulla' || mano === 'canna' || !puoImpugnare() || !w.avatar.visible) return; // la canna la disegna game/pesca.ts
+    if (mano === 'nulla' || mano === 'canna' || !puoImpugnare() || !w.avatar.visible || (w.avatar.sprite && mano === 'pala')) return; // la canna la disegna game/pesca.ts
     if (mano === 'retino') { retino.disegna(corpi.put); return; }
     const f = w.avatar.state, h = f.yaw, rx = Math.cos(h), rz = Math.sin(h), fx = Math.sin(h), fz = -Math.cos(h);
     const b = bone('Hand.R') ?? bone('LowerArm.R');
@@ -361,6 +361,8 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
       const f = w.avatar.state; fermoDa = Math.hypot(f.vx, f.vz) < 0.2 ? fermoDa + dt : 0;
       const c = chi(), dentro = inBorgo(), mano = inMano();
       const impugna = puoImpugnare();
+      const inM = impugna && mano !== 'nulla' ? mano : null;
+      if ((w.avatar.inMano?.attrezzo ?? null) !== inM) w.avatar.inMano = inM ? { attrezzo: inM, k: null } : null;
       w.avatar.setToolIdle(impugna && (mano === 'pala' || mano === 'canna'));
       retino.update(dt, impugna && mano === 'retino');
       syncLiberi(now);

@@ -84,7 +84,7 @@ Poi in **Fenaki** (`in_fenaki.py` ha preparato `controllo/`): `provino(cartella=
 
 ## Farli vedere
 1. Alla persona: il foglio aperto (`foglio.py --apri`) e la pagina di Fenaki; le scelte di gusto come A/B con le immagini.
-2. Al gruppo: push nell'Atelier (la galleria si aggiorna da sola in un minuto) e il link nel gruppo, con scritto cosa guardare (`_FOGLIO_sprite.jpg`, il video se serve). Nel gioco entrano quando nessuno è contrario (o col voto 2 su 3): il motore degli sprite del look 3 arriverà in MAREA con una PR a parte, che leggerà `sprite/elenco.json` (lo stesso formato della prova dei look).
+2. Al gruppo: push nell'Atelier (la galleria si aggiorna da sola in un minuto) e il link nel gruppo, con scritto cosa guardare (`_FOGLIO_sprite.jpg`, il video se serve). Nel gioco entrano quando nessuno è contrario (o col voto 2 su 3): il motore è `apps/client/src/sprite/` (docs/TECH.md §4) e gli atlanti li fa `tools/sprite/atlante.py`: una mossa o un'arma nuova del protagonista entra da lì.
 
 ## Cosa NON fare
 - Partire da forme fatte da codice al posto del design: prima il disegno approvato, poi le viste. La sagoma grigia dice solo misura e angolo e sparisce sotto il disegno (se il generatore copia le forme della base, il risultato sembra un modello low-poly ridisegnato).

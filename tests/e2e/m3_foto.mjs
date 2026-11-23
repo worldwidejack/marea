@@ -28,7 +28,9 @@ export default async function (ctx) {
     ctx.log('scatto', JSON.stringify({ ...d, dataUrl: `${(d.dataUrl.length / 1024).toFixed(0)} KB` }), 'canvas', perf.width, perf.height);
     const f = d.w / d.piccola[0];
     assert(Number.isInteger(f) && f >= 2 && f <= 6 && d.h === d.piccola[1] * f, `ingrandimento non intero: ${d.w}×${d.h} da ${d.piccola}`);
-    assert(d.foto[0] === perf.width && d.foto[1] === perf.height, `la foto non è il canvas a pixel: ${d.foto} invece di ${perf.width}×${perf.height}`);
+    // coi personaggi 2.5D la tela è a risoluzione piena (sprite/strato.ts), se no è quella a pixel del mondo
+    const tela = await page.evaluate(() => { const c = document.querySelector('canvas'); return [c.width, c.height]; });
+    assert(d.foto[0] === tela[0] && d.foto[1] === tela[1] && tela[0] >= perf.width, `la foto non è la tela: ${d.foto} invece di ${tela}`);
     assert(d.piccola[0] > d.foto[0] && d.piccola[1] > d.foto[1] + 20, `cornice assente: ${d.piccola} attorno a ${d.foto}`);
     assert(d.coloriFoto >= 20, `foto quasi uniforme: ${d.coloriFoto} colori`);
     assert(d.coloriCornice >= 4, `cornice senza dettagli: ${d.coloriCornice} colori`);

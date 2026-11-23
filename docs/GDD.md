@@ -47,7 +47,7 @@ Sotto le isole c'è il **Mondo Sotterraneo**, coi dungeon (§12, `RPG.md`); sull
 - **Minimappa e mappa grande** (#360): **nord sempre in alto**, **zoom a scatti**, un'**icona** per ogni meta, le isole non ancora scoperte non si vedono proprio. Toccando un punto della mappa grande ci metti un **segnalino**: diventa la meta del navigatore.
 - **Una mano** (#143, telefono e tablet, spenta di serie): dalle Impostazioni; il joystick nasce dove appoggi il pollice.
 - **Controller** (#698): pad e tasti rimappabili, dalle Impostazioni.
-- **Grafica superiore** (#638, accesa di serie): dalle Impostazioni. Spenta, il gioco è più leggero per i dispositivi meno prestanti: immagine più grossa, niente ombre, lanterne senza luce vera, mare semplice, meteo, contorni e stampa spenti (le scelte tornano riaccendendola).
+- **Grafica superiore** (#638, accesa): dalle Impostazioni. Spenta: immagine più grossa, niente ombre né luci delle lanterne, mare semplice, meteo, contorni e stampa spenti. **Personaggi 2.5D** (accesi): giocatori a sprite a piedi e nell'Arena, o 3D.
 - **Giorno e notte** (#487): sincronizzato all'ora reale di Roma (un giro ogni 24 ore), stessa ora per tutti; sempre attivo (non si disattiva).
 - **Meteo a nuvole** (#361): nuvole che si muovono sull'arcipelago decidono il tempo del posto dove sono: piove sotto la nuvola, non ovunque. Posto, tipo e forma vengono dall'orologio e da un seed, quindi due giocatori nello stesso punto vedono lo stesso cielo. Solo aspetto e suono, niente effetti sul gioco; si spegne dalle Impostazioni. Numeri in `meteo.json`.
 - **Tolti** (il codice sta nei tag `archivio/spenti-*`): il giardino dietro la casa con gli edifici che producevano Legno e Pietra, le sfide con posta (§7), il Faro comune, i traguardi e i titoli.

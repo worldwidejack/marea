@@ -79,7 +79,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
   const mia = d.squadre[io]!, nomi = o.eroi.map((e) => e.nome), mappa = arenaMappa(d.mappa), modo = arenaModo(d.modo);
   let phase: Phase = 'loading', wait = 0, view: PartitaView = viewPartita(d, io), auto: Rng | null = null, chiMiHa = -1;
   const botRng: Rng[] = o.eroi.map((_, j) => createRng(o.seed).fork('bot' + j));
-  let sc: DungeonScene | null = null, actors: Actors | null = null, hud: DungeonHud | null = null, ahud: ArenaControlli | null = null, gfx: MagieFx | null = null, mouse: Mouse | null = null, afx: ArenaFx | null = null, segni: ArenaSegni | null = null;
+  let sc: DungeonScene | null = null, actors: Actors | null = null, hud: DungeonHud | null = null, ahud: ArenaControlli | null = null, gfx: MagieFx | null = null, mouse: Mouse | null = null, afx: ArenaFx | null = null, segni: ArenaSegni | null = null, sprite: import('../sprite/arena.ts').ArenaSprite | null = null;
   /** Gli eroi: ognuno in un gruppo suo (si nasconde intero: avatar, arma, scie). */
   const eroi: (HeroActor | null)[] = [], gruppi: THREE.Scene[] = [], armi: (string | null)[] = o.eroi.map(() => null);
   const visibilita = o.eroi.map(creaVisibilitaArena), miraBomba = creaMiraBomba();
@@ -91,7 +91,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
   const firme: Record<number, number> = {};
 
   const cleanup = () => {
-    phase = 'over'; mouse?.dispose(); ctx.canvas.style.cursor = ''; ahud?.dispose(); afx?.dispose(); segni?.dispose(); hud?.dispose(); actors?.dispose(); gfx?.dispose();
+    phase = 'over'; mouse?.dispose(); ctx.canvas.style.cursor = ''; ahud?.dispose(); sprite?.dispose(); afx?.dispose(); segni?.dispose(); hud?.dispose(); actors?.dispose(); gfx?.dispose();
     for (const e of eroi) e?.dispose(); for (const g of gruppi) g.removeFromParent(); sc?.dispose(); ctx.renderer.setScene(null);
   };
   const chiudi = (esito: PartitaEsito | null, rivincita: boolean) => { if (phase === 'over') return; cleanup(); resolve({ esito, rivincita }); };
@@ -116,6 +116,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
         const h = d.s.eroi[j]!;
         eroi[j] = await createHeroActor({ loader: ctx.loader, look: e.look, hero: h.runHero, scene: g, floorY: scena.floorY, x: h.hero.x, z: h.hero.z, mirino: j === io });
       }));
+      const strato = ctx.renderer.strato; /* personaggi 2.5D accesi nelle impostazioni */ if (strato) sprite = (await import('../sprite/arena.ts')).creaArenaSprite({ strato, scena: sc.scene, camera: ctx.renderer.camera, eroi, gruppi, mia: (j) => d.squadre[j] === mia, set: d.eroi });
       actors = createActors({ loader: ctx.loader, scene: sc });
       gfx = createMagieFx(sc.scene, sc.floorY);
       afx = createArenaFx(sc.scene, sc.floorY, d.eroi.map((e) => e.dote));
@@ -344,7 +345,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     },
     update(alpha, dt, t) {
       if (!sc || !actors || !hud || !ahud || phase === 'over' || phase === 'loading') return;
-      eroi.forEach((e, j) => { if (e) visibilita[j]!.update(gruppi[j]!, e, alpha, dt, j === io && view.nascosto); });
+      eroi.forEach((e, j) => { if (e) visibilita[j]!.update(gruppi[j]!, e, alpha, dt, j === io && view.nascosto); }); sprite?.update(gruppi, (j) => visibilita[j]!.opacita);
       const p = eroi[fuoco()]!.avatar.object.position;
       // la camera guarda un po' verso gli avversari che si vedono (il più vicino, al massimo CAM_VERSO m): si vedono tutti finché si è vicini
       let ox = 0, oz = 0, vicino = Infinity;

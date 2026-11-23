@@ -18,6 +18,7 @@ import { creaRipristino } from './avatar_override.ts';
 import { HATS, MAGLIA_EROI, SOLO_EROI } from './avatar_cappelli.ts';
 import type { AvatarAzione } from './avatar_azioni.ts';
 export type { AvatarAzione } from './avatar_azioni.ts';
+import type { InMano, VestitoSprite } from './in_mano.ts';
 
 export type Avatar = {
   object: THREE.Object3D; state: AvatarState; prev: AvatarState;
@@ -54,6 +55,8 @@ export type Avatar = {
   avviaAzione(tipo: AvatarAzione, durata?: number, bersaglio?: { x: number; z: number }): number;
   readonly azioneInCorso: AvatarAzione | null; readonly azioneProgresso: number; readonly azioneTempo: number; interrompiAzione(): void;
   /** Frazione della velocità a piedi (1 = normale): chi tiene carico il retino va più piano. */ passo: number;
+  /** L'attrezzo in mano e a che punto è la mossa (insetti, retino, pesca), per i personaggi 2.5D. */ inMano: InMano | null;
+  /** Disegnato a sprite (sprite/): il corpo 3D e gli attrezzi 3D non si vedono. */ sprite: VestitoSprite | null;
 };
 
 const HIP_H = 0.82, SIT_HIP = 0.42, SEAT_DROP = 0.37; // altezza del bacino in piedi / seduto; bacino → seduta
@@ -317,7 +320,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
   const api: Avatar = {
     object, get state() { return state; }, get prev() { return prev; }, visible: true,
     get attached() { return attached; }, get usesModel() { return !!model; },
-    passo: 1,
+    passo: 1, inMano: null, sprite: null,
     step(input, map, ost) { ticks++; lastMap = map; prev = state; state = stepAvatar(state, azioni.inCorso || armOverride ? { ...input, roll: false } : input, map, ost, api.passo); },
     update(alpha, dt) {
       object.visible = api.visible;
@@ -387,6 +390,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
     get azioneInCorso() { return azioni.inCorso; }, get azioneProgresso() { return azioni.progresso; }, get azioneTempo() { return azioni.tempo; },
     interrompiAzione: () => azioni.interrompi(),
   };
+  if (!o.modello) object.userData['avatar'] = api; // i giocatori (non la gente del posto): li trova sprite/
   if (!registered) {
     registered = true;
     registerStateProvider('wp2_avatar', () => ({ abiti: model?.vesti?.stato() ?? null, ticks, facing: facing(object), model: !!model, skin: model?.skin() ?? null, shown, clip: model?.anim.current ?? null, attached, y: object.position.y, mv, runB, sitB, rowB, look, indossa: indossa ?? null, vestito: api.indossaStato() }));

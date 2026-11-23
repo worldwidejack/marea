@@ -43,7 +43,7 @@ export type HeroActor = {
   tick(h: DungeonView['hero']): void;
   /** Ogni frame, dopo l'interpolazione: ossa, arma, effetti. */
   update(alpha: number, dt: number): void;
-  flash(): void;
+  flash(): void; /** Personaggi 2.5D (sprite/arena.ts): corpo, arma e sfera 3D nascosti; la posa, i m/s e il lampo di adesso. */ soloSprite(on: boolean): void; readonly posa: DungeonView['hero'] | null; readonly velocita: number; readonly lampo: boolean;
   /** L'arma si è rotta (evento `rotto`): via il modello, si combatte coi pugni. */
   rotta(): void;
   /** Cambio d'arma dal menu dello zaino: modello nuovo nel pugno (o pugni), scia della portata nuova. */
@@ -137,9 +137,9 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
 
   let bow = false, tiro = false, arco: Arco | null = null, weapon: THREE.Object3D | null = null, bladeMats: THREE.MeshLambertMaterial[] = [], bladeLen = 0, kind: Kind = 'pugni', mountN = 0;
   // magia in mano: kind diventa 'magia' (due mani avanti, sfera), l'arma resta montata ma nascosta; `weaponKind` è quello dell'arma
-  let weaponKind: Kind = 'pugni', magiaId: string | null = null, rottaOra = false;
+  let weaponKind: Kind = 'pugni', magiaId: string | null = null, rottaOra = false, senza3d = false; const inPugno = (): boolean => !!weapon && !magiaId && !rottaOra;
   const fuori = o.soloCorpo ? new THREE.Scene() : o.scene, orbe = createOrbe(fuori);
-  const applyMano = (): void => { kind = magiaId ? 'magia' : weaponKind; if (weapon) weapon.visible = !magiaId && !rottaOra; };
+  const applyMano = (): void => { kind = magiaId ? 'magia' : weaponKind; if (weapon) weapon.visible = inPugno() && !senza3d; };
   const fxFor = (portata: number) => createHeroFx(fuori, { portata, rin: kind === 'pugni' ? 0.3 : R_PUGNO + 0.15 });
   let fx: HeroFx = fxFor(pugni().portata);
   /** Monta l'arma nel pugno (all'inizio e a ogni cambio dal menu); se nel frattempo ne arriva un'altra, vince l'ultima. */
@@ -415,8 +415,8 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   let miraDir: { x: number; z: number } | null = null, miraSempre = false;
   function mira(h: DungeonView['hero'], c: number): void {
     // l'arco teso, o col mouse (miraSempre) l'arco in mano / la magia in mano anche senza tendere
-    const arcoPronto = h.anim === 'tende' && !!arco && !!weapon?.visible;
-    MIRA.visible = !!o.mirino && (arcoPronto || (miraSempre && (!!magiaId || ((!!arco || tiro) && !!weapon?.visible))));
+    const arcoPronto = h.anim === 'tende' && !!arco && inPugno();
+    MIRA.visible = !!o.mirino && (arcoPronto || (miraSempre && (!!magiaId || ((!!arco || tiro) && inPugno()))));
     if (!MIRA.visible) return;
     const dx = miraDir ? miraDir.x : h.fx, dz = miraDir ? miraDir.z : h.fz, p = avatar.object.position;
     MIRA.position.set(p.x + dx * 0.4, o.floorY + (magiaId ? MAGIA_Y : FRECCIA_Y), p.z + dz * 0.4); // dove nasce il colpo nella sim
@@ -473,7 +473,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
         blendT += dt;
         mixPose(final, from, target, smooth(0, 0.09, blendT));
         if (cur.anim === 'schiva') { inner.position.set(0, 0, 0); inner.rotation.set(0, 0, 0); final.wA = 1; final.punta = null; final.dir.set(-1, 0.25, 0).normalize(); final.piatto.set(0, 0, 1); avatar.object.updateMatrixWorld(true); placeWeapon(final); } else apply(final, dt);
-        orbe.update({ pos: tmp.copy(wpR).add(wpL).multiplyScalar(0.5).add(ORBE_SU), on: !!magiaId && cur.anim !== 'morto' && cur.anim !== 'schiva', lancio: cur.anim === 'lancia' ? t : -1, dt });
+        orbe.update({ pos: tmp.copy(wpR).add(wpL).multiplyScalar(0.5).add(ORBE_SU), on: !!magiaId && !senza3d && cur.anim !== 'morto' && cur.anim !== 'schiva', lancio: cur.anim === 'lancia' ? t : -1, dt });
         corda(cur); mira(cur, c);
         const g = glow(cur, t, c);
         for (const m of bladeMats) m.emissive.setRGB(g, g * 0.85, g * 0.3);
@@ -489,7 +489,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
       for (const m of bodyMats) m.emissive.setRGB(lampo[0], lampo[1], lampo[2]);
       for (const m of avatar.indossaMats()) m.emissive.setRGB(lampo[0], lampo[1], lampo[2]);
     },
-    flash() { flashT = 0.12; },
+    flash() { flashT = 0.12; }, soloSprite(on) { if (on !== senza3d) { senza3d = on; inner.visible = !on; applyMano(); } }, get posa() { return cur; }, get velocita() { return speed; }, get lampo() { return flashT > 0; },
     setArma: (a) => mount(a),
     mira(d, sempre = false) { miraDir = d; miraSempre = sempre; },
     rotta() {
